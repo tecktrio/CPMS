@@ -86,25 +86,40 @@ TenantMemberships {
   membership_id:   UUID        // Unique membership record identifier
   user_id:         UUID        // Reference to Users
   tenant_id:       UUID        // Reference to Tenants
-  department_ids:  List<UUID>  // User's department allocations in this tenant
+  department_ids:  List<UUID>  // User's department allocations in this tenant (validated against Departments)
   is_active:       Boolean     // Active membership flag
   created_at:      Timestamp   // Creation timestamp
   updated_at:      Timestamp   // Last update timestamp
 }
 ```
 
-### 2.5 Permissions
+### 2.5 Departments
+```typescript
+Departments {
+  department_id:    UUID        // Unique department identifier
+  tenant_id:        UUID        // Multi-tenant reference
+  department_name:  String      // Unique department name per tenant (e.g., "Cold Storage", "QC")
+  description:      String      // Department role and operational scope
+  permission_ids:   List<String>// Array of allocated system permission IDs (e.g. ['permission.item.read'])
+  is_active:        Boolean     // Operational status (soft delete)
+  created_at:       Timestamp
+  updated_at:       Timestamp
+}
+```
+
+### 2.6 Permissions
 ```typescript
 Permissions {
-  permission_id:     UUID      // Unique permission identifier
-  resource_name:     String    // e.g., "item", "storeroom", "bom", "po"
-  action_type:       Enum      // CREATE | READ | UPDATE | DELETE
-  description:       String    // Human-readable permission explanation
+  permission_id:     String    // System permission identifier (e.g., "permission.item.create")
+  module:            String    // Module category (e.g., "Items", "StoreRooms", "Departments")
+  action:            Enum      // CREATE | READ | UPDATE | DELETE | ALLOCATE | EXECUTE
+  display_name:      String    // Human-readable title
+  description:       String    // Detailed explanation of access rights
   is_system_default: Boolean   // Fixed system default flag (true)
 }
 ```
 
-### 2.6 StoreRooms
+### 2.7 StoreRooms
 ```typescript
 StoreRooms {
   store_room_id:        UUID     // Unique cold room identifier
@@ -210,21 +225,35 @@ PurchaseOrders {
      X-Tenant-ID: <UUID>
      ```
    - The backend validates that the user is an active member of the specified `X-Tenant-ID` before fulfilling requests.
-4. **User Invitation & Department Allocation**:
-   - Tenant admins invite users by email.
-   - Invited users **must be assigned to a specific department** during invitation.
-   - **Department-Centric RBAC**: Permissions attach to departments, not individual users. All department members inherit its permission set.
+4. **User Addition, Department Allocation & User Management**:
+   - Tenant admins add users by providing their email address, tenant ID, and department IDs (`POST /tenants/add-user`).
+   - **Department Validation**: The provided `department_ids` **must be validated** against the active departments of that specific tenant organization. Invalid or inactive department IDs are rejected immediately.
+   - **Multiple Department Support**: A user can be assigned to multiple departments simultaneously within an organization (e.g., `['cold-storage-dept', 'quality-control-dept']`).
+   - **Update User Departments**: Tenant admins can update an existing member's department allocations (`PUT /tenants/users/:userId`).
+   - **Remove User from Department**: Tenant admins can remove a user from a specific department without affecting their other department roles (`DELETE /tenants/users/:userId/departments/:departmentId`).
+   - **Remove User from Organization**: Tenant admins can remove a user entirely from the tenant (`DELETE /tenants/users/:userId`). Tenant admin cannot be removed from their own organization.
+   - **Department-Centric RBAC**: Permissions attach to departments, not individual users. Users inherit the collective permission sets across all assigned departments.
 
 ### 3.2 Dynamic Departments & System Permissions
-Tenant admins create departments dynamically and allocate permissions from system-provided defaults. Backend guards verify permissions using direct `permission_id` lookups with standardized dot-notation CRUD identifiers:
+Tenant admins create departments dynamically and allocate permissions chosen from the system-provided default permissions catalogue. Backend guards verify permissions using direct `permission_id` lookups with standardized dot-notation CRUD identifiers:
 
-| Module | Create | Read | Update | Delete |
+| Module | Create | Read | Update | Delete / Action |
 | :--- | :--- | :--- | :--- | :--- |
 | **Items** | `permission.item.create` | `permission.item.read` | `permission.item.update` | `permission.item.delete` |
 | **StoreRooms** | `permission.storeroom.create` | `permission.storeroom.read` | `permission.storeroom.update` | `permission.storeroom.delete` |
+| **StockBatches** | `permission.batch.create` | `permission.batch.read` | `permission.batch.update` | `permission.batch.deduct` |
+| **Departments** | `permission.department.create` | `permission.department.read` | `permission.department.update` | `permission.department.delete` |
+| **Users** | `permission.user.add` | `permission.user.read` | `permission.user.update` | `permission.user.delete` |
 | **BOM Formulas** | `permission.bom.create` | `permission.bom.read` | `permission.bom.update` | `permission.bom.delete` |
 | **Purchase Orders** | `permission.po.create` | `permission.po.read` | `permission.po.update` | `permission.po.delete` |
-| **Departments** | `permission.department.create` | `permission.department.read` | `permission.department.update` | `permission.department.delete` |
+
+- **Endpoints for Departments & Permissions**:
+  - `GET    /permissions` — List system permissions (with optional `?grouped=true` for module grouping)
+  - `POST   /departments` — Create department and allocate permission IDs
+  - `GET    /departments` — List active departments in tenant
+  - `GET    /departments/:id` — Get department details
+  - `PUT    /departments/:id` — Update department details or permission IDs
+  - `DELETE /departments/:id` — Soft-deactivate department
 
 ---
 

@@ -74,7 +74,19 @@ npm install
 npm run start:dev
 ```
 
-The API will be available at: `http://localhost:3000/api/v1`
+- **REST API Base URL**: `http://localhost:3000/api/v1`
+- **Interactive Swagger Documentation**: `http://localhost:3000/api/docs`
+
+---
+
+## 📚 Interactive Swagger UI
+
+Open **[http://localhost:3000/api/docs](http://localhost:3000/api/docs)** in your browser:
+- **Authorize Button**: Click the green **Authorize 🔓** button at the top right of the Swagger UI. Enter your JWT token (just the raw token — Swagger UI automatically prepends `Bearer `). Once authorized, it is automatically attached to **all requests** across the entire API.
+- **Persistent Authorization**: Authorization persists across page refreshes (`persistAuthorization: true`).
+- **Interactive Testing**: Test any endpoint directly from the browser using the **Try it out** button.
+- **Tenant Header**: Enter your `X-Tenant-ID` header directly in the Swagger console for tenant-scoped endpoints (`/store-rooms`, `/items`, `/stock-batches`).
+
 
 ---
 
@@ -92,7 +104,23 @@ The API will be available at: `http://localhost:3000/api/v1`
 - `POST /tenants` — Create new organization (creator automatically becomes admin)
 - `GET  /tenants` — List organizations the user belongs to (powers mobile Tenant Selector)
 - `GET  /tenants/:id` — Get organization details
-- `POST /tenants/invite` — Tenant admin invites a user by email & assigns department
+- `POST   /tenants/add-user` — Tenant admin adds user to organization with validated departments (`tenant_id`, `email_address`, `department_ids: [...]`)
+- `PUT    /tenants/users/:userId` — Tenant admin updates a member's department allocations
+- `DELETE /tenants/users/:userId` — Tenant admin removes a user from the organization
+- `DELETE /tenants/users/:userId/departments/:departmentId` — Remove a user from a specific department
+- `POST   /tenants/invite` — Backward-compatible alias for add-user
+
+### 👥 Departments & RBAC (`/api/v1/departments`)
+*Requires Bearer Token & `X-Tenant-ID: <UUID>` header*
+- `GET    /departments` — List active departments in tenant
+- `GET    /departments/:id` — Get department details
+- `POST   /departments` — Create department and allocate system permissions (enforces unique name per tenant)
+- `PUT    /departments/:id` — Update department name, description, and permission IDs
+- `DELETE /departments/:id` — Soft-deactivate department
+
+### 🛡️ System Permissions (`/api/v1/permissions`)
+*Requires Bearer Token*
+- `GET    /permissions` — List all available system permissions (`?grouped=true` for module grouping)
 
 ### ❄️ Cold Rooms (`/api/v1/store-rooms`)
 *Requires Bearer Token & `X-Tenant-ID: <UUID>` header*

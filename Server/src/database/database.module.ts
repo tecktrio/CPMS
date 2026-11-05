@@ -11,6 +11,8 @@ import { StoreRoom, StoreRoomSchema } from './schemas/store-room.schema';
 import { Item, ItemSchema } from './schemas/item.schema';
 import { StockBatch, StockBatchSchema } from './schemas/stock-batch.schema';
 import { OtpRecord, OtpRecordSchema } from './schemas/otp-record.schema';
+import { Department, DepartmentSchema } from './schemas/department.schema';
+import { Permission, PermissionSchema } from './schemas/permission.schema';
 
 @Module({
   imports: [
@@ -29,6 +31,8 @@ import { OtpRecord, OtpRecordSchema } from './schemas/otp-record.schema';
       { name: Item.name, schema: ItemSchema },
       { name: StockBatch.name, schema: StockBatchSchema },
       { name: OtpRecord.name, schema: OtpRecordSchema },
+      { name: Department.name, schema: DepartmentSchema },
+      { name: Permission.name, schema: PermissionSchema },
     ]),
   ],
   exports: [MongooseModule],

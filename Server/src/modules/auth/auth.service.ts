@@ -28,6 +28,8 @@ import { EmailService } from '../email/email.service';
 import { SignUpDto } from './dtos/sign-up.dto';
 import { SignInDto } from './dtos/sign-in.dto';
 import { VerifyOtpDto } from './dtos/verify-otp.dto';
+import { ForgotPasswordDto } from './dtos/forgot-password.dto';
+import { ResetPasswordDto } from './dtos/reset-password.dto';
 
 @Injectable()
 export class AuthService {
@@ -52,6 +54,25 @@ export class AuthService {
     });
 
     if (existingUser) {
+      if (existingUser.account_status === UserAccountStatus.PENDING_ACTIVATION) {
+        // User was pre-added to a tenant by an admin; activate and set their password
+        const salt = await bcrypt.genSalt(10);
+        existingUser.password_hash = await bcrypt.hash(dto.password, salt);
+        existingUser.full_name = dto.full_name;
+        existingUser.account_status = UserAccountStatus.ACTIVE;
+        await existingUser.save();
+
+        const otpCode = await this.generateAndSaveOtp(existingUser.email_address);
+        await this.emailService.sendOtpEmail(existingUser.email_address, otpCode);
+
+        return {
+          message:
+            'Registration successful. An OTP verification code has been dispatched to your email.',
+          user_id: existingUser.user_id,
+          email_address: existingUser.email_address,
+        };
+      }
+
       throw new ConflictException(
         'An account with this email address already exists',
       );
@@ -166,11 +187,17 @@ export class AuthService {
         email_address: user.email_address,
         department_id: user.department_id,
       },
-      available_tenants: tenants.map((t) => ({
-        tenant_id: t.tenant_id,
-        company_name: t.company_name,
-        is_admin: t.admin_user_id === user.user_id,
-      })),
+      available_tenants: tenants.map((t) => {
+        const mem = memberships.find((m) => m.tenant_id === t.tenant_id);
+        const isAdmin = t.admin_user_id === user.user_id;
+        return {
+          tenant_id: t.tenant_id,
+          company_name: t.company_name,
+          is_admin: isAdmin,
+          has_all_departments_access: isAdmin,
+          department_ids: mem?.department_ids || [],
+        };
+      }),
     };
   }
 
@@ -188,6 +215,66 @@ export class AuthService {
 
     return {
       message: 'A new OTP has been sent to your email address.',
+      email_address: user.email_address,
+    };
+  }
+
+  async forgotPassword(dto: ForgotPasswordDto) {
+    const email = dto.email_address.toLowerCase().trim();
+    const user = await this.userModel.findOne({ email_address: email });
+
+    if (!user) {
+      throw new NotFoundException('No account found with this email address');
+    }
+
+    if (user.account_status !== UserAccountStatus.ACTIVE) {
+      throw new UnauthorizedException(`Account is ${user.account_status.toLowerCase()}`);
+    }
+
+    const otpCode = await this.generateAndSaveOtp(user.email_address);
+    await this.emailService.sendPasswordResetOtpEmail(user.email_address, otpCode);
+
+    return {
+      message: 'Password reset code has been sent to your email address.',
+      email_address: user.email_address,
+    };
+  }
+
+  async resetPassword(dto: ResetPasswordDto) {
+    const email = dto.email_address.toLowerCase().trim();
+
+    // Find the latest unexpired OTP for this email
+    const otpRecord = await this.otpModel
+      .findOne({
+        email_address: email,
+        otp_code: dto.otp_code.trim(),
+        expires_at: { $gt: new Date() },
+        is_verified: false,
+      })
+      .sort({ created_at: -1 });
+
+    if (!otpRecord) {
+      throw new UnauthorizedException('Invalid or expired OTP verification code');
+    }
+
+    // Mark as verified
+    otpRecord.is_verified = true;
+    await otpRecord.save();
+
+    const user = await this.userModel.findOne({ email_address: email });
+    if (!user) {
+      throw new NotFoundException('Account not found');
+    }
+
+    // Hash the new password
+    const saltRounds = 10;
+    const newPasswordHash = await bcrypt.hash(dto.new_password, saltRounds);
+
+    user.password_hash = newPasswordHash;
+    await user.save();
+
+    return {
+      message: 'Password has been reset successfully. You can now sign in with your new password.',
       email_address: user.email_address,
     };
   }

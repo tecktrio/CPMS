@@ -9,6 +9,8 @@ import { UsersModule } from './modules/users/users.module';
 import { StoreRoomsModule } from './modules/store-rooms/store-rooms.module';
 import { ItemsModule } from './modules/items/items.module';
 import { StockBatchesModule } from './modules/stock-batches/stock-batches.module';
+import { DepartmentsModule } from './modules/departments/departments.module';
+import { PermissionsModule } from './modules/permissions/permissions.module';
 
 @Module({
   imports: [
@@ -24,6 +26,8 @@ import { StockBatchesModule } from './modules/stock-batches/stock-batches.module
     StoreRoomsModule,
     ItemsModule,
     StockBatchesModule,
+    DepartmentsModule,
+    PermissionsModule,
   ],
 })
 export class AppModule {}

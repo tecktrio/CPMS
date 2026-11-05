@@ -57,5 +57,45 @@ export class EmailService {
       return false;
     }
   }
+
+  async sendPasswordResetOtpEmail(
+    toEmail: string,
+    otpCode: string,
+  ): Promise<boolean> {
+    const smtp = this.configService.get('smtp');
+
+    const mailOptions = {
+      from: `"${smtp.fromName}" <${smtp.fromEmail}>`,
+      to: toEmail,
+      subject: 'CIMS - Password Reset Request',
+      text: `Your password reset code is: ${otpCode}. This code will expire in 10 minutes.`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
+          <h2 style="color: #0F766E; text-align: center;">Reset Your Password</h2>
+          <p>Hello,</p>
+          <p>We received a request to reset the password for your CIMS account. Please use the verification code below to proceed:</p>
+          <div style="text-align: center; margin: 25px 0;">
+            <span style="font-size: 32px; font-weight: bold; letter-spacing: 6px; color: #0F766E; background: #f0fdfa; padding: 10px 20px; border-radius: 6px; display: inline-block; border: 1px solid #99f6e4;">${otpCode}</span>
+          </div>
+          <p style="color: #666; font-size: 13px;">This code will expire in 10 minutes. If you did not request a password reset, you can safely ignore this email.</p>
+        </div>
+      `,
+    };
+
+    try {
+      await this.transporter.sendMail(mailOptions);
+      this.logger.log(`Password reset OTP successfully emailed to ${toEmail}`);
+      return true;
+    } catch (error) {
+      this.logger.warn(
+        `Nodemailer SMTP dispatch failed: ${(error as Error).message}`,
+      );
+      this.logger.log(`====================================================`);
+      this.logger.log(`[DEV RESET OTP FALLBACK] Recipient: ${toEmail}`);
+      this.logger.log(`[DEV RESET OTP FALLBACK] Reset Code: ${otpCode}`);
+      this.logger.log(`====================================================`);
+      return false;
+    }
+  }
 }
 

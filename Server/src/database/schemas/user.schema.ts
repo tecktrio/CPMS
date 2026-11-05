@@ -6,6 +6,7 @@ export enum UserAccountStatus {
   ACTIVE = 'ACTIVE',
   INACTIVE = 'INACTIVE',
   SUSPENDED = 'SUSPENDED',
+  PENDING_ACTIVATION = 'PENDING_ACTIVATION',
 }
 
 export type UserDocument = User & Document;
