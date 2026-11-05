@@ -263,38 +263,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
             if (allowedOperations.isEmpty)
               _buildEmptyState()
             else
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: const Color(0xFFCBD5E1), width: 1),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.03),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
+              GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2, // 2 modules in 1 row
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                  childAspectRatio: 1.0, // Each cell as square
                 ),
-                clipBehavior: Clip.antiAlias,
-                child: GridView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2, // 2 modules in 1 row
-                    crossAxisSpacing: 0, // No margin/spacing between cells
-                    mainAxisSpacing: 0, // Corners touch nearest ones
-                    childAspectRatio: 1.0, // Each cell as exact square
-                  ),
-                  itemCount: allowedOperations.length,
-                  itemBuilder: (context, index) {
-                    return _buildOperationGridCell(
-                      allowedOperations[index],
-                      index: index,
-                      totalCount: allowedOperations.length,
-                    );
-                  },
-                ),
+                itemCount: allowedOperations.length,
+                itemBuilder: (context, index) {
+                  return _buildOperationGridCard(allowedOperations[index]);
+                },
               ),
           ],
         ),
@@ -302,76 +283,59 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildOperationGridCell(
-    _DashboardOperationItem op, {
-    required int index,
-    required int totalCount,
-  }) {
-    final isLeftColumn = index % 2 == 0;
-    final row = index ~/ 2;
-    final totalRows = (totalCount / 2).ceil();
-    final isLastRow = row == totalRows - 1;
-
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border(
-          right: isLeftColumn
-              ? const BorderSide(color: Color(0xFFE2E8F0), width: 1)
-              : BorderSide.none,
-          bottom: !isLastRow
-              ? const BorderSide(color: Color(0xFFE2E8F0), width: 1)
-              : BorderSide.none,
-        ),
+  Widget _buildOperationGridCard(_DashboardOperationItem op) {
+    return Card(
+      elevation: 0.5,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: const BorderSide(color: Color(0xFFE2E8F0)),
       ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: op.onTap,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Container(
-                  width: 50,
-                  height: 50,
-                  decoration: BoxDecoration(
-                    color: op.color.withValues(alpha: 0.12),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Center(
-                    child: Icon(op.icon, color: op.color, size: 26),
-                  ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: op.onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: op.color.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
                 ),
-                const SizedBox(height: 10),
-                Text(
-                  op.title,
-                  textAlign: TextAlign.center,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF0F172A),
-                    height: 1.15,
-                  ),
+                child: Center(
+                  child: Icon(op.icon, color: op.color, size: 24),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  op.tag,
-                  textAlign: TextAlign.center,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: op.color,
-                  ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                op.title,
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF0F172A),
+                  height: 1.15,
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                op.tag,
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: op.color,
+                ),
+              ),
+            ],
           ),
         ),
       ),

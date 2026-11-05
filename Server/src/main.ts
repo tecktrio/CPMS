@@ -77,10 +77,10 @@ async function bootstrap() {
     customSiteTitle: 'CIMS API Documentation',
   });
 
-  await app.listen(port);
+  await app.listen(port, '0.0.0.0');
   logger.log(`=======================================================`);
-  logger.log(`🚀 CIMS Backend Server running on: http://localhost:${port}/api/v1`);
-  logger.log(`📚 Swagger API Docs available at:  http://localhost:${port}/api/docs`);
+  logger.log(`🚀 CIMS Backend Server running on: http://0.0.0.0:${port}/api/v1`);
+  logger.log(`📚 Swagger API Docs available at:  http://0.0.0.0:${port}/api/docs`);
   logger.log(`📡 Environment: ${configService.get('nodeEnv')}`);
   logger.log(`=======================================================`);
 }

@@ -1,18 +1,11 @@
-import 'dart:io' show Platform;
-import 'package:flutter/foundation.dart' show kIsWeb;
-
 class ApiConstants {
-  // Android emulator uses 10.0.2.2 to access host machine localhost.
-  // iOS Simulator / macOS desktop uses 127.0.0.1 or localhost.
-  static String get baseUrl {
-    if (kIsWeb) {
-      return 'http://localhost:3000/api/v1';
-    }
-    if (Platform.isAndroid) {
-      return 'http://10.0.2.2:3000/api/v1';
-    }
-    return 'http://localhost:3000/api/v1';
-  }
+  // Configured server IP for network / physical device connectivity
+  static const String serverHost = String.fromEnvironment(
+    'SERVER_HOST',
+    defaultValue: 'http://32.236.228.113:3000',
+  );
+
+  static String get baseUrl => '$serverHost/api/v1';
 
   // Auth endpoints
   static const String signUp = '/auth/sign-up';
