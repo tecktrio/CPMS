@@ -91,13 +91,14 @@ export class AuthService {
 
     await newUser.save();
 
-    // Generate and send OTP for verification
-    const otpCode = await this.generateAndSaveOtp(newUser.email_address);
-    await this.emailService.sendOtpEmail(newUser.email_address, otpCode);
+    // Generate and send OTP for verification (non-blocking for temporary bypass)
+    try {
+      const otpCode = await this.generateAndSaveOtp(newUser.email_address);
+      await this.emailService.sendOtpEmail(newUser.email_address, otpCode);
+    } catch (_) {}
 
     return {
-      message:
-        'Registration successful. Verification OTP has been sent to your email.',
+      message: 'Registration successful.',
       email_address: newUser.email_address,
       user_id: newUser.user_id,
     };
@@ -126,41 +127,72 @@ export class AuthService {
       );
     }
 
-    // Generate and send OTP
-    const otpCode = await this.generateAndSaveOtp(user.email_address);
-    await this.emailService.sendOtpEmail(user.email_address, otpCode);
+    // Temporary OTP Skip: Directly issue JWT Token and return session
+    const payload = {
+      sub: user.user_id,
+      email: user.email_address,
+      full_name: user.full_name,
+    };
+    const accessToken = this.jwtService.sign(payload);
+
+    // Fetch active memberships and tenants
+    const memberships = await this.membershipModel.find({
+      user_id: user.user_id,
+      is_active: true,
+    });
+
+    const tenantIds = memberships.map((m) => m.tenant_id);
+    const tenants = await this.tenantModel.find({
+      $or: [
+        { tenant_id: { $in: tenantIds } },
+        { admin_user_id: user.user_id },
+      ],
+      is_active: true,
+    });
 
     return {
-      message: 'Credentials verified. Verification OTP sent to your email.',
-      email_address: user.email_address,
-      requires_otp: true,
+      message: 'Sign in successful (OTP temporarily skipped).',
+      access_token: accessToken,
+      requires_otp: false,
+      user: {
+        user_id: user.user_id,
+        full_name: user.full_name,
+        email_address: user.email_address,
+        department_id: user.department_id,
+      },
+      available_tenants: tenants.map((t) => {
+        const mem = memberships.find((m) => m.tenant_id === t.tenant_id);
+        const isAdmin = t.admin_user_id === user.user_id;
+        return {
+          tenant_id: t.tenant_id,
+          company_name: t.company_name,
+          is_admin: isAdmin,
+          has_all_departments_access: isAdmin,
+          department_ids: mem?.department_ids || [],
+        };
+      }),
     };
   }
 
   async verifyOtp(dto: VerifyOtpDto) {
     const email = dto.email_address.toLowerCase();
 
-    // Find the newest unexpired OTP for this email
+    const user = await this.userModel.findOne({ email_address: email });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Mark OTP as verified if found, or bypass if skipped temporarily
     const otpRecord = await this.otpModel
       .findOne({
         email_address: email,
-        otp_code: dto.otp_code,
-        expires_at: { $gt: new Date() },
         is_verified: false,
       })
       .sort({ created_at: -1 });
 
-    if (!otpRecord) {
-      throw new UnauthorizedException('Invalid or expired OTP code');
-    }
-
-    // Mark as verified
-    otpRecord.is_verified = true;
-    await otpRecord.save();
-
-    const user = await this.userModel.findOne({ email_address: email });
-    if (!user) {
-      throw new NotFoundException('User not found');
+    if (otpRecord) {
+      otpRecord.is_verified = true;
+      await otpRecord.save();
     }
 
     // Issue JWT Token

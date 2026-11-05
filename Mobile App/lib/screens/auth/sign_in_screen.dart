@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/tenant_provider.dart';
+import '../dashboard/dashboard_screen.dart';
+import '../tenant/tenant_selector_screen.dart';
 import 'forgot_password_screen.dart';
 import 'otp_verification_screen.dart';
 import 'sign_up_screen.dart';
@@ -37,14 +40,35 @@ class _SignInScreenState extends State<SignInScreen> {
     if (!mounted) return;
 
     if (success) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => OtpVerificationScreen(
-            emailAddress: _emailController.text.trim().toLowerCase(),
+      if (authProvider.isAuthenticated) {
+        // Direct Login without OTP!
+        final tenants = authProvider.availableTenants;
+        final tenantProvider = context.read<TenantProvider>();
+        if (tenants.length == 1) {
+          await tenantProvider.selectTenant(tenants.first);
+          if (!mounted) return;
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (_) => const DashboardScreen()),
+            (route) => false,
+          );
+        } else {
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (_) => const TenantSelectorScreen()),
+            (route) => false,
+          );
+        }
+      } else {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => OtpVerificationScreen(
+              emailAddress: _emailController.text.trim().toLowerCase(),
+            ),
           ),
-        ),
-      );
+        );
+      }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

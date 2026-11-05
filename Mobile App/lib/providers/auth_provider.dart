@@ -137,10 +137,33 @@ class AuthProvider extends ChangeNotifier {
     _errorMessage = null;
 
     try {
-      await apiClient.post(ApiConstants.signIn, body: {
+      final res = await apiClient.post(ApiConstants.signIn, body: {
         'email_address': email.trim().toLowerCase(),
         'password': password,
       });
+
+      // If OTP is skipped, the server returns access_token immediately!
+      if (res is Map<String, dynamic> && res['access_token'] != null) {
+        _token = res['access_token'];
+        apiClient.setAuthToken(_token);
+
+        if (res['user'] != null) {
+          _user = AuthUser.fromJson(res['user']);
+        }
+
+        if (res['available_tenants'] != null &&
+            res['available_tenants'] is List) {
+          _availableTenants = (res['available_tenants'] as List)
+              .map((item) => TenantOption.fromJson(item))
+              .toList();
+        }
+
+        final prefs = await SharedPreferences.getInstance();
+        if (_token != null) {
+          await prefs.setString('cims_auth_token', _token!);
+        }
+      }
+
       _setLoading(false);
       return true;
     } on ApiException catch (e) {
