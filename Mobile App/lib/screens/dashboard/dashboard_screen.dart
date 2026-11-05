@@ -124,7 +124,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
         tag: '${inventory.items.length} Products',
         icon: Icons.inventory_2_outlined,
         color: const Color(0xFF0F766E),
-        isPermitted: isAdmin || tenant.hasPermission(AppPermissions.itemRead),
+        isPermitted: isAdmin ||
+            tenant.hasPermission(AppPermissions.itemRead) ||
+            tenant.hasPermission(AppPermissions.itemCreate) ||
+            tenant.hasPermission(AppPermissions.itemUpdate) ||
+            tenant.hasPermission(AppPermissions.itemDelete),
         onTap: () {
           Navigator.push(
             context,
@@ -150,7 +154,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
         tag: '${inventory.storeRooms.length} Rooms Active',
         icon: Icons.ac_unit,
         color: const Color(0xFF0284C7),
-        isPermitted: isAdmin || tenant.hasPermission(AppPermissions.storeroomRead),
+        isPermitted: isAdmin ||
+            tenant.hasPermission(AppPermissions.storeroomRead) ||
+            tenant.hasPermission(AppPermissions.storeroomCreate) ||
+            tenant.hasPermission(AppPermissions.storeroomUpdate) ||
+            tenant.hasPermission(AppPermissions.storeroomDelete),
         onTap: () {
           Navigator.push(
             context,
@@ -189,7 +197,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
         tag: '${inventory.stockBatches.length} Batches',
         icon: Icons.qr_code_scanner_outlined,
         color: const Color(0xFF8B5CF6),
-        isPermitted: isAdmin || tenant.hasPermission(AppPermissions.batchRead),
+        isPermitted: isAdmin ||
+            tenant.hasPermission(AppPermissions.batchRead) ||
+            tenant.hasPermission(AppPermissions.batchCreate) ||
+            tenant.hasPermission(AppPermissions.batchUpdate) ||
+            tenant.hasPermission(AppPermissions.batchDeduct),
         onTap: () {
           Navigator.push(
             context,
@@ -215,7 +227,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
         tag: '${tenant.tenantDepartments.length} Departments',
         icon: Icons.badge_outlined,
         color: const Color(0xFFD97706),
-        isPermitted: isAdmin || tenant.hasPermission(AppPermissions.departmentRead),
+        isPermitted: isAdmin ||
+            tenant.hasPermission(AppPermissions.departmentRead) ||
+            tenant.hasPermission(AppPermissions.departmentCreate) ||
+            tenant.hasPermission(AppPermissions.departmentUpdate) ||
+            tenant.hasPermission(AppPermissions.departmentDelete),
         onTap: () {
           Navigator.push(
             context,
@@ -241,7 +257,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
         tag: 'Team Roster',
         icon: Icons.people_outline,
         color: const Color(0xFFD97706),
-        isPermitted: isAdmin || tenant.hasPermission(AppPermissions.userRead),
+        isPermitted: isAdmin ||
+            tenant.hasPermission(AppPermissions.userRead) ||
+            tenant.hasPermission(AppPermissions.userAdd) ||
+            tenant.hasPermission(AppPermissions.userUpdate) ||
+            tenant.hasPermission(AppPermissions.userDelete),
         onTap: () {
           Navigator.push(
             context,
@@ -291,19 +311,38 @@ class _DashboardScreenState extends State<DashboardScreen> {
             if (allowedOperations.isEmpty)
               _buildEmptyState()
             else
-              GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2, // 2 modules in 1 row
-                  crossAxisSpacing: 12,
-                  mainAxisSpacing: 12,
-                  childAspectRatio: 1.0, // Each cell as square
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFFCBD5E1), width: 1),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.03),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
-                itemCount: allowedOperations.length,
-                itemBuilder: (context, index) {
-                  return _buildOperationGridCard(allowedOperations[index]);
-                },
+                clipBehavior: Clip.antiAlias,
+                child: GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2, // 2 modules in 1 row
+                    crossAxisSpacing: 0, // No margin/spacing between cells
+                    mainAxisSpacing: 0, // Corners touch nearest ones
+                    childAspectRatio: 1.0, // Each cell as exact square
+                  ),
+                  itemCount: allowedOperations.length,
+                  itemBuilder: (context, index) {
+                    return _buildOperationGridCell(
+                      allowedOperations[index],
+                      index: index,
+                      totalCount: allowedOperations.length,
+                    );
+                  },
+                ),
               ),
           ],
         ),
@@ -311,59 +350,76 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildOperationGridCard(_DashboardOperationItem op) {
-    return Card(
-      elevation: 0.5,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: const BorderSide(color: Color(0xFFE2E8F0)),
+  Widget _buildOperationGridCell(
+    _DashboardOperationItem op, {
+    required int index,
+    required int totalCount,
+  }) {
+    final isLeftColumn = index % 2 == 0;
+    final row = index ~/ 2;
+    final totalRows = (totalCount / 2).ceil();
+    final isLastRow = row == totalRows - 1;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border(
+          right: isLeftColumn
+              ? const BorderSide(color: Color(0xFFE2E8F0), width: 1)
+              : BorderSide.none,
+          bottom: !isLastRow
+              ? const BorderSide(color: Color(0xFFE2E8F0), width: 1)
+              : BorderSide.none,
+        ),
       ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: op.onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: op.color.withValues(alpha: 0.12),
-                  shape: BoxShape.circle,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: op.onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Container(
+                  width: 50,
+                  height: 50,
+                  decoration: BoxDecoration(
+                    color: op.color.withValues(alpha: 0.12),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Center(
+                    child: Icon(op.icon, color: op.color, size: 26),
+                  ),
                 ),
-                child: Center(
-                  child: Icon(op.icon, color: op.color, size: 24),
+                const SizedBox(height: 10),
+                Text(
+                  op.title,
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF0F172A),
+                    height: 1.15,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                op.title,
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF0F172A),
-                  height: 1.15,
+                const SizedBox(height: 4),
+                Text(
+                  op.tag,
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: op.color,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                op.tag,
-                textAlign: TextAlign.center,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: op.color,
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
