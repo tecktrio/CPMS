@@ -37,14 +37,42 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final tenant = context.read<TenantProvider>();
     final dept = context.read<DepartmentProvider>();
 
-    await Future.wait([
-      tenant.loadTenantDepartments(),
-      inventory.loadStoreRooms(),
-      inventory.loadItems(),
-      inventory.loadStockBatches(),
-      inventory.loadExpiringSoon(7),
-      dept.loadSystemPermissions(),
-    ]);
+    // 1. Sync tenant departments and calculate live user permissions first
+    await tenant.loadTenantDepartments();
+
+    final isAdmin = tenant.isTenantAdmin;
+    final futures = <Future>[];
+
+    // 2. Only request data for operational modules the user has permissions for
+    if (isAdmin ||
+        tenant.hasPermission(AppPermissions.itemRead) ||
+        tenant.hasPermission(AppPermissions.itemCreate)) {
+      futures.add(inventory.loadItems());
+    }
+
+    if (isAdmin ||
+        tenant.hasPermission(AppPermissions.storeroomRead) ||
+        tenant.hasPermission(AppPermissions.storeroomCreate)) {
+      futures.add(inventory.loadStoreRooms());
+    }
+
+    if (isAdmin ||
+        tenant.hasPermission(AppPermissions.batchRead) ||
+        tenant.hasPermission(AppPermissions.batchCreate) ||
+        tenant.hasPermission(AppPermissions.batchDeduct)) {
+      futures.add(inventory.loadStockBatches());
+      futures.add(inventory.loadExpiringSoon(7));
+    }
+
+    if (isAdmin ||
+        tenant.hasPermission(AppPermissions.departmentRead) ||
+        tenant.hasPermission(AppPermissions.departmentCreate)) {
+      futures.add(dept.loadSystemPermissions());
+    }
+
+    if (futures.isNotEmpty) {
+      await Future.wait(futures);
+    }
   }
 
   @override
