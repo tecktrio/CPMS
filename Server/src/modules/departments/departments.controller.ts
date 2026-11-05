@@ -58,44 +58,24 @@ export class DepartmentsController {
   }
 
   @Get()
-  @RequireAnyPermissions(
-    'permission.department.read',
-    'permission.department.create',
-    'permission.department.update',
-    'permission.department.delete',
-    'permission.user.read',
-    'permission.user.add',
-    'permission.user.update',
-    'permission.user.delete',
-  )
   @ApiOperation({
     summary: 'List all tenant departments',
     description:
       'Returns all active departments for the specified tenant, including allocated permission IDs.',
   })
   @ApiResponse({ status: 200, description: 'List of departments' })
-  @ApiResponse({ status: 403, description: 'Forbidden - Missing required permission' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Missing tenant context' })
   async findAll(@CurrentTenant() tenantId: string) {
     return this.departmentsService.findAll(tenantId);
   }
 
   @Get(':id')
-  @RequireAnyPermissions(
-    'permission.department.read',
-    'permission.department.create',
-    'permission.department.update',
-    'permission.department.delete',
-    'permission.user.read',
-    'permission.user.add',
-    'permission.user.update',
-    'permission.user.delete',
-  )
   @ApiOperation({
     summary: 'Get department details',
-    description: 'Retrieves department configuration, metadata, and permission IDs. Requires permission.department.read.',
+    description: 'Retrieves department configuration, metadata, and permission IDs.',
   })
   @ApiResponse({ status: 200, description: 'Department details' })
-  @ApiResponse({ status: 403, description: 'Forbidden - Missing required permission' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Missing tenant context' })
   @ApiResponse({ status: 404, description: 'Department not found' })
   async findOne(
     @CurrentTenant() tenantId: string,

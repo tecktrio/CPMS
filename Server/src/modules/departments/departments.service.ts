@@ -64,6 +64,16 @@ export class DepartmentsService {
       .sort({ department_name: 1 });
   }
 
+  async findByIds(tenantId: string, departmentIds: string[]) {
+    return this.departmentModel
+      .find({
+        tenant_id: tenantId,
+        department_id: { $in: departmentIds },
+        is_active: true,
+      })
+      .sort({ department_name: 1 });
+  }
+
   async findOne(tenantId: string, departmentId: string) {
     const department = await this.departmentModel.findOne({
       tenant_id: tenantId,

@@ -18,6 +18,8 @@ class ApiConstants {
 
   // Tenant endpoints
   static const String tenants = '/tenants';
+  static String tenantMyPermissions(String tenantId) =>
+      '/tenants/$tenantId/my-permissions';
   static const String addUserToTenant = '/tenants/add-user';
   static String tenantUsers(String userId) => '/tenants/users/$userId';
   static String removeUserFromDepartment(String userId, String deptId) =>

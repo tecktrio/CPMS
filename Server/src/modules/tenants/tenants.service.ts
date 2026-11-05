@@ -143,6 +143,69 @@ export class TenantsService {
     };
   }
 
+  async getMyPermissions(tenantId: string, userId: string) {
+    const tenant = await this.tenantModel.findOne({
+      tenant_id: tenantId,
+      is_active: true,
+    });
+
+    if (!tenant) {
+      throw new NotFoundException('Tenant not found');
+    }
+
+    const isAdmin = tenant.admin_user_id === userId;
+
+    if (isAdmin) {
+      const allDepts = await this.departmentsService.findAll(tenantId);
+      const permissions = Array.from(
+        new Set(allDepts.flatMap((d) => d.permission_ids || [])),
+      );
+      return {
+        tenant_id: tenantId,
+        is_admin: true,
+        has_all_departments_access: true,
+        department_ids: allDepts.map((d) => d.department_id),
+        departments: allDepts,
+        permissions,
+      };
+    }
+
+    const membership = await this.membershipModel.findOne({
+      user_id: userId,
+      tenant_id: tenantId,
+      is_active: true,
+    });
+
+    if (!membership) {
+      return {
+        tenant_id: tenantId,
+        is_admin: false,
+        has_all_departments_access: false,
+        department_ids: [],
+        departments: [],
+        permissions: [],
+      };
+    }
+
+    const depts = await this.departmentsService.findByIds(
+      tenantId,
+      membership.department_ids || [],
+    );
+
+    const permissions = Array.from(
+      new Set(depts.flatMap((d) => d.permission_ids || [])),
+    );
+
+    return {
+      tenant_id: tenantId,
+      is_admin: false,
+      has_all_departments_access: false,
+      department_ids: membership.department_ids || [],
+      departments: depts,
+      permissions,
+    };
+  }
+
   async addUserToTenant(
     headerTenantId: string | undefined,
     requestingUserId: string,

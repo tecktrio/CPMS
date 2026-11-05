@@ -116,18 +116,62 @@ class TenantProvider extends ChangeNotifier {
     _setLoading(true);
 
     try {
-      final res = await apiClient.get(ApiConstants.departments);
-      if (res is List) {
-        _tenantDepartments =
-            res.map((item) => DepartmentModel.fromJson(item)).toList();
+      // 1. Fetch user's actual permissions & assigned departments directly from backend
+      try {
+        final permRes = await apiClient.get(
+          ApiConstants.tenantMyPermissions(_activeTenant!.tenantId),
+        );
+        if (permRes is Map<String, dynamic>) {
+          if (permRes['permissions'] is List) {
+            _userPermissions.clear();
+            _userPermissions.addAll(
+              (permRes['permissions'] as List).map((p) => p.toString()),
+            );
+          }
+          if (permRes['department_ids'] is List) {
+            final latestDeptIds = (permRes['department_ids'] as List)
+                .map((d) => d.toString())
+                .toList();
+            _activeTenant = TenantOption(
+              tenantId: _activeTenant!.tenantId,
+              companyName: _activeTenant!.companyName,
+              isAdmin: permRes['is_admin'] == true || _activeTenant!.isAdmin,
+              hasAllDepartmentsAccess:
+                  permRes['has_all_departments_access'] == true ||
+                      _activeTenant!.hasAllDepartmentsAccess,
+              departmentIds: latestDeptIds,
+            );
+          }
+          if (permRes['departments'] is List) {
+            _tenantDepartments = (permRes['departments'] as List)
+                .map((item) => DepartmentModel.fromJson(item))
+                .toList();
+          }
+        }
+      } catch (_) {
+        // Fallback to departments list if my-permissions is unavailable
       }
 
-      // Compute aggregated permissions for this user in this tenant
-      _computeUserPermissions();
+      // 2. Fetch full tenant departments catalogue
+      try {
+        final res = await apiClient.get(ApiConstants.departments);
+        if (res is List) {
+          _tenantDepartments =
+              res.map((item) => DepartmentModel.fromJson(item)).toList();
+        }
+      } catch (_) {}
+
+      // 3. Fallback compute if permissions were not populated from server
+      if (_userPermissions.isEmpty) {
+        _computeUserPermissions();
+      }
+
       _setLoading(false);
+      notifyListeners();
     } catch (e) {
       _errorMessage = e.toString();
       _setLoading(false);
+      notifyListeners();
     }
   }
 

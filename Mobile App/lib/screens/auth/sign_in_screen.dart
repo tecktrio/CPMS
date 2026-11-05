@@ -72,20 +72,14 @@ class _SignInScreenState extends State<SignInScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // Brand Icon & Title
-                    Container(
-                      width: 72,
-                      height: 72,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF0F766E).withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(18),
-                      ),
-                      child: const Center(
-                        child: Icon(
-                          Icons.ac_unit,
-                          size: 38,
-                          color: Color(0xFF0F766E),
-                        ),
+                    // Brand Logo & Title
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(18),
+                      child: Image.asset(
+                        'assets/images/logo.png',
+                        width: 76,
+                        height: 76,
+                        fit: BoxFit.contain,
                       ),
                     ),
                     const SizedBox(height: 20),

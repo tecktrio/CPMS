@@ -64,6 +64,20 @@ export class TenantsController {
     return this.tenantsService.getTenantById(tenantId, userId);
   }
 
+  @Get(':id/my-permissions')
+  @ApiOperation({
+    summary: 'Get current user aggregated permissions and active departments in tenant',
+    description:
+      'Returns the authenticated user active departments and calculated permissions in this tenant context.',
+  })
+  @ApiResponse({ status: 200, description: 'User permissions and assigned departments' })
+  async getMyPermissions(
+    @Param('id') tenantId: string,
+    @CurrentUser('user_id') userId: string,
+  ) {
+    return this.tenantsService.getMyPermissions(tenantId, userId);
+  }
+
   @Post('add-user')
   @ApiHeader({
     name: 'X-Tenant-ID',
