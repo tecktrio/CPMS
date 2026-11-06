@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../core/constants/permissions.dart';
 import '../../providers/inventory_provider.dart';
-import '../../providers/tenant_provider.dart';
 import '../../widgets/user_profile_avatar.dart';
-import 'create_item_dialog.dart';
 
 class ItemsListScreen extends StatefulWidget {
   const ItemsListScreen({super.key});
@@ -20,8 +17,6 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
   @override
   Widget build(BuildContext context) {
     final inventory = context.watch<InventoryProvider>();
-    final tenant = context.watch<TenantProvider>();
-    final canCreate = tenant.hasPermission(AppPermissions.itemCreate);
 
     final filteredItems = inventory.items.where((item) {
       final matchesSearch = item.itemName
@@ -45,20 +40,6 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
           const SizedBox(width: 4),
         ],
       ),
-      floatingActionButton: canCreate
-          ? FloatingActionButton.extended(
-              backgroundColor: const Color(0xFF0F766E),
-              foregroundColor: Colors.white,
-              icon: const Icon(Icons.add),
-              label: const Text('Add Item SKU'),
-              onPressed: () {
-                showDialog(
-                  context: context,
-                  builder: (_) => const CreateItemDialog(),
-                );
-              },
-            )
-          : null,
       body: Column(
         children: [
           // Search & Filter header
@@ -124,19 +105,6 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
                                 'Create item master records to begin batch tracking.',
                                 style: TextStyle(color: Color(0xFF64748B), fontSize: 13),
                               ),
-                              if (canCreate) ...[
-                                const SizedBox(height: 16),
-                                ElevatedButton.icon(
-                                  icon: const Icon(Icons.add),
-                                  label: const Text('Add New Item'),
-                                  onPressed: () {
-                                    showDialog(
-                                      context: context,
-                                      builder: (_) => const CreateItemDialog(),
-                                    );
-                                  },
-                                ),
-                              ],
                             ],
                           ),
                         )

@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/constants/permissions.dart';
 import '../../providers/tenant_provider.dart';
-import '../../providers/inventory_provider.dart';
-import '../../providers/department_provider.dart';
 import '../../widgets/user_profile_avatar.dart';
 import '../items/create_item_screen.dart';
 import '../items/items_list_screen.dart';
@@ -33,52 +31,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<void> _loadInitialData() async {
-    final inventory = context.read<InventoryProvider>();
     final tenant = context.read<TenantProvider>();
-    final dept = context.read<DepartmentProvider>();
-
-    // 1. Sync tenant departments and calculate live user permissions first
-    await tenant.loadTenantDepartments();
-
-    final isAdmin = tenant.isTenantAdmin;
-    final futures = <Future>[];
-
-    // 2. Only request data for operational modules the user has permissions for
-    if (isAdmin ||
-        tenant.hasPermission(AppPermissions.itemRead) ||
-        tenant.hasPermission(AppPermissions.itemCreate)) {
-      futures.add(inventory.loadItems());
-    }
-
-    if (isAdmin ||
-        tenant.hasPermission(AppPermissions.storeroomRead) ||
-        tenant.hasPermission(AppPermissions.storeroomCreate)) {
-      futures.add(inventory.loadStoreRooms());
-    }
-
-    if (isAdmin ||
-        tenant.hasPermission(AppPermissions.batchRead) ||
-        tenant.hasPermission(AppPermissions.batchCreate) ||
-        tenant.hasPermission(AppPermissions.batchDeduct)) {
-      futures.add(inventory.loadStockBatches());
-      futures.add(inventory.loadExpiringSoon(7));
-    }
-
-    if (isAdmin ||
-        tenant.hasPermission(AppPermissions.departmentRead) ||
-        tenant.hasPermission(AppPermissions.departmentCreate)) {
-      futures.add(dept.loadSystemPermissions());
-    }
-
-    if (futures.isNotEmpty) {
-      await Future.wait(futures);
-    }
+    // Dedicated API to get available operations & permissions for this tenant
+    await tenant.loadTenantPermissions();
   }
 
   @override
   Widget build(BuildContext context) {
     final tenant = context.watch<TenantProvider>();
-    final inventory = context.watch<InventoryProvider>();
 
     final activeTenant = tenant.activeTenant;
     final isAdmin = tenant.isTenantAdmin;
@@ -104,7 +64,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       }
     }
 
-    // Grid operations user can perform based on permissions
+    // Grid operations user can perform - each permission has its own separate option
     final operations = <_DashboardOperationItem>[
       _DashboardOperationItem(
         title: 'Create Items',
@@ -121,14 +81,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
       _DashboardOperationItem(
         title: 'View Items',
-        tag: '${inventory.items.length} Products',
+        tag: 'Stock & Products',
         icon: Icons.inventory_2_outlined,
         color: const Color(0xFF0F766E),
-        isPermitted: isAdmin ||
-            tenant.hasPermission(AppPermissions.itemRead) ||
-            tenant.hasPermission(AppPermissions.itemCreate) ||
-            tenant.hasPermission(AppPermissions.itemUpdate) ||
-            tenant.hasPermission(AppPermissions.itemDelete),
+        isPermitted: isAdmin || tenant.hasPermission(AppPermissions.itemRead),
         onTap: () {
           Navigator.push(
             context,
@@ -138,7 +94,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
       _DashboardOperationItem(
         title: 'Create Cold Room',
-        tag: 'New Storage Room',
+        tag: 'Storage Facility',
         icon: Icons.add_home_work_outlined,
         color: const Color(0xFF0284C7),
         isPermitted: isAdmin || tenant.hasPermission(AppPermissions.storeroomCreate),
@@ -151,14 +107,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
       _DashboardOperationItem(
         title: 'View Cold Rooms',
-        tag: '${inventory.storeRooms.length} Rooms Active',
+        tag: 'Storage Directory',
         icon: Icons.ac_unit,
         color: const Color(0xFF0284C7),
-        isPermitted: isAdmin ||
-            tenant.hasPermission(AppPermissions.storeroomRead) ||
-            tenant.hasPermission(AppPermissions.storeroomCreate) ||
-            tenant.hasPermission(AppPermissions.storeroomUpdate) ||
-            tenant.hasPermission(AppPermissions.storeroomDelete),
+        isPermitted: isAdmin || tenant.hasPermission(AppPermissions.storeroomRead),
         onTap: () {
           Navigator.push(
             context,
@@ -168,7 +120,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
       _DashboardOperationItem(
         title: 'Inward Batches',
-        tag: 'Stock Lot Intake',
+        tag: 'Stock Receipt',
         icon: Icons.move_to_inbox_outlined,
         color: const Color(0xFF8B5CF6),
         isPermitted: isAdmin || tenant.hasPermission(AppPermissions.batchCreate),
@@ -180,7 +132,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         },
       ),
       _DashboardOperationItem(
-        title: 'FEFO Picking',
+        title: 'FEFO Deductions',
         tag: 'Option B Deduct',
         icon: Icons.rule_folder_outlined,
         color: const Color(0xFF8B5CF6),
@@ -194,14 +146,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
       _DashboardOperationItem(
         title: 'Stock on Rack',
-        tag: '${inventory.stockBatches.length} Batches',
+        tag: 'Batch Inventory',
         icon: Icons.qr_code_scanner_outlined,
         color: const Color(0xFF8B5CF6),
-        isPermitted: isAdmin ||
-            tenant.hasPermission(AppPermissions.batchRead) ||
-            tenant.hasPermission(AppPermissions.batchCreate) ||
-            tenant.hasPermission(AppPermissions.batchUpdate) ||
-            tenant.hasPermission(AppPermissions.batchDeduct),
+        isPermitted: isAdmin || tenant.hasPermission(AppPermissions.batchRead),
         onTap: () {
           Navigator.push(
             context,
@@ -224,14 +172,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
       _DashboardOperationItem(
         title: 'View Departments',
-        tag: '${tenant.tenantDepartments.length} Departments',
+        tag: 'Department Directory',
         icon: Icons.badge_outlined,
         color: const Color(0xFFD97706),
-        isPermitted: isAdmin ||
-            tenant.hasPermission(AppPermissions.departmentRead) ||
-            tenant.hasPermission(AppPermissions.departmentCreate) ||
-            tenant.hasPermission(AppPermissions.departmentUpdate) ||
-            tenant.hasPermission(AppPermissions.departmentDelete),
+        isPermitted: isAdmin || tenant.hasPermission(AppPermissions.departmentRead),
         onTap: () {
           Navigator.push(
             context,
@@ -257,11 +201,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         tag: 'Team Roster',
         icon: Icons.people_outline,
         color: const Color(0xFFD97706),
-        isPermitted: isAdmin ||
-            tenant.hasPermission(AppPermissions.userRead) ||
-            tenant.hasPermission(AppPermissions.userAdd) ||
-            tenant.hasPermission(AppPermissions.userUpdate) ||
-            tenant.hasPermission(AppPermissions.userDelete),
+        isPermitted: isAdmin || tenant.hasPermission(AppPermissions.userRead),
         onTap: () {
           Navigator.push(
             context,
@@ -303,10 +243,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
         child: ListView(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           children: [
-            // Alert Shortfalls / Expiring Soon Banners
-            if (isAdmin || tenant.hasPermission(AppPermissions.itemRead) || tenant.hasPermission(AppPermissions.batchRead))
-              _buildAlertsSection(inventory),
-
             // Operations Grid (Empty state if no permissions)
             if (allowedOperations.isEmpty)
               _buildEmptyState()
@@ -449,77 +385,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 13, color: Color(0xFF64748B)),
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAlertsSection(InventoryProvider inventory) {
-    final shortfallItems =
-        inventory.items.where((i) => i.isBelowReorderThreshold).toList();
-    final expiringBatches = inventory.expiringSoonBatches;
-
-    if (shortfallItems.isEmpty && expiringBatches.isEmpty) {
-      return const SizedBox.shrink();
-    }
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 14),
-      child: Column(
-        children: [
-          if (shortfallItems.isNotEmpty)
-            Container(
-              margin: const EdgeInsets.only(bottom: 8),
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFFFBEB),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: const Color(0xFFFDE68A)),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.warning_amber_rounded,
-                      color: Color(0xFFD97706), size: 20),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      '${shortfallItems.length} item(s) below reorder threshold. Stock shortfall detected!',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFFB45309),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          if (expiringBatches.isNotEmpty)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFEF2F2),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: const Color(0xFFFECACA)),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.access_time_filled,
-                      color: Color(0xFFDC2626), size: 20),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      '${expiringBatches.length} batch(es) expiring within 7 days. Prioritize FEFO allocation!',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF991B1B),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
         ],
       ),
     );

@@ -111,59 +111,65 @@ class TenantProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> loadTenantDepartments() async {
+  Future<void> loadTenantPermissions() async {
     if (_activeTenant == null) return;
     _setLoading(true);
 
     try {
-      // 1. Fetch user's actual permissions & assigned departments directly from backend
+      dynamic res;
+      // 1. Try /tenants/:id/permissions
       try {
-        final permRes = await apiClient.get(
-          ApiConstants.tenantMyPermissions(_activeTenant!.tenantId),
+        res = await apiClient.get(
+          ApiConstants.tenantPermissions(_activeTenant!.tenantId),
         );
-        if (permRes is Map<String, dynamic>) {
-          if (permRes['permissions'] is List) {
-            _userPermissions.clear();
-            _userPermissions.addAll(
-              (permRes['permissions'] as List).map((p) => p.toString()),
-            );
-          }
-          if (permRes['department_ids'] is List) {
-            final latestDeptIds = (permRes['department_ids'] as List)
-                .map((d) => d.toString())
-                .toList();
-            _activeTenant = TenantOption(
-              tenantId: _activeTenant!.tenantId,
-              companyName: _activeTenant!.companyName,
-              isAdmin: permRes['is_admin'] == true || _activeTenant!.isAdmin,
-              hasAllDepartmentsAccess:
-                  permRes['has_all_departments_access'] == true ||
-                      _activeTenant!.hasAllDepartmentsAccess,
-              departmentIds: latestDeptIds,
-            );
-          }
-          if (permRes['departments'] is List) {
-            _tenantDepartments = (permRes['departments'] as List)
-                .map((item) => DepartmentModel.fromJson(item))
-                .toList();
-          }
-        }
       } catch (_) {
-        // Fallback to departments list if my-permissions is unavailable
+        // Fallback 1: try /tenants/:id/my-permissions
+        try {
+          res = await apiClient.get(
+            ApiConstants.tenantMyPermissions(_activeTenant!.tenantId),
+          );
+        } catch (_) {
+          // Fallback 2: try /tenants/:id
+          try {
+            res = await apiClient.get(
+              ApiConstants.tenantById(_activeTenant!.tenantId),
+            );
+          } catch (_) {}
+        }
       }
 
-      // 2. Fetch full tenant departments catalogue
-      try {
-        final res = await apiClient.get(ApiConstants.departments);
-        if (res is List) {
-          _tenantDepartments =
-              res.map((item) => DepartmentModel.fromJson(item)).toList();
+      if (res is Map<String, dynamic>) {
+        if (res['permissions'] is List) {
+          _userPermissions.clear();
+          _userPermissions.addAll(
+            (res['permissions'] as List).map((p) => p.toString()),
+          );
         }
-      } catch (_) {}
 
-      // 3. Fallback compute if permissions were not populated from server
-      if (_userPermissions.isEmpty) {
-        _computeUserPermissions();
+        final isAdmin = res['is_admin'] == true || _activeTenant!.isAdmin;
+        final hasAllAccess = res['has_all_departments_access'] == true ||
+            _activeTenant!.hasAllDepartmentsAccess;
+
+        List<String> latestDeptIds = _activeTenant!.departmentIds;
+        if (res['department_ids'] is List) {
+          latestDeptIds = (res['department_ids'] as List)
+              .map((d) => d.toString())
+              .toList();
+        }
+
+        _activeTenant = TenantOption(
+          tenantId: _activeTenant!.tenantId,
+          companyName: res['company_name']?.toString() ?? _activeTenant!.companyName,
+          isAdmin: isAdmin,
+          hasAllDepartmentsAccess: hasAllAccess,
+          departmentIds: latestDeptIds,
+        );
+
+        if (res['departments'] is List) {
+          _tenantDepartments = (res['departments'] as List)
+              .map((item) => DepartmentModel.fromJson(item))
+              .toList();
+        }
       }
 
       _setLoading(false);
@@ -175,26 +181,8 @@ class TenantProvider extends ChangeNotifier {
     }
   }
 
-  void _computeUserPermissions() {
-    _userPermissions.clear();
-
-    if (_activeTenant == null) return;
-
-    if (_activeTenant!.isAdmin || _activeTenant!.hasAllDepartmentsAccess) {
-      // Admin has all permissions from all departments
-      for (final dept in _tenantDepartments) {
-        _userPermissions.addAll(dept.permissionIds);
-      }
-      return;
-    }
-
-    // Operator: aggregate permissions ONLY from the departments they are assigned to
-    final assignedDeptIds = Set<String>.from(_activeTenant!.departmentIds);
-    for (final dept in _tenantDepartments) {
-      if (assignedDeptIds.contains(dept.departmentId)) {
-        _userPermissions.addAll(dept.permissionIds);
-      }
-    }
+  Future<void> loadTenantDepartments() async {
+    await loadTenantPermissions();
   }
 
   Future<TenantOption?> createTenant(String companyName) async {

@@ -128,9 +128,23 @@ export class TenantsService {
 
     const isAdmin = tenant.admin_user_id === userId;
     let departmentIds = membership.department_ids || [];
+    let depts: any[] = [];
+    let permissions: string[] = [];
+
     if (isAdmin) {
-      const allDepts = await this.departmentsService.findAll(tenantId);
-      departmentIds = allDepts.map((d) => d.department_id);
+      depts = await this.departmentsService.findAll(tenantId);
+      departmentIds = depts.map((d) => d.department_id);
+      permissions = Array.from(
+        new Set(depts.flatMap((d) => d.permission_ids || [])),
+      );
+    } else {
+      depts = await this.departmentsService.findByIds(
+        tenantId,
+        departmentIds,
+      );
+      permissions = Array.from(
+        new Set(depts.flatMap((d) => d.permission_ids || [])),
+      );
     }
 
     return {
@@ -140,6 +154,8 @@ export class TenantsService {
       is_admin: isAdmin,
       has_all_departments_access: isAdmin,
       department_ids: departmentIds,
+      departments: depts,
+      permissions,
     };
   }
 

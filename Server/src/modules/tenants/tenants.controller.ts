@@ -54,28 +54,50 @@ export class TenantsController {
     return this.tenantsService.getUserTenants(userId);
   }
 
-  @Get(':id')
-  @ApiOperation({ summary: 'Get tenant details by ID' })
-  @ApiResponse({ status: 200, description: 'Tenant details' })
-  async getTenantById(
-    @Param('id') tenantId: string,
-    @CurrentUser('user_id') userId: string,
-  ) {
-    return this.tenantsService.getTenantById(tenantId, userId);
-  }
-
-  @Get(':id/my-permissions')
+  @Get(':id/permissions')
   @ApiOperation({
     summary: 'Get current user aggregated permissions and active departments in tenant',
     description:
       'Returns the authenticated user active departments and calculated permissions in this tenant context.',
   })
   @ApiResponse({ status: 200, description: 'User permissions and assigned departments' })
+  async getPermissions(
+    @Param('id') tenantId: string,
+    @CurrentUser('user_id') userId: string,
+  ) {
+    return this.tenantsService.getMyPermissions(tenantId, userId);
+  }
+
+  @Get(':id/my-permissions')
+  @ApiOperation({
+    summary: 'Get current user aggregated permissions and active departments in tenant (alias)',
+  })
   async getMyPermissions(
     @Param('id') tenantId: string,
     @CurrentUser('user_id') userId: string,
   ) {
     return this.tenantsService.getMyPermissions(tenantId, userId);
+  }
+
+  @Get(':id/operations')
+  @ApiOperation({
+    summary: 'Get current user allowed operations in tenant',
+  })
+  async getOperations(
+    @Param('id') tenantId: string,
+    @CurrentUser('user_id') userId: string,
+  ) {
+    return this.tenantsService.getMyPermissions(tenantId, userId);
+  }
+
+  @Get(':id')
+  @ApiOperation({ summary: 'Get tenant details and user permissions by ID' })
+  @ApiResponse({ status: 200, description: 'Tenant details and user permissions' })
+  async getTenantById(
+    @Param('id') tenantId: string,
+    @CurrentUser('user_id') userId: string,
+  ) {
+    return this.tenantsService.getTenantById(tenantId, userId);
   }
 
   @Post('add-user')

@@ -1,12 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import '../../core/constants/permissions.dart';
 import '../../providers/inventory_provider.dart';
-import '../../providers/tenant_provider.dart';
 import '../../widgets/user_profile_avatar.dart';
-import 'fefo_deduct_dialog.dart';
-import 'inward_batch_dialog.dart';
 
 class StockBatchesListScreen extends StatefulWidget {
   const StockBatchesListScreen({super.key});
@@ -23,10 +19,6 @@ class _StockBatchesListScreenState extends State<StockBatchesListScreen> {
   @override
   Widget build(BuildContext context) {
     final inventory = context.watch<InventoryProvider>();
-    final tenant = context.watch<TenantProvider>();
-
-    final canCreate = tenant.hasPermission(AppPermissions.batchCreate);
-    final canDeduct = tenant.hasPermission(AppPermissions.batchDeduct);
 
     final batches = inventory.stockBatches.where((b) {
       final matchesSearch = b.batchNumber.toLowerCase().contains(_searchQuery.toLowerCase()) ||
@@ -49,41 +41,6 @@ class _StockBatchesListScreenState extends State<StockBatchesListScreen> {
           ),
           const UserProfileAvatar(),
           const SizedBox(width: 4),
-        ],
-      ),
-      floatingActionButton: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          if (canDeduct)
-            FloatingActionButton.extended(
-              heroTag: 'fefo_btn',
-              backgroundColor: const Color(0xFF8B5CF6),
-              foregroundColor: Colors.white,
-              icon: const Icon(Icons.auto_awesome),
-              label: const Text('Option B FEFO Deduct'),
-              onPressed: () {
-                showDialog(
-                  context: context,
-                  builder: (_) => const FefoDeductDialog(),
-                );
-              },
-            ),
-          const SizedBox(height: 12),
-          if (canCreate)
-            FloatingActionButton.extended(
-              heroTag: 'inward_btn',
-              backgroundColor: const Color(0xFF0F766E),
-              foregroundColor: Colors.white,
-              icon: const Icon(Icons.add),
-              label: const Text('Inward Batch'),
-              onPressed: () {
-                showDialog(
-                  context: context,
-                  builder: (_) => const InwardBatchDialog(),
-                );
-              },
-            ),
         ],
       ),
       body: Column(
@@ -161,23 +118,6 @@ class _StockBatchesListScreenState extends State<StockBatchesListScreen> {
                                     : 'No inventory batches on rack',
                                 style: TextStyle(color: Colors.grey.shade600, fontSize: 16),
                               ),
-                              if (canCreate) ...[
-                                const SizedBox(height: 12),
-                                ElevatedButton.icon(
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFF0F766E),
-                                    foregroundColor: Colors.white,
-                                  ),
-                                  icon: const Icon(Icons.add),
-                                  label: const Text('Inward First Batch'),
-                                  onPressed: () {
-                                    showDialog(
-                                      context: context,
-                                      builder: (_) => const InwardBatchDialog(),
-                                    );
-                                  },
-                                ),
-                              ],
                             ],
                           ),
                         )

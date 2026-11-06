@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../core/constants/permissions.dart';
 import '../../providers/inventory_provider.dart';
-import '../../providers/tenant_provider.dart';
 import '../../widgets/user_profile_avatar.dart';
-import 'create_store_room_dialog.dart';
 
 class StoreRoomsListScreen extends StatelessWidget {
   const StoreRoomsListScreen({super.key});
@@ -12,8 +9,6 @@ class StoreRoomsListScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final inventory = context.watch<InventoryProvider>();
-    final tenant = context.watch<TenantProvider>();
-    final canCreate = tenant.hasPermission(AppPermissions.storeroomCreate);
 
     return Scaffold(
       appBar: AppBar(
@@ -27,20 +22,6 @@ class StoreRoomsListScreen extends StatelessWidget {
           const SizedBox(width: 4),
         ],
       ),
-      floatingActionButton: canCreate
-          ? FloatingActionButton.extended(
-              backgroundColor: const Color(0xFF0F766E),
-              foregroundColor: Colors.white,
-              icon: const Icon(Icons.add),
-              label: const Text('Add Cold Room'),
-              onPressed: () {
-                showDialog(
-                  context: context,
-                  builder: (_) => const CreateStoreRoomDialog(),
-                );
-              },
-            )
-          : null,
       body: RefreshIndicator(
         onRefresh: inventory.loadStoreRooms,
         child: inventory.isLoading
@@ -68,19 +49,6 @@ class StoreRoomsListScreen extends StatelessWidget {
                           'Register cold storage rooms to manage temperature and capacity.',
                           style: TextStyle(fontSize: 13, color: Color(0xFF64748B)),
                         ),
-                        if (canCreate) ...[
-                          const SizedBox(height: 16),
-                          ElevatedButton.icon(
-                            icon: const Icon(Icons.add),
-                            label: const Text('Create First Cold Room'),
-                            onPressed: () {
-                              showDialog(
-                                context: context,
-                                builder: (_) => const CreateStoreRoomDialog(),
-                              );
-                            },
-                          ),
-                        ],
                       ],
                     ),
                   )

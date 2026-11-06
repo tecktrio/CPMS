@@ -159,14 +159,11 @@ class _DepartmentsListScreenState extends State<DepartmentsListScreen>
         (tenant.activeTenant?.isAdmin ?? false) ||
         (auth.availableTenants.any((t) => t.tenantId == tenant.activeTenant?.tenantId && t.isAdmin));
 
-    final canCreateDept = isAdmin ||
-        tenant.hasPermission(AppPermissions.departmentCreate);
     final canUpdateDept = isAdmin ||
         tenant.hasPermission(AppPermissions.departmentUpdate) ||
         tenant.hasPermission(AppPermissions.departmentCreate);
     final canDeleteDept = isAdmin ||
         tenant.hasPermission(AppPermissions.departmentDelete);
-    final canAddUser = isAdmin || tenant.hasPermission(AppPermissions.userAdd);
     final canUpdateUser = isAdmin || tenant.hasPermission(AppPermissions.userUpdate);
     final canDeleteUser = isAdmin || tenant.hasPermission(AppPermissions.userDelete);
 
@@ -198,40 +195,6 @@ class _DepartmentsListScreenState extends State<DepartmentsListScreen>
           ],
         ),
       ),
-      floatingActionButton: AnimatedBuilder(
-        animation: _tabController,
-        builder: (context, _) {
-          final isDeptTab = _tabController.index == 0;
-          if (isDeptTab && canCreateDept) {
-            return FloatingActionButton.extended(
-              backgroundColor: const Color(0xFF0F766E),
-              foregroundColor: Colors.white,
-              icon: const Icon(Icons.add),
-              label: const Text('Add Department'),
-              onPressed: () {
-                showDialog(
-                  context: context,
-                  builder: (_) => const CreateDepartmentDialog(),
-                );
-              },
-            );
-          } else if (!isDeptTab && canAddUser) {
-            return FloatingActionButton.extended(
-              backgroundColor: const Color(0xFF0F766E),
-              foregroundColor: Colors.white,
-              icon: const Icon(Icons.person_add),
-              label: const Text('Add Staff User'),
-              onPressed: () {
-                showDialog(
-                  context: context,
-                  builder: (_) => const AddTenantUserDialog(),
-                );
-              },
-            );
-          }
-          return const SizedBox.shrink();
-        },
-      ),
       body: TabBarView(
         controller: _tabController,
         children: [
@@ -249,23 +212,6 @@ class _DepartmentsListScreenState extends State<DepartmentsListScreen>
                           'No departments configured yet',
                           style: TextStyle(color: Colors.grey.shade600, fontSize: 16),
                         ),
-                        if (canCreateDept) ...[
-                          const SizedBox(height: 12),
-                          ElevatedButton.icon(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF0F766E),
-                              foregroundColor: Colors.white,
-                            ),
-                            icon: const Icon(Icons.add),
-                            label: const Text('Create Department'),
-                            onPressed: () {
-                              showDialog(
-                                context: context,
-                                builder: (_) => const CreateDepartmentDialog(),
-                              );
-                            },
-                          ),
-                        ],
                       ],
                     ),
                   )
@@ -476,23 +422,6 @@ class _DepartmentsListScreenState extends State<DepartmentsListScreen>
                           'No staff members in directory',
                           style: TextStyle(color: Colors.grey.shade600, fontSize: 16),
                         ),
-                        if (canAddUser) ...[
-                          const SizedBox(height: 12),
-                          ElevatedButton.icon(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF0F766E),
-                              foregroundColor: Colors.white,
-                            ),
-                            icon: const Icon(Icons.person_add),
-                            label: const Text('Add First Staff User'),
-                            onPressed: () {
-                              showDialog(
-                                context: context,
-                                builder: (_) => const AddTenantUserDialog(),
-                              );
-                            },
-                          ),
-                        ],
                       ],
                     ),
                   )
