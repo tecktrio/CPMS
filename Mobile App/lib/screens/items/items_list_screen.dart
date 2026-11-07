@@ -48,7 +48,7 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
       if (canUpdate && !canDelete) {
         pageTitle = 'Update Items';
       } else if (!canUpdate && canDelete) {
-        pageTitle = 'Deactivate Items';
+        pageTitle = 'Delete Items';
       } else {
         pageTitle = 'Manage Items';
       }
@@ -287,13 +287,13 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
                                               ),
                                               icon: const Icon(Icons.delete_outline, size: 16),
                                               label: const Text(
-                                                'Deactivate',
+                                                'Delete',
                                                 style: TextStyle(
                                                   fontWeight: FontWeight.w700,
                                                   fontSize: 12,
                                                 ),
                                               ),
-                                              onPressed: () => _confirmDeactivate(context, item),
+                                              onPressed: () => _confirmDelete(context, item),
                                             ),
                                           ],
                                         ],
@@ -316,8 +316,32 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
     final nameCtrl = TextEditingController(text: item.itemName);
     final thresholdCtrl =
         TextEditingController(text: item.reorderThresholdQuantity.toString());
+
+    final List<Map<String, String>> typeOptions = [
+      {'value': 'RAW_MATERIAL', 'label': 'Raw Material'},
+      {'value': 'FINISHED_GOOD', 'label': 'Finished Good'},
+      {'value': 'PACKAGING', 'label': 'Packaging'},
+    ];
     String selectedType = item.itemType;
+    if (!typeOptions.any((t) => t['value'] == selectedType)) {
+      typeOptions.add({'value': selectedType, 'label': selectedType});
+    }
+
+    final List<Map<String, String>> unitOptions = [
+      {'value': 'KILOGRAM', 'label': 'Kilogram (KG)'},
+      {'value': 'LITER', 'label': 'Liter (L)'},
+      {'value': 'LITRE', 'label': 'Litre (L)'},
+      {'value': 'PIECE', 'label': 'Piece (PC)'},
+      {'value': 'CARTOON_BOX', 'label': 'Carton Box'},
+      {'value': 'CARTON', 'label': 'Carton'},
+      {'value': 'GRAM', 'label': 'Gram (G)'},
+      {'value': 'MILLILITRE', 'label': 'Millilitre (ML)'},
+      {'value': 'UNIT', 'label': 'Unit'},
+    ];
     String selectedUnit = item.measurementUnit;
+    if (!unitOptions.any((u) => u['value'] == selectedUnit)) {
+      unitOptions.add({'value': selectedUnit, 'label': selectedUnit});
+    }
 
     final formKey = GlobalKey<FormState>();
 
@@ -343,14 +367,12 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
                     DropdownButtonFormField<String>(
                       initialValue: selectedType,
                       decoration: const InputDecoration(labelText: 'Item Type'),
-                      items: const [
-                        DropdownMenuItem(
-                            value: 'RAW_MATERIAL', child: Text('Raw Material')),
-                        DropdownMenuItem(
-                            value: 'FINISHED_GOOD', child: Text('Finished Good')),
-                        DropdownMenuItem(
-                            value: 'PACKAGING', child: Text('Packaging')),
-                      ],
+                      items: typeOptions
+                          .map((t) => DropdownMenuItem(
+                                value: t['value'],
+                                child: Text(t['label']!),
+                              ))
+                          .toList(),
                       onChanged: (val) {
                         if (val != null) {
                           setDialogState(() => selectedType = val);
@@ -362,15 +384,12 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
                       initialValue: selectedUnit,
                       decoration:
                           const InputDecoration(labelText: 'Measurement Unit'),
-                      items: const [
-                        DropdownMenuItem(value: 'KG', child: Text('Kilogram (KG)')),
-                        DropdownMenuItem(value: 'GRAM', child: Text('Gram (G)')),
-                        DropdownMenuItem(value: 'LITRE', child: Text('Litre (L)')),
-                        DropdownMenuItem(value: 'ML', child: Text('Millilitre (ML)')),
-                        DropdownMenuItem(value: 'PIECE', child: Text('Piece (PC)')),
-                        DropdownMenuItem(value: 'UNIT', child: Text('Unit')),
-                        DropdownMenuItem(value: 'CARTON', child: Text('Carton')),
-                      ],
+                      items: unitOptions
+                          .map((u) => DropdownMenuItem(
+                                value: u['value'],
+                                child: Text(u['label']!),
+                              ))
+                          .toList(),
                       onChanged: (val) {
                         if (val != null) {
                           setDialogState(() => selectedUnit = val);
@@ -436,13 +455,13 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
     );
   }
 
-  void _confirmDeactivate(BuildContext context, ItemModel item) {
+  void _confirmDelete(BuildContext context, ItemModel item) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text('Deactivate SKU ${item.sku}?'),
+        title: Text('Delete Item: ${item.sku}?'),
         content: Text(
-          'Are you sure you want to deactivate and remove "${item.itemName}"? This item can only be removed if all inventory stock is zero.',
+          'Are you sure you want to permanently delete "${item.itemName}"? Note that an item can only be deleted if its remaining stock is zero.',
         ),
         actions: [
           TextButton(
@@ -462,15 +481,15 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(ok
-                        ? 'Item deactivated successfully'
-                        : (inventory.errorMessage ?? 'Deactivation failed')),
+                        ? 'Item deleted successfully'
+                        : (inventory.errorMessage ?? 'Delete failed')),
                     backgroundColor:
                         ok ? const Color(0xFF0F766E) : Colors.red.shade700,
                   ),
                 );
               }
             },
-            child: const Text('Deactivate'),
+            child: const Text('Delete'),
           ),
         ],
       ),

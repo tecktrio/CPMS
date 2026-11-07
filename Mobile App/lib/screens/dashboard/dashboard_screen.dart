@@ -108,9 +108,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
         },
       ),
       _DashboardOperationItem(
-        title: 'Deactivate Items',
-        tag: 'Archive SKU Catalog',
-        icon: Icons.archive_outlined,
+        title: 'Delete Items',
+        tag: 'Remove SKU Catalog',
+        icon: Icons.delete_outline,
         color: const Color(0xFF0F766E),
         isPermitted: isAdmin || tenant.hasPermission(AppPermissions.itemDelete),
         onTap: () {
