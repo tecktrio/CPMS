@@ -40,18 +40,15 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
   @override
   void initState() {
     super.initState();
-    final inventory = context.read<InventoryProvider>();
-    if (inventory.storeRooms.isNotEmpty) {
-      _selectedStoreRoomId = inventory.storeRooms.first.storeRoomId;
-    } else {
-      inventory.loadStoreRooms().then((_) {
-        if (mounted && inventory.storeRooms.isNotEmpty) {
-          setState(() {
-            _selectedStoreRoomId = inventory.storeRooms.first.storeRoomId;
-          });
-        }
-      });
-    }
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final inventory = context.read<InventoryProvider>();
+      await inventory.loadStoreRooms();
+      if (mounted && inventory.storeRooms.isNotEmpty) {
+        setState(() {
+          _selectedStoreRoomId = inventory.storeRooms.first.storeRoomId;
+        });
+      }
+    });
   }
 
   @override

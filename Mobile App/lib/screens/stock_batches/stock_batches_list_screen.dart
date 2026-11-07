@@ -17,6 +17,16 @@ class _StockBatchesListScreenState extends State<StockBatchesListScreen> {
   final DateFormat _dateFormat = DateFormat('MMM dd, yyyy');
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final inv = context.read<InventoryProvider>();
+      inv.loadStockBatches();
+      inv.loadExpiringSoon(7);
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     final inventory = context.watch<InventoryProvider>();
 

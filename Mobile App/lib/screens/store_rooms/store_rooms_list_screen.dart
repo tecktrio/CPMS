@@ -3,8 +3,21 @@ import 'package:provider/provider.dart';
 import '../../providers/inventory_provider.dart';
 import '../../widgets/user_profile_avatar.dart';
 
-class StoreRoomsListScreen extends StatelessWidget {
+class StoreRoomsListScreen extends StatefulWidget {
   const StoreRoomsListScreen({super.key});
+
+  @override
+  State<StoreRoomsListScreen> createState() => _StoreRoomsListScreenState();
+}
+
+class _StoreRoomsListScreenState extends State<StoreRoomsListScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<InventoryProvider>().loadStoreRooms();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {

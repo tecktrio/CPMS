@@ -245,6 +245,15 @@ class InventoryProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
 
+  void clear() {
+    _storeRooms = [];
+    _items = [];
+    _stockBatches = [];
+    _expiringSoonBatches = [];
+    _errorMessage = null;
+    notifyListeners();
+  }
+
   Future<void> loadStoreRooms() async {
     _setLoading(true);
     try {

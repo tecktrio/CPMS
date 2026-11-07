@@ -29,10 +29,15 @@ class _FefoPickingScreenState extends State<FefoPickingScreen> {
   void initState() {
     super.initState();
     _selectedItemId = widget.initialItemId;
-    final inventory = context.read<InventoryProvider>();
-    if (_selectedItemId == null && inventory.items.isNotEmpty) {
-      _selectedItemId = inventory.items.first.itemId;
-    }
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final inventory = context.read<InventoryProvider>();
+      await inventory.loadItems();
+      if (mounted && _selectedItemId == null && inventory.items.isNotEmpty) {
+        setState(() {
+          _selectedItemId = inventory.items.first.itemId;
+        });
+      }
+    });
   }
 
   @override

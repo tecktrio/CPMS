@@ -29,13 +29,23 @@ class _InwardBatchScreenState extends State<InwardBatchScreen> {
   void initState() {
     super.initState();
     _selectedItemId = widget.initialItemId;
-    final inventory = context.read<InventoryProvider>();
-    if (_selectedItemId == null && inventory.items.isNotEmpty) {
-      _selectedItemId = inventory.items.first.itemId;
-    }
-    if (inventory.storeRooms.isNotEmpty) {
-      _selectedStoreRoomId = inventory.storeRooms.first.storeRoomId;
-    }
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final inventory = context.read<InventoryProvider>();
+      await Future.wait([
+        inventory.loadItems(),
+        inventory.loadStoreRooms(),
+      ]);
+      if (mounted) {
+        setState(() {
+          if (_selectedItemId == null && inventory.items.isNotEmpty) {
+            _selectedItemId = inventory.items.first.itemId;
+          }
+          if (_selectedStoreRoomId == null && inventory.storeRooms.isNotEmpty) {
+            _selectedStoreRoomId = inventory.storeRooms.first.storeRoomId;
+          }
+        });
+      }
+    });
   }
 
   @override

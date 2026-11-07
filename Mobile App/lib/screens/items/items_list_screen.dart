@@ -15,6 +15,14 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
   String _selectedCategory = 'ALL';
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<InventoryProvider>().loadItems();
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     final inventory = context.watch<InventoryProvider>();
 

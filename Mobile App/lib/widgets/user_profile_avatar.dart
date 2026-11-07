@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/tenant_provider.dart';
+import '../providers/inventory_provider.dart';
 import '../screens/tenant/tenant_selector_screen.dart';
 
 class UserProfileAvatar extends StatelessWidget {
@@ -206,6 +207,7 @@ class UserProfileAvatar extends StatelessWidget {
                     onPressed: () async {
                       Navigator.pop(ctx);
                       context.read<TenantProvider>().clear();
+                      context.read<InventoryProvider>().clear();
                       await auth.signOut();
                       if (!context.mounted) return;
                       Navigator.pushNamedAndRemoveUntil(context, '/signin', (route) => false);
