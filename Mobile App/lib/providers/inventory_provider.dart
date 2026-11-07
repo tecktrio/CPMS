@@ -343,6 +343,46 @@ class InventoryProvider extends ChangeNotifier {
     }
   }
 
+  Future<bool> updateItem({
+    required String itemId,
+    String? itemName,
+    String? itemType,
+    String? measurementUnit,
+    double? reorderThreshold,
+  }) async {
+    _setLoading(true);
+    _errorMessage = null;
+    try {
+      final body = <String, dynamic>{};
+      if (itemName != null && itemName.isNotEmpty) body['item_name'] = itemName.trim();
+      if (itemType != null) body['item_type'] = itemType;
+      if (measurementUnit != null) body['measurement_unit'] = measurementUnit;
+      if (reorderThreshold != null) body['reorder_threshold_quantity'] = reorderThreshold;
+
+      await apiClient.put('${ApiConstants.items}/$itemId', body: body);
+      await loadItems();
+      return true;
+    } catch (e) {
+      _errorMessage = e.toString();
+      _setLoading(false);
+      return false;
+    }
+  }
+
+  Future<bool> deleteItem(String itemId) async {
+    _setLoading(true);
+    _errorMessage = null;
+    try {
+      await apiClient.delete('${ApiConstants.items}/$itemId');
+      await loadItems();
+      return true;
+    } catch (e) {
+      _errorMessage = e.toString();
+      _setLoading(false);
+      return false;
+    }
+  }
+
   Future<void> loadStockBatches() async {
     _setLoading(true);
     try {

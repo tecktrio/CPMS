@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../core/constants/permissions.dart';
 import '../../providers/inventory_provider.dart';
+import '../../providers/tenant_provider.dart';
 import '../../widgets/user_profile_avatar.dart';
 
 class ItemsListScreen extends StatefulWidget {
-  const ItemsListScreen({super.key});
+  final bool manageMode;
+  const ItemsListScreen({super.key, this.manageMode = false});
 
   @override
   State<ItemsListScreen> createState() => _ItemsListScreenState();
@@ -25,6 +28,10 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
   @override
   Widget build(BuildContext context) {
     final inventory = context.watch<InventoryProvider>();
+    final tenant = context.watch<TenantProvider>();
+    final isAdmin = tenant.isTenantAdmin;
+    final canUpdate = isAdmin || tenant.hasPermission(AppPermissions.itemUpdate);
+    final canDelete = isAdmin || tenant.hasPermission(AppPermissions.itemDelete);
 
     final filteredItems = inventory.items.where((item) {
       final matchesSearch = item.itemName
@@ -36,9 +43,20 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
       return matchesSearch && matchesCat;
     }).toList();
 
+    String pageTitle = 'Items & Materials';
+    if (widget.manageMode) {
+      if (canUpdate && !canDelete) {
+        pageTitle = 'Update Items';
+      } else if (!canUpdate && canDelete) {
+        pageTitle = 'Deactivate Items';
+      } else {
+        pageTitle = 'Manage Items';
+      }
+    }
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Items & Materials'),
+        title: Text(pageTitle),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -235,6 +253,52 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
                                           color: Color(0xFF64748B),
                                         ),
                                       ),
+
+                                    // Update & Deactivate Actions
+                                    if (canUpdate || canDelete) ...[
+                                      const SizedBox(height: 10),
+                                      const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                                      const SizedBox(height: 4),
+                                      Row(
+                                        mainAxisAlignment: MainAxisAlignment.end,
+                                        children: [
+                                          if (canUpdate)
+                                            TextButton.icon(
+                                              style: TextButton.styleFrom(
+                                                foregroundColor: const Color(0xFF0F766E),
+                                                visualDensity: VisualDensity.compact,
+                                              ),
+                                              icon: const Icon(Icons.edit_outlined, size: 16),
+                                              label: const Text(
+                                                'Update',
+                                                style: TextStyle(
+                                                  fontWeight: FontWeight.w700,
+                                                  fontSize: 12,
+                                                ),
+                                              ),
+                                              onPressed: () => _showEditDialog(context, item),
+                                            ),
+                                          if (canDelete) ...[
+                                            const SizedBox(width: 8),
+                                            TextButton.icon(
+                                              style: TextButton.styleFrom(
+                                                foregroundColor: const Color(0xFFDC2626),
+                                                visualDensity: VisualDensity.compact,
+                                              ),
+                                              icon: const Icon(Icons.delete_outline, size: 16),
+                                              label: const Text(
+                                                'Deactivate',
+                                                style: TextStyle(
+                                                  fontWeight: FontWeight.w700,
+                                                  fontSize: 12,
+                                                ),
+                                              ),
+                                              onPressed: () => _confirmDeactivate(context, item),
+                                            ),
+                                          ],
+                                        ],
+                                      ),
+                                    ],
                                   ],
                                 ),
                               ),
@@ -242,6 +306,171 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
                           },
                         ),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showEditDialog(BuildContext context, ItemModel item) {
+    final nameCtrl = TextEditingController(text: item.itemName);
+    final thresholdCtrl =
+        TextEditingController(text: item.reorderThresholdQuantity.toString());
+    String selectedType = item.itemType;
+    String selectedUnit = item.measurementUnit;
+
+    final formKey = GlobalKey<FormState>();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          return AlertDialog(
+            title: Text('Update Item: ${item.sku}'),
+            content: SingleChildScrollView(
+              child: Form(
+                key: formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextFormField(
+                      controller: nameCtrl,
+                      decoration: const InputDecoration(labelText: 'Item Name'),
+                      validator: (v) =>
+                          v == null || v.trim().isEmpty ? 'Required' : null,
+                    ),
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<String>(
+                      initialValue: selectedType,
+                      decoration: const InputDecoration(labelText: 'Item Type'),
+                      items: const [
+                        DropdownMenuItem(
+                            value: 'RAW_MATERIAL', child: Text('Raw Material')),
+                        DropdownMenuItem(
+                            value: 'FINISHED_GOOD', child: Text('Finished Good')),
+                        DropdownMenuItem(
+                            value: 'PACKAGING', child: Text('Packaging')),
+                      ],
+                      onChanged: (val) {
+                        if (val != null) {
+                          setDialogState(() => selectedType = val);
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<String>(
+                      initialValue: selectedUnit,
+                      decoration:
+                          const InputDecoration(labelText: 'Measurement Unit'),
+                      items: const [
+                        DropdownMenuItem(value: 'KG', child: Text('Kilogram (KG)')),
+                        DropdownMenuItem(value: 'GRAM', child: Text('Gram (G)')),
+                        DropdownMenuItem(value: 'LITRE', child: Text('Litre (L)')),
+                        DropdownMenuItem(value: 'ML', child: Text('Millilitre (ML)')),
+                        DropdownMenuItem(value: 'PIECE', child: Text('Piece (PC)')),
+                        DropdownMenuItem(value: 'UNIT', child: Text('Unit')),
+                        DropdownMenuItem(value: 'CARTON', child: Text('Carton')),
+                      ],
+                      onChanged: (val) {
+                        if (val != null) {
+                          setDialogState(() => selectedUnit = val);
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: thresholdCtrl,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      decoration:
+                          const InputDecoration(labelText: 'Reorder Threshold'),
+                      validator: (v) {
+                        if (v == null || double.tryParse(v) == null) {
+                          return 'Enter valid number';
+                        }
+                        return null;
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF0F766E),
+                  foregroundColor: Colors.white,
+                ),
+                onPressed: () async {
+                  if (!formKey.currentState!.validate()) return;
+                  Navigator.pop(ctx);
+                  final inventory = context.read<InventoryProvider>();
+                  final ok = await inventory.updateItem(
+                    itemId: item.itemId,
+                    itemName: nameCtrl.text.trim(),
+                    itemType: selectedType,
+                    measurementUnit: selectedUnit,
+                    reorderThreshold: double.parse(thresholdCtrl.text.trim()),
+                  );
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(ok
+                            ? 'Item updated successfully'
+                            : (inventory.errorMessage ?? 'Update failed')),
+                        backgroundColor:
+                            ok ? const Color(0xFF0F766E) : Colors.red.shade700,
+                      ),
+                    );
+                  }
+                },
+                child: const Text('Save Changes'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  void _confirmDeactivate(BuildContext context, ItemModel item) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Deactivate SKU ${item.sku}?'),
+        content: Text(
+          'Are you sure you want to deactivate and remove "${item.itemName}"? This item can only be removed if all inventory stock is zero.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFDC2626),
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              final inventory = context.read<InventoryProvider>();
+              final ok = await inventory.deleteItem(item.itemId);
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(ok
+                        ? 'Item deactivated successfully'
+                        : (inventory.errorMessage ?? 'Deactivation failed')),
+                    backgroundColor:
+                        ok ? const Color(0xFF0F766E) : Colors.red.shade700,
+                  ),
+                );
+              }
+            },
+            child: const Text('Deactivate'),
           ),
         ],
       ),

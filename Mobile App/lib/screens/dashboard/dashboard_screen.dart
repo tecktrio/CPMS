@@ -93,6 +93,36 @@ class _DashboardScreenState extends State<DashboardScreen> {
         },
       ),
       _DashboardOperationItem(
+        title: 'Update Items',
+        tag: 'Edit SKU & Master',
+        icon: Icons.edit_note_outlined,
+        color: const Color(0xFF0F766E),
+        isPermitted: isAdmin || tenant.hasPermission(AppPermissions.itemUpdate),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => const ItemsListScreen(manageMode: true),
+            ),
+          );
+        },
+      ),
+      _DashboardOperationItem(
+        title: 'Deactivate Items',
+        tag: 'Archive SKU Catalog',
+        icon: Icons.archive_outlined,
+        color: const Color(0xFF0F766E),
+        isPermitted: isAdmin || tenant.hasPermission(AppPermissions.itemDelete),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => const ItemsListScreen(manageMode: true),
+            ),
+          );
+        },
+      ),
+      _DashboardOperationItem(
         title: 'Create Cold Room',
         tag: 'Storage Facility',
         icon: Icons.add_home_work_outlined,
