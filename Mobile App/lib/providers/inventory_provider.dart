@@ -7,11 +7,12 @@ class StoreRoomModel {
   final String tenantId;
   final String roomCode;
   final String roomName;
-  final double temperature;
+  final double? temperature;
   final double totalCapacityUnits;
   final double currentOccupancyUnits;
   final double capacityUtilizationPercentage;
   final int activeBatchesCount;
+  final List<String> divisions;
   final bool isActive;
 
   StoreRoomModel({
@@ -19,11 +20,12 @@ class StoreRoomModel {
     required this.tenantId,
     required this.roomCode,
     required this.roomName,
-    required this.temperature,
+    this.temperature,
     required this.totalCapacityUnits,
     required this.currentOccupancyUnits,
     required this.capacityUtilizationPercentage,
     required this.activeBatchesCount,
+    this.divisions = const [],
     required this.isActive,
   });
 
@@ -33,13 +35,17 @@ class StoreRoomModel {
       tenantId: json['tenant_id'] ?? '',
       roomCode: json['room_code'] ?? '',
       roomName: json['room_name'] ?? '',
-      temperature: (json['temperature'] as num?)?.toDouble() ?? 0.0,
+      temperature: (json['temperature'] as num?)?.toDouble(),
       totalCapacityUnits: (json['total_capacity_units'] as num?)?.toDouble() ?? 0.0,
       currentOccupancyUnits:
           (json['current_occupancy_units'] as num?)?.toDouble() ?? 0.0,
       capacityUtilizationPercentage:
           (json['capacity_utilization_percentage'] as num?)?.toDouble() ?? 0.0,
       activeBatchesCount: json['active_batches_count'] ?? 0,
+      divisions: (json['divisions'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          const [],
       isActive: json['is_active'] ?? true,
     );
   }
@@ -56,6 +62,9 @@ class ItemModel {
   final double totalAvailableStock;
   final bool isBelowReorderThreshold;
   final double reorderShortfallQuantity;
+  final String? storeRoomId;
+  final String? locationCode;
+  final String? division;
   final bool isActive;
 
   ItemModel({
@@ -69,10 +78,27 @@ class ItemModel {
     required this.totalAvailableStock,
     required this.isBelowReorderThreshold,
     required this.reorderShortfallQuantity,
+    this.storeRoomId,
+    this.locationCode,
+    this.division,
     required this.isActive,
   });
 
   factory ItemModel.fromJson(Map<String, dynamic> json) {
+    String? sId;
+    String? lCode;
+    String? div;
+    if (json['storage_location_details'] is Map) {
+      sId = json['storage_location_details']['store_room_id']?.toString();
+      lCode = json['storage_location_details']['location_code']?.toString();
+      div = json['storage_location_details']['division']?.toString();
+    }
+
+    final stock = (json['total_available_stock'] as num?)?.toDouble() ??
+        (json['current_stock_quantity'] as num?)?.toDouble() ??
+        (json['stock_quantity'] as num?)?.toDouble() ??
+        0.0;
+
     return ItemModel(
       itemId: json['item_id'] ?? '',
       tenantId: json['tenant_id'] ?? '',
@@ -82,11 +108,13 @@ class ItemModel {
       measurementUnit: json['measurement_unit'] ?? 'KILOGRAM',
       reorderThresholdQuantity:
           (json['reorder_threshold_quantity'] as num?)?.toDouble() ?? 0.0,
-      totalAvailableStock:
-          (json['total_available_stock'] as num?)?.toDouble() ?? 0.0,
+      totalAvailableStock: stock,
       isBelowReorderThreshold: json['is_below_reorder_threshold'] == true,
       reorderShortfallQuantity:
           (json['reorder_shortfall_quantity'] as num?)?.toDouble() ?? 0.0,
+      storeRoomId: sId,
+      locationCode: lCode,
+      division: div,
       isActive: json['is_active'] ?? true,
     );
   }
@@ -271,18 +299,56 @@ class InventoryProvider extends ChangeNotifier {
   Future<bool> createStoreRoom({
     required String roomCode,
     required String roomName,
-    required double temperature,
+    double? temperature,
     required double totalCapacityUnits,
+    List<String>? divisions,
   }) async {
     _setLoading(true);
     _errorMessage = null;
     try {
-      await apiClient.post(ApiConstants.storeRooms, body: {
+      final body = <String, dynamic>{
         'room_code': roomCode.trim().toUpperCase(),
         'room_name': roomName.trim(),
-        'temperature': temperature,
         'total_capacity_units': totalCapacityUnits,
-      });
+      };
+      if (temperature != null) body['temperature'] = temperature;
+      if (divisions != null && divisions.isNotEmpty) body['divisions'] = divisions;
+
+      await apiClient.post(ApiConstants.storeRooms, body: body);
+      await loadStoreRooms();
+      return true;
+    } catch (e) {
+      _errorMessage = e.toString();
+      _setLoading(false);
+      return false;
+    }
+  }
+
+  Future<bool> updateStoreRoom({
+    required String storeRoomId,
+    String? roomCode,
+    String? roomName,
+    double? temperature,
+    double? totalCapacityUnits,
+    List<String>? divisions,
+  }) async {
+    _setLoading(true);
+    _errorMessage = null;
+    try {
+      final body = <String, dynamic>{};
+      if (roomCode != null && roomCode.isNotEmpty) {
+        body['room_code'] = roomCode.trim().toUpperCase();
+      }
+      if (roomName != null && roomName.isNotEmpty) {
+        body['room_name'] = roomName.trim();
+      }
+      if (temperature != null) body['temperature'] = temperature;
+      if (totalCapacityUnits != null) {
+        body['total_capacity_units'] = totalCapacityUnits;
+      }
+      if (divisions != null) body['divisions'] = divisions;
+
+      await apiClient.put('${ApiConstants.storeRooms}/$storeRoomId', body: body);
       await loadStoreRooms();
       return true;
     } catch (e) {
@@ -313,7 +379,9 @@ class InventoryProvider extends ChangeNotifier {
     required String measurementUnit,
     required double reorderThreshold,
     required String storeRoomId,
-    required String locationCode,
+    String? locationCode,
+    String? division,
+    double? stockQuantity,
   }) async {
     _setLoading(true);
     _errorMessage = null;
@@ -324,9 +392,13 @@ class InventoryProvider extends ChangeNotifier {
         'item_type': itemType,
         'measurement_unit': measurementUnit,
         'reorder_threshold_quantity': reorderThreshold,
+        'stock_quantity': stockQuantity ?? 0.0,
         'storage_location_details': {
           'store_room_id': storeRoomId,
-          'location_code': locationCode.trim(),
+          'location_code': (locationCode != null && locationCode.isNotEmpty)
+              ? locationCode.trim()
+              : (division != null && division.isNotEmpty ? division : 'LOC-01'),
+          'division': division ?? '',
           'rack_identifier': 'R1',
           'shelf_identifier': 'S1',
           'bin_identifier': 'B1',
@@ -349,6 +421,9 @@ class InventoryProvider extends ChangeNotifier {
     String? itemType,
     String? measurementUnit,
     double? reorderThreshold,
+    String? storeRoomId,
+    String? division,
+    double? stockQuantity,
   }) async {
     _setLoading(true);
     _errorMessage = null;
@@ -358,6 +433,15 @@ class InventoryProvider extends ChangeNotifier {
       if (itemType != null) body['item_type'] = itemType;
       if (measurementUnit != null) body['measurement_unit'] = measurementUnit;
       if (reorderThreshold != null) body['reorder_threshold_quantity'] = reorderThreshold;
+      if (stockQuantity != null) body['stock_quantity'] = stockQuantity;
+      if (storeRoomId != null || division != null) {
+        final loc = <String, dynamic>{
+          'location_code': division ?? 'LOC-01',
+          'division': division ?? '',
+        };
+        if (storeRoomId != null) loc['store_room_id'] = storeRoomId;
+        body['storage_location_details'] = loc;
+      }
 
       await apiClient.put('${ApiConstants.items}/$itemId', body: body);
       await loadItems();

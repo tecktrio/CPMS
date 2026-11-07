@@ -7,9 +7,6 @@ import '../items/create_item_screen.dart';
 import '../items/items_list_screen.dart';
 import '../store_rooms/create_store_room_screen.dart';
 import '../store_rooms/store_rooms_list_screen.dart';
-import '../stock_batches/inward_batch_screen.dart';
-import '../stock_batches/fefo_picking_screen.dart';
-import '../stock_batches/stock_batches_list_screen.dart';
 import '../departments/create_department_screen.dart';
 import '../departments/add_tenant_user_screen.dart';
 import '../departments/departments_list_screen.dart';
@@ -123,7 +120,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         },
       ),
       _DashboardOperationItem(
-        title: 'Create Cold Room',
+        title: 'Create Store Room',
         tag: 'Storage Facility',
         icon: Icons.add_home_work_outlined,
         color: const Color(0xFF0284C7),
@@ -136,54 +133,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
         },
       ),
       _DashboardOperationItem(
-        title: 'View Cold Rooms',
+        title: 'View Store Rooms',
         tag: 'Storage Directory',
-        icon: Icons.ac_unit,
+        icon: Icons.meeting_room_outlined,
         color: const Color(0xFF0284C7),
         isPermitted: isAdmin || tenant.hasPermission(AppPermissions.storeroomRead),
         onTap: () {
           Navigator.push(
             context,
             MaterialPageRoute(builder: (_) => const StoreRoomsListScreen()),
-          );
-        },
-      ),
-      _DashboardOperationItem(
-        title: 'Inward Batches',
-        tag: 'Stock Receipt',
-        icon: Icons.move_to_inbox_outlined,
-        color: const Color(0xFF8B5CF6),
-        isPermitted: isAdmin || tenant.hasPermission(AppPermissions.batchCreate),
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const InwardBatchScreen()),
-          );
-        },
-      ),
-      _DashboardOperationItem(
-        title: 'FEFO Deductions',
-        tag: 'Option B Deduct',
-        icon: Icons.rule_folder_outlined,
-        color: const Color(0xFF8B5CF6),
-        isPermitted: isAdmin || tenant.hasPermission(AppPermissions.batchDeduct),
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const FefoPickingScreen()),
-          );
-        },
-      ),
-      _DashboardOperationItem(
-        title: 'Stock on Rack',
-        tag: 'Batch Inventory',
-        icon: Icons.qr_code_scanner_outlined,
-        color: const Color(0xFF8B5CF6),
-        isPermitted: isAdmin || tenant.hasPermission(AppPermissions.batchRead),
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const StockBatchesListScreen()),
           );
         },
       ),

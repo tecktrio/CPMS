@@ -44,6 +44,12 @@ export class UpdateItemDto {
   @IsOptional()
   reorder_threshold_quantity?: number;
 
+  @ApiPropertyOptional({ example: 100 })
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  stock_quantity?: number;
+
   @ApiPropertyOptional({ type: StorageLocationDetailsDto })
   @ValidateNested()
   @Type(() => StorageLocationDetailsDto)

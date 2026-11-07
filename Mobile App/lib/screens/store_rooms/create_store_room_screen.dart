@@ -14,8 +14,15 @@ class _CreateStoreRoomScreenState extends State<CreateStoreRoomScreen> {
   final _formKey = GlobalKey<FormState>();
   final _roomCodeController = TextEditingController();
   final _nameController = TextEditingController();
-  final _tempController = TextEditingController(text: '-18');
+  final _tempController = TextEditingController();
   final _capacityController = TextEditingController(text: '1000');
+  final _divisionCountController = TextEditingController(text: '2');
+
+  final List<TextEditingController> _divisionControllers = [
+    TextEditingController(text: 'Section A'),
+    TextEditingController(text: 'Section B'),
+  ];
+
   bool _isSubmitting = false;
 
   @override
@@ -24,7 +31,40 @@ class _CreateStoreRoomScreenState extends State<CreateStoreRoomScreen> {
     _nameController.dispose();
     _tempController.dispose();
     _capacityController.dispose();
+    _divisionCountController.dispose();
+    for (final c in _divisionControllers) {
+      c.dispose();
+    }
     super.dispose();
+  }
+
+  void _generateDivisions(int count) {
+    if (count <= 0 || count > 50) return;
+    setState(() {
+      for (final c in _divisionControllers) {
+        c.dispose();
+      }
+      _divisionControllers.clear();
+      for (int i = 1; i <= count; i++) {
+        _divisionControllers.add(TextEditingController(text: 'Section $i'));
+      }
+    });
+  }
+
+  void _addDivision() {
+    setState(() {
+      final nextNum = _divisionControllers.length + 1;
+      _divisionControllers.add(TextEditingController(text: 'Section $nextNum'));
+      _divisionCountController.text = _divisionControllers.length.toString();
+    });
+  }
+
+  void _removeDivision(int index) {
+    setState(() {
+      _divisionControllers[index].dispose();
+      _divisionControllers.removeAt(index);
+      _divisionCountController.text = _divisionControllers.length.toString();
+    });
   }
 
   Future<void> _submit() async {
@@ -33,11 +73,21 @@ class _CreateStoreRoomScreenState extends State<CreateStoreRoomScreen> {
     setState(() => _isSubmitting = true);
 
     final inventory = context.read<InventoryProvider>();
+    final divisions = _divisionControllers
+        .map((c) => c.text.trim())
+        .where((s) => s.isNotEmpty)
+        .toList();
+
+    final temp = _tempController.text.trim().isNotEmpty
+        ? double.tryParse(_tempController.text.trim())
+        : null;
+
     final success = await inventory.createStoreRoom(
       roomCode: _roomCodeController.text.trim().toUpperCase(),
       roomName: _nameController.text.trim(),
-      temperature: double.tryParse(_tempController.text) ?? -18,
-      totalCapacityUnits: double.tryParse(_capacityController.text) ?? 1000,
+      temperature: temp,
+      totalCapacityUnits: double.tryParse(_capacityController.text.trim()) ?? 1000,
+      divisions: divisions,
     );
 
     if (!mounted) return;
@@ -46,7 +96,7 @@ class _CreateStoreRoomScreenState extends State<CreateStoreRoomScreen> {
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Cold Room "${_nameController.text.trim()}" created successfully!'),
+          content: Text('Store Room "${_nameController.text.trim()}" created successfully!'),
           backgroundColor: const Color(0xFF0F766E),
         ),
       );
@@ -54,7 +104,7 @@ class _CreateStoreRoomScreenState extends State<CreateStoreRoomScreen> {
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(inventory.errorMessage ?? 'Failed to create cold room.'),
+          content: Text(inventory.errorMessage ?? 'Failed to create store room.'),
           backgroundColor: Colors.red,
         ),
       );
@@ -65,7 +115,7 @@ class _CreateStoreRoomScreenState extends State<CreateStoreRoomScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Create Cold Room'),
+        title: const Text('Create Store Room'),
         actions: const [
           UserProfileAvatar(),
           SizedBox(width: 4),
@@ -87,11 +137,11 @@ class _CreateStoreRoomScreenState extends State<CreateStoreRoomScreen> {
                 ),
                 child: const Row(
                   children: [
-                    Icon(Icons.ac_unit, color: Color(0xFF0284C7), size: 24),
+                    Icon(Icons.meeting_room_outlined, color: Color(0xFF0284C7), size: 24),
                     SizedBox(width: 10),
                     Expanded(
                       child: Text(
-                        'Operational Module: Cold Store Rooms\nPermission: permission.storeroom.create',
+                        'Operational Module: Store Rooms\nPermission: permission.storeroom.create',
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
@@ -108,8 +158,8 @@ class _CreateStoreRoomScreenState extends State<CreateStoreRoomScreen> {
               TextFormField(
                 controller: _nameController,
                 decoration: const InputDecoration(
-                  labelText: 'Room Name *',
-                  hintText: 'e.g., Deep Freeze Room A',
+                  labelText: 'Store Room Name *',
+                  hintText: 'e.g., Main Dry Store or Freezer Room 1',
                   prefixIcon: Icon(Icons.meeting_room_outlined),
                 ),
                 validator: (val) {
@@ -127,7 +177,7 @@ class _CreateStoreRoomScreenState extends State<CreateStoreRoomScreen> {
                 textCapitalization: TextCapitalization.characters,
                 decoration: const InputDecoration(
                   labelText: 'Room Code *',
-                  hintText: 'e.g., CR-01',
+                  hintText: 'e.g., SR-01',
                   prefixIcon: Icon(Icons.tag),
                 ),
                 validator: (val) {
@@ -139,7 +189,7 @@ class _CreateStoreRoomScreenState extends State<CreateStoreRoomScreen> {
               ),
               const SizedBox(height: 16),
 
-              // Temperature & Capacity
+              // Temperature (Optional) & Capacity
               Row(
                 children: [
                   Expanded(
@@ -147,11 +197,14 @@ class _CreateStoreRoomScreenState extends State<CreateStoreRoomScreen> {
                       controller: _tempController,
                       keyboardType: const TextInputType.numberWithOptions(signed: true, decimal: true),
                       decoration: const InputDecoration(
-                        labelText: 'Target Temperature (°C) *',
+                        labelText: 'Temperature (°C) (Optional)',
+                        hintText: 'Leave blank for Ambient',
                         prefixIcon: Icon(Icons.thermostat),
                       ),
                       validator: (val) {
-                        if (val == null || double.tryParse(val) == null) return 'Required';
+                        if (val != null && val.trim().isNotEmpty && double.tryParse(val.trim()) == null) {
+                          return 'Enter valid number';
+                        }
                         return null;
                       },
                     ),
@@ -162,7 +215,7 @@ class _CreateStoreRoomScreenState extends State<CreateStoreRoomScreen> {
                       controller: _capacityController,
                       keyboardType: const TextInputType.numberWithOptions(decimal: true),
                       decoration: const InputDecoration(
-                        labelText: 'Capacity (Kg) *',
+                        labelText: 'Capacity (Kg/Units) *',
                         prefixIcon: Icon(Icons.scale_outlined),
                       ),
                       validator: (val) {
@@ -175,9 +228,135 @@ class _CreateStoreRoomScreenState extends State<CreateStoreRoomScreen> {
                   ),
                 ],
               ),
+              const SizedBox(height: 24),
+
+              // Divisions / Sections Header
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Divisions & Sections',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF0F172A),
+                        ),
+                      ),
+                      SizedBox(height: 2),
+                      Text(
+                        'Define areas/sections where items will be stored',
+                        style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                      ),
+                    ],
+                  ),
+                  TextButton.icon(
+                    onPressed: _addDivision,
+                    icon: const Icon(Icons.add, size: 18),
+                    label: const Text('Add Section'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: const Color(0xFF0284C7),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+
+              // Quick Division Generator
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey.shade200),
+                ),
+                child: Row(
+                  children: [
+                    const Text(
+                      'Number of Divisions:',
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(width: 12),
+                    SizedBox(
+                      width: 60,
+                      child: TextFormField(
+                        controller: _divisionCountController,
+                        keyboardType: TextInputType.number,
+                        textAlign: TextAlign.center,
+                        decoration: const InputDecoration(
+                          isDense: true,
+                          contentPadding: EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF0284C7),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      ),
+                      onPressed: () {
+                        final count = int.tryParse(_divisionCountController.text.trim()) ?? 0;
+                        if (count > 0) _generateDivisions(count);
+                      },
+                      child: const Text('Generate', style: TextStyle(fontSize: 12)),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 14),
+
+              // Division List
+              ...List.generate(_divisionControllers.length, (idx) {
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF0284C7).withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          '#${idx + 1}',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF0284C7),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: TextFormField(
+                          controller: _divisionControllers[idx],
+                          decoration: InputDecoration(
+                            labelText: 'Division / Section ${idx + 1}',
+                            hintText: 'e.g. Rack A, Shelf 1, Zone B',
+                            isDense: true,
+                          ),
+                        ),
+                      ),
+                      if (_divisionControllers.length > 1) ...[
+                        const SizedBox(width: 8),
+                        IconButton(
+                          icon: const Icon(Icons.remove_circle_outline, color: Colors.red),
+                          onPressed: () => _removeDivision(idx),
+                          tooltip: 'Remove Division',
+                        ),
+                      ],
+                    ],
+                  ),
+                );
+              }),
               const SizedBox(height: 30),
 
-              // Submit
+              // Submit Button
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
@@ -193,7 +372,7 @@ class _CreateStoreRoomScreenState extends State<CreateStoreRoomScreen> {
                           child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                         )
                       : const Icon(Icons.check),
-                  label: Text(_isSubmitting ? 'Creating Room...' : 'Create Cold Room'),
+                  label: Text(_isSubmitting ? 'Creating Room...' : 'Create Store Room'),
                   onPressed: _isSubmitting ? null : _submit,
                 ),
               ),

@@ -15,11 +15,13 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
   final _skuController = TextEditingController();
   final _nameController = TextEditingController();
   final _reorderThresholdController = TextEditingController(text: '50');
-  final _locationCodeController = TextEditingController(text: 'LOC-A1');
+  final _stockQuantityController = TextEditingController(text: '0');
+  final _customDivisionController = TextEditingController();
 
   String _selectedItemType = 'RAW_MATERIAL';
   String _selectedUnit = 'KILOGRAM';
   String? _selectedStoreRoomId;
+  String? _selectedDivision;
   bool _isSubmitting = false;
 
   final List<String> _itemTypes = [
@@ -33,8 +35,9 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
     'GRAM',
     'LITRE',
     'MILLILITRE',
+    'PIECE',
     'UNIT',
-    'CARTON',
+    'CARTOON_BOX',
   ];
 
   @override
@@ -44,8 +47,12 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
       final inventory = context.read<InventoryProvider>();
       await inventory.loadStoreRooms();
       if (mounted && inventory.storeRooms.isNotEmpty) {
+        final firstRoom = inventory.storeRooms.first;
         setState(() {
-          _selectedStoreRoomId = inventory.storeRooms.first.storeRoomId;
+          _selectedStoreRoomId = firstRoom.storeRoomId;
+          if (firstRoom.divisions.isNotEmpty) {
+            _selectedDivision = firstRoom.divisions.first;
+          }
         });
       }
     });
@@ -56,7 +63,8 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
     _skuController.dispose();
     _nameController.dispose();
     _reorderThresholdController.dispose();
-    _locationCodeController.dispose();
+    _stockQuantityController.dispose();
+    _customDivisionController.dispose();
     super.dispose();
   }
 
@@ -75,14 +83,23 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
     setState(() => _isSubmitting = true);
 
     final inventory = context.read<InventoryProvider>();
+    final chosenDivision = _selectedDivision ??
+        (_customDivisionController.text.trim().isNotEmpty
+            ? _customDivisionController.text.trim()
+            : 'Default Section');
+
     final success = await inventory.createItem(
       sku: _skuController.text.trim().toUpperCase(),
       itemName: _nameController.text.trim(),
       itemType: _selectedItemType,
       measurementUnit: _selectedUnit,
-      reorderThreshold: double.tryParse(_reorderThresholdController.text) ?? 0,
+      reorderThreshold:
+          double.tryParse(_reorderThresholdController.text.trim()) ?? 0,
+      stockQuantity:
+          double.tryParse(_stockQuantityController.text.trim()) ?? 0,
       storeRoomId: _selectedStoreRoomId!,
-      locationCode: _locationCodeController.text.trim(),
+      division: chosenDivision,
+      locationCode: chosenDivision,
     );
 
     if (!mounted) return;
@@ -91,7 +108,8 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Item SKU "${_skuController.text.toUpperCase()}" registered successfully!'),
+          content: Text(
+              'Item SKU "${_skuController.text.toUpperCase()}" registered successfully!'),
           backgroundColor: const Color(0xFF0F766E),
         ),
       );
@@ -109,6 +127,13 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
   @override
   Widget build(BuildContext context) {
     final inventory = context.watch<InventoryProvider>();
+
+    StoreRoomModel? selectedRoom;
+    if (_selectedStoreRoomId != null) {
+      final matches = inventory.storeRooms
+          .where((r) => r.storeRoomId == _selectedStoreRoomId);
+      if (matches.isNotEmpty) selectedRoom = matches.first;
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -134,11 +159,12 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
                 ),
                 child: const Row(
                   children: [
-                    Icon(Icons.inventory_2_outlined, color: Color(0xFF0F766E), size: 24),
+                    Icon(Icons.inventory_2_outlined,
+                        color: Color(0xFF0F766E), size: 24),
                     SizedBox(width: 10),
                     Expanded(
                       child: Text(
-                        'Operational Module: Items & Raw Materials\nPermission: permission.item.create',
+                        'Operational Module: Items & Products\nPermission: permission.item.create',
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
@@ -156,7 +182,7 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
                 controller: _nameController,
                 decoration: const InputDecoration(
                   labelText: 'Item Name *',
-                  hintText: 'e.g., Frozen Atlantic Salmon Fillet',
+                  hintText: 'e.g., Raw Organic Almonds',
                   prefixIcon: Icon(Icons.label_outline),
                 ),
                 validator: (val) {
@@ -174,7 +200,7 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
                 textCapitalization: TextCapitalization.characters,
                 decoration: const InputDecoration(
                   labelText: 'Product SKU *',
-                  hintText: 'e.g., RAW-SALM-001',
+                  hintText: 'e.g., RAW-ALMD-001',
                   prefixIcon: Icon(Icons.qr_code),
                 ),
                 validator: (val) {
@@ -192,7 +218,8 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
                   Expanded(
                     child: DropdownButtonFormField<String>(
                       initialValue: _selectedItemType,
-                      decoration: const InputDecoration(labelText: 'Item Type *'),
+                      decoration:
+                          const InputDecoration(labelText: 'Item Type *'),
                       items: _itemTypes
                           .map((type) => DropdownMenuItem(
                                 value: type,
@@ -224,21 +251,34 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
               ),
               const SizedBox(height: 16),
 
-              // Storage Cold Room
+              // Storage Store Room
               DropdownButtonFormField<String>(
                 initialValue: _selectedStoreRoomId,
                 decoration: const InputDecoration(
-                  labelText: 'Primary Cold Storage Room *',
-                  prefixIcon: Icon(Icons.ac_unit),
+                  labelText: 'Store Room *',
+                  prefixIcon: Icon(Icons.meeting_room_outlined),
                 ),
                 items: inventory.storeRooms
                     .map((room) => DropdownMenuItem(
                           value: room.storeRoomId,
-                          child: Text('${room.roomName} (${room.temperature}°C)'),
+                          child: Text(
+                            '${room.roomName} (${room.temperature != null ? '${room.temperature}°C' : 'Ambient'})',
+                          ),
                         ))
                     .toList(),
                 onChanged: (val) {
-                  setState(() => _selectedStoreRoomId = val);
+                  setState(() {
+                    _selectedStoreRoomId = val;
+                    final r = inventory.storeRooms.firstWhere(
+                      (rm) => rm.storeRoomId == val,
+                      orElse: () => inventory.storeRooms.first,
+                    );
+                    if (r.divisions.isNotEmpty) {
+                      _selectedDivision = r.divisions.first;
+                    } else {
+                      _selectedDivision = null;
+                    }
+                  });
                 },
                 validator: (val) {
                   if (val == null || val.isEmpty) {
@@ -249,9 +289,62 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
               ),
               const SizedBox(height: 16),
 
-              // Reorder threshold & Rack location
+              // Division Pickup
+              if (selectedRoom != null && selectedRoom.divisions.isNotEmpty)
+                DropdownButtonFormField<String>(
+                  initialValue: _selectedDivision,
+                  decoration: const InputDecoration(
+                    labelText: 'Store Room Division / Section *',
+                    prefixIcon: Icon(Icons.grid_view_outlined),
+                    helperText: 'Pick which division or section inside the room',
+                  ),
+                  items: selectedRoom.divisions
+                      .map((div) => DropdownMenuItem(
+                            value: div,
+                            child: Text(div),
+                          ))
+                      .toList(),
+                  onChanged: (val) {
+                    setState(() => _selectedDivision = val);
+                  },
+                  validator: (val) {
+                    if (val == null || val.isEmpty) {
+                      return 'Please select a division';
+                    }
+                    return null;
+                  },
+                )
+              else
+                TextFormField(
+                  controller: _customDivisionController,
+                  decoration: const InputDecoration(
+                    labelText: 'Division / Section Identifier',
+                    hintText: 'e.g. Section A, Shelf 1',
+                    prefixIcon: Icon(Icons.grid_view_outlined),
+                  ),
+                ),
+              const SizedBox(height: 16),
+
+              // Current Stock Quantity & Reorder Threshold
               Row(
                 children: [
+                  Expanded(
+                    child: TextFormField(
+                      controller: _stockQuantityController,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      decoration: const InputDecoration(
+                        labelText: 'Initial Stock Quantity *',
+                        prefixIcon: Icon(Icons.inventory_outlined),
+                      ),
+                      validator: (val) {
+                        if (val == null || double.tryParse(val.trim()) == null) {
+                          return 'Enter valid quantity';
+                        }
+                        return null;
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: TextFormField(
                       controller: _reorderThresholdController,
@@ -261,24 +354,8 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
                         prefixIcon: Icon(Icons.warning_amber),
                       ),
                       validator: (val) {
-                        if (val == null || double.tryParse(val) == null) {
+                        if (val == null || double.tryParse(val.trim()) == null) {
                           return 'Enter valid number';
-                        }
-                        return null;
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: TextFormField(
-                      controller: _locationCodeController,
-                      decoration: const InputDecoration(
-                        labelText: 'Default Rack *',
-                        prefixIcon: Icon(Icons.location_on_outlined),
-                      ),
-                      validator: (val) {
-                        if (val == null || val.trim().isEmpty) {
-                          return 'Location required';
                         }
                         return null;
                       },
@@ -301,10 +378,12 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
                       ? const SizedBox(
                           width: 20,
                           height: 20,
-                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                          child: CircularProgressIndicator(
+                              color: Colors.white, strokeWidth: 2),
                         )
                       : const Icon(Icons.check),
-                  label: Text(_isSubmitting ? 'Registering SKU...' : 'Save & Register SKU'),
+                  label: Text(
+                      _isSubmitting ? 'Registering SKU...' : 'Save & Register SKU'),
                   onPressed: _isSubmitting ? null : _submit,
                 ),
               ),

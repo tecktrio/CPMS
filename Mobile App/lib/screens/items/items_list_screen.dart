@@ -16,12 +16,15 @@ class ItemsListScreen extends StatefulWidget {
 class _ItemsListScreenState extends State<ItemsListScreen> {
   String _searchQuery = '';
   String _selectedCategory = 'ALL';
+  String? _selectedStoreRoomFilter;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<InventoryProvider>().loadItems();
+      final inv = context.read<InventoryProvider>();
+      inv.loadItems();
+      inv.loadStoreRooms();
     });
   }
 
@@ -40,7 +43,9 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
           item.sku.toLowerCase().contains(_searchQuery.toLowerCase());
       final matchesCat =
           _selectedCategory == 'ALL' || item.itemType == _selectedCategory;
-      return matchesSearch && matchesCat;
+      final matchesRoom = _selectedStoreRoomFilter == null ||
+          item.storeRoomId == _selectedStoreRoomFilter;
+      return matchesSearch && matchesCat && matchesRoom;
     }).toList();
 
     String pageTitle = 'Items & Materials';
@@ -60,7 +65,10 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: () => inventory.loadItems(),
+            onPressed: () {
+              inventory.loadItems();
+              inventory.loadStoreRooms();
+            },
           ),
           const UserProfileAvatar(),
           const SizedBox(width: 4),
@@ -68,18 +76,18 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
       ),
       body: Column(
         children: [
-          // Search & Filter header
+          // Search & Filters header
           Container(
             color: Colors.white,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             child: Column(
               children: [
                 TextField(
-                  decoration: InputDecoration(
+                  decoration: const InputDecoration(
                     hintText: 'Search SKU or item title...',
-                    prefixIcon: const Icon(Icons.search, size: 20),
-                    contentPadding: const EdgeInsets.symmetric(vertical: 10),
-                    fillColor: const Color(0xFFF8FAFC),
+                    prefixIcon: Icon(Icons.search, size: 20),
+                    contentPadding: EdgeInsets.symmetric(vertical: 10),
+                    fillColor: Color(0xFFF8FAFC),
                   ),
                   onChanged: (val) {
                     setState(() {
@@ -87,7 +95,68 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
                     });
                   },
                 ),
+                const SizedBox(height: 10),
+
+                // Store Room Filter Dropdown
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String?>(
+                      value: _selectedStoreRoomFilter,
+                      isExpanded: true,
+                      icon: const Icon(Icons.filter_list, size: 20),
+                      hint: const Row(
+                        children: [
+                          Icon(Icons.meeting_room_outlined, size: 18, color: Color(0xFF0284C7)),
+                          SizedBox(width: 8),
+                          Text('Filter by Store Room: All Rooms'),
+                        ],
+                      ),
+                      items: [
+                        const DropdownMenuItem<String?>(
+                          value: null,
+                          child: Row(
+                            children: [
+                              Icon(Icons.all_inclusive, size: 18, color: Color(0xFF0F766E)),
+                              SizedBox(width: 8),
+                              Text('All Store Rooms', style: TextStyle(fontWeight: FontWeight.w600)),
+                            ],
+                          ),
+                        ),
+                        ...inventory.storeRooms.map((room) {
+                          return DropdownMenuItem<String?>(
+                            value: room.storeRoomId,
+                            child: Row(
+                              children: [
+                                const Icon(Icons.meeting_room_outlined, size: 18, color: Color(0xFF0284C7)),
+                                SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    '${room.roomName} (${room.roomCode})',
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }),
+                      ],
+                      onChanged: (val) {
+                        setState(() {
+                          _selectedStoreRoomFilter = val;
+                        });
+                      },
+                    ),
+                  ),
+                ),
                 const SizedBox(height: 8),
+
+                // Category chips
                 SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   child: Row(
@@ -105,7 +174,10 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
 
           Expanded(
             child: RefreshIndicator(
-              onRefresh: inventory.loadItems,
+              onRefresh: () async {
+                await inventory.loadItems();
+                await inventory.loadStoreRooms();
+              },
               child: inventory.isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : filteredItems.isEmpty
@@ -128,7 +200,7 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
                               ),
                               const SizedBox(height: 4),
                               const Text(
-                                'Create item master records to begin batch tracking.',
+                                'Create item master records to begin managing inventory.',
                                 style: TextStyle(color: Color(0xFF64748B), fontSize: 13),
                               ),
                             ],
@@ -140,6 +212,27 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
                           itemBuilder: (context, index) {
                             final item = filteredItems[index];
                             final isAlert = item.isBelowReorderThreshold;
+
+                            final room = inventory.storeRooms.firstWhere(
+                              (r) => r.storeRoomId == item.storeRoomId,
+                              orElse: () => StoreRoomModel(
+                                storeRoomId: '',
+                                tenantId: '',
+                                roomCode: '',
+                                roomName: 'Unassigned',
+                                totalCapacityUnits: 0,
+                                currentOccupancyUnits: 0,
+                                capacityUtilizationPercentage: 0,
+                                activeBatchesCount: 0,
+                                isActive: true,
+                              ),
+                            );
+
+                            final divisionDisplay = (item.division != null && item.division!.isNotEmpty)
+                                ? item.division!
+                                : (item.locationCode != null && item.locationCode!.isNotEmpty
+                                    ? item.locationCode!
+                                    : 'Default Section');
 
                             return Card(
                               margin: const EdgeInsets.only(bottom: 10),
@@ -209,10 +302,57 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
                                     ),
                                     const SizedBox(height: 8),
 
+                                    // Store Room & Division Location Details Badge
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFF8FAFC),
+                                        borderRadius: BorderRadius.circular(6),
+                                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          const Icon(Icons.meeting_room_outlined, size: 14, color: Color(0xFF0284C7)),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            room.storeRoomId.isNotEmpty
+                                                ? '${room.roomName} (${room.roomCode})'
+                                                : 'Store Room: Not Specified',
+                                            style: const TextStyle(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w700,
+                                              color: Color(0xFF0F172A),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          const Text('•', style: TextStyle(color: Color(0xFF94A3B8))),
+                                          const SizedBox(width: 8),
+                                          const Icon(Icons.grid_view_outlined, size: 13, color: Color(0xFF0F766E)),
+                                          const SizedBox(width: 4),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFF0F766E).withValues(alpha: 0.1),
+                                              borderRadius: BorderRadius.circular(4),
+                                            ),
+                                            child: Text(
+                                              divisionDisplay,
+                                              style: const TextStyle(
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.w700,
+                                                color: Color(0xFF0F766E),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+
                                     // Reorder Threshold & Alert Banner
                                     if (isAlert)
                                       Container(
-                                        margin: const EdgeInsets.only(top: 6),
+                                        margin: const EdgeInsets.only(top: 2),
                                         padding: const EdgeInsets.symmetric(
                                           horizontal: 10,
                                           vertical: 6,
@@ -254,7 +394,7 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
                                         ),
                                       ),
 
-                                    // Update & Deactivate Actions
+                                    // Update & Delete Actions
                                     if (canUpdate || canDelete) ...[
                                       const SizedBox(height: 10),
                                       const Divider(height: 1, color: Color(0xFFF1F5F9)),
@@ -313,9 +453,12 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
   }
 
   void _showEditDialog(BuildContext context, ItemModel item) {
+    final inventory = context.read<InventoryProvider>();
     final nameCtrl = TextEditingController(text: item.itemName);
     final thresholdCtrl =
         TextEditingController(text: item.reorderThresholdQuantity.toString());
+    final stockCtrl =
+        TextEditingController(text: item.totalAvailableStock.toString());
 
     final List<Map<String, String>> typeOptions = [
       {'value': 'RAW_MATERIAL', 'label': 'Raw Material'},
@@ -343,12 +486,35 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
       unitOptions.add({'value': selectedUnit, 'label': selectedUnit});
     }
 
+    String? selectedRoomId = item.storeRoomId;
+    if (selectedRoomId != null &&
+        !inventory.storeRooms.any((r) => r.storeRoomId == selectedRoomId)) {
+      selectedRoomId = null;
+    }
+    if (selectedRoomId == null && inventory.storeRooms.isNotEmpty) {
+      selectedRoomId = inventory.storeRooms.first.storeRoomId;
+    }
+
+    String? selectedDivision = item.division;
     final formKey = GlobalKey<FormState>();
 
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (context, setDialogState) {
+          StoreRoomModel? currentRoom;
+          if (selectedRoomId != null) {
+            final matches =
+                inventory.storeRooms.where((r) => r.storeRoomId == selectedRoomId);
+            if (matches.isNotEmpty) currentRoom = matches.first;
+          }
+
+          final divisions = currentRoom?.divisions ?? [];
+          if (divisions.isNotEmpty &&
+              (selectedDivision == null || !divisions.contains(selectedDivision))) {
+            selectedDivision = divisions.first;
+          }
+
           return AlertDialog(
             title: Text('Update Item: ${item.sku}'),
             content: SingleChildScrollView(
@@ -359,7 +525,7 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
                   children: [
                     TextFormField(
                       controller: nameCtrl,
-                      decoration: const InputDecoration(labelText: 'Item Name'),
+                      decoration: const InputDecoration(labelText: 'Item Name *'),
                       validator: (v) =>
                           v == null || v.trim().isEmpty ? 'Required' : null,
                     ),
@@ -397,17 +563,90 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
                       },
                     ),
                     const SizedBox(height: 12),
-                    TextFormField(
-                      controller: thresholdCtrl,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      decoration:
-                          const InputDecoration(labelText: 'Reorder Threshold'),
-                      validator: (v) {
-                        if (v == null || double.tryParse(v) == null) {
-                          return 'Enter valid number';
+                    DropdownButtonFormField<String>(
+                      initialValue: selectedRoomId,
+                      decoration: const InputDecoration(labelText: 'Store Room'),
+                      items: inventory.storeRooms
+                          .map((r) => DropdownMenuItem(
+                                value: r.storeRoomId,
+                                child: Text('${r.roomName} (${r.roomCode})'),
+                              ))
+                          .toList(),
+                      onChanged: (val) {
+                        if (val != null) {
+                          setDialogState(() {
+                            selectedRoomId = val;
+                            final newRoom = inventory.storeRooms
+                                .firstWhere((r) => r.storeRoomId == val);
+                            if (newRoom.divisions.isNotEmpty) {
+                              selectedDivision = newRoom.divisions.first;
+                            } else {
+                              selectedDivision = null;
+                            }
+                          });
                         }
-                        return null;
                       },
+                    ),
+                    const SizedBox(height: 12),
+                    if (divisions.isNotEmpty)
+                      DropdownButtonFormField<String>(
+                        initialValue: selectedDivision,
+                        decoration:
+                            const InputDecoration(labelText: 'Division / Section'),
+                        items: divisions
+                            .map((d) => DropdownMenuItem(
+                                  value: d,
+                                  child: Text(d),
+                                ))
+                            .toList(),
+                        onChanged: (val) {
+                          setDialogState(() => selectedDivision = val);
+                        },
+                      )
+                    else
+                      TextFormField(
+                        initialValue: selectedDivision ?? '',
+                        decoration: const InputDecoration(
+                          labelText: 'Division / Section Identifier',
+                          hintText: 'e.g. Section A',
+                        ),
+                        onChanged: (val) => selectedDivision = val,
+                      ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextFormField(
+                            controller: stockCtrl,
+                            keyboardType: const TextInputType.numberWithOptions(
+                                decimal: true),
+                            decoration:
+                                const InputDecoration(labelText: 'Stock Quantity *'),
+                            validator: (v) {
+                              if (v == null || double.tryParse(v) == null) {
+                                return 'Enter number';
+                              }
+                              return null;
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: TextFormField(
+                            controller: thresholdCtrl,
+                            keyboardType: const TextInputType.numberWithOptions(
+                                decimal: true),
+                            decoration: const InputDecoration(
+                                labelText: 'Reorder Level *'),
+                            validator: (v) {
+                              if (v == null || double.tryParse(v) == null) {
+                                return 'Enter number';
+                              }
+                              return null;
+                            },
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -426,13 +665,15 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
                 onPressed: () async {
                   if (!formKey.currentState!.validate()) return;
                   Navigator.pop(ctx);
-                  final inventory = context.read<InventoryProvider>();
                   final ok = await inventory.updateItem(
                     itemId: item.itemId,
                     itemName: nameCtrl.text.trim(),
                     itemType: selectedType,
                     measurementUnit: selectedUnit,
                     reorderThreshold: double.parse(thresholdCtrl.text.trim()),
+                    stockQuantity: double.parse(stockCtrl.text.trim()),
+                    storeRoomId: selectedRoomId,
+                    division: selectedDivision,
                   );
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -461,7 +702,7 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
       builder: (ctx) => AlertDialog(
         title: Text('Delete Item: ${item.sku}?'),
         content: Text(
-          'Are you sure you want to permanently delete "${item.itemName}"? Note that an item can only be deleted if its remaining stock is zero.',
+          'Are you sure you want to permanently delete "${item.itemName}"?',
         ),
         actions: [
           TextButton(

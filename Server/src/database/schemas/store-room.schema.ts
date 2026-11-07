@@ -28,11 +28,14 @@ export class StoreRoom {
   @Prop({ type: String, required: true, trim: true })
   room_name: string;
 
-  @Prop({ type: Number, required: true })
-  temperature: number; // in Celsius (e.g. -18.0)
+  @Prop({ type: Number, required: false, default: null })
+  temperature?: number; // in Celsius (optional, e.g. -18.0)
 
   @Prop({ type: Number, required: true, min: 0 })
   total_capacity_units: number;
+
+  @Prop({ type: [String], default: [] })
+  divisions: string[]; // Divisions / sections / areas inside this store room
 
   @Prop({ type: Boolean, default: true })
   is_active: boolean;

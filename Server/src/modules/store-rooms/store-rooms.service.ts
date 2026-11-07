@@ -45,8 +45,9 @@ export class StoreRoomsService {
       tenant_id: tenantId,
       room_code: dto.room_code.trim().toUpperCase(),
       room_name: dto.room_name.trim(),
-      temperature: dto.temperature,
+      temperature: dto.temperature ?? null,
       total_capacity_units: dto.total_capacity_units,
+      divisions: dto.divisions || [],
       is_active: dto.is_active ?? true,
     });
 
@@ -176,6 +177,7 @@ export class StoreRoomsService {
 
     if (dto.room_name !== undefined) room.room_name = dto.room_name.trim();
     if (dto.temperature !== undefined) room.temperature = dto.temperature;
+    if (dto.divisions !== undefined) room.divisions = dto.divisions;
     if (dto.is_active !== undefined) room.is_active = dto.is_active;
 
     await room.save();

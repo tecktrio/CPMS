@@ -31,6 +31,9 @@ export class StorageLocationDetails {
   location_code: string;
 
   @Prop({ type: String, default: '', trim: true })
+  division: string;
+
+  @Prop({ type: String, default: '', trim: true })
   rack_identifier: string;
 
   @Prop({ type: String, default: '', trim: true })
@@ -96,6 +99,9 @@ export class Item {
 
   @Prop({ type: Number, required: true, min: 0, default: 0 })
   reorder_threshold_quantity: number;
+
+  @Prop({ type: Number, default: 0, min: 0 })
+  stock_quantity: number;
 
   @Prop({ type: StorageLocationDetailsSchema, required: true })
   storage_location_details: StorageLocationDetails;

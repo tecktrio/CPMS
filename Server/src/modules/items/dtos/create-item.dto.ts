@@ -33,6 +33,11 @@ export class StorageLocationDetailsDto {
   @IsNotEmpty()
   location_code: string;
 
+  @ApiPropertyOptional({ example: 'Section A', description: 'Division or section within store room' })
+  @IsString()
+  @IsOptional()
+  division?: string;
+
   @ApiPropertyOptional({ example: 'RACK-A' })
   @IsString()
   @IsOptional()
@@ -105,6 +110,15 @@ export class CreateItemDto {
   @IsNumber()
   @Min(0)
   reorder_threshold_quantity: number;
+
+  @ApiPropertyOptional({
+    example: 100,
+    description: 'Current stock quantity stored in this store room and division',
+  })
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  stock_quantity?: number;
 
   @ApiProperty({ type: StorageLocationDetailsDto })
   @ValidateNested()

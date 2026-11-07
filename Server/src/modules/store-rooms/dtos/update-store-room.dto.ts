@@ -1,5 +1,6 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import {
+  IsArray,
   IsBoolean,
   IsNumber,
   IsOptional,
@@ -28,6 +29,16 @@ export class UpdateStoreRoomDto {
   @Min(1)
   @IsOptional()
   total_capacity_units?: number;
+
+  @ApiPropertyOptional({
+    example: ['Section A', 'Section B'],
+    description: 'Divisions or sections inside this store room',
+    type: [String],
+  })
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  divisions?: string[];
 
   @ApiPropertyOptional({ example: true })
   @IsBoolean()

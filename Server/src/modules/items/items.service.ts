@@ -67,8 +67,10 @@ export class ItemsService {
       item_type: dto.item_type,
       measurement_unit: dto.measurement_unit,
       reorder_threshold_quantity: dto.reorder_threshold_quantity,
+      stock_quantity: dto.stock_quantity ?? 0,
       storage_location_details: {
         ...dto.storage_location_details,
+        division: dto.storage_location_details?.division || '',
         is_active: true,
       },
     });
@@ -92,10 +94,12 @@ export class ItemsService {
           expiry_date: { $gt: new Date() },
         });
 
-        const totalStock = batches.reduce(
+        const batchStock = batches.reduce(
           (sum, b) => sum + (b.available_quantity || 0),
           0,
         );
+
+        const totalStock = (item.stock_quantity ?? 0) + batchStock;
 
         const isBelowThreshold =
           totalStock <= item.reorder_threshold_quantity;
@@ -106,6 +110,7 @@ export class ItemsService {
 
         return {
           ...item.toObject(),
+          total_available_stock: totalStock,
           current_stock_quantity: totalStock,
           active_batches_count: batches.length,
           is_below_reorder_threshold: isBelowThreshold,
@@ -134,7 +139,7 @@ export class ItemsService {
       })
       .sort({ expiry_date: 1 }); // Sorted by FEFO order
 
-    const totalAvailableStock = batches
+    const totalBatchStock = batches
       .filter(
         (b) =>
           b.batch_status === BatchStatus.AVAILABLE &&
@@ -142,11 +147,14 @@ export class ItemsService {
       )
       .reduce((sum, b) => sum + (b.available_quantity || 0), 0);
 
+    const totalAvailableStock = (item.stock_quantity ?? 0) + totalBatchStock;
+
     const isBelowThreshold =
       totalAvailableStock <= item.reorder_threshold_quantity;
 
     return {
       ...item.toObject(),
+      total_available_stock: totalAvailableStock,
       current_stock_quantity: totalAvailableStock,
       is_below_reorder_threshold: isBelowThreshold,
       reorder_shortfall_quantity: isBelowThreshold
@@ -187,6 +195,8 @@ export class ItemsService {
       item.measurement_unit = dto.measurement_unit;
     if (dto.reorder_threshold_quantity !== undefined)
       item.reorder_threshold_quantity = dto.reorder_threshold_quantity;
+    if (dto.stock_quantity !== undefined)
+      item.stock_quantity = dto.stock_quantity;
 
     if (dto.storage_location_details) {
       if (dto.storage_location_details.store_room_id) {
@@ -219,17 +229,11 @@ export class ItemsService {
       throw new NotFoundException('Item not found');
     }
 
-    const activeStock = await this.batchModel.countDocuments({
+    // Clean up any remaining batch entries
+    await this.batchModel.deleteMany({
       tenant_id: tenantId,
       item_id: itemId,
-      available_quantity: { $gt: 0 },
     });
-
-    if (activeStock > 0) {
-      throw new BadRequestException(
-        `Cannot remove item: There are still active stock batches for this SKU. Please dispatch all stock first.`,
-      );
-    }
 
     await this.itemModel.deleteOne({ tenant_id: tenantId, item_id: itemId });
 

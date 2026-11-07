@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
+  IsArray,
   IsBoolean,
   IsNotEmpty,
   IsNumber,
@@ -9,26 +10,26 @@ import {
 } from 'class-validator';
 
 export class CreateStoreRoomDto {
-  @ApiProperty({ example: 'CR-01', description: 'Unique cold room shorthand code' })
+  @ApiProperty({ example: 'CR-01', description: 'Unique store room shorthand code' })
   @IsString()
   @IsNotEmpty()
   room_code: string;
 
   @ApiProperty({
-    example: 'Main Deep Freeze -20C',
-    description: 'Human-readable name of the cold storage room',
+    example: 'Main Storage Room A',
+    description: 'Human-readable name of the store room',
   })
   @IsString()
   @IsNotEmpty()
   room_name: string;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     example: -18.5,
-    description: 'Operating temperature in degrees Celsius',
+    description: 'Operating temperature in degrees Celsius (optional)',
   })
   @IsNumber()
-  @IsNotEmpty()
-  temperature: number;
+  @IsOptional()
+  temperature?: number;
 
   @ApiProperty({
     example: 1000,
@@ -37,6 +38,16 @@ export class CreateStoreRoomDto {
   @IsNumber()
   @Min(1)
   total_capacity_units: number;
+
+  @ApiPropertyOptional({
+    example: ['Section A', 'Section B', 'Rack 1'],
+    description: 'Divisions or sections inside this store room',
+    type: [String],
+  })
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  divisions?: string[];
 
   @ApiPropertyOptional({
     example: true,
