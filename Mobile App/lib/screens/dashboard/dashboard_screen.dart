@@ -6,12 +6,14 @@ import '../../providers/department_provider.dart';
 import '../../providers/inventory_provider.dart';
 import '../../providers/tenant_provider.dart';
 import '../departments/departments_list_screen.dart';
+import '../items/item_detail_screen.dart';
 import '../items/items_list_screen.dart';
 import '../store_rooms/store_rooms_list_screen.dart';
 import '../tenant/tenant_selector_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
-  const DashboardScreen({super.key});
+  final int initialNavIndex;
+  const DashboardScreen({super.key, this.initialNavIndex = 2});
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
@@ -19,14 +21,26 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   String? _selectedDepartmentName;
-  int _currentNavIndex = 2; // Default to 'Modules'
+  late int _currentNavIndex;
+
+  // Universal Search State
+  final TextEditingController _searchController = TextEditingController();
+  String _universalSearchQuery = '';
+  String _selectedSearchModule = 'ALL'; // 'ALL', 'ITEMS', 'STORE_ROOMS', 'DEPARTMENTS', 'STAFF'
 
   @override
   void initState() {
     super.initState();
+    _currentNavIndex = widget.initialNavIndex;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadInitialData();
     });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadInitialData() async {
@@ -38,6 +52,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       tenant.loadTenantDepartments(),
       dept.loadTenantUsers(),
       inventory.loadItems(),
+      inventory.loadStoreRooms(),
     ]);
   }
 
@@ -181,118 +196,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  void _showAlertsModal(BuildContext context) {
-    final inventory = context.read<InventoryProvider>();
-    final alertItems =
-        inventory.items.where((i) => i.isBelowReorderThreshold).toList();
-
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (ctx) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    margin: const EdgeInsets.only(bottom: 16),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFCBD5E1),
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                ),
-                Row(
-                  children: [
-                    const Icon(Icons.warning_amber_rounded,
-                        color: Color(0xFFD97706), size: 22),
-                    const SizedBox(width: 8),
-                    const Text(
-                      'Low Stock & Reorder Alerts',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.black,
-                      ),
-                    ),
-                    const Spacer(),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFEF3C7),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Text(
-                        '${alertItems.length} Warnings',
-                        style: const TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFFB45309),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 14),
-                if (alertItems.isEmpty)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 24),
-                    child: Center(
-                      child: Text(
-                        'All inventory stocks are healthy and above reorder thresholds.',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(color: Color(0xFF64748B), fontSize: 13),
-                      ),
-                    ),
-                  )
-                else
-                  Flexible(
-                    child: ListView.separated(
-                      shrinkWrap: true,
-                      itemCount: alertItems.length,
-                      separatorBuilder: (_, _) => const Divider(height: 1),
-                      itemBuilder: (context, idx) {
-                        final item = alertItems[idx];
-                        return ListTile(
-                          contentPadding: EdgeInsets.zero,
-                          title: Text(item.itemName,
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.w700, fontSize: 14)),
-                          subtitle: Text(
-                            'SKU: ${item.sku} • Stock: ${item.totalAvailableStock} ${item.measurementUnit} (Min: ${item.reorderThresholdQuantity})',
-                            style: const TextStyle(fontSize: 12),
-                          ),
-                          trailing: const Icon(Icons.chevron_right, size: 20),
-                          onTap: () {
-                            Navigator.pop(ctx);
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (_) => const ItemsListScreen()),
-                            );
-                          },
-                        );
-                      },
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
   void _showProfileModal(BuildContext context) {
     final auth = context.read<AuthProvider>();
     final tenant = context.read<TenantProvider>();
@@ -387,21 +290,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   void _handleNavTap(int index) {
-    if (index == 0) {
-      // Search -> open items list screen with instant search
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => const ItemsListScreen()),
-      );
-    } else if (index == 1) {
-      // Alerts
-      _showAlertsModal(context);
-    } else if (index == 2) {
-      setState(() => _currentNavIndex = 2);
-    } else if (index == 3) {
-      // Settings
-      _showProfileModal(context);
-    }
+    setState(() => _currentNavIndex = index);
   }
 
   @override
@@ -514,8 +403,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     ];
 
     final allowedModules = modules.where((m) => m.isPermitted).toList();
-    final hasAlerts =
-        inventory.items.any((i) => i.isBelowReorderThreshold);
+    final hasAlerts = inventory.items.any((i) => i.isBelowReorderThreshold);
 
     final tenantDisplayName = (activeTenant?.companyName ?? 'trends').toLowerCase();
     final userName = user != null && user.fullName.isNotEmpty
@@ -645,181 +533,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
             ),
 
-            // Scrollable Content
+            // Tab Body: Search (Tab 0), Alerts (Tab 1), Modules (Tab 2), Settings (Tab 3)
             Expanded(
-              child: RefreshIndicator(
-                onRefresh: _loadInitialData,
-                child: Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 1080),
-                    child: ListView(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: horizontalPadding,
-                        vertical: isWide ? 12 : 8,
-                      ),
-                      children: [
-                        // Department Section Header
-                        Text(
-                          isWide ? 'Department' : 'DEPARTMENT',
-                          style: TextStyle(
-                            fontSize: isWide ? 26 : 12,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: isWide ? -0.5 : 0.8,
-                            color: Colors.black,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        const Text(
-                          'Select or switch department to re-scope operational modules',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Color(0xFF6B7280),
-                            height: 1.3,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-
-                        // Department Card
-                        InkWell(
-                          onTap: () => _showDepartmentSelector(context, tenant),
-                          borderRadius: BorderRadius.circular(18),
-                          child: Container(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: isWide ? 20 : 16,
-                              vertical: isWide ? 18 : 14,
-                            ),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF6F7F9),
-                              borderRadius: BorderRadius.circular(18),
-                            ),
-                            child: Row(
-                              children: [
-                                Container(
-                                  width: 48,
-                                  height: 48,
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(color: const Color(0xFFE5E7EB)),
-                                  ),
-                                  child: const Icon(
-                                    Icons.apartment,
-                                    size: 22,
-                                    color: Colors.black,
-                                  ),
-                                ),
-                                const SizedBox(width: 14),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Text(
-                                        resolvedDeptName,
-                                        style: TextStyle(
-                                          fontSize: isWide ? 17 : 16,
-                                          fontWeight: FontWeight.w800,
-                                          color: Colors.black,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 2),
-                                      Text(
-                                        isWide
-                                            ? 'Switch Department across organizations to re-scope modules'
-                                            : 'Switch Department',
-                                        style: const TextStyle(
-                                          fontSize: 13,
-                                          color: Color(0xFF6B7280),
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                Container(
-                                  width: 36,
-                                  height: 36,
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    shape: BoxShape.circle,
-                                    border: Border.all(color: const Color(0xFFE5E7EB)),
-                                  ),
-                                  child: const Icon(
-                                    Icons.swap_horiz,
-                                    size: 18,
-                                    color: Colors.black,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-
-                        SizedBox(height: isWide ? 36 : 28),
-
-                        // Manage Operations Section Header
-                        Text(
-                          'Manage Operations',
-                          style: TextStyle(
-                            fontSize: isWide ? 26 : 22,
-                            fontWeight: FontWeight.w900,
-                            color: Colors.black,
-                            letterSpacing: -0.5,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        const Text(
-                          'Select a module to view records, manage assets, and configure workflows.',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Color(0xFF6B7280),
-                            height: 1.35,
-                          ),
-                        ),
-                        const SizedBox(height: 18),
-
-                        // Module Cards (Responsive Grid on Tablets/Web, List on Mobile)
-                        if (allowedModules.isEmpty)
-                          Container(
-                            padding: const EdgeInsets.all(24),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF6F7F9),
-                              borderRadius: BorderRadius.circular(18),
-                            ),
-                            child: const Center(
-                              child: Text(
-                                'No operational modules permitted for your current department scope.',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(color: Color(0xFF6B7280)),
-                              ),
-                            ),
-                          )
-                        else if (isWide)
-                          GridView.builder(
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            gridDelegate:
-                                const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 2,
-                              crossAxisSpacing: 16,
-                              mainAxisSpacing: 16,
-                              childAspectRatio: 3.2,
-                            ),
-                            itemCount: allowedModules.length,
-                            itemBuilder: (context, index) {
-                              return _buildOperationCard(allowedModules[index],
-                                  isWide: true);
-                            },
-                          )
-                        else
-                          ...allowedModules.map((mod) =>
-                              _buildOperationCard(mod, isWide: false)),
-
-                        const SizedBox(height: 24),
-                      ],
-                    ),
-                  ),
-                ),
+              child: _buildCurrentTabBody(
+                isWide: isWide,
+                horizontalPadding: horizontalPadding,
+                tenant: tenant,
+                inventory: inventory,
+                deptProvider: deptProvider,
+                allowedModules: allowedModules,
+                resolvedDeptName: resolvedDeptName,
               ),
             ),
 
@@ -842,12 +565,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         index: 0,
                         icon: Icons.search,
                         label: 'Search',
+                        isActive: _currentNavIndex == 0,
                       ),
                       _buildNavItem(
                         index: 1,
                         icon: Icons.notifications_none_outlined,
                         label: 'Alerts',
                         hasBadge: hasAlerts,
+                        isActive: _currentNavIndex == 1,
                       ),
                       _buildNavItem(
                         index: 2,
@@ -859,10 +584,990 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         index: 3,
                         icon: Icons.settings_outlined,
                         label: 'Settings',
+                        isActive: _currentNavIndex == 3,
                       ),
                     ],
                   ),
                 ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCurrentTabBody({
+    required bool isWide,
+    required double horizontalPadding,
+    required TenantProvider tenant,
+    required InventoryProvider inventory,
+    required DepartmentProvider deptProvider,
+    required List<_DashboardModuleItem> allowedModules,
+    required String resolvedDeptName,
+  }) {
+    if (_currentNavIndex == 0) {
+      return _buildUniversalSearchView(
+        isWide: isWide,
+        horizontalPadding: horizontalPadding,
+        tenant: tenant,
+        inventory: inventory,
+        deptProvider: deptProvider,
+      );
+    } else if (_currentNavIndex == 1) {
+      return _buildAlertsView(
+        isWide: isWide,
+        horizontalPadding: horizontalPadding,
+        inventory: inventory,
+      );
+    } else if (_currentNavIndex == 3) {
+      return _buildSettingsView(
+        isWide: isWide,
+        horizontalPadding: horizontalPadding,
+        tenant: tenant,
+      );
+    }
+
+    // Default: Modules Operations Tab (Tab 2)
+    return RefreshIndicator(
+      onRefresh: _loadInitialData,
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1080),
+          child: ListView(
+            padding: EdgeInsets.symmetric(
+              horizontal: horizontalPadding,
+              vertical: isWide ? 12 : 8,
+            ),
+            children: [
+              // Department Section Header
+              Text(
+                isWide ? 'Department' : 'DEPARTMENT',
+                style: TextStyle(
+                  fontSize: isWide ? 26 : 12,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: isWide ? -0.5 : 0.8,
+                  color: Colors.black,
+                ),
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                'Select or switch department to re-scope operational modules',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Color(0xFF6B7280),
+                  height: 1.3,
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Department Card
+              InkWell(
+                onTap: () => _showDepartmentSelector(context, tenant),
+                borderRadius: BorderRadius.circular(18),
+                child: Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: isWide ? 20 : 16,
+                    vertical: isWide ? 18 : 14,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF6F7F9),
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0xFFE5E7EB)),
+                        ),
+                        child: const Icon(
+                          Icons.apartment,
+                          size: 22,
+                          color: Colors.black,
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              resolvedDeptName,
+                              style: TextStyle(
+                                fontSize: isWide ? 17 : 16,
+                                fontWeight: FontWeight.w800,
+                                color: Colors.black,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              isWide
+                                  ? 'Switch Department across organizations to re-scope modules'
+                                  : 'Switch Department',
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: Color(0xFF6B7280),
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: const Color(0xFFE5E7EB)),
+                        ),
+                        child: const Icon(
+                          Icons.swap_horiz,
+                          size: 18,
+                          color: Colors.black,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              SizedBox(height: isWide ? 36 : 28),
+
+              // Manage Operations Section Header
+              Text(
+                'Manage Operations',
+                style: TextStyle(
+                  fontSize: isWide ? 26 : 22,
+                  fontWeight: FontWeight.w900,
+                  color: Colors.black,
+                  letterSpacing: -0.5,
+                ),
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                'Select a module to view records, manage assets, and configure workflows.',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Color(0xFF6B7280),
+                  height: 1.35,
+                ),
+              ),
+              const SizedBox(height: 18),
+
+              // Module Cards (Responsive Grid on Tablets/Web, List on Mobile)
+              if (allowedModules.isEmpty)
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF6F7F9),
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                  child: const Center(
+                    child: Text(
+                      'No operational modules permitted for your current department scope.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Color(0xFF6B7280)),
+                    ),
+                  ),
+                )
+              else if (isWide)
+                GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 16,
+                    mainAxisSpacing: 16,
+                    childAspectRatio: 3.2,
+                  ),
+                  itemCount: allowedModules.length,
+                  itemBuilder: (context, index) {
+                    return _buildOperationCard(allowedModules[index], isWide: true);
+                  },
+                )
+              else
+                ...allowedModules.map((mod) => _buildOperationCard(mod, isWide: false)),
+
+              const SizedBox(height: 24),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ==========================================
+  // UNIVERSAL SEARCH SCREEN IMPLEMENTATION
+  // ==========================================
+  Widget _buildUniversalSearchView({
+    required bool isWide,
+    required double horizontalPadding,
+    required TenantProvider tenant,
+    required InventoryProvider inventory,
+    required DepartmentProvider deptProvider,
+  }) {
+    final query = _universalSearchQuery.trim().toLowerCase();
+
+    // Filter Items
+    final matchingItems = inventory.items.where((i) {
+      if (query.isEmpty) return true;
+      return i.itemName.toLowerCase().contains(query) ||
+          i.sku.toLowerCase().contains(query) ||
+          i.itemType.toLowerCase().contains(query) ||
+          (i.division != null && i.division!.toLowerCase().contains(query));
+    }).toList();
+
+    // Filter Store Rooms
+    final matchingRooms = inventory.storeRooms.where((r) {
+      if (query.isEmpty) return true;
+      return r.roomName.toLowerCase().contains(query) ||
+          r.roomCode.toLowerCase().contains(query) ||
+          r.divisions.any((div) => div.toLowerCase().contains(query));
+    }).toList();
+
+    // Filter Departments
+    final matchingDepts = tenant.tenantDepartments.where((d) {
+      if (query.isEmpty) return true;
+      return d.departmentName.toLowerCase().contains(query) ||
+          d.description.toLowerCase().contains(query);
+    }).toList();
+
+    // Filter Staff Members
+    final matchingStaff = deptProvider.tenantUsers.where((u) {
+      if (query.isEmpty) return true;
+      return u.fullName.toLowerCase().contains(query) ||
+          u.emailAddress.toLowerCase().contains(query);
+    }).toList();
+
+    final showItems = _selectedSearchModule == 'ALL' || _selectedSearchModule == 'ITEMS';
+    final showRooms = _selectedSearchModule == 'ALL' || _selectedSearchModule == 'STORE_ROOMS';
+    final showDepts = _selectedSearchModule == 'ALL' || _selectedSearchModule == 'DEPARTMENTS';
+    final showStaff = _selectedSearchModule == 'ALL' || _selectedSearchModule == 'STAFF';
+
+    final totalResults = (showItems ? matchingItems.length : 0) +
+        (showRooms ? matchingRooms.length : 0) +
+        (showDepts ? matchingDepts.length : 0) +
+        (showStaff ? matchingStaff.length : 0);
+
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 1080),
+        child: Column(
+          children: [
+            // Search Input Field
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: 8),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFFE5E7EB), width: 1.5),
+                ),
+                child: TextField(
+                  controller: _searchController,
+                  autofocus: false,
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  decoration: InputDecoration(
+                    hintText: 'Search across all modules...',
+                    hintStyle: const TextStyle(
+                      color: Color(0xFF94A3B8),
+                      fontSize: 15,
+                      fontWeight: FontWeight.normal,
+                    ),
+                    prefixIcon: const Icon(Icons.search, size: 22, color: Colors.black),
+                    suffixIcon: _searchController.text.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.cancel, size: 20, color: Color(0xFF64748B)),
+                            onPressed: () {
+                              _searchController.clear();
+                              setState(() {
+                                _universalSearchQuery = '';
+                              });
+                            },
+                          )
+                        : null,
+                    border: InputBorder.none,
+                    contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                  onChanged: (val) {
+                    setState(() {
+                      _universalSearchQuery = val;
+                    });
+                  },
+                ),
+              ),
+            ),
+
+            // Module Filter Pills (Horizontal Scroll)
+            Container(
+              height: 44,
+              margin: const EdgeInsets.symmetric(vertical: 6),
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                children: [
+                  _buildSearchFilterPill(
+                    id: 'ALL',
+                    label: 'All Modules',
+                    icon: Icons.grid_view_rounded,
+                  ),
+                  const SizedBox(width: 8),
+                  _buildSearchFilterPill(
+                    id: 'ITEMS',
+                    label: 'Items & Products',
+                    icon: Icons.view_in_ar_outlined,
+                  ),
+                  const SizedBox(width: 8),
+                  _buildSearchFilterPill(
+                    id: 'STORE_ROOMS',
+                    label: 'Store Rooms',
+                    icon: Icons.inbox_outlined,
+                  ),
+                  const SizedBox(width: 8),
+                  _buildSearchFilterPill(
+                    id: 'DEPARTMENTS',
+                    label: 'Departments',
+                    icon: Icons.apartment,
+                  ),
+                  const SizedBox(width: 8),
+                  _buildSearchFilterPill(
+                    id: 'STAFF',
+                    label: 'Staff Directory',
+                    icon: Icons.people_outline,
+                  ),
+                ],
+              ),
+            ),
+
+            const Divider(height: 12, color: Color(0xFFF1F5F9)),
+
+            // Search Results List
+            Expanded(
+              child: totalResults == 0
+                  ? Padding(
+                      padding: const EdgeInsets.all(32),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.search_off, size: 48, color: Colors.grey.shade400),
+                          const SizedBox(height: 12),
+                          Text(
+                            query.isEmpty
+                                ? 'Type a keyword above to search across items, store rooms, departments, and staff.'
+                                : 'No matching results found for "$query".',
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(color: Color(0xFF64748B), fontSize: 14),
+                          ),
+                        ],
+                      ),
+                    )
+                  : ListView(
+                      padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: 10),
+                      children: [
+                        // SECTION: ITEMS & PRODUCTS
+                        if (showItems && matchingItems.isNotEmpty) ...[
+                          _buildSearchSectionHeader('ITEMS & PRODUCTS'),
+                          ...matchingItems.map((item) {
+                            final room = inventory.storeRooms.firstWhere(
+                              (r) => r.storeRoomId == item.storeRoomId,
+                              orElse: () => StoreRoomModel(
+                                storeRoomId: '',
+                                tenantId: '',
+                                roomCode: '',
+                                roomName: 'Store Room',
+                                totalCapacityUnits: 0,
+                                currentOccupancyUnits: 0,
+                                capacityUtilizationPercentage: 0,
+                                activeBatchesCount: 0,
+                                isActive: true,
+                              ),
+                            );
+                            final divInfo = item.division != null && item.division!.isNotEmpty
+                                ? item.division!
+                                : 'Default Section';
+
+                            return _buildSearchResultCard(
+                              leadingIcon: Icons.view_in_ar_outlined,
+                              title: item.itemName,
+                              subtitleLine1: item.itemType.replaceAll('_', ' '),
+                              subtitleLine2: '${room.roomName} • $divInfo',
+                              badgeText: '${item.totalAvailableStock.toStringAsFixed(1)} ${item.measurementUnit}',
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => ItemDetailScreen(item: item),
+                                  ),
+                                );
+                              },
+                            );
+                          }),
+                          const SizedBox(height: 16),
+                        ],
+
+                        // SECTION: STORE ROOMS
+                        if (showRooms && matchingRooms.isNotEmpty) ...[
+                          _buildSearchSectionHeader('STORE ROOMS'),
+                          ...matchingRooms.map((room) {
+                            final divCount = room.divisions.length;
+                            return _buildSearchResultCard(
+                              leadingIcon: Icons.inbox_outlined,
+                              title: '${room.roomName} (${room.roomCode})',
+                              subtitleLine1: 'Capacity: ${room.capacityUtilizationPercentage.toStringAsFixed(0)}% • $divCount Sections active',
+                              subtitleLine2: room.temperature != null ? 'Temp: ${room.temperature}°C' : 'Standard Store Room',
+                              badgeText: room.temperature != null ? '${room.temperature}°C' : 'Active',
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const StoreRoomsListScreen(),
+                                  ),
+                                );
+                              },
+                            );
+                          }),
+                          const SizedBox(height: 16),
+                        ],
+
+                        // SECTION: DEPARTMENTS
+                        if (showDepts && matchingDepts.isNotEmpty) ...[
+                          _buildSearchSectionHeader('DEPARTMENTS'),
+                          ...matchingDepts.map((dept) {
+                            return _buildSearchResultCard(
+                              leadingIcon: Icons.apartment,
+                              title: dept.departmentName,
+                              subtitleLine1: dept.description.isNotEmpty
+                                  ? dept.description
+                                  : 'Operational Unit',
+                              subtitleLine2: '${dept.permissionIds.length} Permissions configured',
+                              badgeText: 'Assigned',
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) =>
+                                        const DepartmentsListScreen(initialTabIndex: 0),
+                                  ),
+                                );
+                              },
+                            );
+                          }),
+                          const SizedBox(height: 16),
+                        ],
+
+                        // SECTION: STAFF DIRECTORY
+                        if (showStaff && matchingStaff.isNotEmpty) ...[
+                          _buildSearchSectionHeader('STAFF DIRECTORY'),
+                          ...matchingStaff.map((staff) {
+                            return _buildSearchResultCard(
+                              leadingIcon: Icons.people_outline,
+                              title: staff.fullName.isNotEmpty ? staff.fullName : staff.emailAddress,
+                              subtitleLine1: staff.emailAddress,
+                              subtitleLine2: '${staff.departmentIds.length} Assigned Departments',
+                              badgeText: staff.accountStatus.toUpperCase(),
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) =>
+                                        const DepartmentsListScreen(initialTabIndex: 1),
+                                  ),
+                                );
+                              },
+                            );
+                          }),
+                          const SizedBox(height: 16),
+                        ],
+                      ],
+                    ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSearchFilterPill({
+    required String id,
+    required String label,
+    required IconData icon,
+  }) {
+    final isSelected = _selectedSearchModule == id;
+    return InkWell(
+      onTap: () => setState(() => _selectedSearchModule = id),
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? Colors.black : Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected ? Colors.black : const Color(0xFFE5E7EB),
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 16,
+              color: isSelected ? Colors.white : Colors.black,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: isSelected ? Colors.white : Colors.black,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSearchSectionHeader(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 8, bottom: 8),
+      child: Text(
+        title,
+        style: const TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 1.0,
+          color: Color(0xFF64748B),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSearchResultCard({
+    required IconData leadingIcon,
+    required String title,
+    String? subtitleLine1,
+    String? subtitleLine2,
+    required String badgeText,
+    required VoidCallback onTap,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFE5E7EB)),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                margin: const EdgeInsets.only(top: 2),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                ),
+                child: Icon(
+                  leadingIcon,
+                  size: 22,
+                  color: Colors.black,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.black,
+                      ),
+                    ),
+                    if (subtitleLine1 != null && subtitleLine1.isNotEmpty) ...[
+                      const SizedBox(height: 3),
+                      Text(
+                        subtitleLine1,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF64748B),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                    if (subtitleLine2 != null && subtitleLine2.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        subtitleLine2,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF94A3B8),
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        badgeText,
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF475569),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right, size: 20, color: Color(0xFF94A3B8)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ==========================================
+  // ALERTS VIEW
+  // ==========================================
+  Widget _buildAlertsView({
+    required bool isWide,
+    required double horizontalPadding,
+    required InventoryProvider inventory,
+  }) {
+    final alertItems = inventory.items.where((i) => i.isBelowReorderThreshold).toList();
+
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 1080),
+        child: ListView(
+          padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: 16),
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.warning_amber_rounded, color: Color(0xFFD97706), size: 24),
+                const SizedBox(width: 8),
+                const Text(
+                  'Inventory Alerts',
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Colors.black),
+                ),
+                const Spacer(),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFEF3C7),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '${alertItems.length} Shortfalls',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFFB45309),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              'Items currently below configured minimum reorder threshold levels.',
+              style: TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
+            ),
+            const SizedBox(height: 16),
+
+            if (alertItems.isEmpty)
+              Container(
+                padding: const EdgeInsets.all(32),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF6F7F9),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: const Column(
+                  children: [
+                    Icon(Icons.check_circle_outline, size: 48, color: Color(0xFF10B981)),
+                    SizedBox(height: 12),
+                    Text(
+                      'All stock levels are optimal!',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      'No inventory items have dropped below their reorder threshold.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Color(0xFF64748B), fontSize: 13),
+                    ),
+                  ],
+                ),
+              )
+            else
+              ...alertItems.map((item) {
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 10),
+                  child: InkWell(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => ItemDetailScreen(item: item)),
+                      );
+                    },
+                    borderRadius: BorderRadius.circular(16),
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFFFBEB),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: const Color(0xFFFDE68A)),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: const Color(0xFFFDE68A)),
+                            ),
+                            child: const Icon(Icons.warning_amber_rounded,
+                                color: Color(0xFFD97706), size: 22),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  item.itemName,
+                                  style: const TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w800,
+                                    color: Colors.black,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  'SKU: ${item.sku} • Stock: ${item.totalAvailableStock} ${item.measurementUnit}',
+                                  style: const TextStyle(fontSize: 13, color: Color(0xFFB45309)),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  'Reorder Shortfall: ${item.reorderShortfallQuantity} (Min: ${item.reorderThresholdQuantity})',
+                                  style: const TextStyle(fontSize: 12, color: Color(0xFF92400E)),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const Icon(Icons.chevron_right, size: 20, color: Color(0xFFB45309)),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              }),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ==========================================
+  // SETTINGS VIEW
+  // ==========================================
+  Widget _buildSettingsView({
+    required bool isWide,
+    required double horizontalPadding,
+    required TenantProvider tenant,
+  }) {
+    final auth = context.watch<AuthProvider>();
+    final user = auth.user;
+    final activeTenant = tenant.activeTenant;
+
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 1080),
+        child: ListView(
+          padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: 16),
+          children: [
+            const Text(
+              'Settings & Organization',
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Colors.black),
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              'Manage your identity, tenant context, and session',
+              style: TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
+            ),
+            const SizedBox(height: 20),
+
+            // Profile Card
+            Container(
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF6F7F9),
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 26,
+                    backgroundColor: const Color(0xFF1E293B),
+                    child: Text(
+                      user != null && user.fullName.isNotEmpty
+                          ? user.fullName[0].toUpperCase()
+                          : 'U',
+                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: Colors.white),
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          user?.fullName ?? 'Authenticated User',
+                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          user?.emailAddress ?? '',
+                          style: const TextStyle(fontSize: 13, color: Color(0xFF64748B)),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Switch Organization
+            ListTile(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+                side: const BorderSide(color: Color(0xFFE5E7EB)),
+              ),
+              leading: const Icon(Icons.business_outlined, color: Colors.black),
+              title: const Text('Switch Organization', style: TextStyle(fontWeight: FontWeight.w700)),
+              subtitle: Text(activeTenant?.companyName ?? 'Organization'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const TenantSelectorScreen()),
+                );
+              },
+            ),
+            const SizedBox(height: 12),
+
+            // Sign Out
+            ListTile(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+                side: const BorderSide(color: Color(0xFFFCA5A5)),
+              ),
+              leading: const Icon(Icons.logout, color: Color(0xFFDC2626)),
+              title: const Text(
+                'Sign Out',
+                style: TextStyle(fontWeight: FontWeight.w700, color: Color(0xFFDC2626)),
+              ),
+              subtitle: const Text('End your session on this device'),
+              trailing: const Icon(Icons.chevron_right, color: Color(0xFFDC2626)),
+              onTap: () async {
+                await auth.signOut();
+                tenant.clear();
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ==========================================
+  // BOTTOM NAVIGATION ITEM BUILDER
+  // ==========================================
+  Widget _buildNavItem({
+    required int index,
+    required IconData icon,
+    required String label,
+    bool isActive = false,
+    bool hasBadge = false,
+  }) {
+    return InkWell(
+      onTap: () => _handleNavTap(index),
+      borderRadius: BorderRadius.circular(16),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (isActive)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.black,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(icon, color: Colors.white, size: 20),
+              )
+            else
+              Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: Icon(
+                      icon,
+                      color: const Color(0xFF4B5563),
+                      size: 22,
+                    ),
+                  ),
+                  if (hasBadge)
+                    Positioned(
+                      top: 2,
+                      right: -1,
+                      child: Container(
+                        width: 7,
+                        height: 7,
+                        decoration: const BoxDecoration(
+                          color: Colors.black,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            const SizedBox(height: 3),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: isActive ? FontWeight.w800 : FontWeight.w500,
+                color: isActive ? Colors.black : const Color(0xFF6B7280),
               ),
             ),
           ],
@@ -924,8 +1629,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         if (mod.badgeText != null) ...[
                           const SizedBox(width: 8),
                           Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 2),
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                             decoration: BoxDecoration(
                               color: Colors.white,
                               borderRadius: BorderRadius.circular(10),
@@ -972,73 +1676,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildNavItem({
-    required int index,
-    required IconData icon,
-    required String label,
-    bool isActive = false,
-    bool hasBadge = false,
-  }) {
-    return InkWell(
-      onTap: () => _handleNavTap(index),
-      borderRadius: BorderRadius.circular(16),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (isActive)
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                decoration: BoxDecoration(
-                  color: Colors.black,
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Icon(icon, color: Colors.white, size: 20),
-              )
-            else
-              Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4),
-                    child: Icon(
-                      icon,
-                      color: const Color(0xFF4B5563),
-                      size: 22,
-                    ),
-                  ),
-                  if (hasBadge)
-                    Positioned(
-                      top: 2,
-                      right: -1,
-                      child: Container(
-                        width: 7,
-                        height: 7,
-                        decoration: const BoxDecoration(
-                          color: Colors.black,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            const SizedBox(height: 3),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: isActive ? FontWeight.w800 : FontWeight.w500,
-                color: isActive ? Colors.black : const Color(0xFF6B7280),
-              ),
-            ),
-          ],
         ),
       ),
     );
