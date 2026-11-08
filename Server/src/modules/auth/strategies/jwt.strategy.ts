@@ -48,6 +48,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       full_name: user.full_name,
       department_id: user.department_id,
       account_status: user.account_status,
+      avatar_url: user.avatar_url || null,
     };
   }
 }

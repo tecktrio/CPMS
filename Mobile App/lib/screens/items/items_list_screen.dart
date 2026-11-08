@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../core/constants/api_constants.dart';
 import '../../core/constants/permissions.dart';
 import '../../providers/inventory_provider.dart';
 import '../../providers/tenant_provider.dart';
@@ -237,6 +238,21 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
                                   child: Row(
                                     crossAxisAlignment: CrossAxisAlignment.center,
                                     children: [
+                                      // 1 Item Image Thumbnail
+                                      ClipRRect(
+                                        borderRadius: BorderRadius.circular(8),
+                                        child: (item.imageUrl != null && item.imageUrl!.isNotEmpty)
+                                            ? Image.network(
+                                                ApiConstants.resolveImageUrl(item.imageUrl)!,
+                                                width: 44,
+                                                height: 44,
+                                                fit: BoxFit.cover,
+                                                errorBuilder: (context, error, stackTrace) => _buildItemThumbnailFallback(item),
+                                              )
+                                            : _buildItemThumbnailFallback(item),
+                                      ),
+                                      const SizedBox(width: 12),
+
                                       // Title & Description
                                       Expanded(
                                         child: Column(
@@ -477,6 +493,27 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
             _selectedCategory = cat;
           });
         },
+      ),
+    );
+  }
+
+  Widget _buildItemThumbnailFallback(ItemModel item) {
+    return Container(
+      width: 44,
+      height: 44,
+      decoration: BoxDecoration(
+        color: const Color(0xFFF1F5F9),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Center(
+        child: Text(
+          item.itemName.isNotEmpty ? item.itemName[0].toUpperCase() : 'I',
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w800,
+            color: Color(0xFF0F766E),
+          ),
+        ),
       ),
     );
   }

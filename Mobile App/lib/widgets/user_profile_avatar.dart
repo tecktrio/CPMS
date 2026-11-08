@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
+import '../core/constants/api_constants.dart';
 import '../providers/auth_provider.dart';
 import '../providers/tenant_provider.dart';
 import '../providers/inventory_provider.dart';
@@ -19,6 +21,8 @@ class UserProfileAvatar extends StatelessWidget {
         ? user.fullName[0].toUpperCase()
         : 'U';
 
+    final avatarUrl = ApiConstants.resolveImageUrl(user?.avatarUrl);
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 6.0),
       child: Tooltip(
@@ -29,18 +33,83 @@ class UserProfileAvatar extends StatelessWidget {
           child: CircleAvatar(
             radius: 18,
             backgroundColor: const Color(0xFF0F766E),
-            child: Text(
-              initial,
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w800,
-                fontSize: 15,
-              ),
-            ),
+            backgroundImage: avatarUrl != null ? NetworkImage(avatarUrl) : null,
+            child: avatarUrl == null
+                ? Text(
+                    initial,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 15,
+                    ),
+                  )
+                : null,
           ),
         ),
       ),
     );
+  }
+
+  Future<void> _pickAndUploadPhoto(BuildContext context, AuthProvider auth) async {
+    try {
+      final picker = ImagePicker();
+      final picked = await picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1024,
+        maxHeight: 1024,
+        imageQuality: 85,
+      );
+      if (picked == null) return;
+
+      final bytes = await picked.readAsBytes();
+      final filename = picked.name;
+
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Row(
+            children: [
+              SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+              ),
+              SizedBox(width: 12),
+              Text('Uploading profile picture to AWS S3...'),
+            ],
+          ),
+          duration: Duration(seconds: 2),
+        ),
+      );
+
+      final ok = await auth.updateProfilePicture(bytes, filename);
+      if (context.mounted) {
+        if (ok) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Profile picture updated successfully!'),
+              backgroundColor: Color(0xFF0D9488),
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(auth.errorMessage ?? 'Upload failed'),
+              backgroundColor: const Color(0xFFDC2626),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error selecting image: $e'),
+            backgroundColor: const Color(0xFFDC2626),
+          ),
+        );
+      }
+    }
   }
 
   void _showProfileDialog(
@@ -99,66 +168,119 @@ class UserProfileAvatar extends StatelessWidget {
                 ),
 
                 // User details
-                Row(
-                  children: [
-                    CircleAvatar(
-                      radius: 28,
-                      backgroundColor: const Color(0xFF0F766E).withValues(alpha: 0.15),
-                      child: Text(
-                        (user != null && user.fullName.isNotEmpty)
-                            ? user.fullName[0].toUpperCase()
-                            : 'U',
-                        style: const TextStyle(
-                          color: Color(0xFF0F766E),
-                          fontWeight: FontWeight.w800,
-                          fontSize: 24,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            user?.fullName ?? 'Operator',
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w800,
-                              color: Color(0xFF0F172A),
-                            ),
-                          ),
-                          Text(
-                            user?.emailAddress ?? '',
-                            style: const TextStyle(
-                              fontSize: 13,
-                              color: Color(0xFF64748B),
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                            decoration: BoxDecoration(
-                              color: isAdmin
-                                  ? const Color(0xFF0F766E).withValues(alpha: 0.1)
-                                  : const Color(0xFF0284C7).withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Text(
-                              isAdmin
-                                  ? '👑 Organization Admin'
-                                  : (deptCount == 1 ? '🏛️ $singleDeptName' : '🏛️ $deptCount Departments'),
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                                color: isAdmin ? const Color(0xFF0F766E) : const Color(0xFF0284C7),
+                Consumer<AuthProvider>(
+                  builder: (context, currentAuth, _) {
+                    final currentUser = currentAuth.user ?? user;
+                    final modalAvatarUrl = ApiConstants.resolveImageUrl(currentUser?.avatarUrl);
+                    return Row(
+                      children: [
+                        InkWell(
+                          onTap: () => _pickAndUploadPhoto(context, currentAuth),
+                          borderRadius: BorderRadius.circular(32),
+                          child: Stack(
+                            clipBehavior: Clip.none,
+                            children: [
+                              CircleAvatar(
+                                radius: 30,
+                                backgroundColor: const Color(0xFF0F766E).withValues(alpha: 0.15),
+                                backgroundImage: modalAvatarUrl != null
+                                    ? NetworkImage(modalAvatarUrl)
+                                    : null,
+                                child: modalAvatarUrl == null
+                                    ? Text(
+                                        (currentUser != null && currentUser.fullName.isNotEmpty)
+                                            ? currentUser.fullName[0].toUpperCase()
+                                            : 'U',
+                                        style: const TextStyle(
+                                          color: Color(0xFF0F766E),
+                                          fontWeight: FontWeight.w800,
+                                          fontSize: 24,
+                                        ),
+                                      )
+                                    : null,
                               ),
-                            ),
+                              Positioned(
+                                bottom: -2,
+                                right: -2,
+                                child: Container(
+                                  padding: const EdgeInsets.all(4),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF0F766E),
+                                    shape: BoxShape.circle,
+                                    border: Border.all(color: Colors.white, width: 2),
+                                  ),
+                                  child: const Icon(
+                                    Icons.camera_alt,
+                                    size: 13,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
-                    ),
-                  ],
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                currentUser?.fullName ?? 'Operator',
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w800,
+                                  color: Color(0xFF0F172A),
+                                ),
+                              ),
+                              Text(
+                                currentUser?.emailAddress ?? '',
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  color: Color(0xFF64748B),
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                    decoration: BoxDecoration(
+                                      color: isAdmin
+                                          ? const Color(0xFF0F766E).withValues(alpha: 0.1)
+                                          : const Color(0xFF0284C7).withValues(alpha: 0.1),
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: Text(
+                                      isAdmin
+                                          ? '👑 Organization Admin'
+                                          : (deptCount == 1 ? '🏛️ $singleDeptName' : '🏛️ $deptCount Departments'),
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w700,
+                                        color: isAdmin ? const Color(0xFF0F766E) : const Color(0xFF0284C7),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  InkWell(
+                                    onTap: () => _pickAndUploadPhoto(context, currentAuth),
+                                    child: const Text(
+                                      'Edit Photo',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Color(0xFF0F766E),
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    );
+                  },
                 ),
 
                 const SizedBox(height: 16),

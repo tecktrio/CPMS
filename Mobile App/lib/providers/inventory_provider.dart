@@ -65,6 +65,7 @@ class ItemModel {
   final String? storeRoomId;
   final String? locationCode;
   final String? division;
+  final String? imageUrl;
   final bool isActive;
 
   ItemModel({
@@ -81,6 +82,7 @@ class ItemModel {
     this.storeRoomId,
     this.locationCode,
     this.division,
+    this.imageUrl,
     required this.isActive,
   });
 
@@ -115,6 +117,7 @@ class ItemModel {
       storeRoomId: sId,
       locationCode: lCode,
       division: div,
+      imageUrl: json['image_url'],
       isActive: json['is_active'] ?? true,
     );
   }
@@ -386,6 +389,48 @@ class InventoryProvider extends ChangeNotifier {
     }
   }
 
+  Future<String?> uploadItemImage(List<int> bytes, String filename) async {
+    try {
+      final res = await apiClient.multipartPost(
+        '${ApiConstants.items}/upload-image',
+        bytes: bytes,
+        filename: filename,
+        fileField: 'image',
+      );
+      if (res is Map<String, dynamic> && res['image_url'] != null) {
+        return res['image_url'].toString();
+      }
+      return null;
+    } catch (e) {
+      _errorMessage = e.toString();
+      notifyListeners();
+      return null;
+    }
+  }
+
+  Future<bool> updateItemImage(
+    String itemId,
+    List<int> bytes,
+    String filename,
+  ) async {
+    _setLoading(true);
+    _errorMessage = null;
+    try {
+      await apiClient.multipartPost(
+        '${ApiConstants.items}/$itemId/image',
+        bytes: bytes,
+        filename: filename,
+        fileField: 'image',
+      );
+      await loadItems();
+      return true;
+    } catch (e) {
+      _errorMessage = e.toString();
+      _setLoading(false);
+      return false;
+    }
+  }
+
   Future<bool> createItem({
     required String sku,
     required String itemName,
@@ -396,11 +441,12 @@ class InventoryProvider extends ChangeNotifier {
     String? locationCode,
     String? division,
     double? stockQuantity,
+    String? imageUrl,
   }) async {
     _setLoading(true);
     _errorMessage = null;
     try {
-      await apiClient.post(ApiConstants.items, body: {
+      final body = <String, dynamic>{
         'sku': sku.trim().toUpperCase(),
         'item_name': itemName.trim(),
         'item_type': itemType,
@@ -419,7 +465,11 @@ class InventoryProvider extends ChangeNotifier {
           'allowed_category': itemType,
           'is_active': true,
         },
-      });
+      };
+      if (imageUrl != null && imageUrl.isNotEmpty) {
+        body['image_url'] = imageUrl;
+      }
+      await apiClient.post(ApiConstants.items, body: body);
       await loadItems();
       return true;
     } catch (e) {
@@ -438,6 +488,7 @@ class InventoryProvider extends ChangeNotifier {
     String? storeRoomId,
     String? division,
     double? stockQuantity,
+    String? imageUrl,
   }) async {
     _setLoading(true);
     _errorMessage = null;
@@ -448,6 +499,7 @@ class InventoryProvider extends ChangeNotifier {
       if (measurementUnit != null) body['measurement_unit'] = measurementUnit;
       if (reorderThreshold != null) body['reorder_threshold_quantity'] = reorderThreshold;
       if (stockQuantity != null) body['stock_quantity'] = stockQuantity;
+      if (imageUrl != null) body['image_url'] = imageUrl;
       if (storeRoomId != null || division != null) {
         final loc = <String, dynamic>{
           'location_code': division ?? 'LOC-01',

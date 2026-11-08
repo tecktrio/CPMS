@@ -103,6 +103,9 @@ export class Item {
   @Prop({ type: Number, default: 0, min: 0 })
   stock_quantity: number;
 
+  @Prop({ type: String, default: null })
+  image_url: string | null;
+
   @Prop({ type: StorageLocationDetailsSchema, required: true })
   storage_location_details: StorageLocationDetails;
 }

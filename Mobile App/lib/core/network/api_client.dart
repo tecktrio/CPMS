@@ -90,6 +90,44 @@ class ApiClient {
         ));
   }
 
+  Future<dynamic> multipartPost(
+    String endpoint, {
+    required List<int> bytes,
+    required String filename,
+    String fileField = 'image',
+    Map<String, String>? fields,
+    Map<String, String>? headers,
+  }) async {
+    final uri = Uri.parse('${ApiConstants.baseUrl}$endpoint');
+    final request = http.MultipartRequest('POST', uri);
+
+    if (_authToken != null && _authToken!.isNotEmpty) {
+      request.headers['Authorization'] = 'Bearer $_authToken';
+    }
+    if (_activeTenantId != null && _activeTenantId!.isNotEmpty) {
+      request.headers['X-Tenant-ID'] = _activeTenantId!;
+    }
+    if (headers != null) {
+      request.headers.addAll(headers);
+    }
+
+    if (fields != null) {
+      request.fields.addAll(fields);
+    }
+
+    final multipartFile = http.MultipartFile.fromBytes(
+      fileField,
+      bytes,
+      filename: filename,
+    );
+    request.files.add(multipartFile);
+
+    return _sendRequest(() async {
+      final streamedResponse = await request.send();
+      return http.Response.fromStream(streamedResponse);
+    });
+  }
+
   Future<dynamic> _sendRequest(Future<http.Response> Function() requestFn) async {
     try {
       final response = await requestFn();

@@ -7,11 +7,13 @@ class AuthUser {
   final String userId;
   final String fullName;
   final String emailAddress;
+  final String? avatarUrl;
 
   AuthUser({
     required this.userId,
     required this.fullName,
     required this.emailAddress,
+    this.avatarUrl,
   });
 
   factory AuthUser.fromJson(Map<String, dynamic> json) {
@@ -19,6 +21,21 @@ class AuthUser {
       userId: json['user_id'] ?? '',
       fullName: json['full_name'] ?? '',
       emailAddress: json['email_address'] ?? '',
+      avatarUrl: json['avatar_url'],
+    );
+  }
+
+  AuthUser copyWith({
+    String? userId,
+    String? fullName,
+    String? emailAddress,
+    String? avatarUrl,
+  }) {
+    return AuthUser(
+      userId: userId ?? this.userId,
+      fullName: fullName ?? this.fullName,
+      emailAddress: emailAddress ?? this.emailAddress,
+      avatarUrl: avatarUrl ?? this.avatarUrl,
     );
   }
 }
@@ -274,6 +291,40 @@ class AuthProvider extends ChangeNotifier {
     } catch (e) {
       _errorMessage = e.toString();
       _setLoading(false);
+      return false;
+    }
+  }
+
+  Future<bool> updateProfilePicture(List<int> bytes, String filename) async {
+    _setLoading(true);
+    _errorMessage = null;
+
+    try {
+      final res = await apiClient.multipartPost(
+        '/users/avatar',
+        bytes: bytes,
+        filename: filename,
+        fileField: 'image',
+      );
+
+      if (res is Map<String, dynamic> && res['avatar_url'] != null) {
+        final newAvatarUrl = res['avatar_url'].toString();
+        if (_user != null) {
+          _user = _user!.copyWith(avatarUrl: newAvatarUrl);
+        }
+      }
+      _setLoading(false);
+      notifyListeners();
+      return true;
+    } on ApiException catch (e) {
+      _errorMessage = e.message;
+      _setLoading(false);
+      notifyListeners();
+      return false;
+    } catch (e) {
+      _errorMessage = e.toString();
+      _setLoading(false);
+      notifyListeners();
       return false;
     }
   }

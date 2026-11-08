@@ -1,12 +1,24 @@
-import { Controller, Get, Param, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Param,
+  UseGuards,
+  UseInterceptors,
+  UploadedFile,
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import {
   ApiTags,
   ApiOperation,
   ApiResponse,
   ApiBearerAuth,
   ApiHeader,
+  ApiConsumes,
 } from '@nestjs/swagger';
 import { UsersService } from './users.service';
+import { StorageService } from '../storage/storage.service';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { TenantGuard } from '../../common/guards/tenant.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
@@ -21,7 +33,26 @@ import { CurrentTenant } from '../../common/decorators/current-tenant.decorator'
 @Controller('users')
 @UseGuards(JwtAuthGuard)
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(
+    private readonly usersService: UsersService,
+    private readonly storageService: StorageService,
+  ) {}
+
+  @Post('avatar')
+  @UseInterceptors(FileInterceptor('image'))
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({
+    summary: 'Upload user profile picture',
+    description: 'Uploads avatar image to AWS S3 (or fallback storage) and updates the current user account.',
+  })
+  @ApiResponse({ status: 200, description: 'Profile picture updated successfully' })
+  async uploadAvatar(
+    @CurrentUser('user_id') userId: string,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    const avatarUrl = await this.storageService.uploadFile(file, 'avatars');
+    return this.usersService.updateAvatar(userId, avatarUrl);
+  }
 
   @Get()
   @UseGuards(TenantGuard, PermissionsGuard)

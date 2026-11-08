@@ -19,5 +19,13 @@ export default () => ({
     fromName: process.env.SMTP_FROM_NAME || 'CPMS Platform',
     fromEmail: process.env.SMTP_FROM_EMAIL || 'no-reply@cpms.local',
   },
+  aws: {
+    s3Bucket: process.env.AWS_S3_BUCKET || '',
+    region: process.env.AWS_REGION || 'us-east-1',
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
+    endpoint: process.env.AWS_S3_ENDPOINT || undefined,
+    publicUrlPrefix: process.env.AWS_S3_PUBLIC_URL_PREFIX || '',
+  },
 });
 

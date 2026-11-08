@@ -1,4 +1,6 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../../providers/inventory_provider.dart';
 import '../../widgets/user_profile_avatar.dart';
@@ -23,6 +25,9 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
   String? _selectedStoreRoomId;
   String? _selectedDivision;
   bool _isSubmitting = false;
+
+  XFile? _selectedImage;
+  Uint8List? _selectedImageBytes;
 
   final List<String> _itemTypes = [
     'RAW_MATERIAL',
@@ -68,6 +73,34 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
     super.dispose();
   }
 
+  Future<void> _pickImage() async {
+    try {
+      final picker = ImagePicker();
+      final picked = await picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1200,
+        maxHeight: 1200,
+        imageQuality: 85,
+      );
+      if (picked != null) {
+        final bytes = await picked.readAsBytes();
+        setState(() {
+          _selectedImage = picked;
+          _selectedImageBytes = bytes;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to select image: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     if (_selectedStoreRoomId == null) {
@@ -88,6 +121,14 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
             ? _customDivisionController.text.trim()
             : 'Default Section');
 
+    String? uploadedImageUrl;
+    if (_selectedImageBytes != null && _selectedImage != null) {
+      uploadedImageUrl = await inventory.uploadItemImage(
+        _selectedImageBytes!,
+        _selectedImage!.name,
+      );
+    }
+
     final success = await inventory.createItem(
       sku: _skuController.text.trim().toUpperCase(),
       itemName: _nameController.text.trim(),
@@ -100,6 +141,7 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
       storeRoomId: _selectedStoreRoomId!,
       division: chosenDivision,
       locationCode: chosenDivision,
+      imageUrl: uploadedImageUrl,
     );
 
     if (!mounted) return;
@@ -174,6 +216,108 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
                     ),
                   ],
                 ),
+              ),
+              const SizedBox(height: 20),
+
+              // Item Photo Picker Card
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                ),
+                child: _selectedImageBytes != null
+                    ? Row(
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(10),
+                            child: Image.memory(
+                              _selectedImageBytes!,
+                              width: 72,
+                              height: 72,
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  _selectedImage?.name ?? 'Item Photo',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                const Text(
+                                  'Ready to upload to AWS S3',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Color(0xFF0F766E),
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.refresh, color: Color(0xFF0F766E)),
+                            tooltip: 'Change Photo',
+                            onPressed: _pickImage,
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.delete_outline, color: Color(0xFFDC2626)),
+                            tooltip: 'Remove',
+                            onPressed: () {
+                              setState(() {
+                                _selectedImage = null;
+                                _selectedImageBytes = null;
+                              });
+                            },
+                          ),
+                        ],
+                      )
+                    : InkWell(
+                        onTap: _pickImage,
+                        borderRadius: BorderRadius.circular(10),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 18),
+                          alignment: Alignment.center,
+                          child: const Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.add_a_photo_outlined,
+                                size: 32,
+                                color: Color(0xFF0F766E),
+                              ),
+                              SizedBox(height: 8),
+                              Text(
+                                'Add Item Image (Optional)',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF0F766E),
+                                ),
+                              ),
+                              SizedBox(height: 2),
+                              Text(
+                                'Supports JPEG, PNG, WEBP — 1 image per item',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Color(0xFF64748B),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
               ),
               const SizedBox(height: 20),
 

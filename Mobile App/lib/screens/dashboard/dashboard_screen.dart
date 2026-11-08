@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/constants/api_constants.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/department_provider.dart';
 import '../../providers/inventory_provider.dart';
@@ -196,6 +198,70 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
+  Future<void> _pickAndUploadAvatar(BuildContext context) async {
+    try {
+      final picker = ImagePicker();
+      final picked = await picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1024,
+        maxHeight: 1024,
+        imageQuality: 85,
+      );
+      if (picked == null) return;
+
+      final bytes = await picked.readAsBytes();
+      final filename = picked.name;
+
+      if (!context.mounted) return;
+      final auth = Provider.of<AuthProvider>(context, listen: false);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Row(
+            children: [
+              SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+              ),
+              SizedBox(width: 12),
+              Text('Uploading profile picture to AWS S3...'),
+            ],
+          ),
+          duration: Duration(seconds: 2),
+        ),
+      );
+
+      final ok = await auth.updateProfilePicture(bytes, filename);
+      if (context.mounted) {
+        if (ok) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Profile picture updated successfully!'),
+              backgroundColor: Color(0xFF0D9488),
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(auth.errorMessage ?? 'Upload failed'),
+              backgroundColor: const Color(0xFFDC2626),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error selecting photo: $e'),
+            backgroundColor: const Color(0xFFDC2626),
+          ),
+        );
+      }
+    }
+  }
+
   void _showProfileModal(BuildContext context) {
     final auth = context.read<AuthProvider>();
     final tenant = context.read<TenantProvider>();
@@ -226,29 +292,80 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
                   ),
                 ),
-                CircleAvatar(
-                  radius: 28,
-                  backgroundColor: const Color(0xFF1E293B),
-                  child: Text(
-                    user != null && user.fullName.isNotEmpty
-                        ? user.fullName[0].toUpperCase()
-                        : 'U',
-                    style: const TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.white),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  user?.fullName ?? 'Authenticated User',
-                  style: const TextStyle(
-                      fontSize: 18, fontWeight: FontWeight.w800),
-                ),
-                Text(
-                  user?.emailAddress ?? '',
-                  style: const TextStyle(
-                      fontSize: 13, color: Color(0xFF64748B)),
+                Consumer<AuthProvider>(
+                  builder: (context, currentAuth, _) {
+                    final currentUser = currentAuth.user ?? user;
+                    final avatarUrl = ApiConstants.resolveImageUrl(currentUser?.avatarUrl);
+                    return Column(
+                      children: [
+                        InkWell(
+                          onTap: () => _pickAndUploadAvatar(context),
+                          borderRadius: BorderRadius.circular(35),
+                          child: Stack(
+                            clipBehavior: Clip.none,
+                            children: [
+                              CircleAvatar(
+                                radius: 32,
+                                backgroundColor: const Color(0xFF1E293B),
+                                backgroundImage: avatarUrl != null ? NetworkImage(avatarUrl) : null,
+                                child: avatarUrl == null
+                                    ? Text(
+                                        currentUser != null && currentUser.fullName.isNotEmpty
+                                            ? currentUser.fullName[0].toUpperCase()
+                                            : 'U',
+                                        style: const TextStyle(
+                                            fontSize: 24,
+                                            fontWeight: FontWeight.w800,
+                                            color: Colors.white),
+                                      )
+                                    : null,
+                              ),
+                              Positioned(
+                                bottom: -2,
+                                right: -2,
+                                child: Container(
+                                  padding: const EdgeInsets.all(5),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF0F766E),
+                                    shape: BoxShape.circle,
+                                    border: Border.all(color: Colors.white, width: 2),
+                                  ),
+                                  child: const Icon(
+                                    Icons.camera_alt,
+                                    size: 13,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        InkWell(
+                          onTap: () => _pickAndUploadAvatar(context),
+                          child: const Text(
+                            'Change Photo',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF0F766E),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          currentUser?.fullName ?? 'Authenticated User',
+                          style: const TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.w800),
+                        ),
+                        Text(
+                          currentUser?.emailAddress ?? '',
+                          style: const TextStyle(
+                              fontSize: 13, color: Color(0xFF64748B)),
+                        ),
+                      ],
+                    );
+                  },
                 ),
                 const SizedBox(height: 20),
                 ListTile(
@@ -413,6 +530,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ? 'Org Admin'
         : (deptCount == 1 ? resolvedDeptName : '$deptCount Depts');
     final userInitial = userName.isNotEmpty ? userName[0].toUpperCase() : 'U';
+    final userAvatarUrl = ApiConstants.resolveImageUrl(user?.avatarUrl);
 
     final horizontalPadding = isWide ? 40.0 : 20.0;
 
@@ -502,14 +620,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             CircleAvatar(
                               radius: 20,
                               backgroundColor: const Color(0xFFE2E8F0),
-                              child: Text(
-                                userInitial,
-                                style: const TextStyle(
-                                  color: Color(0xFF334155),
-                                  fontWeight: FontWeight.w800,
-                                  fontSize: 15,
-                                ),
-                              ),
+                              backgroundImage: userAvatarUrl != null
+                                  ? NetworkImage(userAvatarUrl)
+                                  : null,
+                              child: userAvatarUrl == null
+                                  ? Text(
+                                      userInitial,
+                                      style: const TextStyle(
+                                        color: Color(0xFF334155),
+                                        fontWeight: FontWeight.w800,
+                                        fontSize: 15,
+                                      ),
+                                    )
+                                  : null,
                             ),
                             Positioned(
                               bottom: 0,
@@ -994,6 +1117,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
                             return _buildSearchResultCard(
                               leadingIcon: Icons.view_in_ar_outlined,
+                              imageUrl: item.imageUrl,
                               title: item.itemName,
                               subtitleLine1: item.itemType.replaceAll('_', ' '),
                               subtitleLine2: '${room.roomName} • $divInfo',
@@ -1151,12 +1275,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _buildSearchResultCard({
     required IconData leadingIcon,
+    String? imageUrl,
     required String title,
     String? subtitleLine1,
     String? subtitleLine2,
     required String badgeText,
     required VoidCallback onTap,
   }) {
+    final resolvedUrl = ApiConstants.resolveImageUrl(imageUrl);
+
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       child: InkWell(
@@ -1172,20 +1299,35 @@ class _DashboardScreenState extends State<DashboardScreen> {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: 44,
-                height: 44,
-                margin: const EdgeInsets.only(top: 2),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF8FAFC),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
-                ),
-                child: Icon(
-                  leadingIcon,
-                  size: 22,
-                  color: Colors.black,
-                ),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: resolvedUrl != null
+                    ? Image.network(
+                        resolvedUrl,
+                        width: 44,
+                        height: 44,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF8FAFC),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: const Color(0xFFE2E8F0)),
+                          ),
+                          child: Icon(leadingIcon, size: 22, color: Colors.black),
+                        ),
+                      )
+                    : Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                        ),
+                        child: Icon(leadingIcon, size: 22, color: Colors.black),
+                      ),
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -1430,14 +1572,44 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
               child: Row(
                 children: [
-                  CircleAvatar(
-                    radius: 26,
-                    backgroundColor: const Color(0xFF1E293B),
-                    child: Text(
-                      user != null && user.fullName.isNotEmpty
-                          ? user.fullName[0].toUpperCase()
-                          : 'U',
-                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: Colors.white),
+                  InkWell(
+                    onTap: () => _pickAndUploadAvatar(context),
+                    borderRadius: BorderRadius.circular(28),
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        CircleAvatar(
+                          radius: 28,
+                          backgroundColor: const Color(0xFF1E293B),
+                          backgroundImage: ApiConstants.resolveImageUrl(user?.avatarUrl) != null
+                              ? NetworkImage(ApiConstants.resolveImageUrl(user?.avatarUrl)!)
+                              : null,
+                          child: ApiConstants.resolveImageUrl(user?.avatarUrl) == null
+                              ? Text(
+                                  user != null && user.fullName.isNotEmpty
+                                      ? user.fullName[0].toUpperCase()
+                                      : 'U',
+                                  style: const TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.w800,
+                                      color: Colors.white),
+                                )
+                              : null,
+                        ),
+                        Positioned(
+                          bottom: -2,
+                          right: -2,
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF0F766E),
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.white, width: 2),
+                            ),
+                            child: const Icon(Icons.camera_alt, size: 11, color: Colors.white),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   const SizedBox(width: 14),
@@ -1456,6 +1628,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         ),
                       ],
                     ),
+                  ),
+                  TextButton.icon(
+                    style: TextButton.styleFrom(
+                      foregroundColor: const Color(0xFF0F766E),
+                    ),
+                    onPressed: () => _pickAndUploadAvatar(context),
+                    icon: const Icon(Icons.edit, size: 15),
+                    label: const Text('Edit Photo', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
                   ),
                 ],
               ),

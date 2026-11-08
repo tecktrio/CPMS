@@ -31,6 +31,7 @@ export class UsersService {
         user_id: u.user_id,
         full_name: u.full_name,
         email_address: u.email_address,
+        avatar_url: u.avatar_url || null,
         department_ids: mem?.department_ids || [],
         account_status: u.account_status,
       };
@@ -43,6 +44,23 @@ export class UsersService {
       throw new NotFoundException('User not found');
     }
     return user;
+  }
+
+  async updateAvatar(userId: string, avatarUrl: string) {
+    const user = await this.userModel.findOneAndUpdate(
+      { user_id: userId },
+      { $set: { avatar_url: avatarUrl } },
+      { new: true },
+    );
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    return {
+      user_id: user.user_id,
+      full_name: user.full_name,
+      email_address: user.email_address,
+      avatar_url: user.avatar_url,
+    };
   }
 }
 

@@ -7,7 +7,19 @@ class ApiConstants {
 
   static String get baseUrl => '$serverHost/api/v1';
 
-  // Auth endpoints
+  static String? resolveImageUrl(String? pathOrUrl) {
+    if (pathOrUrl == null || pathOrUrl.trim().isEmpty) return null;
+    final trimmed = pathOrUrl.trim();
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+      return trimmed;
+    }
+    if (trimmed.startsWith('/')) {
+      return '$serverHost$trimmed';
+    }
+    return '$serverHost/$trimmed';
+  }
+
+  // Auth & Profile endpoints
   static const String signUp = '/auth/sign-up';
   static const String signIn = '/auth/sign-in';
   static const String verifyOtp = '/auth/verify-otp';

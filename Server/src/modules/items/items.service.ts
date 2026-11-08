@@ -68,6 +68,7 @@ export class ItemsService {
       measurement_unit: dto.measurement_unit,
       reorder_threshold_quantity: dto.reorder_threshold_quantity,
       stock_quantity: dto.stock_quantity ?? 0,
+      image_url: dto.image_url || null,
       storage_location_details: {
         ...dto.storage_location_details,
         division: dto.storage_location_details?.division || '',
@@ -197,6 +198,8 @@ export class ItemsService {
       item.reorder_threshold_quantity = dto.reorder_threshold_quantity;
     if (dto.stock_quantity !== undefined)
       item.stock_quantity = dto.stock_quantity;
+    if (dto.image_url !== undefined)
+      item.image_url = dto.image_url;
 
     if (dto.storage_location_details) {
       if (dto.storage_location_details.store_room_id) {
@@ -241,6 +244,20 @@ export class ItemsService {
       message: 'Item deleted successfully',
       item_id: itemId,
     };
+  }
+
+  async updateImage(tenantId: string, itemId: string, imageUrl: string) {
+    const item = await this.itemModel.findOneAndUpdate(
+      { tenant_id: tenantId, item_id: itemId },
+      { $set: { image_url: imageUrl } },
+      { new: true },
+    );
+
+    if (!item) {
+      throw new NotFoundException('Item not found');
+    }
+
+    return item;
   }
 }
 

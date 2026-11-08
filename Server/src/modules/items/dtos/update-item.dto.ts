@@ -50,6 +50,13 @@ export class UpdateItemDto {
   @IsOptional()
   stock_quantity?: number;
 
+  @ApiPropertyOptional({
+    example: 'https://my-bucket.s3.amazonaws.com/items/flour.jpg',
+  })
+  @IsString()
+  @IsOptional()
+  image_url?: string;
+
   @ApiPropertyOptional({ type: StorageLocationDetailsDto })
   @ValidateNested()
   @Type(() => StorageLocationDetailsDto)

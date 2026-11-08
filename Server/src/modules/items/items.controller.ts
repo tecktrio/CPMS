@@ -7,15 +7,20 @@ import {
   Param,
   Body,
   UseGuards,
+  UseInterceptors,
+  UploadedFile,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import {
   ApiTags,
   ApiOperation,
   ApiResponse,
   ApiBearerAuth,
   ApiHeader,
+  ApiConsumes,
 } from '@nestjs/swagger';
 import { ItemsService } from './items.service';
+import { StorageService } from '../storage/storage.service';
 import { CreateItemDto } from './dtos/create-item.dto';
 import { UpdateItemDto } from './dtos/update-item.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -37,7 +42,42 @@ import { CurrentTenant } from '../../common/decorators/current-tenant.decorator'
 @Controller('items')
 @UseGuards(JwtAuthGuard, TenantGuard, PermissionsGuard)
 export class ItemsController {
-  constructor(private readonly itemsService: ItemsService) {}
+  constructor(
+    private readonly itemsService: ItemsService,
+    private readonly storageService: StorageService,
+  ) {}
+
+  @Post('upload-image')
+  @RequireAnyPermissions('permission.item.create', 'permission.item.update')
+  @UseInterceptors(FileInterceptor('image'))
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({
+    summary: 'Upload item image',
+    description: 'Uploads single image file for an item to AWS S3 or fallback storage.',
+  })
+  @ApiResponse({ status: 200, description: 'Image uploaded successfully' })
+  async uploadImage(@UploadedFile() file: Express.Multer.File) {
+    const imageUrl = await this.storageService.uploadFile(file, 'items');
+    return { image_url: imageUrl };
+  }
+
+  @Post(':id/image')
+  @RequirePermissions('permission.item.update')
+  @UseInterceptors(FileInterceptor('image'))
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({
+    summary: 'Upload and set item image',
+    description: 'Uploads single image and attaches it directly to the specified item.',
+  })
+  @ApiResponse({ status: 200, description: 'Item image updated' })
+  async updateItemImage(
+    @CurrentTenant() tenantId: string,
+    @Param('id') itemId: string,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    const imageUrl = await this.storageService.uploadFile(file, 'items');
+    return this.itemsService.updateImage(tenantId, itemId, imageUrl);
+  }
 
   @Post()
   @RequirePermissions('permission.item.create')

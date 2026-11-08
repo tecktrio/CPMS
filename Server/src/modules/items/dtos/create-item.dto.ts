@@ -120,6 +120,14 @@ export class CreateItemDto {
   @IsOptional()
   stock_quantity?: number;
 
+  @ApiPropertyOptional({
+    example: 'https://my-bucket.s3.amazonaws.com/items/flour.jpg',
+    description: 'Image URL of the item',
+  })
+  @IsString()
+  @IsOptional()
+  image_url?: string;
+
   @ApiProperty({ type: StorageLocationDetailsDto })
   @ValidateNested()
   @Type(() => StorageLocationDetailsDto)
