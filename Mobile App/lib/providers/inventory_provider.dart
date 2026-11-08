@@ -467,6 +467,11 @@ class InventoryProvider extends ChangeNotifier {
     }
   }
 
+  Future<bool> updateItemStock(String itemId, double newQuantity) async {
+    final clamped = newQuantity < 0 ? 0.0 : newQuantity;
+    return updateItem(itemId: itemId, stockQuantity: clamped);
+  }
+
   Future<bool> deleteItem(String itemId) async {
     _setLoading(true);
     _errorMessage = null;

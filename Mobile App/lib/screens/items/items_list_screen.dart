@@ -5,6 +5,7 @@ import '../../providers/inventory_provider.dart';
 import '../../providers/tenant_provider.dart';
 import '../../widgets/user_profile_avatar.dart';
 import 'create_item_screen.dart';
+import 'item_detail_screen.dart';
 
 class ItemsListScreen extends StatefulWidget {
   final bool manageMode;
@@ -213,235 +214,149 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
                           itemCount: filteredItems.length,
                           itemBuilder: (context, index) {
                             final item = filteredItems[index];
-                            final isAlert = item.isBelowReorderThreshold;
-
-                            final room = inventory.storeRooms.firstWhere(
-                              (r) => r.storeRoomId == item.storeRoomId,
-                              orElse: () => StoreRoomModel(
-                                storeRoomId: '',
-                                tenantId: '',
-                                roomCode: '',
-                                roomName: 'Unassigned',
-                                totalCapacityUnits: 0,
-                                currentOccupancyUnits: 0,
-                                capacityUtilizationPercentage: 0,
-                                activeBatchesCount: 0,
-                                isActive: true,
-                              ),
-                            );
-
-                            final divisionDisplay = (item.division != null && item.division!.isNotEmpty)
-                                ? item.division!
-                                : (item.locationCode != null && item.locationCode!.isNotEmpty
-                                    ? item.locationCode!
-                                    : 'Default Section');
 
                             return Card(
+                              elevation: 0,
                               margin: const EdgeInsets.only(bottom: 10),
-                              child: Padding(
-                                padding: const EdgeInsets.all(16),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 8,
-                                            vertical: 3,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: const Color(0xFF0F766E).withValues(alpha: 0.1),
-                                            borderRadius: BorderRadius.circular(6),
-                                          ),
-                                          child: Text(
-                                            item.sku,
-                                            style: const TextStyle(
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.w800,
-                                              color: Color(0xFF0F766E),
-                                            ),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 6,
-                                            vertical: 2,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: Colors.grey.shade100,
-                                            borderRadius: BorderRadius.circular(4),
-                                          ),
-                                          child: Text(
-                                            item.itemType.replaceAll('_', ' '),
-                                            style: const TextStyle(
-                                              fontSize: 10,
-                                              fontWeight: FontWeight.w600,
-                                              color: Color(0xFF475569),
-                                            ),
-                                          ),
-                                        ),
-                                        const Spacer(),
-                                        Text(
-                                          '${item.totalAvailableStock.toStringAsFixed(1)} ${item.measurementUnit}',
-                                          style: const TextStyle(
-                                            fontSize: 15,
-                                            fontWeight: FontWeight.w800,
-                                            color: Color(0xFF0F172A),
-                                          ),
-                                        ),
-                                      ],
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                side: const BorderSide(color: Color(0xFFE2E8F0)),
+                              ),
+                              clipBehavior: Clip.antiAlias,
+                              child: InkWell(
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => ItemDetailScreen(item: item),
                                     ),
-                                    const SizedBox(height: 8),
-                                    Text(
-                                      item.itemName,
-                                      style: const TextStyle(
-                                        fontSize: 15,
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 8),
-
-                                    // Store Room & Division Location Details Badge
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFFF8FAFC),
-                                        borderRadius: BorderRadius.circular(6),
-                                        border: Border.all(color: const Color(0xFFE2E8F0)),
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          const Icon(Icons.meeting_room_outlined, size: 14, color: Color(0xFF0284C7)),
-                                          const SizedBox(width: 4),
-                                          Text(
-                                            room.storeRoomId.isNotEmpty
-                                                ? '${room.roomName} (${room.roomCode})'
-                                                : 'Store Room: Not Specified',
-                                            style: const TextStyle(
-                                              fontSize: 11,
-                                              fontWeight: FontWeight.w700,
-                                              color: Color(0xFF0F172A),
-                                            ),
-                                          ),
-                                          const SizedBox(width: 8),
-                                          const Text('•', style: TextStyle(color: Color(0xFF94A3B8))),
-                                          const SizedBox(width: 8),
-                                          const Icon(Icons.grid_view_outlined, size: 13, color: Color(0xFF0F766E)),
-                                          const SizedBox(width: 4),
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                            decoration: BoxDecoration(
-                                              color: const Color(0xFF0F766E).withValues(alpha: 0.1),
-                                              borderRadius: BorderRadius.circular(4),
-                                            ),
-                                            child: Text(
-                                              divisionDisplay,
+                                  );
+                                },
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                  child: Row(
+                                    crossAxisAlignment: CrossAxisAlignment.center,
+                                    children: [
+                                      // Title & Description
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Text(
+                                              item.itemName,
                                               style: const TextStyle(
-                                                fontSize: 11,
+                                                fontSize: 16,
                                                 fontWeight: FontWeight.w700,
-                                                color: Color(0xFF0F766E),
+                                                color: Color(0xFF0F172A),
                                               ),
                                             ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    const SizedBox(height: 8),
-
-                                    // Reorder Threshold & Alert Banner
-                                    if (isAlert)
-                                      Container(
-                                        margin: const EdgeInsets.only(top: 2),
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 10,
-                                          vertical: 6,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFFFFFBEB),
-                                          borderRadius: BorderRadius.circular(6),
-                                          border: Border.all(
-                                            color: const Color(0xFFFDE68A),
-                                          ),
-                                        ),
-                                        child: Row(
-                                          children: [
-                                            const Icon(
-                                              Icons.warning_amber_rounded,
-                                              color: Color(0xFFD97706),
-                                              size: 16,
-                                            ),
-                                            const SizedBox(width: 6),
-                                            Expanded(
-                                              child: Text(
-                                                'Reorder Shortfall: ${item.reorderShortfallQuantity.toStringAsFixed(1)} ${item.measurementUnit} (Threshold: ${item.reorderThresholdQuantity.toStringAsFixed(1)})',
-                                                style: const TextStyle(
-                                                  fontSize: 11,
-                                                  fontWeight: FontWeight.w700,
-                                                  color: Color(0xFFB45309),
-                                                ),
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              '${item.sku} • ${item.itemType.replaceAll('_', ' ')}',
+                                              style: const TextStyle(
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w500,
+                                                color: Color(0xFF64748B),
                                               ),
                                             ),
                                           ],
                                         ),
-                                      )
-                                    else
-                                      Text(
-                                        'Reorder threshold: ${item.reorderThresholdQuantity.toStringAsFixed(1)} ${item.measurementUnit}',
-                                        style: const TextStyle(
-                                          fontSize: 11,
-                                          color: Color(0xFF64748B),
-                                        ),
                                       ),
+                                      const SizedBox(width: 12),
 
-                                    // Update & Delete Actions
-                                    if (canUpdate || canDelete) ...[
-                                      const SizedBox(height: 10),
-                                      const Divider(height: 1, color: Color(0xFFF1F5F9)),
-                                      const SizedBox(height: 4),
+                                      // Quantity & Stock Update +/- Buttons
                                       Row(
-                                        mainAxisAlignment: MainAxisAlignment.end,
+                                        mainAxisSize: MainAxisSize.min,
                                         children: [
                                           if (canUpdate)
-                                            TextButton.icon(
-                                              style: TextButton.styleFrom(
-                                                foregroundColor: const Color(0xFF0F766E),
-                                                visualDensity: VisualDensity.compact,
-                                              ),
-                                              icon: const Icon(Icons.edit_outlined, size: 16),
-                                              label: const Text(
-                                                'Update',
-                                                style: TextStyle(
-                                                  fontWeight: FontWeight.w700,
-                                                  fontSize: 12,
+                                            Material(
+                                              color: Colors.transparent,
+                                              child: InkWell(
+                                                borderRadius: BorderRadius.circular(20),
+                                                onTap: () {
+                                                  final newStock = (item.totalAvailableStock - 1.0)
+                                                      .clamp(0.0, 99999999.0);
+                                                  inventory.updateItemStock(item.itemId, newStock);
+                                                },
+                                                child: Container(
+                                                  width: 32,
+                                                  height: 32,
+                                                  decoration: BoxDecoration(
+                                                    color: const Color(0xFFF1F5F9),
+                                                    borderRadius: BorderRadius.circular(16),
+                                                    border: Border.all(color: const Color(0xFFCBD5E1)),
+                                                  ),
+                                                  alignment: Alignment.center,
+                                                  child: const Icon(
+                                                    Icons.remove,
+                                                    size: 18,
+                                                    color: Color(0xFF334155),
+                                                  ),
                                                 ),
                                               ),
-                                              onPressed: () => _showEditDialog(context, item),
                                             ),
-                                          if (canDelete) ...[
-                                            const SizedBox(width: 8),
-                                            TextButton.icon(
-                                              style: TextButton.styleFrom(
-                                                foregroundColor: const Color(0xFFDC2626),
-                                                visualDensity: VisualDensity.compact,
+                                          InkWell(
+                                            borderRadius: BorderRadius.circular(6),
+                                            onTap: canUpdate
+                                                ? () => _showQuickStockDialog(context, item)
+                                                : null,
+                                            child: Padding(
+                                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                              child: Column(
+                                                mainAxisSize: MainAxisSize.min,
+                                                crossAxisAlignment: CrossAxisAlignment.center,
+                                                children: [
+                                                  Text(
+                                                    item.totalAvailableStock.toStringAsFixed(1),
+                                                    style: const TextStyle(
+                                                      fontSize: 16,
+                                                      fontWeight: FontWeight.w800,
+                                                      color: Color(0xFF0F172A),
+                                                    ),
+                                                  ),
+                                                  Text(
+                                                    item.measurementUnit,
+                                                    style: const TextStyle(
+                                                      fontSize: 10,
+                                                      fontWeight: FontWeight.w600,
+                                                      color: Color(0xFF64748B),
+                                                    ),
+                                                  ),
+                                                ],
                                               ),
-                                              icon: const Icon(Icons.delete_outline, size: 16),
-                                              label: const Text(
-                                                'Delete',
-                                                style: TextStyle(
-                                                  fontWeight: FontWeight.w700,
-                                                  fontSize: 12,
+                                            ),
+                                          ),
+                                          if (canUpdate)
+                                            Material(
+                                              color: Colors.transparent,
+                                              child: InkWell(
+                                                borderRadius: BorderRadius.circular(20),
+                                                onTap: () {
+                                                  final newStock = (item.totalAvailableStock + 1.0)
+                                                      .clamp(0.0, 99999999.0);
+                                                  inventory.updateItemStock(item.itemId, newStock);
+                                                },
+                                                child: Container(
+                                                  width: 32,
+                                                  height: 32,
+                                                  decoration: BoxDecoration(
+                                                    color: const Color(0xFF0F766E),
+                                                    borderRadius: BorderRadius.circular(16),
+                                                  ),
+                                                  alignment: Alignment.center,
+                                                  child: const Icon(
+                                                    Icons.add,
+                                                    size: 18,
+                                                    color: Colors.white,
+                                                  ),
                                                 ),
                                               ),
-                                              onPressed: () => _confirmDelete(context, item),
                                             ),
-                                          ],
                                         ],
                                       ),
                                     ],
-                                  ],
+                                  ),
                                 ),
                               ),
                             );
@@ -468,275 +383,45 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
     );
   }
 
-  void _showEditDialog(BuildContext context, ItemModel item) {
-    final inventory = context.read<InventoryProvider>();
-    final nameCtrl = TextEditingController(text: item.itemName);
-    final thresholdCtrl =
-        TextEditingController(text: item.reorderThresholdQuantity.toString());
+  void _showQuickStockDialog(BuildContext context, ItemModel item) {
     final stockCtrl =
         TextEditingController(text: item.totalAvailableStock.toString());
-
-    final List<Map<String, String>> typeOptions = [
-      {'value': 'RAW_MATERIAL', 'label': 'Raw Material'},
-      {'value': 'FINISHED_GOOD', 'label': 'Finished Good'},
-      {'value': 'PACKAGING', 'label': 'Packaging'},
-    ];
-    String selectedType = item.itemType.trim();
-    if (selectedType.isEmpty) selectedType = 'RAW_MATERIAL';
-    final matchingTypeIndex = typeOptions.indexWhere(
-        (t) => t['value']!.toUpperCase() == selectedType.toUpperCase());
-    if (matchingTypeIndex >= 0) {
-      selectedType = typeOptions[matchingTypeIndex]['value']!;
-    } else {
-      typeOptions.add({'value': selectedType, 'label': selectedType});
-    }
-
-    final List<Map<String, String>> unitOptions = [
-      {'value': 'KILOGRAM', 'label': 'Kilogram (KG)'},
-      {'value': 'KG', 'label': 'Kilogram (KG)'},
-      {'value': 'LITER', 'label': 'Liter (L)'},
-      {'value': 'LITRE', 'label': 'Litre (L)'},
-      {'value': 'PIECE', 'label': 'Piece (PC)'},
-      {'value': 'CARTOON_BOX', 'label': 'Carton Box'},
-      {'value': 'CARTON', 'label': 'Carton'},
-      {'value': 'GRAM', 'label': 'Gram (G)'},
-      {'value': 'MILLILITRE', 'label': 'Millilitre (ML)'},
-      {'value': 'UNIT', 'label': 'Unit'},
-    ];
-    String selectedUnit = item.measurementUnit.trim();
-    if (selectedUnit.isEmpty) selectedUnit = 'KILOGRAM';
-    final matchingUnitIndex = unitOptions.indexWhere(
-        (u) => u['value']!.toUpperCase() == selectedUnit.toUpperCase());
-    if (matchingUnitIndex >= 0) {
-      selectedUnit = unitOptions[matchingUnitIndex]['value']!;
-    } else {
-      unitOptions.add({'value': selectedUnit, 'label': selectedUnit});
-    }
-
-    String? selectedRoomId = item.storeRoomId;
-    if (selectedRoomId != null &&
-        !inventory.storeRooms.any((r) => r.storeRoomId == selectedRoomId)) {
-      selectedRoomId = null;
-    }
-    if (selectedRoomId == null && inventory.storeRooms.isNotEmpty) {
-      selectedRoomId = inventory.storeRooms.first.storeRoomId;
-    }
-
-    String? selectedDivision = item.division;
     final formKey = GlobalKey<FormState>();
 
     showDialog(
       context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (context, setDialogState) {
-          StoreRoomModel? currentRoom;
-          if (selectedRoomId != null) {
-            final matches =
-                inventory.storeRooms.where((r) => r.storeRoomId == selectedRoomId);
-            if (matches.isNotEmpty) currentRoom = matches.first;
-          }
-
-          final divisions = (currentRoom?.divisions ?? []).toSet().toList();
-          if (divisions.isNotEmpty &&
-              (selectedDivision == null || !divisions.contains(selectedDivision))) {
-            selectedDivision = divisions.first;
-          }
-
-          return AlertDialog(
-            title: Text('Update Item: ${item.sku}'),
-            content: SingleChildScrollView(
-              child: Form(
-                key: formKey,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextFormField(
-                      controller: nameCtrl,
-                      decoration: const InputDecoration(labelText: 'Item Name *'),
-                      validator: (v) =>
-                          v == null || v.trim().isEmpty ? 'Required' : null,
-                    ),
-                    const SizedBox(height: 12),
-                    DropdownButtonFormField<String>(
-                      key: ValueKey('type_$selectedType'),
-                      initialValue: selectedType,
-                      decoration: const InputDecoration(labelText: 'Item Type'),
-                      items: typeOptions
-                          .map((t) => DropdownMenuItem(
-                                value: t['value'],
-                                child: Text(t['label']!),
-                              ))
-                          .toList(),
-                      onChanged: (val) {
-                        if (val != null) {
-                          setDialogState(() => selectedType = val);
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 12),
-                    DropdownButtonFormField<String>(
-                      key: ValueKey('unit_$selectedUnit'),
-                      initialValue: selectedUnit,
-                      decoration:
-                          const InputDecoration(labelText: 'Measurement Unit'),
-                      items: unitOptions
-                          .map((u) => DropdownMenuItem(
-                                value: u['value'],
-                                child: Text(u['label']!),
-                              ))
-                          .toList(),
-                      onChanged: (val) {
-                        if (val != null) {
-                          setDialogState(() => selectedUnit = val);
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 12),
-                    if (inventory.storeRooms.isNotEmpty)
-                      DropdownButtonFormField<String>(
-                        key: ValueKey('room_$selectedRoomId'),
-                        initialValue: selectedRoomId,
-                        decoration: const InputDecoration(labelText: 'Store Room'),
-                        items: inventory.storeRooms
-                            .map((r) => DropdownMenuItem(
-                                  value: r.storeRoomId,
-                                  child: Text('${r.roomName} (${r.roomCode})'),
-                                ))
-                            .toList(),
-                        onChanged: (val) {
-                          if (val != null) {
-                            setDialogState(() {
-                              selectedRoomId = val;
-                              final matches = inventory.storeRooms
-                                  .where((r) => r.storeRoomId == val);
-                              if (matches.isNotEmpty) {
-                                final divList = matches.first.divisions.toSet().toList();
-                                selectedDivision = divList.isNotEmpty ? divList.first : null;
-                              } else {
-                                selectedDivision = null;
-                              }
-                            });
-                          }
-                        },
-                      ),
-                    const SizedBox(height: 12),
-                    if (divisions.isNotEmpty)
-                      DropdownButtonFormField<String>(
-                        key: ValueKey('div_${selectedRoomId}_$selectedDivision'),
-                        initialValue: selectedDivision,
-                        decoration:
-                            const InputDecoration(labelText: 'Division / Section'),
-                        items: divisions
-                            .map((d) => DropdownMenuItem(
-                                  value: d,
-                                  child: Text(d),
-                                ))
-                            .toList(),
-                        onChanged: (val) {
-                          setDialogState(() => selectedDivision = val);
-                        },
-                      )
-                    else
-                      TextFormField(
-                        key: ValueKey('div_txt_$selectedRoomId'),
-                        initialValue: selectedDivision ?? '',
-                        decoration: const InputDecoration(
-                          labelText: 'Division / Section Identifier',
-                          hintText: 'e.g. Section A',
-                        ),
-                        onChanged: (val) => selectedDivision = val,
-                      ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextFormField(
-                            controller: stockCtrl,
-                            keyboardType: const TextInputType.numberWithOptions(
-                                decimal: true),
-                            decoration:
-                                const InputDecoration(labelText: 'Stock Quantity *'),
-                            validator: (v) {
-                              if (v == null || double.tryParse(v) == null) {
-                                return 'Enter number';
-                              }
-                              return null;
-                            },
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: TextFormField(
-                            controller: thresholdCtrl,
-                            keyboardType: const TextInputType.numberWithOptions(
-                                decimal: true),
-                            decoration: const InputDecoration(
-                                labelText: 'Reorder Level *'),
-                            validator: (v) {
-                              if (v == null || double.tryParse(v) == null) {
-                                return 'Enter number';
-                              }
-                              return null;
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+      builder: (ctx) => AlertDialog(
+        title: Text('Update Stock: ${item.itemName}'),
+        content: Form(
+          key: formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Current Stock: ${item.totalAvailableStock.toStringAsFixed(1)} ${item.measurementUnit}',
+                style: const TextStyle(fontSize: 13, color: Color(0xFF64748B)),
               ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text('Cancel'),
-              ),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF0F766E),
-                  foregroundColor: Colors.white,
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: stockCtrl,
+                autofocus: true,
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
+                decoration: InputDecoration(
+                  labelText: 'New Stock Quantity (${item.measurementUnit}) *',
+                  border: const OutlineInputBorder(),
+                  prefixIcon: const Icon(Icons.inventory_2_outlined),
                 ),
-                onPressed: () async {
-                  if (!formKey.currentState!.validate()) return;
-                  Navigator.pop(ctx);
-                  final ok = await inventory.updateItem(
-                    itemId: item.itemId,
-                    itemName: nameCtrl.text.trim(),
-                    itemType: selectedType,
-                    measurementUnit: selectedUnit,
-                    reorderThreshold: double.parse(thresholdCtrl.text.trim()),
-                    stockQuantity: double.parse(stockCtrl.text.trim()),
-                    storeRoomId: selectedRoomId,
-                    division: selectedDivision,
-                  );
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(ok
-                            ? 'Item updated successfully'
-                            : (inventory.errorMessage ?? 'Update failed')),
-                        backgroundColor:
-                            ok ? const Color(0xFF0F766E) : Colors.red.shade700,
-                      ),
-                    );
-                  }
+                validator: (val) {
+                  if (val == null || val.trim().isEmpty) return 'Enter quantity';
+                  final num = double.tryParse(val.trim());
+                  if (num == null || num < 0) return 'Enter a valid non-negative number';
+                  return null;
                 },
-                child: const Text('Save Changes'),
               ),
             ],
-          );
-        },
-      ),
-    );
-  }
-
-  void _confirmDelete(BuildContext context, ItemModel item) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text('Delete Item: ${item.sku}?'),
-        content: Text(
-          'Are you sure you want to permanently delete "${item.itemName}"?',
+          ),
         ),
         actions: [
           TextButton(
@@ -745,26 +430,28 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFDC2626),
+              backgroundColor: const Color(0xFF0F766E),
               foregroundColor: Colors.white,
             ),
             onPressed: () async {
+              if (!formKey.currentState!.validate()) return;
+              final qty = double.parse(stockCtrl.text.trim());
               Navigator.pop(ctx);
               final inventory = context.read<InventoryProvider>();
-              final ok = await inventory.deleteItem(item.itemId);
+              final ok = await inventory.updateItemStock(item.itemId, qty);
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(ok
-                        ? 'Item deleted successfully'
-                        : (inventory.errorMessage ?? 'Delete failed')),
+                        ? 'Stock updated to $qty ${item.measurementUnit}'
+                        : (inventory.errorMessage ?? 'Stock update failed')),
                     backgroundColor:
                         ok ? const Color(0xFF0F766E) : Colors.red.shade700,
                   ),
                 );
               }
             },
-            child: const Text('Delete'),
+            child: const Text('Update Stock'),
           ),
         ],
       ),
