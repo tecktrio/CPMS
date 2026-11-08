@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../core/constants/permissions.dart';
 import '../../providers/inventory_provider.dart';
+import '../../providers/tenant_provider.dart';
 import '../../widgets/user_profile_avatar.dart';
+import 'create_store_room_screen.dart';
 
 class StoreRoomsListScreen extends StatefulWidget {
   const StoreRoomsListScreen({super.key});
@@ -191,9 +194,55 @@ class _StoreRoomsListScreenState extends State<StoreRoomsListScreen> {
     );
   }
 
+  void _confirmDeleteRoom(BuildContext context, StoreRoomModel room) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Delete Store Room: ${room.roomCode}?'),
+        content: Text(
+          'Are you sure you want to deactivate or remove "${room.roomName}" (${room.roomCode})? Note: A store room cannot be deleted if active stock or batches are present.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFDC2626),
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              final inventory = context.read<InventoryProvider>();
+              final ok = await inventory.deleteStoreRoom(room.storeRoomId);
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(ok
+                        ? 'Store room deleted successfully'
+                        : (inventory.errorMessage ?? 'Delete failed')),
+                    backgroundColor:
+                        ok ? const Color(0xFF0F766E) : Colors.red.shade700,
+                  ),
+                );
+              }
+            },
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final inventory = context.watch<InventoryProvider>();
+    final tenant = context.watch<TenantProvider>();
+    final isAdmin = tenant.isTenantAdmin;
+    final canCreate = isAdmin || tenant.hasPermission(AppPermissions.storeroomCreate);
+    final canUpdate = isAdmin || tenant.hasPermission(AppPermissions.storeroomUpdate);
+    final canDelete = isAdmin || tenant.hasPermission(AppPermissions.storeroomDelete);
 
     return Scaffold(
       appBar: AppBar(
@@ -207,6 +256,23 @@ class _StoreRoomsListScreenState extends State<StoreRoomsListScreen> {
           const SizedBox(width: 4),
         ],
       ),
+      floatingActionButton: canCreate
+          ? FloatingActionButton.extended(
+              backgroundColor: const Color(0xFF0284C7),
+              foregroundColor: Colors.white,
+              icon: const Icon(Icons.add),
+              label: const Text(
+                'Create Store Room',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const CreateStoreRoomScreen()),
+                );
+              },
+            )
+          : null,
       body: RefreshIndicator(
         onRefresh: inventory.loadStoreRooms,
         child: inventory.isLoading
@@ -324,14 +390,25 @@ class _StoreRoomsListScreenState extends State<StoreRoomsListScreen> {
                                       ],
                                     ),
                                   ),
-                                  const SizedBox(width: 4),
-                                  IconButton(
-                                    icon: const Icon(Icons.edit_outlined, size: 20),
-                                    color: const Color(0xFF64748B),
-                                    tooltip: 'Edit Store Room',
-                                    onPressed: () =>
-                                        _showEditRoomDialog(context, room),
-                                  ),
+                                  if (canUpdate) ...[
+                                    const SizedBox(width: 4),
+                                    IconButton(
+                                      icon: const Icon(Icons.edit_outlined, size: 20),
+                                      color: const Color(0xFF0F766E),
+                                      tooltip: 'Edit Store Room',
+                                      onPressed: () =>
+                                          _showEditRoomDialog(context, room),
+                                    ),
+                                  ],
+                                  if (canDelete) ...[
+                                    IconButton(
+                                      icon: const Icon(Icons.delete_outline, size: 20),
+                                      color: const Color(0xFFDC2626),
+                                      tooltip: 'Delete Store Room',
+                                      onPressed: () =>
+                                          _confirmDeleteRoom(context, room),
+                                    ),
+                                  ],
                                 ],
                               ),
                               const SizedBox(height: 12),

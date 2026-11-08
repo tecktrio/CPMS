@@ -110,6 +110,14 @@ export class PermissionsGuard implements CanActivate {
       }
     }
 
+    // Auto-grant read permission if user has any action permission in that module
+    for (const perm of Array.from(aggregatedPermissions)) {
+      const parts = perm.split('.');
+      if (parts.length >= 3) {
+        aggregatedPermissions.add(`permission.${parts[1]}.read`);
+      }
+    }
+
     // 5. Verify that every required permission (ALL) is present if specified
     if (requiredPermissions && requiredPermissions.length > 0) {
       const missingPermissions = requiredPermissions.filter(

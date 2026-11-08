@@ -4,6 +4,7 @@ import '../../core/constants/permissions.dart';
 import '../../providers/inventory_provider.dart';
 import '../../providers/tenant_provider.dart';
 import '../../widgets/user_profile_avatar.dart';
+import 'create_item_screen.dart';
 
 class ItemsListScreen extends StatefulWidget {
   final bool manageMode;
@@ -33,6 +34,7 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
     final inventory = context.watch<InventoryProvider>();
     final tenant = context.watch<TenantProvider>();
     final isAdmin = tenant.isTenantAdmin;
+    final canCreate = isAdmin || tenant.hasPermission(AppPermissions.itemCreate);
     final canUpdate = isAdmin || tenant.hasPermission(AppPermissions.itemUpdate);
     final canDelete = isAdmin || tenant.hasPermission(AppPermissions.itemDelete);
 
@@ -449,6 +451,20 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
           ),
         ],
       ),
+      floatingActionButton: canCreate
+          ? FloatingActionButton.extended(
+              backgroundColor: const Color(0xFF0F766E),
+              foregroundColor: Colors.white,
+              icon: const Icon(Icons.add),
+              label: const Text('Register Item', style: TextStyle(fontWeight: FontWeight.bold)),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const CreateItemScreen()),
+                );
+              },
+            )
+          : null,
     );
   }
 

@@ -72,7 +72,31 @@ class TenantProvider extends ChangeNotifier {
     if (_activeTenant!.isAdmin || _activeTenant!.hasAllDepartmentsAccess) {
       return true;
     }
-    return _userPermissions.contains(permissionId);
+
+    if (_userPermissions.contains(permissionId)) return true;
+
+    // Auto-grant read permission if user has any action permission in that module
+    if (permissionId.endsWith('.read')) {
+      final parts = permissionId.split('.');
+      if (parts.length >= 3) {
+        final modulePrefix = 'permission.${parts[1]}.';
+        if (_userPermissions.any((p) => p.startsWith(modulePrefix))) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  }
+
+  /// Checks if user has ANY permission in a given module (e.g. 'item', 'storeroom', 'department', 'user')
+  bool hasAnyPermissionInModule(String module) {
+    if (_activeTenant == null) return false;
+    if (_activeTenant!.isAdmin || _activeTenant!.hasAllDepartmentsAccess) {
+      return true;
+    }
+    final prefix = 'permission.$module.';
+    return _userPermissions.any((p) => p.startsWith(prefix));
   }
 
   Future<void> selectTenant(TenantOption tenant) async {
@@ -141,9 +165,14 @@ class TenantProvider extends ChangeNotifier {
       if (res is Map<String, dynamic>) {
         if (res['permissions'] is List) {
           _userPermissions.clear();
-          _userPermissions.addAll(
-            (res['permissions'] as List).map((p) => p.toString()),
-          );
+          for (final p in res['permissions']) {
+            final s = p.toString();
+            _userPermissions.add(s);
+            final parts = s.split('.');
+            if (parts.length >= 3) {
+              _userPermissions.add('permission.${parts[1]}.read');
+            }
+          }
         }
 
         final isAdmin = res['is_admin'] == true || _activeTenant!.isAdmin;

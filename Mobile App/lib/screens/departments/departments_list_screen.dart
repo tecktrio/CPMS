@@ -28,6 +28,9 @@ class _DepartmentsListScreenState extends State<DepartmentsListScreen>
       vsync: this,
       initialIndex: widget.initialTabIndex.clamp(0, 1),
     );
+    _tabController.addListener(() {
+      if (mounted) setState(() {});
+    });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadData();
     });
@@ -159,13 +162,45 @@ class _DepartmentsListScreenState extends State<DepartmentsListScreen>
         (tenant.activeTenant?.isAdmin ?? false) ||
         (auth.availableTenants.any((t) => t.tenantId == tenant.activeTenant?.tenantId && t.isAdmin));
 
+    final canCreateDept = isAdmin ||
+        tenant.hasPermission(AppPermissions.departmentCreate);
     final canUpdateDept = isAdmin ||
         tenant.hasPermission(AppPermissions.departmentUpdate) ||
         tenant.hasPermission(AppPermissions.departmentCreate);
     final canDeleteDept = isAdmin ||
         tenant.hasPermission(AppPermissions.departmentDelete);
+    final canAddUser = isAdmin || tenant.hasPermission(AppPermissions.userAdd);
     final canUpdateUser = isAdmin || tenant.hasPermission(AppPermissions.userUpdate);
     final canDeleteUser = isAdmin || tenant.hasPermission(AppPermissions.userDelete);
+
+    Widget? fab;
+    if (_tabController.index == 0 && canCreateDept) {
+      fab = FloatingActionButton.extended(
+        backgroundColor: const Color(0xFFD97706),
+        foregroundColor: Colors.white,
+        icon: const Icon(Icons.add),
+        label: const Text('Create Department', style: TextStyle(fontWeight: FontWeight.bold)),
+        onPressed: () {
+          showDialog(
+            context: context,
+            builder: (_) => const CreateDepartmentDialog(),
+          );
+        },
+      );
+    } else if (_tabController.index == 1 && canAddUser) {
+      fab = FloatingActionButton.extended(
+        backgroundColor: const Color(0xFF7C3AED),
+        foregroundColor: Colors.white,
+        icon: const Icon(Icons.person_add_outlined),
+        label: const Text('Add Staff User', style: TextStyle(fontWeight: FontWeight.bold)),
+        onPressed: () {
+          showDialog(
+            context: context,
+            builder: (_) => const AddTenantUserDialog(),
+          );
+        },
+      );
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -560,6 +595,7 @@ class _DepartmentsListScreenState extends State<DepartmentsListScreen>
           ),
         ],
       ),
+      floatingActionButton: fab,
     );
   }
 }

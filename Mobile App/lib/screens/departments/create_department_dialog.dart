@@ -60,19 +60,27 @@ class _CreateDepartmentDialogState extends State<CreateDepartmentDialog> {
     final deptProvider = context.read<DepartmentProvider>();
     final tenantProvider = context.read<TenantProvider>();
 
+    final finalPermissions = Set<String>.from(_selectedPermissionIds);
+    for (final permId in _selectedPermissionIds) {
+      final parts = permId.split('.');
+      if (parts.length >= 3) {
+        finalPermissions.add('permission.${parts[1]}.read');
+      }
+    }
+
     bool success;
     if (isEditing) {
       success = await deptProvider.updateDepartment(
         departmentId: widget.existingDepartment!.departmentId,
         departmentName: _nameController.text.trim(),
         description: _descController.text.trim(),
-        permissionIds: _selectedPermissionIds.toList(),
+        permissionIds: finalPermissions.toList(),
       );
     } else {
       success = await deptProvider.createDepartment(
         departmentName: _nameController.text.trim(),
         description: _descController.text.trim(),
-        permissionIds: _selectedPermissionIds.toList(),
+        permissionIds: finalPermissions.toList(),
       );
     }
 
@@ -245,7 +253,27 @@ class _CreateDepartmentDialogState extends State<CreateDepartmentDialog> {
                                       setState(() {
                                         if (val == true) {
                                           _selectedPermissionIds.add(p.permissionId);
+                                          // Auto-select read permission for this module
+                                          for (final m in perms) {
+                                            if (m.permissionId.endsWith('.read')) {
+                                              _selectedPermissionIds.add(m.permissionId);
+                                            }
+                                          }
                                         } else {
+                                          if (p.permissionId.endsWith('.read')) {
+                                            final hasOther = perms.any((m) =>
+                                                m.permissionId != p.permissionId &&
+                                                _selectedPermissionIds.contains(m.permissionId));
+                                            if (hasOther) {
+                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                const SnackBar(
+                                                  content: Text('Read permission is required when other module permissions are selected.'),
+                                                  duration: Duration(seconds: 2),
+                                                ),
+                                              );
+                                              return;
+                                            }
+                                          }
                                           _selectedPermissionIds.remove(p.permissionId);
                                         }
                                       });

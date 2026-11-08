@@ -173,8 +173,30 @@ export class TenantsService {
 
     if (isAdmin) {
       const allDepts = await this.departmentsService.findAll(tenantId);
+      const allSystemPerms = [
+        'permission.item.read',
+        'permission.item.create',
+        'permission.item.update',
+        'permission.item.delete',
+        'permission.storeroom.read',
+        'permission.storeroom.create',
+        'permission.storeroom.update',
+        'permission.storeroom.delete',
+        'permission.department.read',
+        'permission.department.create',
+        'permission.department.update',
+        'permission.department.delete',
+        'permission.user.read',
+        'permission.user.add',
+        'permission.user.update',
+        'permission.user.delete',
+        'permission.batch.read',
+        'permission.batch.create',
+        'permission.batch.update',
+        'permission.batch.deduct',
+      ];
       const permissions = Array.from(
-        new Set(allDepts.flatMap((d) => d.permission_ids || [])),
+        new Set([...allSystemPerms, ...allDepts.flatMap((d) => d.permission_ids || [])]),
       );
       return {
         tenant_id: tenantId,
@@ -208,9 +230,17 @@ export class TenantsService {
       membership.department_ids || [],
     );
 
-    const permissions = Array.from(
-      new Set(depts.flatMap((d) => d.permission_ids || [])),
+    const permissionsSet = new Set<string>(
+      depts.flatMap((d) => d.permission_ids || []),
     );
+
+    // Auto-grant read permission if user has any other permission in that module
+    for (const p of Array.from(permissionsSet)) {
+      const parts = p.split('.');
+      if (parts.length >= 3) {
+        permissionsSet.add(`permission.${parts[1]}.read`);
+      }
+    }
 
     return {
       tenant_id: tenantId,
@@ -218,7 +248,7 @@ export class TenantsService {
       has_all_departments_access: false,
       department_ids: membership.department_ids || [],
       departments: depts,
-      permissions,
+      permissions: Array.from(permissionsSet),
     };
   }
 

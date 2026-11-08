@@ -3,12 +3,8 @@ import 'package:provider/provider.dart';
 import '../../core/constants/permissions.dart';
 import '../../providers/tenant_provider.dart';
 import '../../widgets/user_profile_avatar.dart';
-import '../items/create_item_screen.dart';
 import '../items/items_list_screen.dart';
-import '../store_rooms/create_store_room_screen.dart';
 import '../store_rooms/store_rooms_list_screen.dart';
-import '../departments/create_department_screen.dart';
-import '../departments/add_tenant_user_screen.dart';
 import '../departments/departments_list_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -29,24 +25,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Future<void> _loadInitialData() async {
     final tenant = context.read<TenantProvider>();
-    // Dedicated API to get available operations & permissions for this tenant
     await tenant.loadTenantPermissions();
   }
 
   @override
   Widget build(BuildContext context) {
     final tenant = context.watch<TenantProvider>();
-
     final activeTenant = tenant.activeTenant;
     final isAdmin = tenant.isTenantAdmin;
     final deptCount = tenant.userDepartmentCount;
 
-    // Resolve name of department if user belongs to exactly 1 department
     String singleDeptName = 'Assigned Department';
-    if (!isAdmin && deptCount == 1 && activeTenant != null) {
-      final deptId = activeTenant.departmentIds.firstOrNull;
+    if (!isAdmin && activeTenant != null && activeTenant.departmentIds.length == 1) {
       final match = tenant.tenantDepartments.firstWhere(
-        (d) => d.departmentId == deptId,
+        (d) => d.departmentId == activeTenant.departmentIds.first,
         orElse: () => DepartmentModel(
           departmentId: '',
           tenantId: '',
@@ -61,27 +53,53 @@ class _DashboardScreenState extends State<DashboardScreen> {
       }
     }
 
-    // Grid operations user can perform - each permission has its own separate option
-    final operations = <_DashboardOperationItem>[
-      _DashboardOperationItem(
-        title: 'Create Items',
-        tag: 'Register SKU',
-        icon: Icons.add_box_outlined,
-        color: const Color(0xFF0F766E),
-        isPermitted: isAdmin || tenant.hasPermission(AppPermissions.itemCreate),
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const CreateItemScreen()),
-          );
-        },
-      ),
-      _DashboardOperationItem(
-        title: 'View Items',
-        tag: 'Stock & Products',
+    // Permission checks per module
+    final hasItemAccess = isAdmin || tenant.hasAnyPermissionInModule('item');
+    final hasStoreRoomAccess = isAdmin || tenant.hasAnyPermissionInModule('storeroom');
+    final hasDeptAccess = isAdmin || tenant.hasAnyPermissionInModule('department');
+    final hasUserAccess = isAdmin || tenant.hasAnyPermissionInModule('user');
+
+    // Build module action tags
+    List<String> itemActions = [];
+    if (hasItemAccess) {
+      itemActions.add('View');
+      if (isAdmin || tenant.hasPermission(AppPermissions.itemCreate)) itemActions.add('Add');
+      if (isAdmin || tenant.hasPermission(AppPermissions.itemUpdate)) itemActions.add('Edit');
+      if (isAdmin || tenant.hasPermission(AppPermissions.itemDelete)) itemActions.add('Delete');
+    }
+
+    List<String> storeRoomActions = [];
+    if (hasStoreRoomAccess) {
+      storeRoomActions.add('View');
+      if (isAdmin || tenant.hasPermission(AppPermissions.storeroomCreate)) storeRoomActions.add('Add');
+      if (isAdmin || tenant.hasPermission(AppPermissions.storeroomUpdate)) storeRoomActions.add('Edit');
+      if (isAdmin || tenant.hasPermission(AppPermissions.storeroomDelete)) storeRoomActions.add('Delete');
+    }
+
+    List<String> deptActions = [];
+    if (hasDeptAccess) {
+      deptActions.add('View');
+      if (isAdmin || tenant.hasPermission(AppPermissions.departmentCreate)) deptActions.add('Add');
+      if (isAdmin || tenant.hasPermission(AppPermissions.departmentUpdate)) deptActions.add('Edit');
+      if (isAdmin || tenant.hasPermission(AppPermissions.departmentDelete)) deptActions.add('Deactivate');
+    }
+
+    List<String> userActions = [];
+    if (hasUserAccess) {
+      userActions.add('View');
+      if (isAdmin || tenant.hasPermission(AppPermissions.userAdd)) userActions.add('Invite');
+      if (isAdmin || tenant.hasPermission(AppPermissions.userUpdate)) userActions.add('Edit');
+      if (isAdmin || tenant.hasPermission(AppPermissions.userDelete)) userActions.add('Remove');
+    }
+
+    final modules = <_DashboardModuleItem>[
+      _DashboardModuleItem(
+        title: 'Items & Products',
+        subtitle: 'Catalog & Stock',
+        actions: itemActions,
         icon: Icons.inventory_2_outlined,
         color: const Color(0xFF0F766E),
-        isPermitted: isAdmin || tenant.hasPermission(AppPermissions.itemRead),
+        isPermitted: hasItemAccess,
         onTap: () {
           Navigator.push(
             context,
@@ -89,55 +107,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
           );
         },
       ),
-      _DashboardOperationItem(
-        title: 'Update Items',
-        tag: 'Edit SKU & Master',
-        icon: Icons.edit_note_outlined,
-        color: const Color(0xFF0F766E),
-        isPermitted: isAdmin || tenant.hasPermission(AppPermissions.itemUpdate),
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => const ItemsListScreen(manageMode: true),
-            ),
-          );
-        },
-      ),
-      _DashboardOperationItem(
-        title: 'Delete Items',
-        tag: 'Remove SKU Catalog',
-        icon: Icons.delete_outline,
-        color: const Color(0xFF0F766E),
-        isPermitted: isAdmin || tenant.hasPermission(AppPermissions.itemDelete),
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => const ItemsListScreen(manageMode: true),
-            ),
-          );
-        },
-      ),
-      _DashboardOperationItem(
-        title: 'Create Store Room',
-        tag: 'Storage Facility',
-        icon: Icons.add_home_work_outlined,
-        color: const Color(0xFF0284C7),
-        isPermitted: isAdmin || tenant.hasPermission(AppPermissions.storeroomCreate),
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const CreateStoreRoomScreen()),
-          );
-        },
-      ),
-      _DashboardOperationItem(
-        title: 'View Store Rooms',
-        tag: 'Storage Directory',
+      _DashboardModuleItem(
+        title: 'Store Rooms',
+        subtitle: 'Storage & Sections',
+        actions: storeRoomActions,
         icon: Icons.meeting_room_outlined,
         color: const Color(0xFF0284C7),
-        isPermitted: isAdmin || tenant.hasPermission(AppPermissions.storeroomRead),
+        isPermitted: hasStoreRoomAccess,
         onTap: () {
           Navigator.push(
             context,
@@ -145,51 +121,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
           );
         },
       ),
-      _DashboardOperationItem(
-        title: 'Create Department',
-        tag: 'RBAC Roles',
-        icon: Icons.domain_add_outlined,
+      _DashboardModuleItem(
+        title: 'Departments',
+        subtitle: 'Structure & RBAC',
+        actions: deptActions,
+        icon: Icons.apartment,
         color: const Color(0xFFD97706),
-        isPermitted: isAdmin || tenant.hasPermission(AppPermissions.departmentCreate),
+        isPermitted: hasDeptAccess,
         onTap: () {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (_) => const CreateDepartmentScreen()),
+            MaterialPageRoute(builder: (_) => const DepartmentsListScreen(initialTabIndex: 0)),
           );
         },
       ),
-      _DashboardOperationItem(
-        title: 'View Departments',
-        tag: 'Department Directory',
-        icon: Icons.badge_outlined,
-        color: const Color(0xFFD97706),
-        isPermitted: isAdmin || tenant.hasPermission(AppPermissions.departmentRead),
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const DepartmentsListScreen()),
-          );
-        },
-      ),
-      _DashboardOperationItem(
-        title: 'Add Staff User',
-        tag: 'Invite Member',
-        icon: Icons.person_add_outlined,
-        color: const Color(0xFFD97706),
-        isPermitted: isAdmin || tenant.hasPermission(AppPermissions.userAdd),
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const AddTenantUserScreen()),
-          );
-        },
-      ),
-      _DashboardOperationItem(
+      _DashboardModuleItem(
         title: 'Staff Directory',
-        tag: 'Team Roster',
+        subtitle: 'Team & Access',
+        actions: userActions,
         icon: Icons.people_outline,
-        color: const Color(0xFFD97706),
-        isPermitted: isAdmin || tenant.hasPermission(AppPermissions.userRead),
+        color: const Color(0xFF7C3AED),
+        isPermitted: hasUserAccess,
         onTap: () {
           Navigator.push(
             context,
@@ -199,8 +151,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
     ];
 
-    // Filter to only the operations this user is allowed to perform
-    final allowedOperations = operations.where((op) => op.isPermitted).toList();
+    // Filter to only the modules this user is permitted to see
+    final allowedModules = modules.where((m) => m.isPermitted).toList();
 
     return Scaffold(
       appBar: AppBar(
@@ -231,8 +183,41 @@ class _DashboardScreenState extends State<DashboardScreen> {
         child: ListView(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           children: [
-            // Operations Grid (Empty state if no permissions)
-            if (allowedOperations.isEmpty)
+            // Header message
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Row(
+                children: [
+                  const Text(
+                    'Operational Modules',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF0F172A),
+                    ),
+                  ),
+                  const Spacer(),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF1F5F9),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      '${allowedModules.length} Active',
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF475569),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Modules Grid (Empty state if no permissions)
+            if (allowedModules.isEmpty)
               _buildEmptyState()
             else
               Container(
@@ -255,15 +240,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 2, // 2 modules in 1 row
                     crossAxisSpacing: 0, // No margin/spacing between cells
-                    mainAxisSpacing: 0, // Corners touch nearest ones
-                    childAspectRatio: 1.0, // Each cell as exact square
+                    mainAxisSpacing: 0, // Contiguous square layout
+                    childAspectRatio: 0.95,
                   ),
-                  itemCount: allowedOperations.length,
+                  itemCount: allowedModules.length,
                   itemBuilder: (context, index) {
-                    return _buildOperationGridCell(
-                      allowedOperations[index],
+                    return _buildModuleGridCell(
+                      allowedModules[index],
                       index: index,
-                      totalCount: allowedOperations.length,
+                      totalCount: allowedModules.length,
                     );
                   },
                 ),
@@ -274,8 +259,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildOperationGridCell(
-    _DashboardOperationItem op, {
+  Widget _buildModuleGridCell(
+    _DashboardModuleItem mod, {
     required int index,
     required int totalCount,
   }) {
@@ -299,48 +284,71 @@ class _DashboardScreenState extends State<DashboardScreen> {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: op.onTap,
+          onTap: mod.onTap,
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Container(
-                  width: 50,
-                  height: 50,
+                  width: 52,
+                  height: 52,
                   decoration: BoxDecoration(
-                    color: op.color.withValues(alpha: 0.12),
+                    color: mod.color.withValues(alpha: 0.12),
                     shape: BoxShape.circle,
                   ),
                   child: Center(
-                    child: Icon(op.icon, color: op.color, size: 26),
+                    child: Icon(mod.icon, color: mod.color, size: 28),
                   ),
                 ),
                 const SizedBox(height: 10),
                 Text(
-                  op.title,
+                  mod.title,
                   textAlign: TextAlign.center,
-                  maxLines: 2,
+                  maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    fontSize: 13,
+                    fontSize: 14,
                     fontWeight: FontWeight.w700,
                     color: Color(0xFF0F172A),
                     height: 1.15,
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 3),
                 Text(
-                  op.tag,
+                  mod.subtitle,
                   textAlign: TextAlign.center,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
-                    color: op.color,
+                    color: mod.color,
                   ),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  alignment: WrapAlignment.center,
+                  spacing: 4,
+                  runSpacing: 2,
+                  children: mod.actions.map((act) {
+                    return Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        act,
+                        style: const TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF475569),
+                        ),
+                      ),
+                    );
+                  }).toList(),
                 ),
               ],
             ),
@@ -364,12 +372,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Icon(Icons.lock_clock_outlined, size: 48, color: Color(0xFF94A3B8)),
           SizedBox(height: 14),
           Text(
-            'No Operations Assigned',
+            'No Modules Assigned',
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
           ),
           SizedBox(height: 6),
           Text(
-            'Your account currently has no active operations in this organization. Contact your administrator to allocate permissions.',
+            'Your account currently has no active modules assigned in this organization. Contact your administrator to allocate permissions.',
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 13, color: Color(0xFF64748B)),
           ),
@@ -379,17 +387,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 }
 
-class _DashboardOperationItem {
+class _DashboardModuleItem {
   final String title;
-  final String tag;
+  final String subtitle;
+  final List<String> actions;
   final IconData icon;
   final Color color;
   final VoidCallback onTap;
   final bool isPermitted;
 
-  const _DashboardOperationItem({
+  const _DashboardModuleItem({
     required this.title,
-    required this.tag,
+    required this.subtitle,
+    required this.actions,
     required this.icon,
     required this.color,
     required this.onTap,

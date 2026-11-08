@@ -358,6 +358,20 @@ class InventoryProvider extends ChangeNotifier {
     }
   }
 
+  Future<bool> deleteStoreRoom(String storeRoomId) async {
+    _setLoading(true);
+    _errorMessage = null;
+    try {
+      await apiClient.delete('${ApiConstants.storeRooms}/$storeRoomId');
+      await loadStoreRooms();
+      return true;
+    } catch (e) {
+      _errorMessage = e.toString();
+      _setLoading(false);
+      return false;
+    }
+  }
+
   Future<void> loadItems() async {
     _setLoading(true);
     try {
