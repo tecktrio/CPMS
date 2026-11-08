@@ -4,10 +4,10 @@ export default () => ({
   database: {
     uri:
       process.env.MONGODB_URI ||
-      'mongodb://127.0.0.1:27017/cims_database',
+      'mongodb://127.0.0.1:27017/cpms_database',
   },
   jwt: {
-    secret: process.env.JWT_SECRET || 'cims_default_secret_key_change_in_prod',
+    secret: process.env.JWT_SECRET || 'cpms_default_secret_key_change_in_prod',
     expiresIn: process.env.JWT_EXPIRATION_TIME || '7d',
   },
   smtp: {
@@ -16,8 +16,8 @@ export default () => ({
     secure: process.env.SMTP_SECURE === 'true',
     user: process.env.SMTP_USER || '',
     pass: process.env.SMTP_PASS || '',
-    fromName: process.env.SMTP_FROM_NAME || 'CIMS Platform',
-    fromEmail: process.env.SMTP_FROM_EMAIL || 'no-reply@cims.local',
+    fromName: process.env.SMTP_FROM_NAME || 'CPMS Platform',
+    fromEmail: process.env.SMTP_FROM_EMAIL || 'no-reply@cpms.local',
   },
 });
 

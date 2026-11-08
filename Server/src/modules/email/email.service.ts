@@ -26,11 +26,11 @@ export class EmailService {
     const mailOptions = {
       from: `"${smtp.fromName}" <${smtp.fromEmail}>`,
       to: toEmail,
-      subject: 'Your CIMS Verification Code',
+      subject: 'Your CPMS Verification Code',
       text: `Your verification OTP is: ${otpCode}. This code will expire in 10 minutes.`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
-          <h2 style="color: #0070f3; text-align: center;">CIMS Verification Code</h2>
+          <h2 style="color: #0070f3; text-align: center;">CPMS Verification Code</h2>
           <p>Hello,</p>
           <p>Please use the verification code below to complete your authentication request:</p>
           <div style="text-align: center; margin: 25px 0;">
@@ -67,13 +67,13 @@ export class EmailService {
     const mailOptions = {
       from: `"${smtp.fromName}" <${smtp.fromEmail}>`,
       to: toEmail,
-      subject: 'CIMS - Password Reset Request',
+      subject: 'CPMS - Password Reset Request',
       text: `Your password reset code is: ${otpCode}. This code will expire in 10 minutes.`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
           <h2 style="color: #0F766E; text-align: center;">Reset Your Password</h2>
           <p>Hello,</p>
-          <p>We received a request to reset the password for your CIMS account. Please use the verification code below to proceed:</p>
+          <p>We received a request to reset the password for your CPMS account. Please use the verification code below to proceed:</p>
           <div style="text-align: center; margin: 25px 0;">
             <span style="font-size: 32px; font-weight: bold; letter-spacing: 6px; color: #0F766E; background: #f0fdfa; padding: 10px 20px; border-radius: 6px; display: inline-block; border: 1px solid #99f6e4;">${otpCode}</span>
           </div>

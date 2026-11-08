@@ -104,7 +104,7 @@ class TenantProvider extends ChangeNotifier {
     apiClient.setActiveTenantId(tenant.tenantId);
 
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('cims_active_tenant', tenant.tenantId);
+    await prefs.setString('cpms_active_tenant', tenant.tenantId);
 
     await loadTenantDepartments();
     notifyListeners();
@@ -112,7 +112,7 @@ class TenantProvider extends ChangeNotifier {
 
   Future<void> restoreSavedTenant(List<TenantOption> availableTenants) async {
     final prefs = await SharedPreferences.getInstance();
-    final savedTenantId = prefs.getString('cims_active_tenant');
+    final savedTenantId = prefs.getString('cpms_active_tenant') ?? prefs.getString('cims_active_tenant');
     if (savedTenantId != null && savedTenantId.isNotEmpty) {
       final match = availableTenants.cast<TenantOption?>().firstWhere(
         (t) => t?.tenantId == savedTenantId,

@@ -481,13 +481,19 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
       {'value': 'FINISHED_GOOD', 'label': 'Finished Good'},
       {'value': 'PACKAGING', 'label': 'Packaging'},
     ];
-    String selectedType = item.itemType;
-    if (!typeOptions.any((t) => t['value'] == selectedType)) {
+    String selectedType = item.itemType.trim();
+    if (selectedType.isEmpty) selectedType = 'RAW_MATERIAL';
+    final matchingTypeIndex = typeOptions.indexWhere(
+        (t) => t['value']!.toUpperCase() == selectedType.toUpperCase());
+    if (matchingTypeIndex >= 0) {
+      selectedType = typeOptions[matchingTypeIndex]['value']!;
+    } else {
       typeOptions.add({'value': selectedType, 'label': selectedType});
     }
 
     final List<Map<String, String>> unitOptions = [
       {'value': 'KILOGRAM', 'label': 'Kilogram (KG)'},
+      {'value': 'KG', 'label': 'Kilogram (KG)'},
       {'value': 'LITER', 'label': 'Liter (L)'},
       {'value': 'LITRE', 'label': 'Litre (L)'},
       {'value': 'PIECE', 'label': 'Piece (PC)'},
@@ -497,8 +503,13 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
       {'value': 'MILLILITRE', 'label': 'Millilitre (ML)'},
       {'value': 'UNIT', 'label': 'Unit'},
     ];
-    String selectedUnit = item.measurementUnit;
-    if (!unitOptions.any((u) => u['value'] == selectedUnit)) {
+    String selectedUnit = item.measurementUnit.trim();
+    if (selectedUnit.isEmpty) selectedUnit = 'KILOGRAM';
+    final matchingUnitIndex = unitOptions.indexWhere(
+        (u) => u['value']!.toUpperCase() == selectedUnit.toUpperCase());
+    if (matchingUnitIndex >= 0) {
+      selectedUnit = unitOptions[matchingUnitIndex]['value']!;
+    } else {
       unitOptions.add({'value': selectedUnit, 'label': selectedUnit});
     }
 
@@ -525,7 +536,7 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
             if (matches.isNotEmpty) currentRoom = matches.first;
           }
 
-          final divisions = currentRoom?.divisions ?? [];
+          final divisions = (currentRoom?.divisions ?? []).toSet().toList();
           if (divisions.isNotEmpty &&
               (selectedDivision == null || !divisions.contains(selectedDivision))) {
             selectedDivision = divisions.first;
@@ -547,6 +558,7 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
                     ),
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
+                      key: ValueKey('type_$selectedType'),
                       initialValue: selectedType,
                       decoration: const InputDecoration(labelText: 'Item Type'),
                       items: typeOptions
@@ -563,6 +575,7 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
                     ),
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
+                      key: ValueKey('unit_$selectedUnit'),
                       initialValue: selectedUnit,
                       decoration:
                           const InputDecoration(labelText: 'Measurement Unit'),
@@ -579,33 +592,37 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
                       },
                     ),
                     const SizedBox(height: 12),
-                    DropdownButtonFormField<String>(
-                      initialValue: selectedRoomId,
-                      decoration: const InputDecoration(labelText: 'Store Room'),
-                      items: inventory.storeRooms
-                          .map((r) => DropdownMenuItem(
-                                value: r.storeRoomId,
-                                child: Text('${r.roomName} (${r.roomCode})'),
-                              ))
-                          .toList(),
-                      onChanged: (val) {
-                        if (val != null) {
-                          setDialogState(() {
-                            selectedRoomId = val;
-                            final newRoom = inventory.storeRooms
-                                .firstWhere((r) => r.storeRoomId == val);
-                            if (newRoom.divisions.isNotEmpty) {
-                              selectedDivision = newRoom.divisions.first;
-                            } else {
-                              selectedDivision = null;
-                            }
-                          });
-                        }
-                      },
-                    ),
+                    if (inventory.storeRooms.isNotEmpty)
+                      DropdownButtonFormField<String>(
+                        key: ValueKey('room_$selectedRoomId'),
+                        initialValue: selectedRoomId,
+                        decoration: const InputDecoration(labelText: 'Store Room'),
+                        items: inventory.storeRooms
+                            .map((r) => DropdownMenuItem(
+                                  value: r.storeRoomId,
+                                  child: Text('${r.roomName} (${r.roomCode})'),
+                                ))
+                            .toList(),
+                        onChanged: (val) {
+                          if (val != null) {
+                            setDialogState(() {
+                              selectedRoomId = val;
+                              final matches = inventory.storeRooms
+                                  .where((r) => r.storeRoomId == val);
+                              if (matches.isNotEmpty) {
+                                final divList = matches.first.divisions.toSet().toList();
+                                selectedDivision = divList.isNotEmpty ? divList.first : null;
+                              } else {
+                                selectedDivision = null;
+                              }
+                            });
+                          }
+                        },
+                      ),
                     const SizedBox(height: 12),
                     if (divisions.isNotEmpty)
                       DropdownButtonFormField<String>(
+                        key: ValueKey('div_${selectedRoomId}_$selectedDivision'),
                         initialValue: selectedDivision,
                         decoration:
                             const InputDecoration(labelText: 'Division / Section'),
@@ -621,6 +638,7 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
                       )
                     else
                       TextFormField(
+                        key: ValueKey('div_txt_$selectedRoomId'),
                         initialValue: selectedDivision ?? '',
                         decoration: const InputDecoration(
                           labelText: 'Division / Section Identifier',

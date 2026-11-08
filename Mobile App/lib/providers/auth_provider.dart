@@ -75,7 +75,7 @@ class AuthProvider extends ChangeNotifier {
   Future<void> initSession() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final savedToken = prefs.getString('cims_auth_token');
+      final savedToken = prefs.getString('cpms_auth_token') ?? prefs.getString('cims_auth_token');
       if (savedToken != null && savedToken.isNotEmpty) {
         _token = savedToken;
         apiClient.setAuthToken(savedToken);
@@ -93,6 +93,7 @@ class AuthProvider extends ChangeNotifier {
         } catch (_) {
           _token = null;
           apiClient.setAuthToken(null);
+          await prefs.remove('cpms_auth_token');
           await prefs.remove('cims_auth_token');
         }
       }
@@ -160,7 +161,7 @@ class AuthProvider extends ChangeNotifier {
 
         final prefs = await SharedPreferences.getInstance();
         if (_token != null) {
-          await prefs.setString('cims_auth_token', _token!);
+          await prefs.setString('cpms_auth_token', _token!);
         }
       }
 
@@ -206,7 +207,7 @@ class AuthProvider extends ChangeNotifier {
 
         final prefs = await SharedPreferences.getInstance();
         if (_token != null) {
-          await prefs.setString('cims_auth_token', _token!);
+          await prefs.setString('cpms_auth_token', _token!);
         }
       }
 
@@ -284,6 +285,8 @@ class AuthProvider extends ChangeNotifier {
     apiClient.setAuthToken(null);
     apiClient.setActiveTenantId(null);
     final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('cpms_auth_token');
+    await prefs.remove('cpms_active_tenant');
     await prefs.remove('cims_auth_token');
     await prefs.remove('cims_active_tenant');
     notifyListeners();

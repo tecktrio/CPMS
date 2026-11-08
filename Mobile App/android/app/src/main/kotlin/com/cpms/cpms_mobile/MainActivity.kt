@@ -1,5 +1,6 @@
-package com.cims.cims_mobile
+package com.cpms.cpms_mobile
 
 import io.flutter.embedding.android.FlutterActivity
 
 class MainActivity : FlutterActivity()
+

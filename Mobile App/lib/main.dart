@@ -16,8 +16,8 @@ void main() async {
 
   final apiClient = ApiClient();
   final prefs = await SharedPreferences.getInstance();
-  final savedToken = prefs.getString('cims_auth_token');
-  final savedTenantId = prefs.getString('cims_active_tenant');
+  final savedToken = prefs.getString('cpms_auth_token') ?? prefs.getString('cims_auth_token');
+  final savedTenantId = prefs.getString('cpms_active_tenant') ?? prefs.getString('cims_active_tenant');
 
   if (savedToken != null && savedToken.isNotEmpty) {
     apiClient.setAuthToken(savedToken);
@@ -26,13 +26,13 @@ void main() async {
     apiClient.setActiveTenantId(savedTenantId);
   }
 
-  runApp(CimsMobileApp(apiClient: apiClient));
+  runApp(CpmsMobileApp(apiClient: apiClient));
 }
 
-class CimsMobileApp extends StatelessWidget {
+class CpmsMobileApp extends StatelessWidget {
   final ApiClient? apiClient;
 
-  const CimsMobileApp({super.key, this.apiClient});
+  const CpmsMobileApp({super.key, this.apiClient});
 
   @override
   Widget build(BuildContext context) {
@@ -55,7 +55,7 @@ class CimsMobileApp extends StatelessWidget {
         ),
       ],
       child: MaterialApp(
-        title: 'Cyan CIMS Cold Chain Management',
+        title: 'Cyan CPMS Product Management',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.lightTheme,
         home: const AuthGate(),

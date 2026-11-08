@@ -1,8 +1,8 @@
 {
-  "name": "cims-backend",
+  "name": "cpms-backend",
   "version": "1.0.0",
-  "description": "Cyan International Management System (CIMS) Backend Server",
-  "author": "CIMS Team",
+  "description": "Cyan Product Management System (CPMS) Backend Server",
+  "author": "CPMS Team",
   "private": true,
   "license": "UNLICENSED",
   "scripts": {

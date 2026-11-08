@@ -83,7 +83,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     const Text(
-                      'Join Cyan CIMS',
+                      'Join Cyan CPMS',
                       style: TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.w800,

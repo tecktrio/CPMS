@@ -1,11 +1,11 @@
 {
-    "name": "Cyan CIMS",
-    "short_name": "Cyan CIMS",
+    "name": "Cyan CPMS",
+    "short_name": "Cyan CPMS",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0F766E",
     "theme_color": "#0F766E",
-    "description": "Cyan International Management System - Cold Room Inventory & Production System",
+    "description": "Cyan Product Management System (CPMS)",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

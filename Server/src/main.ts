@@ -7,7 +7,7 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { TransformResponseInterceptor } from './common/interceptors/transform-response.interceptor';
 
 async function bootstrap() {
-  const logger = new Logger('CIMS-Bootstrap');
+  const logger = new Logger('CPMS-Bootstrap');
   const app = await NestFactory.create(AppModule);
 
   const configService = app.get(ConfigService);
@@ -40,9 +40,9 @@ async function bootstrap() {
 
   // Swagger OpenAPI Documentation Setup
   const swaggerConfig = new DocumentBuilder()
-    .setTitle('Cyan International Management System (CIMS) API')
+    .setTitle('Cyan Product Management System (CPMS) API')
     .setDescription(
-      'Interactive REST API documentation for CIMS food production management, cold room inventory, and FEFO stock batch allocation platform.',
+      'Interactive REST API documentation for CPMS food production management, store room inventory, and stock allocation platform.',
     )
     .setVersion('1.0')
     .addBearerAuth(
@@ -74,12 +74,12 @@ async function bootstrap() {
     swaggerOptions: {
       persistAuthorization: true,
     },
-    customSiteTitle: 'CIMS API Documentation',
+    customSiteTitle: 'CPMS API Documentation',
   });
 
   await app.listen(port, '0.0.0.0');
   logger.log(`=======================================================`);
-  logger.log(`🚀 CIMS Backend Server running on: http://0.0.0.0:${port}/api/v1`);
+  logger.log(`🚀 CPMS Backend Server running on: http://0.0.0.0:${port}/api/v1`);
   logger.log(`📚 Swagger API Docs available at:  http://0.0.0.0:${port}/api/docs`);
   logger.log(`📡 Environment: ${configService.get('nodeEnv')}`);
   logger.log(`=======================================================`);

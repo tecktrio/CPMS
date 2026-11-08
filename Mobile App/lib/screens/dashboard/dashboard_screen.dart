@@ -160,7 +160,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              activeTenant?.companyName ?? 'Cyan CIMS',
+              activeTenant?.companyName ?? 'Cyan CPMS',
               style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
             ),
             Text(

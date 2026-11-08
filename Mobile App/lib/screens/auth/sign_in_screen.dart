@@ -108,7 +108,7 @@ class _SignInScreenState extends State<SignInScreen> {
                     ),
                     const SizedBox(height: 20),
                     const Text(
-                      'Cyan CIMS',
+                      'Cyan CPMS',
                       style: TextStyle(
                         fontSize: 28,
                         fontWeight: FontWeight.w800,

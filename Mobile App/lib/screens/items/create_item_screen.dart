@@ -292,13 +292,14 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
               // Division Pickup
               if (selectedRoom != null && selectedRoom.divisions.isNotEmpty)
                 DropdownButtonFormField<String>(
+                  key: ValueKey('div_${_selectedStoreRoomId}_$_selectedDivision'),
                   initialValue: _selectedDivision,
                   decoration: const InputDecoration(
                     labelText: 'Store Room Division / Section *',
                     prefixIcon: Icon(Icons.grid_view_outlined),
                     helperText: 'Pick which division or section inside the room',
                   ),
-                  items: selectedRoom.divisions
+                  items: selectedRoom.divisions.toSet().toList()
                       .map((div) => DropdownMenuItem(
                             value: div,
                             child: Text(div),
