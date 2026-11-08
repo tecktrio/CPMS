@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../providers/auth_provider.dart';
+import '../../providers/department_provider.dart';
 import '../../providers/inventory_provider.dart';
 import '../../providers/tenant_provider.dart';
 import '../departments/departments_list_screen.dart';
@@ -31,9 +32,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Future<void> _loadInitialData() async {
     final tenant = context.read<TenantProvider>();
     final inventory = context.read<InventoryProvider>();
+    final dept = context.read<DepartmentProvider>();
     await Future.wait([
       tenant.loadTenantPermissions(),
       tenant.loadTenantDepartments(),
+      dept.loadTenantUsers(),
       inventory.loadItems(),
     ]);
   }
@@ -406,10 +409,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final tenant = context.watch<TenantProvider>();
     final auth = context.watch<AuthProvider>();
     final inventory = context.watch<InventoryProvider>();
+    final deptProvider = context.watch<DepartmentProvider>();
     final activeTenant = tenant.activeTenant;
     final user = auth.user;
     final isAdmin = tenant.isTenantAdmin;
     final deptCount = tenant.userDepartmentCount;
+
+    final mediaQuery = MediaQuery.of(context);
+    final screenWidth = mediaQuery.size.width;
+    final isWide = screenWidth >= 650;
 
     // Resolve displayed department name
     String resolvedDeptName = 'Operations & Logistics';
@@ -441,6 +449,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final hasDeptAccess = isAdmin || tenant.hasAnyPermissionInModule('department');
     final hasUserAccess = isAdmin || tenant.hasAnyPermissionInModule('user');
 
+    final departmentsBadgeCount = tenant.tenantDepartments.isNotEmpty
+        ? tenant.tenantDepartments.length
+        : 8;
+    final staffBadgeCount = deptProvider.tenantUsers.isNotEmpty
+        ? deptProvider.tenantUsers.length
+        : 184;
+
     final modules = <_DashboardModuleItem>[
       _DashboardModuleItem(
         title: 'Items & Products',
@@ -457,7 +472,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       _DashboardModuleItem(
         title: 'Store Rooms',
         subtitle: 'Storage & Sections',
-        icon: Icons.dns_outlined,
+        icon: Icons.inbox_outlined,
         isPermitted: hasStoreRoomAccess,
         onTap: () {
           Navigator.push(
@@ -469,6 +484,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       _DashboardModuleItem(
         title: 'Departments',
         subtitle: 'Structure & RBAC',
+        badgeText: '$departmentsBadgeCount Units',
         icon: Icons.apartment,
         isPermitted: hasDeptAccess,
         onTap: () {
@@ -483,6 +499,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       _DashboardModuleItem(
         title: 'Staff Directory',
         subtitle: 'Team & Access Control',
+        badgeText: '$staffBadgeCount Staff',
         icon: Icons.people_outline,
         isPermitted: hasUserAccess,
         onTap: () {
@@ -509,112 +526,122 @@ class _DashboardScreenState extends State<DashboardScreen> {
         : (deptCount == 1 ? resolvedDeptName : '$deptCount Depts');
     final userInitial = userName.isNotEmpty ? userName[0].toUpperCase() : 'U';
 
+    final horizontalPadding = isWide ? 40.0 : 20.0;
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
         child: Column(
           children: [
-            // Top Bar
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-              child: Row(
-                children: [
-                  // Tenant Brand & Switcher
-                  Text(
-                    tenantDisplayName,
-                    style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.w900,
-                      color: Colors.black,
-                      letterSpacing: -0.6,
-                    ),
+            // Top Bar (Centered with Max Width on wide screens)
+            Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 1080),
+                child: Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: horizontalPadding,
+                    vertical: isWide ? 20 : 14,
                   ),
-                  const SizedBox(width: 8),
-                  InkWell(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (_) => const TenantSelectorScreen()),
-                      );
-                    },
-                    borderRadius: BorderRadius.circular(16),
-                    child: Container(
-                      width: 32,
-                      height: 32,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFF1F3F5),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.swap_horiz,
-                        size: 18,
-                        color: Color(0xFF495057),
-                      ),
-                    ),
-                  ),
-                  const Spacer(),
-
-                  // User Info & Avatar
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    mainAxisSize: MainAxisSize.min,
+                  child: Row(
                     children: [
+                      // Tenant Brand & Switcher
                       Text(
-                        userName,
+                        tenantDisplayName,
                         style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w800,
+                          fontSize: 26,
+                          fontWeight: FontWeight.w900,
                           color: Colors.black,
+                          letterSpacing: -0.7,
                         ),
                       ),
-                      const SizedBox(height: 1),
-                      Text(
-                        userRoleSubtitle,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Color(0xFF6B7280),
-                          fontWeight: FontWeight.w500,
+                      const SizedBox(width: 8),
+                      InkWell(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) => const TenantSelectorScreen()),
+                          );
+                        },
+                        borderRadius: BorderRadius.circular(16),
+                        child: Container(
+                          width: 32,
+                          height: 32,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFFF1F3F5),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.swap_horiz,
+                            size: 18,
+                            color: Color(0xFF495057),
+                          ),
+                        ),
+                      ),
+                      const Spacer(),
+
+                      // User Info & Avatar
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            userName,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.black,
+                            ),
+                          ),
+                          const SizedBox(height: 1),
+                          Text(
+                            userRoleSubtitle,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Color(0xFF6B7280),
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(width: 10),
+                      InkWell(
+                        onTap: () => _showProfileModal(context),
+                        borderRadius: BorderRadius.circular(22),
+                        child: Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            CircleAvatar(
+                              radius: 20,
+                              backgroundColor: const Color(0xFFE2E8F0),
+                              child: Text(
+                                userInitial,
+                                style: const TextStyle(
+                                  color: Color(0xFF334155),
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 15,
+                                ),
+                              ),
+                            ),
+                            Positioned(
+                              bottom: 0,
+                              right: 0,
+                              child: Container(
+                                width: 9,
+                                height: 9,
+                                decoration: BoxDecoration(
+                                  color: Colors.black,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: Colors.white, width: 1.5),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(width: 10),
-                  InkWell(
-                    onTap: () => _showProfileModal(context),
-                    borderRadius: BorderRadius.circular(22),
-                    child: Stack(
-                      clipBehavior: Clip.none,
-                      children: [
-                        CircleAvatar(
-                          radius: 20,
-                          backgroundColor: const Color(0xFF1E293B),
-                          child: Text(
-                            userInitial,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w800,
-                              fontSize: 15,
-                            ),
-                          ),
-                        ),
-                        Positioned(
-                          bottom: 0,
-                          right: 0,
-                          child: Container(
-                            width: 9,
-                            height: 9,
-                            decoration: BoxDecoration(
-                              color: Colors.black,
-                              shape: BoxShape.circle,
-                              border: Border.all(color: Colors.white, width: 1.5),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+                ),
               ),
             ),
 
@@ -622,150 +649,181 @@ class _DashboardScreenState extends State<DashboardScreen> {
             Expanded(
               child: RefreshIndicator(
                 onRefresh: _loadInitialData,
-                child: ListView(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                  children: [
-                    // DEPARTMENT Section Header
-                    const Text(
-                      'DEPARTMENT',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 0.8,
-                        color: Colors.black,
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 1080),
+                    child: ListView(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: horizontalPadding,
+                        vertical: isWide ? 12 : 8,
                       ),
-                    ),
-                    const SizedBox(height: 4),
-                    const Text(
-                      'Select or switch department to re-scope operational modules',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Color(0xFF6B7280),
-                        height: 1.3,
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-
-                    // DEPARTMENT Card
-                    InkWell(
-                      onTap: () => _showDepartmentSelector(context, tenant),
-                      borderRadius: BorderRadius.circular(16),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF6F7F9),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 48,
-                              height: 48,
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: const Color(0xFFE5E7EB)),
-                              ),
-                              child: const Icon(
-                                Icons.apartment,
-                                size: 22,
-                                color: Colors.black,
-                              ),
-                            ),
-                            const SizedBox(width: 14),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    resolvedDeptName,
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w800,
-                                      color: Colors.black,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  const Text(
-                                    'Switch Department',
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      color: Color(0xFF6B7280),
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            Container(
-                              width: 36,
-                              height: 36,
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                shape: BoxShape.circle,
-                                border: Border.all(color: const Color(0xFFE5E7EB)),
-                              ),
-                              child: const Icon(
-                                Icons.swap_horiz,
-                                size: 18,
-                                color: Colors.black,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 28),
-
-                    // Manage Operations Section Header
-                    const Text(
-                      'Manage Operations',
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w900,
-                        color: Colors.black,
-                        letterSpacing: -0.5,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    const Text(
-                      'Select a module to view records, manage assets, and configure workflows.',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Color(0xFF6B7280),
-                        height: 1.35,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Module Cards
-                    if (allowedModules.isEmpty)
-                      Container(
-                        padding: const EdgeInsets.all(24),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF6F7F9),
-                          borderRadius: BorderRadius.circular(18),
-                        ),
-                        child: const Center(
-                          child: Text(
-                            'No operational modules permitted for your current department scope.',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(color: Color(0xFF6B7280)),
+                      children: [
+                        // Department Section Header
+                        Text(
+                          isWide ? 'Department' : 'DEPARTMENT',
+                          style: TextStyle(
+                            fontSize: isWide ? 26 : 12,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: isWide ? -0.5 : 0.8,
+                            color: Colors.black,
                           ),
                         ),
-                      )
-                    else
-                      ...allowedModules.map((mod) => _buildOperationCard(mod)),
+                        const SizedBox(height: 4),
+                        const Text(
+                          'Select or switch department to re-scope operational modules',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Color(0xFF6B7280),
+                            height: 1.3,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
 
-                    const SizedBox(height: 16),
-                  ],
+                        // Department Card
+                        InkWell(
+                          onTap: () => _showDepartmentSelector(context, tenant),
+                          borderRadius: BorderRadius.circular(18),
+                          child: Container(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: isWide ? 20 : 16,
+                              vertical: isWide ? 18 : 14,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF6F7F9),
+                              borderRadius: BorderRadius.circular(18),
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 48,
+                                  height: 48,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: const Color(0xFFE5E7EB)),
+                                  ),
+                                  child: const Icon(
+                                    Icons.apartment,
+                                    size: 22,
+                                    color: Colors.black,
+                                  ),
+                                ),
+                                const SizedBox(width: 14),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        resolvedDeptName,
+                                        style: TextStyle(
+                                          fontSize: isWide ? 17 : 16,
+                                          fontWeight: FontWeight.w800,
+                                          color: Colors.black,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        isWide
+                                            ? 'Switch Department across organizations to re-scope modules'
+                                            : 'Switch Department',
+                                        style: const TextStyle(
+                                          fontSize: 13,
+                                          color: Color(0xFF6B7280),
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Container(
+                                  width: 36,
+                                  height: 36,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(color: const Color(0xFFE5E7EB)),
+                                  ),
+                                  child: const Icon(
+                                    Icons.swap_horiz,
+                                    size: 18,
+                                    color: Colors.black,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+
+                        SizedBox(height: isWide ? 36 : 28),
+
+                        // Manage Operations Section Header
+                        Text(
+                          'Manage Operations',
+                          style: TextStyle(
+                            fontSize: isWide ? 26 : 22,
+                            fontWeight: FontWeight.w900,
+                            color: Colors.black,
+                            letterSpacing: -0.5,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        const Text(
+                          'Select a module to view records, manage assets, and configure workflows.',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Color(0xFF6B7280),
+                            height: 1.35,
+                          ),
+                        ),
+                        const SizedBox(height: 18),
+
+                        // Module Cards (Responsive Grid on Tablets/Web, List on Mobile)
+                        if (allowedModules.isEmpty)
+                          Container(
+                            padding: const EdgeInsets.all(24),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF6F7F9),
+                              borderRadius: BorderRadius.circular(18),
+                            ),
+                            child: const Center(
+                              child: Text(
+                                'No operational modules permitted for your current department scope.',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(color: Color(0xFF6B7280)),
+                              ),
+                            ),
+                          )
+                        else if (isWide)
+                          GridView.builder(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            gridDelegate:
+                                const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 2,
+                              crossAxisSpacing: 16,
+                              mainAxisSpacing: 16,
+                              childAspectRatio: 3.2,
+                            ),
+                            itemCount: allowedModules.length,
+                            itemBuilder: (context, index) {
+                              return _buildOperationCard(allowedModules[index],
+                                  isWide: true);
+                            },
+                          )
+                        else
+                          ...allowedModules.map((mod) =>
+                              _buildOperationCard(mod, isWide: false)),
+
+                        const SizedBox(height: 24),
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ),
 
-            // Bottom Navigation Bar
+            // Bottom Navigation Bar (Centered with max width on wide screens)
             Container(
               decoration: const BoxDecoration(
                 color: Colors.white,
@@ -774,32 +832,37 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
               ),
               padding: const EdgeInsets.only(top: 8, bottom: 12),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  _buildNavItem(
-                    index: 0,
-                    icon: Icons.search,
-                    label: 'Search',
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 620),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      _buildNavItem(
+                        index: 0,
+                        icon: Icons.search,
+                        label: 'Search',
+                      ),
+                      _buildNavItem(
+                        index: 1,
+                        icon: Icons.notifications_none_outlined,
+                        label: 'Alerts',
+                        hasBadge: hasAlerts,
+                      ),
+                      _buildNavItem(
+                        index: 2,
+                        icon: Icons.grid_view_rounded,
+                        label: 'Modules',
+                        isActive: _currentNavIndex == 2,
+                      ),
+                      _buildNavItem(
+                        index: 3,
+                        icon: Icons.settings_outlined,
+                        label: 'Settings',
+                      ),
+                    ],
                   ),
-                  _buildNavItem(
-                    index: 1,
-                    icon: Icons.notifications_none_outlined,
-                    label: 'Alerts',
-                    hasBadge: hasAlerts,
-                  ),
-                  _buildNavItem(
-                    index: 2,
-                    icon: Icons.grid_view_rounded,
-                    label: 'Modules',
-                    isActive: _currentNavIndex == 2,
-                  ),
-                  _buildNavItem(
-                    index: 3,
-                    icon: Icons.settings_outlined,
-                    label: 'Settings',
-                  ),
-                ],
+                ),
               ),
             ),
           ],
@@ -808,14 +871,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildOperationCard(_DashboardModuleItem mod) {
+  Widget _buildOperationCard(_DashboardModuleItem mod, {required bool isWide}) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: EdgeInsets.only(bottom: isWide ? 0 : 12),
       child: InkWell(
         onTap: mod.onTap,
         borderRadius: BorderRadius.circular(18),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          padding: EdgeInsets.symmetric(
+            horizontal: isWide ? 18 : 16,
+            vertical: isWide ? 16 : 14,
+          ),
           decoration: BoxDecoration(
             color: const Color(0xFFF6F7F9),
             borderRadius: BorderRadius.circular(18),
@@ -842,13 +908,40 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(
-                      mod.title,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.black,
-                      ),
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            mod.title,
+                            style: TextStyle(
+                              fontSize: isWide ? 16 : 15,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.black,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        if (mod.badgeText != null) ...[
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: const Color(0xFFE5E7EB)),
+                            ),
+                            child: Text(
+                              mod.badgeText!,
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF334155),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                     const SizedBox(height: 3),
                     Text(
@@ -858,6 +951,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         color: Color(0xFF6B7280),
                         fontWeight: FontWeight.w500,
                       ),
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),
@@ -894,7 +988,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       onTap: () => _handleNavTap(index),
       borderRadius: BorderRadius.circular(16),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -954,6 +1048,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 class _DashboardModuleItem {
   final String title;
   final String subtitle;
+  final String? badgeText;
   final IconData icon;
   final bool isPermitted;
   final VoidCallback onTap;
@@ -961,6 +1056,7 @@ class _DashboardModuleItem {
   _DashboardModuleItem({
     required this.title,
     required this.subtitle,
+    this.badgeText,
     required this.icon,
     required this.isPermitted,
     required this.onTap,
