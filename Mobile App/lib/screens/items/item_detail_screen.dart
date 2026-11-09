@@ -47,7 +47,10 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
               SizedBox(
                 width: 16,
                 height: 16,
-                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Colors.white,
+                ),
               ),
               SizedBox(width: 12),
               Text('Uploading item image to AWS S3...'),
@@ -116,7 +119,16 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text('Update Stock: ${item.itemName}'),
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          'Update Stock: ${item.itemName}',
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w800,
+            color: Colors.black,
+          ),
+        ),
         content: Form(
           key: formKey,
           child: Column(
@@ -127,38 +139,79 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                 'Current Stock: ${item.totalAvailableStock.toStringAsFixed(1)} ${item.measurementUnit}',
                 style: const TextStyle(fontSize: 13, color: Color(0xFF64748B)),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 14),
               TextFormField(
                 controller: stockCtrl,
                 autofocus: true,
                 keyboardType:
                     const TextInputType.numberWithOptions(decimal: true),
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.black,
+                ),
                 decoration: InputDecoration(
                   labelText: 'New Stock Quantity (${item.measurementUnit}) *',
-                  border: const OutlineInputBorder(),
-                  prefixIcon: const Icon(Icons.inventory_2_outlined),
+                  labelStyle: const TextStyle(
+                    fontSize: 13,
+                    color: Color(0xFF64748B),
+                  ),
+                  filled: true,
+                  fillColor: const Color(0xFFF8FAFC),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide:
+                        const BorderSide(color: Colors.black, width: 1.5),
+                  ),
+                  prefixIcon: const Icon(
+                    Icons.inventory_2_outlined,
+                    color: Color(0xFF94A3B8),
+                    size: 20,
+                  ),
                 ),
                 validator: (val) {
-                  if (val == null || val.trim().isEmpty) return 'Enter quantity';
+                  if (val == null || val.trim().isEmpty) {
+                    return 'Enter quantity';
+                  }
                   final num = double.tryParse(val.trim());
-                  if (num == null || num < 0) return 'Enter a valid non-negative number';
+                  if (num == null || num < 0) {
+                    return 'Enter a valid non-negative number';
+                  }
                   return null;
                 },
               ),
             ],
           ),
         ),
+        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel', style: TextStyle(color: Color(0xFF64748B))),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(
+                color: Color(0xFF64748B),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.black,
               foregroundColor: Colors.white,
               elevation: 0,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
             onPressed: () async {
               if (!formKey.currentState!.validate()) return;
@@ -181,7 +234,10 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                 );
               }
             },
-            child: const Text('Update Stock'),
+            child: const Text(
+              'Update Stock',
+              style: TextStyle(fontWeight: FontWeight.w700),
+            ),
           ),
         ],
       ),
@@ -192,19 +248,45 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text('Delete Item: ${item.sku}?'),
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          'Delete Item: ${item.sku}?',
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w800,
+            color: Colors.black,
+          ),
+        ),
         content: Text(
           'Are you sure you want to permanently delete "${item.itemName}"? Note that an item can only be deleted if its remaining stock is zero.',
+          style: const TextStyle(
+            fontSize: 14,
+            color: Color(0xFF64748B),
+            height: 1.4,
+          ),
         ),
+        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(
+                color: Color(0xFF64748B),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFFDC2626),
               foregroundColor: Colors.white,
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
             onPressed: () async {
               Navigator.pop(ctx);
@@ -221,11 +303,14 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                   ),
                 );
                 if (ok) {
-                  Navigator.pop(context); // Return to list screen
+                  Navigator.pop(context);
                 }
               }
             },
-            child: const Text('Delete'),
+            child: const Text(
+              'Delete',
+              style: TextStyle(fontWeight: FontWeight.w700),
+            ),
           ),
         ],
       ),
@@ -240,13 +325,11 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
     final canUpdate = isAdmin || tenant.hasPermission(AppPermissions.itemUpdate);
     final canDelete = isAdmin || tenant.hasPermission(AppPermissions.itemDelete);
 
-    // Get live item from provider state if available
     final currentItem = inventory.items.firstWhere(
       (i) => i.itemId == widget.item.itemId,
       orElse: () => widget.item,
     );
 
-    // Find store room name
     StoreRoomModel? room;
     if (currentItem.storeRoomId != null && currentItem.storeRoomId!.isNotEmpty) {
       final matches = inventory.storeRooms
@@ -262,7 +345,16 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
             ? currentItem.locationCode!
             : 'Default Section');
 
+    final storeRoomDisplay = room != null
+        ? '${room.roomName} (${room.roomCode})'
+        : (currentItem.storeRoomId != null &&
+                currentItem.storeRoomId!.isNotEmpty
+            ? currentItem.storeRoomId!
+            : 'Not Assigned');
+
     final isAlert = currentItem.isBelowReorderThreshold;
+    final hasImage =
+        currentItem.imageUrl != null && currentItem.imageUrl!.isNotEmpty;
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -275,17 +367,19 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
           icon: const Icon(Icons.arrow_back, color: Colors.black, size: 24),
           onPressed: () => Navigator.pop(context),
         ),
+        centerTitle: true,
         title: Text(
           currentItem.itemName,
           style: const TextStyle(
             color: Colors.black,
-            fontSize: 20,
+            fontSize: 18,
             fontWeight: FontWeight.w800,
+            letterSpacing: -0.3,
           ),
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh, color: Colors.black),
+            icon: const Icon(Icons.refresh, color: Colors.black, size: 22),
             tooltip: 'Refresh',
             onPressed: () {
               inventory.loadItems();
@@ -293,38 +387,50 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
             },
           ),
         ],
+        bottom: const PreferredSize(
+          preferredSize: Size.fromHeight(1),
+          child: Divider(height: 1, color: Color(0xFFF1F5F9)),
+        ),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Item Header Card
-            Card(
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-                side: const BorderSide(color: Color(0xFFE2E8F0)),
+            // 1. Item Header Card
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
               ),
-              clipBehavior: Clip.antiAlias,
-              color: Colors.white,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Item Image Display / Banner
-                  if (currentItem.imageUrl != null && currentItem.imageUrl!.isNotEmpty)
+                  // Item Photo Box / Area
+                  if (hasImage)
                     Stack(
                       children: [
-                        Image.network(
-                          ApiConstants.resolveImageUrl(currentItem.imageUrl)!,
-                          width: double.infinity,
-                          height: 200,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) => Container(
-                            height: 120,
-                            color: const Color(0xFFF1F5F9),
-                            alignment: Alignment.center,
-                            child: const Icon(Icons.broken_image_outlined, size: 40, color: Color(0xFF94A3B8)),
+                        ClipRRect(
+                          borderRadius: const BorderRadius.vertical(
+                            top: Radius.circular(16),
+                          ),
+                          child: Image.network(
+                            ApiConstants.resolveImageUrl(currentItem.imageUrl)!,
+                            width: double.infinity,
+                            height: 200,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) =>
+                                Container(
+                              height: 150,
+                              color: const Color(0xFFF8FAFC),
+                              alignment: Alignment.center,
+                              child: const Icon(
+                                Icons.broken_image_outlined,
+                                size: 40,
+                                color: Color(0xFF94A3B8),
+                              ),
+                            ),
                           ),
                         ),
                         if (canUpdate)
@@ -332,17 +438,27 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                             top: 12,
                             right: 12,
                             child: Material(
-                              color: Colors.black.withValues(alpha: 0.6),
+                              color: Colors.black.withValues(alpha: 0.65),
                               borderRadius: BorderRadius.circular(20),
                               child: InkWell(
                                 borderRadius: BorderRadius.circular(20),
-                                onTap: _isUploadingImage ? null : () => _updateItemImage(currentItem.itemId),
+                                onTap: _isUploadingImage
+                                    ? null
+                                    : () =>
+                                        _updateItemImage(currentItem.itemId),
                                 child: const Padding(
-                                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 6,
+                                  ),
                                   child: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      Icon(Icons.camera_alt, color: Colors.white, size: 14),
+                                      Icon(
+                                        Icons.camera_alt,
+                                        color: Colors.white,
+                                        size: 14,
+                                      ),
                                       SizedBox(width: 6),
                                       Text(
                                         'Change Photo',
@@ -360,121 +476,220 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                           ),
                       ],
                     )
-                  else if (canUpdate)
+                  else
                     InkWell(
-                      onTap: _isUploadingImage ? null : () => _updateItemImage(currentItem.itemId),
+                      onTap: canUpdate && !_isUploadingImage
+                          ? () => _updateItemImage(currentItem.itemId)
+                          : null,
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(16),
+                      ),
                       child: Container(
                         width: double.infinity,
-                        padding: const EdgeInsets.symmetric(vertical: 24),
-                        color: const Color(0xFFF8FAFC),
-                        alignment: Alignment.center,
-                        child: const Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
+                        padding: const EdgeInsets.symmetric(vertical: 28),
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFFAFAFA),
+                          borderRadius: BorderRadius.vertical(
+                            top: Radius.circular(16),
+                          ),
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.add_a_photo_outlined, size: 20, color: Color(0xFF0F766E)),
-                            SizedBox(width: 8),
-                            Text(
+                            Container(
+                              width: 52,
+                              height: 52,
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(14),
+                                border:
+                                    Border.all(color: const Color(0xFFE2E8F0)),
+                              ),
+                              alignment: Alignment.center,
+                              child: _isUploadingImage
+                                  ? const SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: Colors.black,
+                                      ),
+                                    )
+                                  : const Icon(
+                                      Icons.camera_alt_outlined,
+                                      size: 24,
+                                      color: Colors.black,
+                                    ),
+                            ),
+                            const SizedBox(height: 12),
+                            const Text(
                               'Add Item Photo',
                               style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w700,
-                                color: Color(0xFF0F766E),
+                                fontSize: 14,
+                                fontWeight: FontWeight.w800,
+                                color: Colors.black,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            const Text(
+                              'JPEG, PNG up to 10MB',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w500,
+                                color: Color(0xFF94A3B8),
                               ),
                             ),
                           ],
                         ),
                       ),
                     ),
+
+                  // Divider between image and details
+                  const Divider(height: 1, color: Color(0xFFF1F5F9)),
+
+                  // Card Content
                   Padding(
                     padding: const EdgeInsets.all(16),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        // Badges Row
                         Row(
                           children: [
+                            // SKU Badge
                             Container(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 10,
-                                vertical: 4,
+                                vertical: 6,
                               ),
                               decoration: BoxDecoration(
-                                color: const Color(0xFF0F766E).withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(6),
+                                color: const Color(0xFFF1F5F9),
+                                borderRadius: BorderRadius.circular(8),
                               ),
                               child: Text(
                                 currentItem.sku,
                                 style: const TextStyle(
-                                  fontSize: 13,
+                                  fontSize: 11,
                                   fontWeight: FontWeight.w800,
-                                  color: Color(0xFF0F766E),
+                                  color: Color(0xFF475569),
+                                  letterSpacing: 0.3,
                                 ),
                               ),
                             ),
                             const SizedBox(width: 8),
+
+                            // Item Type Badge
                             Container(
                               padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 4,
+                                horizontal: 10,
+                                vertical: 6,
                               ),
                               decoration: BoxDecoration(
-                                color: Colors.grey.shade100,
-                                borderRadius: BorderRadius.circular(6),
+                                color: const Color(0xFFF1F5F9),
+                                borderRadius: BorderRadius.circular(8),
                               ),
                               child: Text(
-                                currentItem.itemType.replaceAll('_', ' '),
+                                currentItem.itemType
+                                    .replaceAll('_', ' ')
+                                    .toUpperCase(),
                                 style: const TextStyle(
                                   fontSize: 11,
-                                  fontWeight: FontWeight.w700,
+                                  fontWeight: FontWeight.w800,
                                   color: Color(0xFF475569),
+                                  letterSpacing: 0.3,
                                 ),
                               ),
                             ),
+
                             const Spacer(),
+
+                            // Active / Inactive Badge
                             Container(
                               padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 4,
+                                horizontal: 10,
+                                vertical: 5,
                               ),
                               decoration: BoxDecoration(
                                 color: currentItem.isActive
-                                    ? Colors.green.shade50
-                                    : Colors.red.shade50,
-                                borderRadius: BorderRadius.circular(6),
+                                    ? const Color(0xFFECFDF5)
+                                    : const Color(0xFFFEF2F2),
+                                borderRadius: BorderRadius.circular(20),
                                 border: Border.all(
                                   color: currentItem.isActive
-                                      ? Colors.green.shade200
-                                      : Colors.red.shade200,
+                                      ? const Color(0xFFA7F3D0)
+                                      : const Color(0xFFFECACA),
                                 ),
                               ),
-                              child: Text(
-                                currentItem.isActive ? 'ACTIVE' : 'INACTIVE',
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w700,
-                                  color: currentItem.isActive
-                                      ? Colors.green.shade800
-                                      : Colors.red.shade800,
-                                ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(
+                                    width: 6,
+                                    height: 6,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: currentItem.isActive
+                                          ? const Color(0xFF059669)
+                                          : const Color(0xFFDC2626),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    currentItem.isActive
+                                        ? 'ACTIVE'
+                                        : 'INACTIVE',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w800,
+                                      color: currentItem.isActive
+                                          ? const Color(0xFF059669)
+                                          : const Color(0xFFDC2626),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 12),
+
+                        const SizedBox(height: 14),
+
+                        // Item Name
                         Text(
                           currentItem.itemName,
                           style: const TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w800,
-                            color: Color(0xFF0F172A),
+                            fontSize: 22,
+                            fontWeight: FontWeight.w900,
+                            color: Colors.black,
+                            letterSpacing: -0.5,
                           ),
                         ),
+
                         const SizedBox(height: 6),
-                        Text(
-                          'Measurement Unit: ${currentItem.measurementUnit}',
-                          style: const TextStyle(
-                            fontSize: 13,
-                            color: Color(0xFF64748B),
-                            fontWeight: FontWeight.w500,
+
+                        // Measurement Unit
+                        RichText(
+                          text: TextSpan(
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Color(0xFF64748B),
+                              letterSpacing: 0.5,
+                            ),
+                            children: [
+                              const TextSpan(
+                                text: 'MEASUREMENT UNIT: ',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              TextSpan(
+                                text: currentItem.measurementUnit.toUpperCase(),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w900,
+                                  color: Colors.black,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
@@ -483,218 +698,310 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                 ],
               ),
             ),
-            const SizedBox(height: 16),
 
-            // Stock & Quantity Management Card
-            Card(
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-                side: const BorderSide(color: Color(0xFFE2E8F0)),
+            const SizedBox(height: 14),
+
+            // 2. Stock & Inventory Level Card
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
               ),
-              color: Colors.white,
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Row(
-                      children: [
-                        Icon(Icons.inventory_2_outlined,
-                            size: 18, color: Color(0xFF0F766E)),
-                        SizedBox(width: 8),
-                        Text(
-                          'Stock & Inventory Level',
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFF0F172A),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 14),
-
-                    // Stock Counter Row
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 12),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF8FAFC),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: const Color(0xFFE2E8F0)),
-                      ),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'Current Stock',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Color(0xFF64748B),
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  '${currentItem.totalAvailableStock.toStringAsFixed(1)} ${currentItem.measurementUnit}',
-                                  style: const TextStyle(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.w800,
-                                    color: Color(0xFF0F172A),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-
-                          // Quick Stock Stepper Buttons
-                          if (canUpdate) ...[
-                            IconButton.filledTonal(
-                              tooltip: 'Decrease by 1',
-                              style: IconButton.styleFrom(
-                                backgroundColor: const Color(0xFFF1F5F9),
-                                foregroundColor: const Color(0xFF334155),
-                              ),
-                              icon: const Icon(Icons.remove, size: 20),
-                              onPressed: _isUpdatingStock
-                                  ? null
-                                  : () => _adjustStock(currentItem, -1.0),
-                            ),
-                            const SizedBox(width: 6),
-                            IconButton.filled(
-                              tooltip: 'Increase by 1',
-                              style: IconButton.styleFrom(
-                                backgroundColor: Colors.black,
-                                foregroundColor: Colors.white,
-                              ),
-                              icon: const Icon(Icons.add, size: 20),
-                              onPressed: _isUpdatingStock
-                                  ? null
-                                  : () => _adjustStock(currentItem, 1.0),
-                            ),
-                            const SizedBox(width: 6),
-                            IconButton.outlined(
-                              tooltip: 'Set Exact Stock',
-                              style: IconButton.styleFrom(
-                                foregroundColor: Colors.black,
-                                side: const BorderSide(color: Color(0xFFCBD5E1)),
-                              ),
-                              icon: const Icon(Icons.edit_note, size: 20),
-                              onPressed: _isUpdatingStock
-                                  ? null
-                                  : () => _showSetStockDialog(currentItem),
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-
-                    // Threshold Info
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'Reorder Threshold',
-                          style: TextStyle(fontSize: 13, color: Color(0xFF64748B)),
-                        ),
-                        Text(
-                          '${currentItem.reorderThresholdQuantity.toStringAsFixed(1)} ${currentItem.measurementUnit}',
-                          style: const TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFF1E293B),
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    // Shortfall Warning Banner
-                    if (isAlert) ...[
-                      const SizedBox(height: 10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Section Header
+                  Row(
+                    children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 8),
+                        width: 26,
+                        height: 26,
                         decoration: BoxDecoration(
-                          color: const Color(0xFFFFFBEB),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: const Color(0xFFFDE68A)),
+                          color: const Color(0xFFF1F5F9),
+                          borderRadius: BorderRadius.circular(6),
                         ),
-                        child: Row(
-                          children: [
-                            const Icon(
-                              Icons.warning_amber_rounded,
-                              color: Color(0xFFD97706),
-                              size: 18,
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                'Reorder Shortfall: ${currentItem.reorderShortfallQuantity.toStringAsFixed(1)} ${currentItem.measurementUnit} (Stock is below minimum threshold)',
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w700,
-                                  color: Color(0xFFB45309),
-                                ),
-                              ),
-                            ),
-                          ],
+                        child: const Icon(
+                          Icons.inventory_2_outlined,
+                          size: 15,
+                          color: Color(0xFF334155),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'STOCK & INVENTORY LEVEL',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.black,
+                          letterSpacing: 0.5,
                         ),
                       ),
                     ],
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
+                  ),
 
-            // Storage Room & Division Card
-            Card(
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-                side: const BorderSide(color: Color(0xFFE2E8F0)),
-              ),
-              color: Colors.white,
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Row(
+                  const SizedBox(height: 14),
+
+                  // Inner Current Stock Box
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFAFAFA),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: const Color(0xFFF1F5F9)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(Icons.meeting_room_outlined,
-                            size: 18, color: Color(0xFF0284C7)),
-                        SizedBox(width: 8),
-                        Text(
-                          'Storage Location Details',
+                        const Text(
+                          'CURRENT STOCK',
                           style: TextStyle(
-                            fontSize: 15,
+                            fontSize: 11,
                             fontWeight: FontWeight.w700,
-                            color: Color(0xFF0F172A),
+                            color: Color(0xFF64748B),
+                            letterSpacing: 0.5,
                           ),
                         ),
+                        const SizedBox(height: 4),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.baseline,
+                          textBaseline: TextBaseline.alphabetic,
+                          children: [
+                            Text(
+                              currentItem.totalAvailableStock
+                                  .toStringAsFixed(1),
+                              style: const TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.w900,
+                                color: Colors.black,
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              currentItem.measurementUnit.toUpperCase(),
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w800,
+                                color: Color(0xFF64748B),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        if (canUpdate)
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              // Decrease Stock Button
+                              InkWell(
+                                onTap: _isUpdatingStock
+                                    ? null
+                                    : () => _adjustStock(currentItem, -1.0),
+                                borderRadius: BorderRadius.circular(20),
+                                child: Container(
+                                  width: 38,
+                                  height: 38,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: const Color(0xFFCBD5E1),
+                                    ),
+                                  ),
+                                  child: const Icon(
+                                    Icons.remove,
+                                    size: 18,
+                                    color: Colors.black,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+
+                              // Increase Stock Button (Black)
+                              InkWell(
+                                onTap: _isUpdatingStock
+                                    ? null
+                                    : () => _adjustStock(currentItem, 1.0),
+                                borderRadius: BorderRadius.circular(20),
+                                child: Container(
+                                  width: 38,
+                                  height: 38,
+                                  decoration: const BoxDecoration(
+                                    color: Colors.black,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(
+                                    Icons.add,
+                                    size: 18,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+
+                              // Set Stock Exact (Edit icon)
+                              InkWell(
+                                onTap: _isUpdatingStock
+                                    ? null
+                                    : () => _showSetStockDialog(currentItem),
+                                borderRadius: BorderRadius.circular(20),
+                                child: Container(
+                                  width: 38,
+                                  height: 38,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: const Color(0xFFCBD5E1),
+                                    ),
+                                  ),
+                                  child: const Icon(
+                                    Icons.edit_outlined,
+                                    size: 17,
+                                    color: Colors.black,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                       ],
                     ),
-                    const SizedBox(height: 14),
+                  ),
 
-                    // Store Room
-                    Row(
+                  const SizedBox(height: 14),
+
+                  // Reorder Threshold Row
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Reorder Threshold',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF64748B),
+                        ),
+                      ),
+                      Text(
+                        '${currentItem.reorderThresholdQuantity.toStringAsFixed(1)} ${currentItem.measurementUnit.toUpperCase()}',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.black,
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  // Shortfall Warning Banner
+                  if (isAlert) ...[
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFFFBEB),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: const Color(0xFFFDE68A)),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.warning_amber_rounded,
+                            color: Color(0xFFD97706),
+                            size: 18,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Reorder Shortfall: ${currentItem.reorderShortfallQuantity.toStringAsFixed(1)} ${currentItem.measurementUnit.toUpperCase()} (Stock below threshold)',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFFB45309),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 14),
+
+            // 3. Storage Location Details Card
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Section Header
+                  Row(
+                    children: [
+                      Container(
+                        width: 26,
+                        height: 26,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF1F5F9),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: const Icon(
+                          Icons.storefront_outlined,
+                          size: 15,
+                          color: Color(0xFF334155),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'STORAGE LOCATION DETAILS',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.black,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 14),
+
+                  // Store Room Item
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 12,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFAFAFA),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFFF1F5F9)),
+                    ),
+                    child: Row(
                       children: [
                         Container(
-                          padding: const EdgeInsets.all(8),
+                          width: 38,
+                          height: 38,
                           decoration: BoxDecoration(
-                            color: const Color(0xFF0284C7).withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(8),
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: const Color(0xFFE2E8F0)),
                           ),
                           child: const Icon(
-                            Icons.store_mall_directory_outlined,
-                            size: 20,
-                            color: Color(0xFF0284C7),
+                            Icons.home_outlined,
+                            size: 19,
+                            color: Colors.black,
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -703,25 +1010,21 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               const Text(
-                                'Store Room',
+                                'STORE ROOM',
                                 style: TextStyle(
-                                  fontSize: 11,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
                                   color: Color(0xFF64748B),
-                                  fontWeight: FontWeight.w600,
+                                  letterSpacing: 0.5,
                                 ),
                               ),
                               const SizedBox(height: 2),
                               Text(
-                                room != null
-                                    ? '${room.roomName} (${room.roomCode})'
-                                    : (currentItem.storeRoomId != null &&
-                                            currentItem.storeRoomId!.isNotEmpty
-                                        ? currentItem.storeRoomId!
-                                        : 'Not Assigned'),
+                                storeRoomDisplay,
                                 style: const TextStyle(
                                   fontSize: 14,
-                                  fontWeight: FontWeight.w700,
-                                  color: Color(0xFF0F172A),
+                                  fontWeight: FontWeight.w800,
+                                  color: Colors.black,
                                 ),
                               ),
                             ],
@@ -729,21 +1032,35 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                         ),
                       ],
                     ),
-                    const Divider(height: 20, color: Color(0xFFF1F5F9)),
+                  ),
 
-                    // Section / Division
-                    Row(
+                  const SizedBox(height: 10),
+
+                  // Section / Division Item
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 12,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFAFAFA),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFFF1F5F9)),
+                    ),
+                    child: Row(
                       children: [
                         Container(
-                          padding: const EdgeInsets.all(8),
+                          width: 38,
+                          height: 38,
                           decoration: BoxDecoration(
-                            color: const Color(0xFF0F766E).withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(8),
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: const Color(0xFFE2E8F0)),
                           ),
                           child: const Icon(
                             Icons.grid_view_outlined,
-                            size: 20,
-                            color: Color(0xFF0F766E),
+                            size: 18,
+                            color: Colors.black,
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -752,11 +1069,12 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               const Text(
-                                'Section / Division',
+                                'SECTION / DIVISION',
                                 style: TextStyle(
-                                  fontSize: 11,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
                                   color: Color(0xFF64748B),
-                                  fontWeight: FontWeight.w600,
+                                  letterSpacing: 0.5,
                                 ),
                               ),
                               const SizedBox(height: 2),
@@ -764,8 +1082,8 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                                 divisionDisplay,
                                 style: const TextStyle(
                                   fontSize: 14,
-                                  fontWeight: FontWeight.w700,
-                                  color: Color(0xFF0F766E),
+                                  fontWeight: FontWeight.w800,
+                                  color: Colors.black,
                                 ),
                               ),
                             ],
@@ -773,41 +1091,39 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                         ),
                       ],
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 24),
 
-            // Action Buttons Based on Permissions
+            const SizedBox(height: 20),
+
+            // 4. Management Actions
             if (canUpdate || canDelete) ...[
               const Text(
-                'Management Actions',
+                'MANAGEMENT ACTIONS',
                 style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF64748B),
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF94A3B8),
+                  letterSpacing: 0.5,
                 ),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
 
+              // Edit Item Details Button
               if (canUpdate) ...[
                 SizedBox(
                   width: double.infinity,
-                  child: ElevatedButton.icon(
+                  height: 50,
+                  child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.black,
                       foregroundColor: Colors.white,
                       elevation: 0,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
-                    ),
-                    icon: const Icon(Icons.edit_outlined, size: 18),
-                    label: const Text(
-                      'Edit Item Details',
-                      style: TextStyle(fontWeight: FontWeight.w700),
                     ),
                     onPressed: () async {
                       final inv = context.read<InventoryProvider>();
@@ -821,52 +1137,110 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                         inv.loadItems();
                       }
                     },
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.edit_outlined,
+                            size: 18, color: Colors.white),
+                        SizedBox(width: 8),
+                        Text(
+                          'Edit Item Details',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
                 const SizedBox(height: 10),
+
+                // Set Stock Quantity Button
                 SizedBox(
                   width: double.infinity,
-                  child: OutlinedButton.icon(
+                  height: 50,
+                  child: OutlinedButton(
                     style: OutlinedButton.styleFrom(
                       foregroundColor: Colors.black,
-                      side: const BorderSide(color: Color(0xFFCBD5E1)),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      backgroundColor: Colors.white,
+                      elevation: 0,
+                      side: const BorderSide(color: Color(0xFFE2E8F0)),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    icon: const Icon(Icons.tune_outlined, size: 18),
-                    label: const Text(
-                      'Set Stock Quantity',
-                      style: TextStyle(fontWeight: FontWeight.w700),
-                    ),
                     onPressed: () => _showSetStockDialog(currentItem),
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.tune_outlined,
+                            size: 18, color: Colors.black),
+                        SizedBox(width: 8),
+                        Text(
+                          'Set Stock Quantity',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
                 const SizedBox(height: 10),
               ],
 
+              // Delete Item Button
               if (canDelete) ...[
                 SizedBox(
                   width: double.infinity,
-                  child: OutlinedButton.icon(
+                  height: 50,
+                  child: OutlinedButton(
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: const Color(0xFFDC2626),
-                      side: const BorderSide(color: Color(0xFFDC2626)),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      foregroundColor: const Color(0xFFEF4444),
+                      backgroundColor: Colors.white,
+                      elevation: 0,
+                      side: const BorderSide(color: Color(0xFFFEE2E2)),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    icon: const Icon(Icons.delete_outline, size: 18),
-                    label: const Text(
-                      'Delete Item',
-                      style: TextStyle(fontWeight: FontWeight.w700),
-                    ),
                     onPressed: () => _confirmDelete(currentItem),
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.delete_outline,
+                            size: 18, color: Color(0xFFEF4444)),
+                        SizedBox(width: 8),
+                        Text(
+                          'Delete Item',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFFEF4444),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],
+
+              const SizedBox(height: 28),
+
+              // Footer
+              const Center(
+                child: Text(
+                  'Developed by Bigburry Hypersystems LLP',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Color(0xFF94A3B8),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
             ],
           ],
         ),
