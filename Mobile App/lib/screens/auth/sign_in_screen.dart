@@ -143,19 +143,14 @@ class _SignInScreenState extends State<SignInScreen> {
                       children: [
                         const SizedBox(height: 20),
 
-                        // Teal CPMS Brand Icon ($ sign)
-                        Container(
-                          width: 52,
-                          height: 52,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF0F766E),
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          alignment: Alignment.center,
-                          child: const Icon(
-                            Icons.attach_money,
-                            color: Colors.white,
-                            size: 30,
+                        // App Logo
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(14),
+                          child: Image.asset(
+                            'assets/images/logo.png',
+                            width: 56,
+                            height: 56,
+                            fit: BoxFit.contain,
                           ),
                         ),
                         const SizedBox(height: 24),

@@ -146,6 +146,18 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       children: [
                         const SizedBox(height: 8),
 
+                        // App Logo
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(14),
+                          child: Image.asset(
+                            'assets/images/logo.png',
+                            width: 52,
+                            height: 52,
+                            fit: BoxFit.contain,
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+
                         // Headline & Subtitle
                         const Text(
                           'Join Cyan CPMS',
