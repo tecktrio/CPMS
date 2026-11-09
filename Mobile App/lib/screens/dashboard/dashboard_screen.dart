@@ -30,6 +30,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
   String _universalSearchQuery = '';
   String _selectedSearchModule = 'ALL'; // 'ALL', 'ITEMS', 'STORE_ROOMS', 'DEPARTMENTS', 'STAFF'
 
+  // Settings View State
+  final TextEditingController _firstNameController = TextEditingController();
+  final TextEditingController _lastNameController = TextEditingController();
+  final TextEditingController _phoneController = TextEditingController();
+  String _selectedTimezone = 'English (US) — UTC-5 EST';
+  bool _settingsInitialized = false;
+  bool _isSavingSettings = false;
+
   @override
   void initState() {
     super.initState();
@@ -42,6 +50,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   void dispose() {
     _searchController.dispose();
+    _firstNameController.dispose();
+    _lastNameController.dispose();
+    _phoneController.dispose();
     super.dispose();
   }
 

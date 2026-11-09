@@ -10,6 +10,16 @@ class ApiConstants {
   static String? resolveImageUrl(String? pathOrUrl) {
     if (pathOrUrl == null || pathOrUrl.trim().isEmpty) return null;
     final trimmed = pathOrUrl.trim();
+
+    // Map any private S3 direct URLs to our secure backend storage proxy
+    if (trimmed.contains('.amazonaws.com/')) {
+      final uri = Uri.tryParse(trimmed);
+      if (uri != null && uri.pathSegments.isNotEmpty) {
+        final relativePath = uri.pathSegments.join('/');
+        return '$serverHost/api/v1/storage/$relativePath';
+      }
+    }
+
     if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
       return trimmed;
     }

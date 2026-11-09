@@ -1,7 +1,9 @@
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
 import { v4 as uuidv4 } from 'uuid';
+import { Response } from 'express';
+import { Readable } from 'stream';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -88,12 +90,13 @@ export class StorageService {
           }),
         );
 
-        const publicUrl = s3Config.publicUrlPrefix
+        const storageProxyUrl = `/api/v1/storage/${s3Key}`;
+        const returnedUrl = s3Config.publicUrlPrefix
           ? `${s3Config.publicUrlPrefix.replace(/\/$/, '')}/${s3Key}`
-          : `https://${bucket}.s3.${region}.amazonaws.com/${s3Key}`;
+          : storageProxyUrl;
 
-        this.logger.log(`Successfully uploaded ${s3Key} to AWS S3 (${publicUrl})`);
-        return publicUrl;
+        this.logger.log(`Successfully uploaded ${s3Key} to AWS S3 (Serving via ${returnedUrl})`);
+        return returnedUrl;
       } catch (error) {
         this.logger.error(
           `AWS S3 upload failed: ${(error as Error).message}. Falling back to local storage.`,
@@ -111,9 +114,82 @@ export class StorageService {
     const localFilePath = path.join(uploadsDir, filename);
     await fs.promises.writeFile(localFilePath, file.buffer);
 
-    const localUrl = `/uploads/${folder}/${filename}`;
+    const localUrl = `/api/v1/storage/${folder}/${filename}`;
     this.logger.log(`Saved image locally to ${localUrl}`);
     return localUrl;
+  }
+
+  async streamFile(
+    folder: 'avatars' | 'items',
+    filename: string,
+    res: Response,
+  ): Promise<void> {
+    const s3Key = `${folder}/${filename}`;
+    const ext = (path.extname(filename) || '').toLowerCase();
+    const extToMime: Record<string, string> = {
+      '.png': 'image/png',
+      '.jpg': 'image/jpeg',
+      '.jpeg': 'image/jpeg',
+      '.webp': 'image/webp',
+      '.gif': 'image/gif',
+      '.heic': 'image/heic',
+      '.heif': 'image/heif',
+    };
+    const mimeType = extToMime[ext] || 'application/octet-stream';
+
+    const s3Config = this.configService.get('aws');
+    const bucket = s3Config?.s3Bucket;
+    const region = s3Config?.region || 'us-east-1';
+    const accessKeyId = s3Config?.accessKeyId;
+    const secretAccessKey = s3Config?.secretAccessKey;
+
+    if (bucket && accessKeyId && secretAccessKey) {
+      try {
+        const s3Client = new S3Client({
+          region,
+          credentials: {
+            accessKeyId,
+            secretAccessKey,
+          },
+          endpoint: s3Config.endpoint || undefined,
+          forcePathStyle: Boolean(s3Config.endpoint),
+        });
+
+        const command = new GetObjectCommand({
+          Bucket: bucket,
+          Key: s3Key,
+        });
+
+        const s3Response = await s3Client.send(command);
+        res.setHeader('Content-Type', s3Response.ContentType || mimeType);
+        res.setHeader('Cache-Control', 'public, max-age=604800, immutable');
+        if (s3Response.ContentLength) {
+          res.setHeader('Content-Length', s3Response.ContentLength);
+        }
+
+        const stream = s3Response.Body as Readable;
+        stream.pipe(res);
+        return;
+      } catch (err) {
+        this.logger.warn(
+          `S3 fetch for ${s3Key} failed: ${(err as Error).message}. Checking local disk.`,
+        );
+      }
+    }
+
+    const localFilePath = path.join(process.cwd(), 'uploads', folder, filename);
+    if (fs.existsSync(localFilePath)) {
+      res.setHeader('Content-Type', mimeType);
+      res.setHeader('Cache-Control', 'public, max-age=604800, immutable');
+      const stream = fs.createReadStream(localFilePath);
+      stream.pipe(res);
+      return;
+    }
+
+    res.status(404).json({
+      statusCode: 404,
+      message: `File ${folder}/${filename} not found`,
+    });
   }
 }
 
