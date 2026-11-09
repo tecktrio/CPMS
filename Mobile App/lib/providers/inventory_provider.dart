@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../core/constants/api_constants.dart';
 import '../core/network/api_client.dart';
+import '../core/sync/sync_manager.dart';
 
 class StoreRoomModel {
   final String storeRoomId;
@@ -28,6 +29,49 @@ class StoreRoomModel {
     this.divisions = const [],
     required this.isActive,
   });
+
+  StoreRoomModel copyWith({
+    String? storeRoomId,
+    String? tenantId,
+    String? roomCode,
+    String? roomName,
+    double? temperature,
+    double? totalCapacityUnits,
+    double? currentOccupancyUnits,
+    double? capacityUtilizationPercentage,
+    int? activeBatchesCount,
+    List<String>? divisions,
+    bool? isActive,
+  }) {
+    return StoreRoomModel(
+      storeRoomId: storeRoomId ?? this.storeRoomId,
+      tenantId: tenantId ?? this.tenantId,
+      roomCode: roomCode ?? this.roomCode,
+      roomName: roomName ?? this.roomName,
+      temperature: temperature ?? this.temperature,
+      totalCapacityUnits: totalCapacityUnits ?? this.totalCapacityUnits,
+      currentOccupancyUnits: currentOccupancyUnits ?? this.currentOccupancyUnits,
+      capacityUtilizationPercentage:
+          capacityUtilizationPercentage ?? this.capacityUtilizationPercentage,
+      activeBatchesCount: activeBatchesCount ?? this.activeBatchesCount,
+      divisions: divisions ?? this.divisions,
+      isActive: isActive ?? this.isActive,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'store_room_id': storeRoomId,
+        'tenant_id': tenantId,
+        'room_code': roomCode,
+        'room_name': roomName,
+        'temperature': temperature,
+        'total_capacity_units': totalCapacityUnits,
+        'current_occupancy_units': currentOccupancyUnits,
+        'capacity_utilization_percentage': capacityUtilizationPercentage,
+        'active_batches_count': activeBatchesCount,
+        'divisions': divisions,
+        'is_active': isActive,
+      };
 
   factory StoreRoomModel.fromJson(Map<String, dynamic> json) {
     return StoreRoomModel(
@@ -85,6 +129,68 @@ class ItemModel {
     this.imageUrl,
     required this.isActive,
   });
+
+  ItemModel copyWith({
+    String? itemId,
+    String? tenantId,
+    String? sku,
+    String? itemName,
+    String? itemType,
+    String? measurementUnit,
+    double? reorderThresholdQuantity,
+    double? totalAvailableStock,
+    bool? isBelowReorderThreshold,
+    double? reorderShortfallQuantity,
+    String? storeRoomId,
+    String? locationCode,
+    String? division,
+    String? imageUrl,
+    bool? isActive,
+  }) {
+    final newStock = totalAvailableStock ?? this.totalAvailableStock;
+    final newThreshold =
+        reorderThresholdQuantity ?? this.reorderThresholdQuantity;
+    final below = newStock <= newThreshold;
+    final shortfall = below ? (newThreshold - newStock) : 0.0;
+
+    return ItemModel(
+      itemId: itemId ?? this.itemId,
+      tenantId: tenantId ?? this.tenantId,
+      sku: sku ?? this.sku,
+      itemName: itemName ?? this.itemName,
+      itemType: itemType ?? this.itemType,
+      measurementUnit: measurementUnit ?? this.measurementUnit,
+      reorderThresholdQuantity: newThreshold,
+      totalAvailableStock: newStock,
+      isBelowReorderThreshold: isBelowReorderThreshold ?? below,
+      reorderShortfallQuantity: reorderShortfallQuantity ?? shortfall,
+      storeRoomId: storeRoomId ?? this.storeRoomId,
+      locationCode: locationCode ?? this.locationCode,
+      division: division ?? this.division,
+      imageUrl: imageUrl ?? this.imageUrl,
+      isActive: isActive ?? this.isActive,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'item_id': itemId,
+        'tenant_id': tenantId,
+        'sku': sku,
+        'item_name': itemName,
+        'item_type': itemType,
+        'measurement_unit': measurementUnit,
+        'reorder_threshold_quantity': reorderThresholdQuantity,
+        'total_available_stock': totalAvailableStock,
+        'is_below_reorder_threshold': isBelowReorderThreshold,
+        'reorder_shortfall_quantity': reorderShortfallQuantity,
+        'storage_location_details': {
+          'store_room_id': storeRoomId,
+          'location_code': locationCode,
+          'division': division,
+        },
+        'image_url': imageUrl,
+        'is_active': isActive,
+      };
 
   factory ItemModel.fromJson(Map<String, dynamic> json) {
     String? sId;
@@ -158,10 +264,10 @@ class StockBatchModel {
 
   factory StockBatchModel.fromJson(Map<String, dynamic> json) {
     DateTime? mDate;
-    DateTime? eDate;
     if (json['manufacturing_date'] != null) {
       mDate = DateTime.tryParse(json['manufacturing_date']);
     }
+    DateTime? eDate;
     if (json['expiry_date'] != null) {
       eDate = DateTime.tryParse(json['expiry_date']);
     }
@@ -176,10 +282,11 @@ class StockBatchModel {
       storeRoomId: json['store_room_id'] ?? '',
       storeRoomCode: json['store_room_code'],
       storageLocationId: json['storage_location_id'] ?? '',
-      availableQuantity: (json['available_quantity'] as num?)?.toDouble() ?? 0.0,
+      availableQuantity:
+          (json['available_quantity'] as num?)?.toDouble() ?? 0.0,
       manufacturingDate: mDate,
       expiryDate: eDate,
-      batchStatus: json['batch_status'] ?? 'AVAILABLE',
+      batchStatus: json['batch_status'] ?? 'ACTIVE',
       daysUntilExpiry: json['days_until_expiry'] ?? 0,
     );
   }
@@ -258,6 +365,7 @@ class FefoAllocationResult {
 
 class InventoryProvider extends ChangeNotifier {
   final ApiClient apiClient;
+  final SyncManager syncManager = SyncManager();
 
   List<StoreRoomModel> _storeRooms = [];
   List<ItemModel> _items = [];
@@ -267,7 +375,11 @@ class InventoryProvider extends ChangeNotifier {
   bool _isLoading = false;
   String? _errorMessage;
 
-  InventoryProvider({required this.apiClient});
+  InventoryProvider({required this.apiClient}) {
+    syncManager.initialize(apiClient: apiClient);
+    // Instant initial restore from local persistent storage cache
+    _restoreLocalCache();
+  }
 
   List<StoreRoomModel> get storeRooms => _storeRooms;
   List<ItemModel> get items => _items;
@@ -285,12 +397,46 @@ class InventoryProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> loadStoreRooms() async {
-    _setLoading(true);
+  // ---------------------------------------------------------------------------
+  // Local Cache Restoration (Instant UI load without blocking server)
+  // ---------------------------------------------------------------------------
+
+  Future<void> _restoreLocalCache() async {
+    final cachedRooms = await syncManager.loadCachedStoreRooms();
+    if (cachedRooms.isNotEmpty && _storeRooms.isEmpty) {
+      _storeRooms =
+          cachedRooms.map((json) => StoreRoomModel.fromJson(json)).toList();
+      notifyListeners();
+    }
+
+    final cachedItems = await syncManager.loadCachedItems();
+    if (cachedItems.isNotEmpty && _items.isEmpty) {
+      _items = cachedItems.map((json) => ItemModel.fromJson(json)).toList();
+      notifyListeners();
+    }
+  }
+
+  void _persistItemsLocally() {
+    syncManager.saveCachedItems(_items.map((i) => i.toJson()).toList());
+  }
+
+  void _persistStoreRoomsLocally() {
+    syncManager.saveCachedStoreRooms(_storeRooms.map((r) => r.toJson()).toList());
+  }
+
+  // ---------------------------------------------------------------------------
+  // Store Rooms
+  // ---------------------------------------------------------------------------
+
+  Future<void> loadStoreRooms({bool silent = false}) async {
+    if (!silent && _storeRooms.isEmpty) {
+      _setLoading(true);
+    }
     try {
       final res = await apiClient.get(ApiConstants.storeRooms);
       if (res is List) {
         _storeRooms = res.map((item) => StoreRoomModel.fromJson(item)).toList();
+        _persistStoreRoomsLocally();
       }
       _setLoading(false);
     } catch (e) {
@@ -306,25 +452,44 @@ class InventoryProvider extends ChangeNotifier {
     required double totalCapacityUnits,
     List<String>? divisions,
   }) async {
-    _setLoading(true);
-    _errorMessage = null;
-    try {
-      final body = <String, dynamic>{
-        'room_code': roomCode.trim().toUpperCase(),
-        'room_name': roomName.trim(),
-        'total_capacity_units': totalCapacityUnits,
-      };
-      if (temperature != null) body['temperature'] = temperature;
-      if (divisions != null && divisions.isNotEmpty) body['divisions'] = divisions;
+    // 1. Instant optimistic local creation
+    final tempId = 'room_${DateTime.now().millisecondsSinceEpoch}';
+    final optimisticRoom = StoreRoomModel(
+      storeRoomId: tempId,
+      tenantId: apiClient.activeTenantId ?? '',
+      roomCode: roomCode.trim().toUpperCase(),
+      roomName: roomName.trim(),
+      temperature: temperature,
+      totalCapacityUnits: totalCapacityUnits,
+      currentOccupancyUnits: 0.0,
+      capacityUtilizationPercentage: 0.0,
+      activeBatchesCount: 0,
+      divisions: divisions ?? [],
+      isActive: true,
+    );
 
-      await apiClient.post(ApiConstants.storeRooms, body: body);
-      await loadStoreRooms();
-      return true;
-    } catch (e) {
-      _errorMessage = e.toString();
-      _setLoading(false);
-      return false;
-    }
+    _storeRooms.insert(0, optimisticRoom);
+    _persistStoreRoomsLocally();
+    notifyListeners();
+
+    // 2. Queue for background live sync
+    final body = <String, dynamic>{
+      'room_code': roomCode.trim().toUpperCase(),
+      'room_name': roomName.trim(),
+      'total_capacity_units': totalCapacityUnits,
+    };
+    if (temperature != null) body['temperature'] = temperature;
+    if (divisions != null && divisions.isNotEmpty) body['divisions'] = divisions;
+
+    syncManager.enqueue(SyncOperation(
+      id: 'op_${DateTime.now().microsecondsSinceEpoch}',
+      type: SyncOperationType.createStoreRoom,
+      targetId: tempId,
+      payload: body,
+      createdAt: DateTime.now(),
+    ));
+
+    return true;
   }
 
   Future<bool> updateStoreRoom({
@@ -335,52 +500,77 @@ class InventoryProvider extends ChangeNotifier {
     double? totalCapacityUnits,
     List<String>? divisions,
   }) async {
-    _setLoading(true);
-    _errorMessage = null;
-    try {
-      final body = <String, dynamic>{};
-      if (roomCode != null && roomCode.isNotEmpty) {
-        body['room_code'] = roomCode.trim().toUpperCase();
-      }
-      if (roomName != null && roomName.isNotEmpty) {
-        body['room_name'] = roomName.trim();
-      }
-      if (temperature != null) body['temperature'] = temperature;
-      if (totalCapacityUnits != null) {
-        body['total_capacity_units'] = totalCapacityUnits;
-      }
-      if (divisions != null) body['divisions'] = divisions;
-
-      await apiClient.put('${ApiConstants.storeRooms}/$storeRoomId', body: body);
-      await loadStoreRooms();
-      return true;
-    } catch (e) {
-      _errorMessage = e.toString();
-      _setLoading(false);
-      return false;
+    // 1. Instant optimistic update
+    final index = _storeRooms.indexWhere((r) => r.storeRoomId == storeRoomId);
+    if (index != -1) {
+      final existing = _storeRooms[index];
+      _storeRooms[index] = existing.copyWith(
+        roomCode: roomCode?.trim().toUpperCase(),
+        roomName: roomName?.trim(),
+        temperature: temperature,
+        totalCapacityUnits: totalCapacityUnits,
+        divisions: divisions,
+      );
+      _persistStoreRoomsLocally();
+      notifyListeners();
     }
+
+    // 2. Queue for background live sync
+    final body = <String, dynamic>{};
+    if (roomCode != null && roomCode.isNotEmpty) {
+      body['room_code'] = roomCode.trim().toUpperCase();
+    }
+    if (roomName != null && roomName.isNotEmpty) {
+      body['room_name'] = roomName.trim();
+    }
+    if (temperature != null) body['temperature'] = temperature;
+    if (totalCapacityUnits != null) {
+      body['total_capacity_units'] = totalCapacityUnits;
+    }
+    if (divisions != null) body['divisions'] = divisions;
+
+    syncManager.enqueue(SyncOperation(
+      id: 'op_${DateTime.now().microsecondsSinceEpoch}',
+      type: SyncOperationType.updateStoreRoom,
+      targetId: storeRoomId,
+      payload: body,
+      createdAt: DateTime.now(),
+    ));
+
+    return true;
   }
 
   Future<bool> deleteStoreRoom(String storeRoomId) async {
-    _setLoading(true);
-    _errorMessage = null;
-    try {
-      await apiClient.delete('${ApiConstants.storeRooms}/$storeRoomId');
-      await loadStoreRooms();
-      return true;
-    } catch (e) {
-      _errorMessage = e.toString();
-      _setLoading(false);
-      return false;
-    }
+    // 1. Instant optimistic deletion
+    _storeRooms.removeWhere((r) => r.storeRoomId == storeRoomId);
+    _persistStoreRoomsLocally();
+    notifyListeners();
+
+    // 2. Queue for background live sync
+    syncManager.enqueue(SyncOperation(
+      id: 'op_${DateTime.now().microsecondsSinceEpoch}',
+      type: SyncOperationType.deleteStoreRoom,
+      targetId: storeRoomId,
+      payload: {},
+      createdAt: DateTime.now(),
+    ));
+
+    return true;
   }
 
-  Future<void> loadItems() async {
-    _setLoading(true);
+  // ---------------------------------------------------------------------------
+  // Items Management (Optimistic local-first + Live Sync)
+  // ---------------------------------------------------------------------------
+
+  Future<void> loadItems({bool silent = false}) async {
+    if (!silent && _items.isEmpty) {
+      _setLoading(true);
+    }
     try {
       final res = await apiClient.get(ApiConstants.items);
       if (res is List) {
         _items = res.map((item) => ItemModel.fromJson(item)).toList();
+        _persistItemsLocally();
       }
       _setLoading(false);
     } catch (e) {
@@ -413,8 +603,6 @@ class InventoryProvider extends ChangeNotifier {
     List<int> bytes,
     String filename,
   ) async {
-    _setLoading(true);
-    _errorMessage = null;
     try {
       await apiClient.multipartPost(
         '${ApiConstants.items}/$itemId/image',
@@ -422,25 +610,28 @@ class InventoryProvider extends ChangeNotifier {
         filename: filename,
         fileField: 'image',
       );
-      await loadItems();
+      await loadItems(silent: true);
       return true;
     } catch (e) {
       _errorMessage = e.toString();
-      _setLoading(false);
       return false;
     }
   }
 
   Future<bool> removeItemImage(String itemId) async {
-    _setLoading(true);
-    _errorMessage = null;
+    // Optimistic image removal
+    final index = _items.indexWhere((i) => i.itemId == itemId);
+    if (index != -1) {
+      _items[index] = _items[index].copyWith(imageUrl: '');
+      _persistItemsLocally();
+      notifyListeners();
+    }
+
     try {
       await apiClient.put('${ApiConstants.items}/$itemId', body: {'image_url': null});
-      await loadItems();
       return true;
     } catch (e) {
       _errorMessage = e.toString();
-      _setLoading(false);
       return false;
     }
   }
@@ -457,40 +648,69 @@ class InventoryProvider extends ChangeNotifier {
     double? stockQuantity,
     String? imageUrl,
   }) async {
-    _setLoading(true);
-    _errorMessage = null;
-    try {
-      final body = <String, dynamic>{
-        'sku': sku.trim().toUpperCase(),
-        'item_name': itemName.trim(),
-        'item_type': itemType,
-        'measurement_unit': measurementUnit,
-        'reorder_threshold_quantity': reorderThreshold,
-        'stock_quantity': stockQuantity ?? 0.0,
-        'storage_location_details': {
-          'store_room_id': storeRoomId,
-          'location_code': (locationCode != null && locationCode.isNotEmpty)
-              ? locationCode.trim()
-              : (division != null && division.isNotEmpty ? division : 'LOC-01'),
-          'division': division ?? '',
-          'rack_identifier': 'R1',
-          'shelf_identifier': 'S1',
-          'bin_identifier': 'B1',
-          'allowed_category': itemType,
-          'is_active': true,
-        },
-      };
-      if (imageUrl != null && imageUrl.isNotEmpty) {
-        body['image_url'] = imageUrl;
-      }
-      await apiClient.post(ApiConstants.items, body: body);
-      await loadItems();
-      return true;
-    } catch (e) {
-      _errorMessage = e.toString();
-      _setLoading(false);
-      return false;
+    final cleanSku = sku.trim().toUpperCase();
+    final cleanName = itemName.trim();
+    final initialStock = stockQuantity ?? 0.0;
+    final tempId = 'item_${DateTime.now().millisecondsSinceEpoch}';
+
+    // 1. INSTANT OPTIMISTIC INSERTION
+    final optimisticItem = ItemModel(
+      itemId: tempId,
+      tenantId: apiClient.activeTenantId ?? '',
+      sku: cleanSku,
+      itemName: cleanName,
+      itemType: itemType,
+      measurementUnit: measurementUnit,
+      reorderThresholdQuantity: reorderThreshold,
+      totalAvailableStock: initialStock,
+      isBelowReorderThreshold: initialStock <= reorderThreshold,
+      reorderShortfallQuantity:
+          initialStock <= reorderThreshold ? (reorderThreshold - initialStock) : 0.0,
+      storeRoomId: storeRoomId,
+      locationCode: locationCode ?? division ?? 'LOC-01',
+      division: division ?? 'Default Section',
+      imageUrl: imageUrl,
+      isActive: true,
+    );
+
+    _items.insert(0, optimisticItem);
+    _persistItemsLocally();
+    notifyListeners();
+
+    // 2. ENQUEUE FOR BACKGROUND LIVE SYNC
+    final body = <String, dynamic>{
+      'sku': cleanSku,
+      'item_name': cleanName,
+      'item_type': itemType,
+      'measurement_unit': measurementUnit,
+      'reorder_threshold_quantity': reorderThreshold,
+      'stock_quantity': initialStock,
+      'storage_location_details': {
+        'store_room_id': storeRoomId,
+        'location_code': (locationCode != null && locationCode.isNotEmpty)
+            ? locationCode.trim()
+            : (division != null && division.isNotEmpty ? division : 'LOC-01'),
+        'division': division ?? '',
+        'rack_identifier': 'R1',
+        'shelf_identifier': 'S1',
+        'bin_identifier': 'B1',
+        'allowed_category': itemType,
+        'is_active': true,
+      },
+    };
+    if (imageUrl != null && imageUrl.isNotEmpty) {
+      body['image_url'] = imageUrl;
     }
+
+    syncManager.enqueue(SyncOperation(
+      id: 'op_${DateTime.now().microsecondsSinceEpoch}',
+      type: SyncOperationType.createItem,
+      targetId: tempId,
+      payload: body,
+      createdAt: DateTime.now(),
+    ));
+
+    return true;
   }
 
   Future<bool> updateItem({
@@ -504,68 +724,110 @@ class InventoryProvider extends ChangeNotifier {
     double? stockQuantity,
     String? imageUrl,
   }) async {
-    _setLoading(true);
-    _errorMessage = null;
-    try {
-      final body = <String, dynamic>{};
-      if (itemName != null && itemName.isNotEmpty) body['item_name'] = itemName.trim();
-      if (itemType != null) body['item_type'] = itemType;
-      if (measurementUnit != null) body['measurement_unit'] = measurementUnit;
-      if (reorderThreshold != null) body['reorder_threshold_quantity'] = reorderThreshold;
-      if (stockQuantity != null) body['stock_quantity'] = stockQuantity;
-      if (imageUrl != null) {
-        body['image_url'] = imageUrl.isEmpty ? null : imageUrl;
-      }
-      if (storeRoomId != null || division != null) {
-        final loc = <String, dynamic>{
-          'location_code': division ?? 'LOC-01',
-          'division': division ?? '',
-        };
-        if (storeRoomId != null) loc['store_room_id'] = storeRoomId;
-        body['storage_location_details'] = loc;
-      }
-
-      await apiClient.put('${ApiConstants.items}/$itemId', body: body);
-      await loadItems();
-      return true;
-    } catch (e) {
-      _errorMessage = e.toString();
-      _setLoading(false);
-      return false;
+    // 1. INSTANT OPTIMISTIC UPDATE IN LOCAL MEMORY & DISK CACHE
+    final index = _items.indexWhere((i) => i.itemId == itemId);
+    if (index != -1) {
+      final existing = _items[index];
+      _items[index] = existing.copyWith(
+        itemName: itemName?.trim(),
+        itemType: itemType,
+        measurementUnit: measurementUnit,
+        reorderThresholdQuantity: reorderThreshold,
+        totalAvailableStock: stockQuantity,
+        storeRoomId: storeRoomId,
+        division: division,
+        imageUrl: imageUrl,
+      );
+      _persistItemsLocally();
+      notifyListeners();
     }
+
+    // 2. ENQUEUE FOR BACKGROUND LIVE SYNC
+    final body = <String, dynamic>{};
+    if (itemName != null && itemName.isNotEmpty) body['item_name'] = itemName.trim();
+    if (itemType != null) body['item_type'] = itemType;
+    if (measurementUnit != null) body['measurement_unit'] = measurementUnit;
+    if (reorderThreshold != null) body['reorder_threshold_quantity'] = reorderThreshold;
+    if (stockQuantity != null) body['stock_quantity'] = stockQuantity;
+    if (imageUrl != null) {
+      body['image_url'] = imageUrl.isEmpty ? null : imageUrl;
+    }
+    if (storeRoomId != null || division != null) {
+      final loc = <String, dynamic>{
+        'location_code': division ?? 'LOC-01',
+        'division': division ?? '',
+      };
+      if (storeRoomId != null) loc['store_room_id'] = storeRoomId;
+      body['storage_location_details'] = loc;
+    }
+
+    syncManager.enqueue(SyncOperation(
+      id: 'op_${DateTime.now().microsecondsSinceEpoch}',
+      type: SyncOperationType.updateItem,
+      targetId: itemId,
+      payload: body,
+      createdAt: DateTime.now(),
+    ));
+
+    return true;
   }
 
   Future<bool> updateItemStock(String itemId, double newQuantity) async {
     final clamped = newQuantity < 0 ? 0.0 : newQuantity;
-    return updateItem(itemId: itemId, stockQuantity: clamped);
+
+    // 1. INSTANT OPTIMISTIC STOCK UPDATE IN ZERO MILLISECONDS
+    final index = _items.indexWhere((i) => i.itemId == itemId);
+    if (index != -1) {
+      final existing = _items[index];
+      _items[index] = existing.copyWith(totalAvailableStock: clamped);
+      _persistItemsLocally();
+      notifyListeners();
+    }
+
+    // 2. ENQUEUE FOR LIVE BACKGROUND SYNC
+    syncManager.enqueue(SyncOperation(
+      id: 'op_${DateTime.now().microsecondsSinceEpoch}',
+      type: SyncOperationType.updateItemStock,
+      targetId: itemId,
+      payload: {'stock_quantity': clamped},
+      createdAt: DateTime.now(),
+    ));
+
+    return true;
   }
 
   Future<bool> deleteItem(String itemId) async {
-    _setLoading(true);
-    _errorMessage = null;
-    try {
-      await apiClient.delete('${ApiConstants.items}/$itemId');
-      await loadItems();
-      return true;
-    } catch (e) {
-      _errorMessage = e.toString();
-      _setLoading(false);
-      return false;
-    }
+    // 1. INSTANT OPTIMISTIC REMOVAL
+    _items.removeWhere((i) => i.itemId == itemId);
+    _persistItemsLocally();
+    notifyListeners();
+
+    // 2. ENQUEUE LIVE BACKGROUND SYNC
+    syncManager.enqueue(SyncOperation(
+      id: 'op_${DateTime.now().microsecondsSinceEpoch}',
+      type: SyncOperationType.deleteItem,
+      targetId: itemId,
+      payload: {},
+      createdAt: DateTime.now(),
+    ));
+
+    return true;
   }
 
+  // ---------------------------------------------------------------------------
+  // Stock Batches
+  // ---------------------------------------------------------------------------
+
   Future<void> loadStockBatches() async {
-    _setLoading(true);
     try {
       final res = await apiClient.get(ApiConstants.stockBatches);
       if (res is List) {
         _stockBatches =
             res.map((item) => StockBatchModel.fromJson(item)).toList();
+        notifyListeners();
       }
-      _setLoading(false);
     } catch (e) {
       _errorMessage = e.toString();
-      _setLoading(false);
     }
   }
 
@@ -578,9 +840,7 @@ class InventoryProvider extends ChangeNotifier {
             res.map((item) => StockBatchModel.fromJson(item)).toList();
         notifyListeners();
       }
-    } catch (e) {
-      // Non-blocking background alert
-    }
+    } catch (_) {}
   }
 
   Future<bool> inwardBatchReceipt({
@@ -606,8 +866,8 @@ class InventoryProvider extends ChangeNotifier {
       });
       await Future.wait([
         loadStockBatches(),
-        loadStoreRooms(),
-        loadItems(),
+        loadStoreRooms(silent: true),
+        loadItems(silent: true),
       ]);
       return true;
     } catch (e) {
@@ -617,7 +877,6 @@ class InventoryProvider extends ChangeNotifier {
     }
   }
 
-  /// Option B: Requests FEFO suggestion calculation from backend
   Future<FefoAllocationResult?> getFefoAllocationSuggestion({
     required String itemId,
     required double requestedQuantity,
@@ -641,7 +900,6 @@ class InventoryProvider extends ChangeNotifier {
     }
   }
 
-  /// Option B: Operator confirms final adjusted batch deduction
   Future<bool> confirmBatchDeduction({
     required String itemId,
     required List<Map<String, dynamic>> deductions,
@@ -650,15 +908,16 @@ class InventoryProvider extends ChangeNotifier {
     _setLoading(true);
     _errorMessage = null;
     try {
-      await apiClient.post(ApiConstants.deductBatches, body: {
+      final body = <String, dynamic>{
         'item_id': itemId,
         'deductions': deductions,
-        'purpose': purpose ?? 'Production Batch Execution',
-      });
+      };
+      if (purpose != null) body['purpose'] = purpose;
+      await apiClient.post(ApiConstants.deductBatches, body: body);
       await Future.wait([
         loadStockBatches(),
-        loadStoreRooms(),
-        loadItems(),
+        loadStoreRooms(silent: true),
+        loadItems(silent: true),
       ]);
       return true;
     } catch (e) {
@@ -673,4 +932,3 @@ class InventoryProvider extends ChangeNotifier {
     notifyListeners();
   }
 }
-

@@ -12,6 +12,7 @@ import '../items/item_detail_screen.dart';
 import '../items/items_list_screen.dart';
 import '../store_rooms/store_rooms_list_screen.dart';
 import '../tenant/tenant_selector_screen.dart';
+import '../../widgets/sync_status_indicator.dart';
 
 class DashboardScreen extends StatefulWidget {
   final int initialNavIndex;
@@ -599,6 +600,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         ),
                       ),
                       const Spacer(),
+
+                      // Real-time Sync Status Indicator
+                      const SyncStatusIndicator(),
+                      const SizedBox(width: 8),
 
                       // User Info & Avatar
                       Column(
