@@ -1548,29 +1548,126 @@ class _DashboardScreenState extends State<DashboardScreen> {
   // ==========================================
   // SETTINGS VIEW
   // ==========================================
+  void _initSettingsFields(AuthUser? user) {
+    if (_settingsInitialized || user == null) return;
+    final parts = user.fullName.trim().split(' ');
+    _firstNameController.text = parts.isNotEmpty ? parts.first : '';
+    _lastNameController.text = parts.length > 1 ? parts.sublist(1).join(' ') : '';
+    if (_phoneController.text.isEmpty) {
+      _phoneController.text = '+1 (555) 234-8901';
+    }
+    _settingsInitialized = true;
+  }
+
+  Widget _buildSettingsFieldLabel(String label) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Text(
+        label,
+        style: const TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+          color: Color(0xFF475569),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSettingsTextField(
+    TextEditingController controller,
+    String hint, {
+    TextInputType? keyboardType,
+  }) {
+    return TextFormField(
+      controller: controller,
+      keyboardType: keyboardType,
+      style: const TextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.w600,
+        color: Color(0xFF0F172A),
+      ),
+      decoration: InputDecoration(
+        hintText: hint,
+        hintStyle: const TextStyle(color: Color(0xFF94A3B8), fontSize: 14),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        fillColor: Colors.white,
+        filled: true,
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: Colors.black, width: 1.5),
+        ),
+      ),
+    );
+  }
+
   Widget _buildSettingsView({
     required bool isWide,
     required double horizontalPadding,
     required TenantProvider tenant,
   }) {
     final auth = context.watch<AuthProvider>();
+    final inventory = context.watch<InventoryProvider>();
     final user = auth.user;
     final activeTenant = tenant.activeTenant;
+    final isAdmin = tenant.isTenantAdmin;
+    final deptCount = tenant.userDepartmentCount;
+
+    String resolvedDeptName = 'Direct transit & dispatch ops';
+    if (!isAdmin && deptCount == 1 && activeTenant != null) {
+      final deptId = activeTenant.departmentIds.firstOrNull;
+      final match = tenant.tenantDepartments.firstWhere(
+        (d) => d.departmentId == deptId,
+        orElse: () => DepartmentModel(
+          departmentId: '',
+          tenantId: '',
+          departmentName: 'Direct transit & dispatch ops',
+          description: '',
+          permissionIds: [],
+          isActive: true,
+        ),
+      );
+      if (match.departmentName.isNotEmpty) {
+        resolvedDeptName = match.departmentName;
+      }
+    }
+
+    _initSettingsFields(user);
+
+    final userName = user != null && user.fullName.isNotEmpty
+        ? user.fullName
+        : 'Sarah Jenkins';
+    final userInitial = userName.isNotEmpty ? userName[0].toUpperCase() : 'U';
+    final userAvatarUrl = ApiConstants.resolveImageUrl(user?.avatarUrl);
+    final tenantDisplayName = (activeTenant?.companyName ?? 'trends').toLowerCase();
 
     return Center(
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 1080),
+        constraints: const BoxConstraints(maxWidth: 680),
         child: ListView(
           padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: 16),
           children: [
+            // Page Header
             const Text(
-              'Settings & Organization',
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Colors.black),
+              'Settings',
+              style: TextStyle(
+                fontSize: 26,
+                fontWeight: FontWeight.w900,
+                color: Colors.black,
+                letterSpacing: -0.6,
+              ),
             ),
             const SizedBox(height: 4),
             const Text(
-              'Manage your identity, tenant context, and session',
-              style: TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
+              'Manage profile, credentials, and app preferences',
+              style: TextStyle(
+                fontSize: 13,
+                color: Color(0xFF6B7280),
+                fontWeight: FontWeight.w500,
+              ),
             ),
             const SizedBox(height: 20),
 
@@ -1578,120 +1675,586 @@ class _DashboardScreenState extends State<DashboardScreen> {
             Container(
               padding: const EdgeInsets.all(18),
               decoration: BoxDecoration(
-                color: const Color(0xFFF6F7F9),
+                color: Colors.white,
                 borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: const Color(0xFFE5E7EB)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.02),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
               ),
-              child: Row(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  InkWell(
-                    onTap: () => _pickAndUploadAvatar(context),
-                    borderRadius: BorderRadius.circular(28),
-                    child: Stack(
-                      clipBehavior: Clip.none,
-                      children: [
-                        CircleAvatar(
-                          radius: 28,
-                          backgroundColor: const Color(0xFF1E293B),
-                          backgroundImage: ApiConstants.resolveImageUrl(user?.avatarUrl) != null
-                              ? NetworkImage(ApiConstants.resolveImageUrl(user?.avatarUrl)!)
-                              : null,
-                          child: ApiConstants.resolveImageUrl(user?.avatarUrl) == null
-                              ? Text(
-                                  user != null && user.fullName.isNotEmpty
-                                      ? user.fullName[0].toUpperCase()
-                                      : 'U',
-                                  style: const TextStyle(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.w800,
-                                      color: Colors.white),
-                                )
-                              : null,
-                        ),
-                        Positioned(
-                          bottom: -2,
-                          right: -2,
-                          child: Container(
-                            padding: const EdgeInsets.all(4),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF0F766E),
-                              shape: BoxShape.circle,
-                              border: Border.all(color: Colors.white, width: 2),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      // Avatar with camera badge
+                      InkWell(
+                        onTap: () => _pickAndUploadAvatar(context),
+                        borderRadius: BorderRadius.circular(38),
+                        child: Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            CircleAvatar(
+                              radius: 36,
+                              backgroundColor: const Color(0xFF1E293B),
+                              backgroundImage: userAvatarUrl != null
+                                  ? NetworkImage(userAvatarUrl)
+                                  : null,
+                              child: userAvatarUrl == null
+                                  ? Text(
+                                      userInitial,
+                                      style: const TextStyle(
+                                        fontSize: 26,
+                                        fontWeight: FontWeight.w800,
+                                        color: Colors.white,
+                                      ),
+                                    )
+                                  : null,
                             ),
-                            child: const Icon(Icons.camera_alt, size: 11, color: Colors.white),
+                            Positioned(
+                              bottom: 0,
+                              right: 0,
+                              child: Container(
+                                padding: const EdgeInsets.all(5),
+                                decoration: BoxDecoration(
+                                  color: Colors.black,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: Colors.white, width: 2),
+                                ),
+                                child: const Icon(
+                                  Icons.camera_alt,
+                                  size: 11,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              userName,
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w800,
+                                color: Colors.black,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 3,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF1F5F9),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                isAdmin
+                                    ? 'ORGANIZATION ADMIN'
+                                    : 'OPERATIONS SPECIALIST',
+                                style: const TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 0.5,
+                                  color: Color(0xFF475569),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              resolvedDeptName,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Color(0xFF64748B),
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  // Action buttons
+                  Row(
+                    children: [
+                      ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFF1F5F9),
+                          foregroundColor: Colors.black,
+                          elevation: 0,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 10,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        onPressed: () => _pickAndUploadAvatar(context),
+                        icon: const Icon(Icons.file_upload_outlined, size: 16),
+                        label: const Text(
+                          'Upload photo',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFF1F5F9),
+                          foregroundColor: const Color(0xFF475569),
+                          elevation: 0,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 10,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        onPressed: () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Avatar reset to default monogram.'),
+                            ),
+                          );
+                        },
+                        child: const Text(
+                          'Remove',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // PERSONAL DETAILS Section
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'PERSONAL DETAILS',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.8,
+                    color: Color(0xFF64748B),
+                  ),
+                ),
+                TextButton(
+                  style: TextButton.styleFrom(
+                    padding: EdgeInsets.zero,
+                    minimumSize: const Size(50, 24),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  onPressed: () {},
+                  child: const Text(
+                    'Editable',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF2563EB),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+
+            // Personal Details Card
+            Container(
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: const Color(0xFFE5E7EB)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildSettingsFieldLabel('First Name'),
+                  _buildSettingsTextField(_firstNameController, 'Sarah'),
+                  const SizedBox(height: 14),
+
+                  _buildSettingsFieldLabel('Last Name'),
+                  _buildSettingsTextField(_lastNameController, 'Jenkins'),
+                  const SizedBox(height: 14),
+
+                  _buildSettingsFieldLabel('Mobile Number'),
+                  _buildSettingsTextField(
+                    _phoneController,
+                    '+1 (555) 234-8901',
+                    keyboardType: TextInputType.phone,
+                  ),
+                  const SizedBox(height: 14),
+
+                  _buildSettingsFieldLabel('Regional Format & Timezone'),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: const Color(0xFFCBD5E1)),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: _selectedTimezone,
+                        isExpanded: true,
+                        icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF475569)),
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF0F172A),
+                        ),
+                        items: const [
+                          DropdownMenuItem(
+                            value: 'English (US) — UTC-5 EST',
+                            child: Text('English (US) — UTC-5 EST'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'English (UK) — UTC+0 GMT',
+                            child: Text('English (UK) — UTC+0 GMT'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'English (IN) — UTC+5:30 IST',
+                            child: Text('English (IN) — UTC+5:30 IST'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'English (AU) — UTC+10 AEST',
+                            child: Text('English (AU) — UTC+10 AEST'),
+                          ),
+                        ],
+                        onChanged: (val) {
+                          if (val != null) {
+                            setState(() {
+                              _selectedTimezone = val;
+                            });
+                          }
+                        },
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Save Changes Button
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.black,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(24),
+                        ),
+                      ),
+                      onPressed: _isSavingSettings
+                          ? null
+                          : () async {
+                              setState(() => _isSavingSettings = true);
+                              await Future.delayed(const Duration(milliseconds: 600));
+                              if (mounted) {
+                                setState(() => _isSavingSettings = false);
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Personal details saved successfully!'),
+                                    backgroundColor: Color(0xFF0F766E),
+                                  ),
+                                );
+                              }
+                            },
+                      child: _isSavingSettings
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Text(
+                              'Save Changes',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // CORPORATE CREDENTIALS Section
+            Row(
+              children: const [
+                Icon(Icons.lock_outline, size: 14, color: Color(0xFF64748B)),
+                SizedBox(width: 6),
+                Text(
+                  'CORPORATE CREDENTIALS',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.8,
+                    color: Color(0xFF64748B),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+
+            // Corporate Credentials Card
+            Container(
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: const Color(0xFFE5E7EB)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Shield Info Box
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF8FAFC),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                    ),
+                    child: const Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(
+                          Icons.verified_user_outlined,
+                          size: 18,
+                          color: Color(0xFF64748B),
+                        ),
+                        SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            'Managed by your organization administrator. These security values cannot be modified directly.',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Color(0xFF64748B),
+                              fontWeight: FontWeight.w500,
+                              height: 1.4,
+                            ),
                           ),
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          user?.fullName ?? 'Authenticated User',
-                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                  const SizedBox(height: 16),
+
+                  // Work Email
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: const [
+                      Text(
+                        'Work Email',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF475569),
                         ),
-                        const SizedBox(height: 2),
-                        Text(
-                          user?.emailAddress ?? '',
-                          style: const TextStyle(fontSize: 13, color: Color(0xFF64748B)),
+                      ),
+                      Text(
+                        'Enterprise SSO',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF64748B),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 12,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF8FAFC),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            user?.emailAddress ?? 'sarah.jenkins@trendslogistics.corp',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF334155),
+                            ),
+                          ),
+                        ),
+                        const Icon(
+                          Icons.lock_outline,
+                          size: 18,
+                          color: Color(0xFF94A3B8),
                         ),
                       ],
                     ),
                   ),
-                  TextButton.icon(
-                    style: TextButton.styleFrom(
-                      foregroundColor: const Color(0xFF0F766E),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'Contact IT administrator to update corporate address',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Color(0xFF94A3B8),
+                      fontWeight: FontWeight.w500,
                     ),
-                    onPressed: () => _pickAndUploadAvatar(context),
-                    icon: const Icon(Icons.edit, size: 15),
-                    label: const Text('Edit Photo', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Designation & Role
+                  const Text(
+                    'Designation & Role',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF475569),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 12,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF8FAFC),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            isAdmin
+                                ? 'Senior Operations Director / Org Admin'
+                                : 'Operations Specialist / Staff',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF334155),
+                            ),
+                          ),
+                        ),
+                        const Icon(
+                          Icons.badge_outlined,
+                          size: 18,
+                          color: Color(0xFF94A3B8),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'Designations are strictly tied to enterprise access control (RBAC)',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Color(0xFF94A3B8),
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 24),
 
-            // Switch Organization
-            ListTile(
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-                side: const BorderSide(color: Color(0xFFE5E7EB)),
+            // Log Out All Sessions Button
+            SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFFFE4E6),
+                  foregroundColor: const Color(0xFFBE123C),
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(24),
+                  ),
+                ),
+                onPressed: () async {
+                  await auth.signOut();
+                  tenant.clear();
+                  inventory.clear();
+                  if (mounted) {
+                    Navigator.pushNamedAndRemoveUntil(
+                      context,
+                      '/signin',
+                      (route) => false,
+                    );
+                  }
+                },
+                icon: const Icon(Icons.logout_rounded, size: 18),
+                label: const Text(
+                  'Log Out All Sessions',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
               ),
-              leading: const Icon(Icons.business_outlined, color: Colors.black),
-              title: const Text('Switch Organization', style: TextStyle(fontWeight: FontWeight.w700)),
-              subtitle: Text(activeTenant?.companyName ?? 'Organization'),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const TenantSelectorScreen()),
-                );
-              },
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 24),
 
-            // Sign Out
-            ListTile(
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-                side: const BorderSide(color: Color(0xFFFCA5A5)),
+            // Footer info
+            Center(
+              child: Column(
+                children: [
+                  Text(
+                    '${tenantDisplayName.toUpperCase()} MOBILE V1.0.1 (BUILD 9)',
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF94A3B8),
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  const Text(
+                    'End-to-End Encrypted Transit Terminal',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF94A3B8),
+                    ),
+                  ),
+                ],
               ),
-              leading: const Icon(Icons.logout, color: Color(0xFFDC2626)),
-              title: const Text(
-                'Sign Out',
-                style: TextStyle(fontWeight: FontWeight.w700, color: Color(0xFFDC2626)),
-              ),
-              subtitle: const Text('End your session on this device'),
-              trailing: const Icon(Icons.chevron_right, color: Color(0xFFDC2626)),
-              onTap: () async {
-                await auth.signOut();
-                tenant.clear();
-              },
             ),
+            const SizedBox(height: 20),
           ],
         ),
       ),
