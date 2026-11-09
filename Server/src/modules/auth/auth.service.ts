@@ -160,6 +160,7 @@ export class AuthService {
         email_address: user.email_address,
         department_id: user.department_id,
         avatar_url: user.avatar_url || null,
+        phone_number: user.phone_number || null,
       },
       available_tenants: tenants.map((t) => {
         const mem = memberships.find((m) => m.tenant_id === t.tenant_id);
@@ -220,6 +221,7 @@ export class AuthService {
         email_address: user.email_address,
         department_id: user.department_id,
         avatar_url: user.avatar_url || null,
+        phone_number: user.phone_number || null,
       },
       available_tenants: tenants.map((t) => {
         const mem = memberships.find((m) => m.tenant_id === t.tenant_id);

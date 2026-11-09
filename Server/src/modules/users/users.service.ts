@@ -73,5 +73,34 @@ export class UsersService {
   async removeAvatar(userId: string) {
     return this.updateAvatar(userId, null);
   }
+
+  async updateProfile(
+    userId: string,
+    data: { full_name?: string; phone_number?: string },
+  ) {
+    const user = await this.userModel.findOne({ user_id: userId });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (data.full_name !== undefined && data.full_name.trim().length > 0) {
+      user.full_name = data.full_name.trim();
+    }
+    if (data.phone_number !== undefined) {
+      user.phone_number = data.phone_number ? data.phone_number.trim() : null;
+    }
+
+    await user.save();
+
+    return {
+      user_id: user.user_id,
+      full_name: user.full_name,
+      email_address: user.email_address,
+      avatar_url: user.avatar_url || null,
+      phone_number: user.phone_number || null,
+      department_id: user.department_id,
+      account_status: user.account_status,
+    };
+  }
 }
 

@@ -8,12 +8,14 @@ class AuthUser {
   final String fullName;
   final String emailAddress;
   final String? avatarUrl;
+  final String? phoneNumber;
 
   AuthUser({
     required this.userId,
     required this.fullName,
     required this.emailAddress,
     this.avatarUrl,
+    this.phoneNumber,
   });
 
   factory AuthUser.fromJson(Map<String, dynamic> json) {
@@ -22,6 +24,7 @@ class AuthUser {
       fullName: json['full_name'] ?? '',
       emailAddress: json['email_address'] ?? '',
       avatarUrl: json['avatar_url'],
+      phoneNumber: json['phone_number'],
     );
   }
 
@@ -30,12 +33,14 @@ class AuthUser {
     String? fullName,
     String? emailAddress,
     String? avatarUrl,
+    String? phoneNumber,
   }) {
     return AuthUser(
       userId: userId ?? this.userId,
       fullName: fullName ?? this.fullName,
       emailAddress: emailAddress ?? this.emailAddress,
       avatarUrl: avatarUrl ?? this.avatarUrl,
+      phoneNumber: phoneNumber ?? this.phoneNumber,
     );
   }
 }
@@ -338,6 +343,44 @@ class AuthProvider extends ChangeNotifier {
       if (_user != null) {
         _user = _user!.copyWith(avatarUrl: '');
       }
+      _setLoading(false);
+      notifyListeners();
+      return true;
+    } on ApiException catch (e) {
+      _errorMessage = e.message;
+      _setLoading(false);
+      notifyListeners();
+      return false;
+    } catch (e) {
+      _errorMessage = e.toString();
+      _setLoading(false);
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> updateProfile({
+    required String fullName,
+    String? phoneNumber,
+  }) async {
+    _setLoading(true);
+    _errorMessage = null;
+
+    try {
+      final res = await apiClient.put('/users/profile', body: {
+        'full_name': fullName.trim(),
+        if (phoneNumber != null) 'phone_number': phoneNumber.trim(),
+      });
+
+      if (res is Map<String, dynamic>) {
+        _user = AuthUser.fromJson(res);
+      } else if (_user != null) {
+        _user = _user!.copyWith(
+          fullName: fullName.trim(),
+          phoneNumber: phoneNumber?.trim(),
+        );
+      }
+
       _setLoading(false);
       notifyListeners();
       return true;

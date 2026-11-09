@@ -42,6 +42,9 @@ export class User {
   @Prop({ type: String, default: null })
   avatar_url: string | null;
 
+  @Prop({ type: String, default: null, trim: true })
+  phone_number: string | null;
+
   @Prop({
     type: String,
     enum: Object.values(UserAccountStatus),

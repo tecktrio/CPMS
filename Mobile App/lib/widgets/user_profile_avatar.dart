@@ -17,9 +17,17 @@ class UserProfileAvatar extends StatelessWidget {
     final user = auth.user;
     final activeTenant = tenant.activeTenant;
 
-    final initial = (user != null && user.fullName.isNotEmpty)
-        ? user.fullName[0].toUpperCase()
-        : 'U';
+    String initials = 'BU';
+    if (user != null && user.fullName.trim().isNotEmpty) {
+      final parts = user.fullName.trim().split(RegExp(r'\s+'));
+      if (parts.length >= 2) {
+        initials = '${parts[0][0]}${parts[1][0]}'.toUpperCase();
+      } else if (parts[0].length >= 2) {
+        initials = parts[0].substring(0, 2).toUpperCase();
+      } else {
+        initials = parts[0][0].toUpperCase();
+      }
+    }
 
     final avatarUrl = ApiConstants.resolveImageUrl(user?.avatarUrl);
 
@@ -32,15 +40,16 @@ class UserProfileAvatar extends StatelessWidget {
           borderRadius: BorderRadius.circular(24),
           child: CircleAvatar(
             radius: 18,
-            backgroundColor: const Color(0xFF0F766E),
+            backgroundColor: const Color(0xFF111827),
             backgroundImage: avatarUrl != null ? NetworkImage(avatarUrl) : null,
             child: avatarUrl == null
                 ? Text(
-                    initial,
+                    initials,
                     style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.w800,
-                      fontSize: 15,
+                      fontSize: 13,
+                      letterSpacing: 0.5,
                     ),
                   )
                 : null,

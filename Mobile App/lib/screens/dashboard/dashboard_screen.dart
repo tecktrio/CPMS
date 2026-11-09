@@ -1728,9 +1728,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final parts = user.fullName.trim().split(' ');
     _firstNameController.text = parts.isNotEmpty ? parts.first : '';
     _lastNameController.text = parts.length > 1 ? parts.sublist(1).join(' ') : '';
-    if (_phoneController.text.isEmpty) {
-      _phoneController.text = '+1 (555) 234-8901';
-    }
+    _phoneController.text = user.phoneNumber ?? '';
     _settingsInitialized = true;
   }
 
@@ -2157,14 +2155,38 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       onPressed: _isSavingSettings
                           ? null
                           : () async {
+                              final firstName = _firstNameController.text.trim();
+                              final lastName = _lastNameController.text.trim();
+                              final fullName = [firstName, lastName]
+                                  .where((p) => p.isNotEmpty)
+                                  .join(' ');
+                              final phone = _phoneController.text.trim();
+
+                              if (fullName.isEmpty) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Please enter your name'),
+                                    backgroundColor: Colors.red,
+                                  ),
+                                );
+                                return;
+                              }
+
                               setState(() => _isSavingSettings = true);
-                              await Future.delayed(const Duration(milliseconds: 600));
+                              final authProvider = context.read<AuthProvider>();
+                              final ok = await authProvider.updateProfile(
+                                fullName: fullName,
+                                phoneNumber: phone,
+                              );
                               if (mounted) {
                                 setState(() => _isSavingSettings = false);
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Personal details saved successfully!'),
-                                    backgroundColor: Color(0xFF0F766E),
+                                  SnackBar(
+                                    content: Text(ok
+                                        ? 'Personal details saved successfully!'
+                                        : (authProvider.errorMessage ?? 'Update failed')),
+                                    backgroundColor:
+                                        ok ? const Color(0xFF0F766E) : Colors.red.shade700,
                                   ),
                                 );
                               }

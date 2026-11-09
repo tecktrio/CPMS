@@ -2,8 +2,10 @@ import {
   Controller,
   Get,
   Post,
+  Put,
   Delete,
   Param,
+  Body,
   UseGuards,
   UseInterceptors,
   UploadedFile,
@@ -38,6 +40,19 @@ export class UsersController {
     private readonly usersService: UsersService,
     private readonly storageService: StorageService,
   ) {}
+
+  @Put('profile')
+  @ApiOperation({
+    summary: 'Update current user personal profile',
+    description: 'Updates full name and/or phone number of the authenticated user.',
+  })
+  @ApiResponse({ status: 200, description: 'Profile updated successfully' })
+  async updateProfile(
+    @CurrentUser('user_id') userId: string,
+    @Body() body: { full_name?: string; phone_number?: string },
+  ) {
+    return this.usersService.updateProfile(userId, body);
+  }
 
   @Post('avatar')
   @UseInterceptors(FileInterceptor('image'))
