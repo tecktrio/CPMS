@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 import '../constants/api_constants.dart';
 
 class ApiException implements Exception {
@@ -115,10 +116,27 @@ class ApiClient {
       request.fields.addAll(fields);
     }
 
+    final ext = filename.split('.').last.toLowerCase();
+    MediaType contentType;
+    if (ext == 'png') {
+      contentType = MediaType('image', 'png');
+    } else if (ext == 'webp') {
+      contentType = MediaType('image', 'webp');
+    } else if (ext == 'gif') {
+      contentType = MediaType('image', 'gif');
+    } else if (ext == 'heic') {
+      contentType = MediaType('image', 'heic');
+    } else if (ext == 'heif') {
+      contentType = MediaType('image', 'heif');
+    } else {
+      contentType = MediaType('image', 'jpeg');
+    }
+
     final multipartFile = http.MultipartFile.fromBytes(
       fileField,
       bytes,
       filename: filename,
+      contentType: contentType,
     );
     request.files.add(multipartFile);
 

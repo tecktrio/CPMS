@@ -28,7 +28,29 @@ export class StorageService {
       'image/heic',
       'image/heif',
     ];
-    if (!allowedMimeTypes.includes(file.mimetype.toLowerCase())) {
+
+    const originalExt = (path.extname(file.originalname || '') || '').toLowerCase();
+    const extToMime: Record<string, string> = {
+      '.png': 'image/png',
+      '.jpg': 'image/jpeg',
+      '.jpeg': 'image/jpeg',
+      '.webp': 'image/webp',
+      '.gif': 'image/gif',
+      '.heic': 'image/heic',
+      '.heif': 'image/heif',
+    };
+
+    let effectiveMimeType = (file.mimetype || '').toLowerCase();
+    if (
+      effectiveMimeType === 'application/octet-stream' ||
+      !allowedMimeTypes.includes(effectiveMimeType)
+    ) {
+      if (extToMime[originalExt]) {
+        effectiveMimeType = extToMime[originalExt];
+      }
+    }
+
+    if (!allowedMimeTypes.includes(effectiveMimeType)) {
       throw new BadRequestException(
         `Invalid file type '${file.mimetype}'. Only JPEG, PNG, WEBP, GIF, and HEIC images are allowed.`,
       );
@@ -40,8 +62,8 @@ export class StorageService {
     const accessKeyId = s3Config?.accessKeyId;
     const secretAccessKey = s3Config?.secretAccessKey;
 
-    const originalExt = path.extname(file.originalname) || '.jpg';
-    const filename = `${uuidv4()}${originalExt}`;
+    const fileExt = originalExt || (effectiveMimeType === 'image/png' ? '.png' : '.jpg');
+    const filename = `${uuidv4()}${fileExt}`;
     const s3Key = `${folder}/${filename}`;
 
     // Upload to AWS S3 if credentials are fully configured
@@ -62,7 +84,7 @@ export class StorageService {
             Bucket: bucket,
             Key: s3Key,
             Body: file.buffer,
-            ContentType: file.mimetype,
+            ContentType: effectiveMimeType,
           }),
         );
 
