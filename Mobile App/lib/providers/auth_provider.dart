@@ -329,6 +329,31 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  Future<bool> removeProfilePicture() async {
+    _setLoading(true);
+    _errorMessage = null;
+
+    try {
+      await apiClient.delete('/users/avatar');
+      if (_user != null) {
+        _user = _user!.copyWith(avatarUrl: '');
+      }
+      _setLoading(false);
+      notifyListeners();
+      return true;
+    } on ApiException catch (e) {
+      _errorMessage = e.message;
+      _setLoading(false);
+      notifyListeners();
+      return false;
+    } catch (e) {
+      _errorMessage = e.toString();
+      _setLoading(false);
+      notifyListeners();
+      return false;
+    }
+  }
+
   Future<void> signOut() async {
     _token = null;
     _user = null;

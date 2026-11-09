@@ -1826,12 +1826,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             borderRadius: BorderRadius.circular(10),
                           ),
                         ),
-                        onPressed: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Avatar reset to default monogram.'),
-                            ),
-                          );
+                        onPressed: () async {
+                          final ok = await auth.removeProfilePicture();
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  ok
+                                      ? 'Profile picture removed and deleted from S3.'
+                                      : 'Failed to remove profile picture.',
+                                ),
+                                backgroundColor:
+                                    ok ? const Color(0xFF0F766E) : Colors.red,
+                              ),
+                            );
+                          }
                         },
                         child: const Text(
                           'Remove',

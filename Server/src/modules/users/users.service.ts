@@ -6,6 +6,7 @@ import {
   TenantMembership,
   TenantMembershipDocument,
 } from '../../database/schemas/tenant-membership.schema';
+import { StorageService } from '../storage/storage.service';
 
 @Injectable()
 export class UsersService {
@@ -14,6 +15,7 @@ export class UsersService {
     private readonly userModel: Model<UserDocument>,
     @InjectModel(TenantMembership.name)
     private readonly membershipModel: Model<TenantMembershipDocument>,
+    private readonly storageService: StorageService,
   ) {}
 
   async findAllInTenant(tenantId: string) {
@@ -46,21 +48,30 @@ export class UsersService {
     return user;
   }
 
-  async updateAvatar(userId: string, avatarUrl: string) {
-    const user = await this.userModel.findOneAndUpdate(
-      { user_id: userId },
-      { $set: { avatar_url: avatarUrl } },
-      { new: true },
-    );
+  async updateAvatar(userId: string, avatarUrl: string | null) {
+    const user = await this.userModel.findOne({ user_id: userId });
     if (!user) {
       throw new NotFoundException('User not found');
     }
+
+    // Delete old avatar from S3 if replacing with a new one or removing
+    if (user.avatar_url && user.avatar_url !== avatarUrl) {
+      await this.storageService.deleteFile(user.avatar_url);
+    }
+
+    user.avatar_url = avatarUrl;
+    await user.save();
+
     return {
       user_id: user.user_id,
       full_name: user.full_name,
       email_address: user.email_address,
       avatar_url: user.avatar_url,
     };
+  }
+
+  async removeAvatar(userId: string) {
+    return this.updateAvatar(userId, null);
   }
 }
 

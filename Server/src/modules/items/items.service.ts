@@ -19,6 +19,7 @@ import {
 } from '../../database/schemas/stock-batch.schema';
 import { CreateItemDto } from './dtos/create-item.dto';
 import { UpdateItemDto } from './dtos/update-item.dto';
+import { StorageService } from '../storage/storage.service';
 
 @Injectable()
 export class ItemsService {
@@ -29,6 +30,7 @@ export class ItemsService {
     private readonly storeRoomModel: Model<StoreRoomDocument>,
     @InjectModel(StockBatch.name)
     private readonly batchModel: Model<StockBatchDocument>,
+    private readonly storageService: StorageService,
   ) {}
 
   async create(tenantId: string, dto: CreateItemDto) {
@@ -198,8 +200,12 @@ export class ItemsService {
       item.reorder_threshold_quantity = dto.reorder_threshold_quantity;
     if (dto.stock_quantity !== undefined)
       item.stock_quantity = dto.stock_quantity;
-    if (dto.image_url !== undefined)
+    if (dto.image_url !== undefined && dto.image_url !== item.image_url) {
+      if (item.image_url) {
+        await this.storageService.deleteFile(item.image_url);
+      }
       item.image_url = dto.image_url;
+    }
 
     if (dto.storage_location_details) {
       if (dto.storage_location_details.store_room_id) {
@@ -232,6 +238,11 @@ export class ItemsService {
       throw new NotFoundException('Item not found');
     }
 
+    // Delete image from S3 if present
+    if (item.image_url) {
+      await this.storageService.deleteFile(item.image_url);
+    }
+
     // Clean up any remaining batch entries
     await this.batchModel.deleteMany({
       tenant_id: tenantId,
@@ -247,16 +258,22 @@ export class ItemsService {
   }
 
   async updateImage(tenantId: string, itemId: string, imageUrl: string) {
-    const item = await this.itemModel.findOneAndUpdate(
-      { tenant_id: tenantId, item_id: itemId },
-      { $set: { image_url: imageUrl } },
-      { new: true },
-    );
+    const item = await this.itemModel.findOne({
+      tenant_id: tenantId,
+      item_id: itemId,
+    });
 
     if (!item) {
       throw new NotFoundException('Item not found');
     }
 
+    // Delete previous image from S3 if present and different
+    if (item.image_url && item.image_url !== imageUrl) {
+      await this.storageService.deleteFile(item.image_url);
+    }
+
+    item.image_url = imageUrl;
+    await item.save();
     return item;
   }
 }

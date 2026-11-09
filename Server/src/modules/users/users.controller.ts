@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Delete,
   Param,
   UseGuards,
   UseInterceptors,
@@ -43,7 +44,7 @@ export class UsersController {
   @ApiConsumes('multipart/form-data')
   @ApiOperation({
     summary: 'Upload user profile picture',
-    description: 'Uploads avatar image to AWS S3 (or fallback storage) and updates the current user account.',
+    description: 'Uploads avatar image to AWS S3 (or fallback storage) and updates the current user account, replacing the previous image on S3.',
   })
   @ApiResponse({ status: 200, description: 'Profile picture updated successfully' })
   async uploadAvatar(
@@ -52,6 +53,16 @@ export class UsersController {
   ) {
     const avatarUrl = await this.storageService.uploadFile(file, 'avatars');
     return this.usersService.updateAvatar(userId, avatarUrl);
+  }
+
+  @Delete('avatar')
+  @ApiOperation({
+    summary: 'Remove user profile picture',
+    description: 'Deletes user avatar from S3 and sets avatar_url to null.',
+  })
+  @ApiResponse({ status: 200, description: 'Profile picture removed successfully' })
+  async removeAvatar(@CurrentUser('user_id') userId: string) {
+    return this.usersService.removeAvatar(userId);
   }
 
   @Get()
