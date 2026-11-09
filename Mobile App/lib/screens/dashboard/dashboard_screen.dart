@@ -1404,100 +1404,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  void _showRestockDialog(BuildContext context, ItemModel item) {
-    final suggestedQty = item.reorderShortfallQuantity > 0
-        ? (item.totalAvailableStock + item.reorderShortfallQuantity)
-        : (item.totalAvailableStock + 50);
-    final stockCtrl = TextEditingController(
-      text: suggestedQty.toStringAsFixed(0),
-    );
-    final formKey = GlobalKey<FormState>();
-
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        title: Text(
-          'Restock: ${item.itemName}',
-          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
-        ),
-        content: Form(
-          key: formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Current Stock: ${item.totalAvailableStock.toStringAsFixed(1)} ${item.measurementUnit}',
-                style: const TextStyle(fontSize: 13, color: Color(0xFF64748B)),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                'Reorder Threshold: ${item.reorderThresholdQuantity.toStringAsFixed(1)} ${item.measurementUnit}',
-                style: const TextStyle(
-                  fontSize: 13,
-                  color: Color(0xFFB45309),
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: stockCtrl,
-                autofocus: true,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                decoration: InputDecoration(
-                  labelText: 'New Total Stock (${item.measurementUnit}) *',
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                  prefixIcon: const Icon(Icons.inventory_2_outlined),
-                ),
-                validator: (val) {
-                  if (val == null || val.trim().isEmpty) return 'Enter quantity';
-                  final num = double.tryParse(val.trim());
-                  if (num == null || num < 0) return 'Enter valid quantity';
-                  return null;
-                },
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel', style: TextStyle(color: Color(0xFF64748B))),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.black,
-              foregroundColor: Colors.white,
-              elevation: 0,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            ),
-            onPressed: () async {
-              if (!formKey.currentState!.validate()) return;
-              final qty = double.parse(stockCtrl.text.trim());
-              Navigator.pop(ctx);
-
-              final inv = context.read<InventoryProvider>();
-              final ok = await inv.updateItemStock(item.itemId, qty);
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(ok
-                        ? '${item.itemName} stock updated to $qty ${item.measurementUnit}!'
-                        : (inv.errorMessage ?? 'Update failed')),
-                    backgroundColor: ok ? const Color(0xFF0F766E) : Colors.red,
-                  ),
-                );
-              }
-            },
-            child: const Text('Restock', style: TextStyle(fontWeight: FontWeight.w700)),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildAlertFilterPill({required String id, required String label}) {
     final isSelected = _selectedAlertFilter == id;
     return InkWell(
@@ -1692,25 +1598,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ),
                     ],
                   ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Top Row: Icon + Title/Details + Chevron
-                        InkWell(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => ItemDetailScreen(item: item),
-                              ),
-                            );
-                          },
-                          borderRadius: BorderRadius.circular(12),
-                          child: Row(
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(18),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => ItemDetailScreen(item: item),
+                        ),
+                      );
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Top Row: Amber Warning Icon + Details + Chevron
+                          Row(
                             children: [
-                              // Amber Warning Icon Box
                               Container(
                                 width: 44,
                                 height: 44,
@@ -1776,49 +1681,35 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               ),
                             ],
                           ),
-                        ),
-                        const SizedBox(height: 12),
-                        const Divider(height: 1, color: Color(0xFFF1F5F9)),
-                        const SizedBox(height: 12),
+                          const SizedBox(height: 12),
+                          const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                          const SizedBox(height: 12),
 
-                        // Bottom Row: Auto-flagged info + Restock button
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            Text(
-                              'Auto-flagged • Min: ${item.reorderThresholdQuantity.toStringAsFixed(0)} ${item.measurementUnit}',
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: Color(0xFF64748B),
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.black,
-                                foregroundColor: Colors.white,
-                                elevation: 0,
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 18,
-                                  vertical: 8,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10),
+                          // Bottom Row: Auto-flagged info + Shortfall alert
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Text(
+                                'Auto-flagged • Min: ${item.reorderThresholdQuantity.toStringAsFixed(0)} ${item.measurementUnit}',
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Color(0xFF64748B),
+                                  fontWeight: FontWeight.w500,
                                 ),
                               ),
-                              onPressed: () => _showRestockDialog(context, item),
-                              child: const Text(
-                                'Restock',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w800,
-                                  fontSize: 13,
+                              Text(
+                                'Shortfall: ${item.reorderShortfallQuantity.toStringAsFixed(0)} ${item.measurementUnit}',
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Color(0xFFB45309),
+                                  fontWeight: FontWeight.w700,
                                 ),
                               ),
-                            ),
-                          ],
-                        ),
-                      ],
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 );
