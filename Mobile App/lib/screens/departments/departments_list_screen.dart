@@ -56,19 +56,27 @@ class _DepartmentsListScreenState extends State<DepartmentsListScreen>
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Remove User from Organization'),
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text(
+          'Remove User from Organization',
+          style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
+        ),
         content: Text(
           'Are you sure you want to remove ${user.fullName.isNotEmpty ? user.fullName : user.emailAddress} from this organization and all its departments?',
+          style: const TextStyle(fontSize: 14, color: Color(0xFF64748B), height: 1.4),
         ),
+        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child: const Text('Cancel', style: TextStyle(color: Color(0xFF64748B))),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
+              backgroundColor: const Color(0xFFDC2626),
               foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
             onPressed: () async {
               Navigator.pop(ctx);
@@ -91,7 +99,7 @@ class _DepartmentsListScreenState extends State<DepartmentsListScreen>
                 );
               }
             },
-            child: const Text('Remove User'),
+            child: const Text('Remove User', style: TextStyle(fontWeight: FontWeight.w700)),
           ),
         ],
       ),
@@ -102,19 +110,27 @@ class _DepartmentsListScreenState extends State<DepartmentsListScreen>
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Deactivate Department'),
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text(
+          'Deactivate Department',
+          style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
+        ),
         content: Text(
           'Are you sure you want to deactivate "${dept.departmentName}"? Users assigned to this department will lose its associated permissions.',
+          style: const TextStyle(fontSize: 14, color: Color(0xFF64748B), height: 1.4),
         ),
+        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child: const Text('Cancel', style: TextStyle(color: Color(0xFF64748B))),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
+              backgroundColor: const Color(0xFFDC2626),
               foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
             onPressed: () async {
               Navigator.pop(ctx);
@@ -146,7 +162,7 @@ class _DepartmentsListScreenState extends State<DepartmentsListScreen>
                 );
               }
             },
-            child: const Text('Deactivate'),
+            child: const Text('Deactivate', style: TextStyle(fontWeight: FontWeight.w700)),
           ),
         ],
       ),
@@ -174,276 +190,127 @@ class _DepartmentsListScreenState extends State<DepartmentsListScreen>
     final canDeleteUser = isAdmin || tenant.hasPermission(AppPermissions.userDelete);
 
     Widget? fab;
-    if (_tabController.index == 0 && canCreateDept) {
-      fab = FloatingActionButton.extended(
-        backgroundColor: const Color(0xFFD97706),
-        foregroundColor: Colors.white,
-        icon: const Icon(Icons.add),
-        label: const Text('Create Department', style: TextStyle(fontWeight: FontWeight.bold)),
-        onPressed: () {
-          showDialog(
-            context: context,
-            builder: (_) => const CreateDepartmentDialog(),
-          );
-        },
+    if (_tabController.index == 0 && canAddUser) {
+      fab = Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        height: 48,
+        child: ElevatedButton.icon(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.black,
+            foregroundColor: Colors.white,
+            elevation: 4,
+            shadowColor: Colors.black.withValues(alpha: 0.3),
+            padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+          ),
+          icon: const Icon(Icons.person_add_outlined, size: 18, color: Colors.white),
+          label: const Text(
+            'Add User',
+            style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
+          ),
+          onPressed: () {
+            showDialog(
+              context: context,
+              builder: (_) => const AddTenantUserDialog(),
+            );
+          },
+        ),
       );
-    } else if (_tabController.index == 1 && canAddUser) {
-      fab = FloatingActionButton.extended(
-        backgroundColor: const Color(0xFF7C3AED),
-        foregroundColor: Colors.white,
-        icon: const Icon(Icons.person_add_outlined),
-        label: const Text('Add Staff User', style: TextStyle(fontWeight: FontWeight.bold)),
-        onPressed: () {
-          showDialog(
-            context: context,
-            builder: (_) => const AddTenantUserDialog(),
-          );
-        },
+    } else if (_tabController.index == 1 && canCreateDept) {
+      fab = Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        height: 48,
+        child: ElevatedButton.icon(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.black,
+            foregroundColor: Colors.white,
+            elevation: 4,
+            shadowColor: Colors.black.withValues(alpha: 0.3),
+            padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+          ),
+          icon: const Icon(Icons.add, size: 18, color: Colors.white),
+          label: const Text(
+            'Create Department',
+            style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
+          ),
+          onPressed: () {
+            showDialog(
+              context: context,
+              builder: (_) => const CreateDepartmentDialog(),
+            );
+          },
+        ),
       );
     }
 
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('Departments & Staff'),
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.black, size: 24),
+          onPressed: () => Navigator.pop(context),
+        ),
+        titleSpacing: 0,
+        title: const Text(
+          'Users & Departments',
+          style: TextStyle(
+            color: Colors.black,
+            fontSize: 20,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.5,
+          ),
+        ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh),
+            icon: const Icon(Icons.refresh, color: Colors.black, size: 22),
+            tooltip: 'Refresh',
             onPressed: _loadData,
           ),
-          const UserProfileAvatar(),
-          const SizedBox(width: 4),
+          const Padding(
+            padding: EdgeInsets.only(right: 8),
+            child: UserProfileAvatar(),
+          ),
         ],
-        bottom: TabBar(
-          controller: _tabController,
-          indicatorColor: const Color(0xFF0F766E),
-          labelColor: const Color(0xFF0F766E),
-          unselectedLabelColor: const Color(0xFF64748B),
-          tabs: [
-            Tab(
-              icon: const Icon(Icons.apartment, size: 20),
-              text: 'Departments (${tenant.tenantDepartments.length})',
-            ),
-            Tab(
-              icon: const Icon(Icons.people_outline, size: 20),
-              text: 'Staff Members (${deptProvider.tenantUsers.length})',
-            ),
-          ],
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(48),
+          child: Column(
+            children: [
+              TabBar(
+                controller: _tabController,
+                indicatorColor: Colors.black,
+                indicatorWeight: 2.5,
+                labelColor: Colors.black,
+                unselectedLabelColor: const Color(0xFF64748B),
+                labelStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
+                unselectedLabelStyle:
+                    const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                tabs: [
+                  Tab(
+                    text: 'Users (${deptProvider.tenantUsers.length})',
+                  ),
+                  Tab(
+                    text: 'Departments (${tenant.tenantDepartments.length})',
+                  ),
+                ],
+              ),
+              const Divider(height: 1, color: Color(0xFFF1F5F9)),
+            ],
+          ),
         ),
       ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+      floatingActionButton: fab,
       body: TabBarView(
         controller: _tabController,
         children: [
-          // Tab 1: Departments List
-          RefreshIndicator(
-            onRefresh: _loadData,
-            child: tenant.tenantDepartments.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.apartment, size: 64, color: Colors.grey.shade400),
-                        const SizedBox(height: 12),
-                        Text(
-                          'No departments configured yet',
-                          style: TextStyle(color: Colors.grey.shade600, fontSize: 16),
-                        ),
-                      ],
-                    ),
-                  )
-                : ListView.separated(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: tenant.tenantDepartments.length,
-                    separatorBuilder: (_, _) => const SizedBox(height: 12),
-                    itemBuilder: (context, index) {
-                      final d = tenant.tenantDepartments[index];
-                      return Card(
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          side: const BorderSide(color: Color(0xFFE2E8F0)),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(10),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFD97706).withValues(alpha: 0.1),
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: const Icon(Icons.apartment, color: Color(0xFFD97706)),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          d.departmentName,
-                                          style: const TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                        if (d.description.isNotEmpty) ...[
-                                          const SizedBox(height: 2),
-                                          Text(
-                                            d.description,
-                                            style: const TextStyle(
-                                              fontSize: 12,
-                                              color: Color(0xFF64748B),
-                                            ),
-                                          ),
-                                        ],
-                                      ],
-                                    ),
-                                  ),
-                                  Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFFF0FDFA),
-                                          borderRadius: BorderRadius.circular(20),
-                                          border: Border.all(color: const Color(0xFF99F6E4)),
-                                        ),
-                                        child: Text(
-                                          '${d.permissionIds.length} Perms',
-                                          style: const TextStyle(
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.w700,
-                                            color: Color(0xFF0F766E),
-                                          ),
-                                        ),
-                                      ),
-                                      if (canUpdateDept)
-                                        IconButton(
-                                          icon: const Icon(Icons.edit_outlined, size: 20, color: Color(0xFF0F766E)),
-                                          tooltip: 'Edit Department & Permissions',
-                                          onPressed: () {
-                                            showDialog(
-                                              context: context,
-                                              builder: (_) => CreateDepartmentDialog(
-                                                existingDepartment: d,
-                                              ),
-                                            );
-                                          },
-                                        ),
-                                      if (canDeleteDept)
-                                        IconButton(
-                                          icon: const Icon(Icons.delete_outline, size: 20, color: Colors.red),
-                                          tooltip: 'Deactivate Department',
-                                          onPressed: () => _confirmDeleteDepartment(d),
-                                        ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 12),
-                              Wrap(
-                                spacing: 6,
-                                runSpacing: 6,
-                                children: d.permissionIds.take(6).map((permId) {
-                                  return Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFF8FAFC),
-                                      borderRadius: BorderRadius.circular(6),
-                                      border: Border.all(color: const Color(0xFFE2E8F0)),
-                                    ),
-                                    child: Text(
-                                      permId,
-                                      style: const TextStyle(fontSize: 10, color: Color(0xFF475569)),
-                                    ),
-                                  );
-                                }).toList()
-                                  ..addAll(
-                                    d.permissionIds.length > 6
-                                        ? [
-                                            Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                              decoration: BoxDecoration(
-                                                color: const Color(0xFFF1F5F9),
-                                                borderRadius: BorderRadius.circular(6),
-                                              ),
-                                              child: Text(
-                                                '+${d.permissionIds.length - 6} more',
-                                                style: const TextStyle(
-                                                  fontSize: 10,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: Color(0xFF64748B),
-                                                ),
-                                              ),
-                                            ),
-                                          ]
-                                        : [],
-                                  ),
-                              ),
-                                if (canUpdateDept || canDeleteDept) ...[
-                                  const SizedBox(height: 12),
-                                  const Divider(height: 1, color: Color(0xFFF1F5F9)),
-                                  const SizedBox(height: 6),
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.end,
-                                    children: [
-                                      if (canUpdateDept)
-                                        TextButton.icon(
-                                          style: TextButton.styleFrom(
-                                            foregroundColor: const Color(0xFF0F766E),
-                                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                          ),
-                                          icon: const Icon(Icons.edit_outlined, size: 16),
-                                          label: const Text(
-                                            'Edit Permissions',
-                                            style: TextStyle(
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.w700,
-                                            ),
-                                          ),
-                                          onPressed: () {
-                                            showDialog(
-                                              context: context,
-                                              builder: (_) => CreateDepartmentDialog(
-                                                existingDepartment: d,
-                                              ),
-                                            );
-                                          },
-                                        ),
-                                      if (canDeleteDept) ...[
-                                        const SizedBox(width: 8),
-                                        TextButton.icon(
-                                          style: TextButton.styleFrom(
-                                            foregroundColor: Colors.red,
-                                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                          ),
-                                          icon: const Icon(Icons.delete_outline, size: 16),
-                                          label: const Text(
-                                            'Deactivate',
-                                            style: TextStyle(
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.w700,
-                                            ),
-                                          ),
-                                          onPressed: () => _confirmDeleteDepartment(d),
-                                        ),
-                                      ],
-                                    ],
-                                  ),
-                                ],
-                            ],
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-          ),
-
-          // Tab 2: Tenant Users List
+          // -------------------------------------------------------------------
+          // Tab 1: Users List
+          // -------------------------------------------------------------------
           RefreshIndicator(
             onRefresh: _loadData,
             child: deptProvider.tenantUsers.isEmpty
@@ -451,23 +318,46 @@ class _DepartmentsListScreenState extends State<DepartmentsListScreen>
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.people_outline, size: 64, color: Colors.grey.shade400),
-                        const SizedBox(height: 12),
-                        Text(
-                          'No staff members in directory',
-                          style: TextStyle(color: Colors.grey.shade600, fontSize: 16),
+                        Icon(Icons.people_outline, size: 64, color: Colors.grey.shade300),
+                        const SizedBox(height: 14),
+                        const Text(
+                          'No users registered yet',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.black,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        const Text(
+                          'Add staff members to grant department access.',
+                          style: TextStyle(fontSize: 13, color: Color(0xFF64748B)),
                         ),
                       ],
                     ),
                   )
-                : ListView.separated(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: deptProvider.tenantUsers.length,
-                    separatorBuilder: (_, _) => const SizedBox(height: 10),
+                : ListView.builder(
+                    padding: const EdgeInsets.fromLTRB(16, 14, 16, 90),
+                    itemCount: deptProvider.tenantUsers.length + 1,
                     itemBuilder: (context, index) {
+                      if (index == deptProvider.tenantUsers.length) {
+                        return const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 24),
+                          child: Center(
+                            child: Text(
+                              'Developed by Bigburry Hypersystems LLP',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Color(0xFF94A3B8),
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        );
+                      }
+
                       final u = deptProvider.tenantUsers[index];
 
-                      // Map user department names
                       final assignedDeptNames = u.departmentIds.map((deptId) {
                         final found = tenant.tenantDepartments.firstWhere(
                           (d) => d.departmentId == deptId,
@@ -483,111 +373,318 @@ class _DepartmentsListScreenState extends State<DepartmentsListScreen>
                         return found.departmentName;
                       }).toList();
 
-                      return Card(
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          side: const BorderSide(color: Color(0xFFE2E8F0)),
+                      final userInitial = u.fullName.isNotEmpty
+                          ? u.fullName[0].toUpperCase()
+                          : (u.emailAddress.isNotEmpty ? u.emailAddress[0].toUpperCase() : 'U');
+
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 12),
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
                         ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  CircleAvatar(
-                                    radius: 20,
-                                    backgroundColor: const Color(0xFF0F766E).withValues(alpha: 0.12),
-                                    child: Text(
-                                      (u.fullName.isNotEmpty
-                                              ? u.fullName[0]
-                                              : u.emailAddress[0])
-                                          .toUpperCase(),
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        color: Color(0xFF0F766E),
-                                      ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  width: 42,
+                                  height: 42,
+                                  decoration: BoxDecoration(
+                                    color: Colors.black,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  alignment: Alignment.center,
+                                  child: Text(
+                                    userInitial,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w900,
+                                      color: Colors.white,
+                                      fontSize: 16,
                                     ),
                                   ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          u.fullName.isNotEmpty ? u.fullName : 'Staff Member',
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        u.fullName.isNotEmpty ? u.fullName : 'Staff Member',
+                                        style: const TextStyle(
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w800,
+                                          color: Colors.black,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        u.emailAddress,
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          color: Color(0xFF64748B),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                if (canUpdateUser)
+                                  IconButton(
+                                    icon: const Icon(Icons.edit_outlined, size: 20),
+                                    tooltip: 'Update Departments',
+                                    onPressed: () {
+                                      showDialog(
+                                        context: context,
+                                        builder: (_) => AddTenantUserDialog(existingUser: u),
+                                      );
+                                    },
+                                  ),
+                                if (canDeleteUser)
+                                  IconButton(
+                                    icon: const Icon(Icons.delete_outline,
+                                        size: 20, color: Color(0xFFDC2626)),
+                                    tooltip: 'Remove from Tenant',
+                                    onPressed: () => _confirmRemoveUser(u),
+                                  ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            const Text(
+                              'ASSIGNED DEPARTMENTS',
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: Color(0xFF94A3B8),
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Wrap(
+                              spacing: 6,
+                              runSpacing: 4,
+                              children: assignedDeptNames.isEmpty
+                                  ? [
+                                      const Text(
+                                        'No departments assigned',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          color: Color(0xFF94A3B8),
+                                          fontStyle: FontStyle.italic,
+                                        ),
+                                      ),
+                                    ]
+                                  : assignedDeptNames.map((name) {
+                                      return Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 8, vertical: 4),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFF1F5F9),
+                                          borderRadius: BorderRadius.circular(6),
+                                        ),
+                                        child: Text(
+                                          name,
                                           style: const TextStyle(
-                                            fontSize: 15,
-                                            fontWeight: FontWeight.bold,
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w700,
+                                            color: Color(0xFF334155),
                                           ),
                                         ),
+                                      );
+                                    }).toList(),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+          ),
+
+          // -------------------------------------------------------------------
+          // Tab 2: Departments List
+          // -------------------------------------------------------------------
+          RefreshIndicator(
+            onRefresh: _loadData,
+            child: tenant.tenantDepartments.isEmpty
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.apartment, size: 64, color: Colors.grey.shade300),
+                        const SizedBox(height: 14),
+                        const Text(
+                          'No departments configured yet',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.black,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        const Text(
+                          'Create departments to organize operational permissions.',
+                          style: TextStyle(fontSize: 13, color: Color(0xFF64748B)),
+                        ),
+                      ],
+                    ),
+                  )
+                : ListView.builder(
+                    padding: const EdgeInsets.fromLTRB(16, 14, 16, 90),
+                    itemCount: tenant.tenantDepartments.length + 1,
+                    itemBuilder: (context, index) {
+                      if (index == tenant.tenantDepartments.length) {
+                        return const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 24),
+                          child: Center(
+                            child: Text(
+                              'Developed by Bigburry Hypersystems LLP',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Color(0xFF94A3B8),
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        );
+                      }
+
+                      final d = tenant.tenantDepartments[index];
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 12),
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  width: 42,
+                                  height: 42,
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF8FAFC),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                                  ),
+                                  child: const Icon(Icons.apartment,
+                                      color: Colors.black, size: 20),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        d.departmentName,
+                                        style: const TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w800,
+                                          color: Colors.black,
+                                        ),
+                                      ),
+                                      if (d.description.isNotEmpty) ...[
+                                        const SizedBox(height: 2),
                                         Text(
-                                          u.emailAddress,
+                                          d.description,
                                           style: const TextStyle(
                                             fontSize: 12,
                                             color: Color(0xFF64748B),
                                           ),
                                         ),
                                       ],
+                                    ],
+                                  ),
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF1F5F9),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Text(
+                                    '${d.permissionIds.length} Perms',
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w800,
+                                      color: Color(0xFF334155),
                                     ),
                                   ),
-                                  if (canUpdateUser)
-                                    IconButton(
-                                      icon: const Icon(Icons.edit_outlined, size: 20),
-                                      tooltip: 'Update Departments',
-                                      onPressed: () {
-                                        showDialog(
-                                          context: context,
-                                          builder: (_) => AddTenantUserDialog(existingUser: u),
-                                        );
-                                      },
-                                    ),
-                                  if (canDeleteUser)
-                                    IconButton(
-                                      icon: const Icon(Icons.delete_outline, size: 20, color: Colors.red),
-                                      tooltip: 'Remove from Tenant',
-                                      onPressed: () => _confirmRemoveUser(u),
-                                    ),
-                                ],
-                              ),
-                              const SizedBox(height: 10),
-                              const Text(
-                                'Assigned Departments:',
-                                style: TextStyle(fontSize: 11, color: Color(0xFF94A3B8), fontWeight: FontWeight.w600),
-                              ),
-                              const SizedBox(height: 4),
-                              Wrap(
-                                spacing: 6,
-                                runSpacing: 4,
-                                children: assignedDeptNames.isEmpty
-                                    ? [
-                                        const Text(
-                                          'No departments assigned',
-                                          style: TextStyle(fontSize: 11, color: Colors.grey),
+                                ),
+                                if (canUpdateDept)
+                                  IconButton(
+                                    icon: const Icon(Icons.edit_outlined, size: 20),
+                                    tooltip: 'Edit Department & Permissions',
+                                    onPressed: () {
+                                      showDialog(
+                                        context: context,
+                                        builder: (_) => CreateDepartmentDialog(
+                                          existingDepartment: d,
                                         ),
-                                      ]
-                                    : assignedDeptNames.map((name) {
-                                        return Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                          decoration: BoxDecoration(
-                                            color: const Color(0xFFF0FDFA),
-                                            borderRadius: BorderRadius.circular(6),
-                                            border: Border.all(color: const Color(0xFF99F6E4)),
-                                          ),
-                                          child: Text(
-                                            name,
-                                            style: const TextStyle(
-                                              fontSize: 11,
-                                              fontWeight: FontWeight.w600,
-                                              color: Color(0xFF0F766E),
+                                      );
+                                    },
+                                  ),
+                                if (canDeleteDept)
+                                  IconButton(
+                                    icon: const Icon(Icons.delete_outline,
+                                        size: 20, color: Color(0xFFDC2626)),
+                                    tooltip: 'Deactivate Department',
+                                    onPressed: () => _confirmDeleteDepartment(d),
+                                  ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            Wrap(
+                              spacing: 6,
+                              runSpacing: 6,
+                              children: d.permissionIds.take(6).map((permId) {
+                                return Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 3),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF8FAFC),
+                                    borderRadius: BorderRadius.circular(6),
+                                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                                  ),
+                                  child: Text(
+                                    permId,
+                                    style: const TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w600,
+                                        color: Color(0xFF475569)),
+                                  ),
+                                );
+                              }).toList()
+                                ..addAll(
+                                  d.permissionIds.length > 6
+                                      ? [
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 8, vertical: 3),
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFFF1F5F9),
+                                              borderRadius: BorderRadius.circular(6),
+                                            ),
+                                            child: Text(
+                                              '+${d.permissionIds.length - 6} more',
+                                              style: const TextStyle(
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.w800,
+                                                color: Color(0xFF64748B),
+                                              ),
                                             ),
                                           ),
-                                        );
-                                      }).toList(),
-                              ),
-                            ],
-                          ),
+                                        ]
+                                      : [],
+                                ),
+                            ),
+                          ],
                         ),
                       );
                     },
@@ -595,7 +692,6 @@ class _DepartmentsListScreenState extends State<DepartmentsListScreen>
           ),
         ],
       ),
-      floatingActionButton: fab,
     );
   }
 }

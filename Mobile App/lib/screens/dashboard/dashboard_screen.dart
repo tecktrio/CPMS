@@ -503,32 +503,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
         },
       ),
       _DashboardModuleItem(
-        title: 'Departments',
-        subtitle: 'Structure & RBAC',
-        badgeText: '$departmentsBadgeCount Units',
-        icon: Icons.apartment,
-        isPermitted: hasDeptAccess,
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-                builder: (_) =>
-                    const DepartmentsListScreen(initialTabIndex: 0)),
-          );
-        },
-      ),
-      _DashboardModuleItem(
-        title: 'Staff Directory',
-        subtitle: 'Team & Access Control',
-        badgeText: '$staffBadgeCount Staff',
+        title: 'Users & Departments',
+        subtitle: 'Staff, Structure & RBAC',
+        badgeText: staffBadgeCount > 0 ? '$staffBadgeCount Users' : '$departmentsBadgeCount Depts',
         icon: Icons.people_outline,
-        isPermitted: hasUserAccess,
+        isPermitted: hasDeptAccess || hasUserAccess,
         onTap: () {
           Navigator.push(
             context,
             MaterialPageRoute(
-                builder: (_) =>
-                    const DepartmentsListScreen(initialTabIndex: 1)),
+                builder: (_) => const DepartmentsListScreen()),
           );
         },
       ),
@@ -989,8 +973,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     final showItems = _selectedSearchModule == 'ALL' || _selectedSearchModule == 'ITEMS';
     final showRooms = _selectedSearchModule == 'ALL' || _selectedSearchModule == 'STORE_ROOMS';
-    final showDepts = _selectedSearchModule == 'ALL' || _selectedSearchModule == 'DEPARTMENTS';
-    final showStaff = _selectedSearchModule == 'ALL' || _selectedSearchModule == 'STAFF';
+    final showDepts = _selectedSearchModule == 'ALL' || _selectedSearchModule == 'USERS_DEPTS';
+    final showStaff = _selectedSearchModule == 'ALL' || _selectedSearchModule == 'USERS_DEPTS';
 
     final totalResults = (showItems ? matchingItems.length : 0) +
         (showRooms ? matchingRooms.length : 0) +
@@ -1073,14 +1057,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                   const SizedBox(width: 8),
                   _buildSearchFilterPill(
-                    id: 'DEPARTMENTS',
-                    label: 'Departments',
-                    icon: Icons.apartment,
-                  ),
-                  const SizedBox(width: 8),
-                  _buildSearchFilterPill(
-                    id: 'STAFF',
-                    label: 'Staff Directory',
+                    id: 'USERS_DEPTS',
+                    label: 'Users & Departments',
                     icon: Icons.people_outline,
                   ),
                 ],
