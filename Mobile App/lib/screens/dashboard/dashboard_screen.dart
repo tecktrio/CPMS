@@ -1184,10 +1184,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
                         // SECTION: STAFF DIRECTORY
                         if (showStaff && matchingStaff.isNotEmpty) ...[
-                          _buildSearchSectionHeader('STAFF DIRECTORY'),
+                          _buildSearchSectionHeader('USERS'),
                           ...matchingStaff.map((staff) {
                             return _buildSearchResultCard(
                               leadingIcon: Icons.people_outline,
+                              imageUrl: staff.avatarUrl,
                               title: staff.fullName.isNotEmpty ? staff.fullName : staff.emailAddress,
                               subtitleLine1: staff.emailAddress,
                               subtitleLine2: '${staff.departmentIds.length} Assigned Departments',
@@ -1197,7 +1198,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   context,
                                   MaterialPageRoute(
                                     builder: (_) =>
-                                        const DepartmentsListScreen(initialTabIndex: 1),
+                                        const DepartmentsListScreen(initialTabIndex: 0),
                                   ),
                                 );
                               },

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../core/constants/api_constants.dart';
 import '../../core/constants/permissions.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/department_provider.dart';
@@ -373,9 +374,21 @@ class _DepartmentsListScreenState extends State<DepartmentsListScreen>
                         return found.departmentName;
                       }).toList();
 
-                      final userInitial = u.fullName.isNotEmpty
-                          ? u.fullName[0].toUpperCase()
-                          : (u.emailAddress.isNotEmpty ? u.emailAddress[0].toUpperCase() : 'U');
+                      String userInitials = 'U';
+                      if (u.fullName.trim().isNotEmpty) {
+                        final parts = u.fullName.trim().split(RegExp(r'\s+'));
+                        if (parts.length >= 2) {
+                          userInitials = '${parts[0][0]}${parts[1][0]}'.toUpperCase();
+                        } else if (parts[0].length >= 2) {
+                          userInitials = parts[0].substring(0, 2).toUpperCase();
+                        } else {
+                          userInitials = parts[0][0].toUpperCase();
+                        }
+                      } else if (u.emailAddress.isNotEmpty) {
+                        userInitials = u.emailAddress[0].toUpperCase();
+                      }
+
+                      final resolvedAvatar = ApiConstants.resolveImageUrl(u.avatarUrl);
 
                       return Container(
                         margin: const EdgeInsets.only(bottom: 12),
@@ -390,21 +403,47 @@ class _DepartmentsListScreenState extends State<DepartmentsListScreen>
                           children: [
                             Row(
                               children: [
-                                Container(
-                                  width: 42,
-                                  height: 42,
-                                  decoration: BoxDecoration(
-                                    color: Colors.black,
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  alignment: Alignment.center,
-                                  child: Text(
-                                    userInitial,
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.w900,
-                                      color: Colors.white,
-                                      fontSize: 16,
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: Container(
+                                    width: 44,
+                                    height: 44,
+                                    decoration: BoxDecoration(
+                                      color: Colors.black,
+                                      borderRadius: BorderRadius.circular(12),
                                     ),
+                                    child: resolvedAvatar != null
+                                        ? Image.network(
+                                            resolvedAvatar,
+                                            width: 44,
+                                            height: 44,
+                                            fit: BoxFit.cover,
+                                            errorBuilder: (ctx, err, stack) =>
+                                                Container(
+                                              color: Colors.black,
+                                              alignment: Alignment.center,
+                                              child: Text(
+                                                userInitials,
+                                                style: const TextStyle(
+                                                  fontWeight: FontWeight.w900,
+                                                  color: Colors.white,
+                                                  fontSize: 15,
+                                                ),
+                                              ),
+                                            ),
+                                          )
+                                        : Container(
+                                            color: Colors.black,
+                                            alignment: Alignment.center,
+                                            child: Text(
+                                              userInitials,
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.w900,
+                                                color: Colors.white,
+                                                fontSize: 15,
+                                              ),
+                                            ),
+                                          ),
                                   ),
                                 ),
                                 const SizedBox(width: 12),

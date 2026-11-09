@@ -32,6 +32,7 @@ class TenantUserModel {
   final String userId;
   final String fullName;
   final String emailAddress;
+  final String? avatarUrl;
   final List<String> departmentIds;
   final String accountStatus;
 
@@ -39,6 +40,7 @@ class TenantUserModel {
     required this.userId,
     required this.fullName,
     required this.emailAddress,
+    this.avatarUrl,
     required this.departmentIds,
     required this.accountStatus,
   });
@@ -48,6 +50,7 @@ class TenantUserModel {
       userId: json['user_id'] ?? '',
       fullName: json['full_name'] ?? '',
       emailAddress: json['email_address'] ?? '',
+      avatarUrl: json['avatar_url'],
       departmentIds: (json['department_ids'] as List<dynamic>?)
               ?.map((e) => e.toString())
               .toList() ??
