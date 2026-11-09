@@ -681,3 +681,4 @@ class _EditDepartmentScreenState extends State<EditDepartmentScreen> {
     );
   }
 }
+
