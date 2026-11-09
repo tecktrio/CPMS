@@ -6,8 +6,8 @@ import '../../providers/auth_provider.dart';
 import '../../providers/department_provider.dart';
 import '../../providers/tenant_provider.dart';
 import '../../widgets/user_profile_avatar.dart';
-import 'add_tenant_user_dialog.dart';
-import 'create_department_dialog.dart';
+import 'edit_department_screen.dart';
+import 'update_user_departments_screen.dart';
 
 class DepartmentsListScreen extends StatefulWidget {
   final int initialTabIndex;
@@ -210,10 +210,12 @@ class _DepartmentsListScreenState extends State<DepartmentsListScreen>
             style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
           ),
           onPressed: () {
-            showDialog(
-              context: context,
-              builder: (_) => const AddTenantUserDialog(),
-            );
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const UpdateUserDepartmentsScreen(),
+              ),
+            ).then((_) => _loadData());
           },
         ),
       );
@@ -236,10 +238,12 @@ class _DepartmentsListScreenState extends State<DepartmentsListScreen>
             style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
           ),
           onPressed: () {
-            showDialog(
-              context: context,
-              builder: (_) => const CreateDepartmentDialog(),
-            );
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const EditDepartmentScreen(),
+              ),
+            ).then((_) => _loadData());
           },
         ),
       );
@@ -475,10 +479,12 @@ class _DepartmentsListScreenState extends State<DepartmentsListScreen>
                                     icon: const Icon(Icons.edit_outlined, size: 20),
                                     tooltip: 'Update Departments',
                                     onPressed: () {
-                                      showDialog(
-                                        context: context,
-                                        builder: (_) => AddTenantUserDialog(existingUser: u),
-                                      );
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => UpdateUserDepartmentsScreen(existingUser: u),
+                                        ),
+                                      ).then((_) => _loadData());
                                     },
                                   ),
                                 if (canDeleteUser)
@@ -661,12 +667,14 @@ class _DepartmentsListScreenState extends State<DepartmentsListScreen>
                                     icon: const Icon(Icons.edit_outlined, size: 20),
                                     tooltip: 'Edit Department & Permissions',
                                     onPressed: () {
-                                      showDialog(
-                                        context: context,
-                                        builder: (_) => CreateDepartmentDialog(
-                                          existingDepartment: d,
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => EditDepartmentScreen(
+                                            existingDepartment: d,
+                                          ),
                                         ),
-                                      );
+                                      ).then((_) => _loadData());
                                     },
                                   ),
                                 if (canDeleteDept)
