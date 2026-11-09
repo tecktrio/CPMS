@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy Policy - Cyan International</title>
+    <style>
+        :root {
+            --primary-color: #0284c7;
+            --primary-hover: #0369a1;
+            --text-main: #0f172a;
+            --text-muted: #475569;
+            --bg-page: #f8fafc;
+            --bg-card: #ffffff;
+            --border-color: #e2e8f0;
+            --accent-bg: #f0f9ff;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+            color: var(--text-main);
+            background-color: var(--bg-page);
+            line-height: 1.6;
+        }
+
+        /* Top Bar */
+        .navbar {
+            background-color: var(--bg-card);
+            border-bottom: 1px solid var(--border-color);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            padding: 15px 20px;
+        }
+
+        .navbar-content {
+            max-width: 1100px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .brand-name {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            text-decoration: none;
+        }
+
+        .nav-links a {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.9rem;
+            margin-left: 20px;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover {
+            color: var(--primary-color);
+        }
+
+        /* Container Layout */
+        .container {
+            max-width: 1100px;
+            margin: 30px auto;
+            padding: 0 20px;
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            gap: 30px;
+        }
+
+        /* Sidebar Navigation */
+        .sidebar {
+            position: sticky;
+            top: 80px;
+            height: fit-content;
+            background: var(--bg-card);
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+        }
+
+        .sidebar h3 {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            margin-bottom: 12px;
+        }
+
+        .sidebar ul {
+            list-style: none;
+        }
+
+        .sidebar li {
+            margin-bottom: 8px;
+        }
+
+        .sidebar a {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.9rem;
+            display: block;
+            padding: 6px 10px;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+
+        .sidebar a:hover {
+            background-color: var(--accent-bg);
+            color: var(--primary-color);
+        }
+
+        /* Main Content */
+        .main-content {
+            background: var(--bg-card);
+            padding: 40px;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+        }
+
+        .header {
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.2rem;
+            color: var(--text-main);
+            margin-bottom: 8px;
+        }
+
+        .effective-date {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+        }
+
+        /* Key Highlights Grid */
+        .highlights-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px;
+            margin: 25px 0 35px 0;
+        }
+
+        .highlight-card {
+            background-color: var(--accent-bg);
+            border: 1px solid #bae6fd;
+            padding: 16px;
+            border-radius: 8px;
+        }
+
+        .highlight-card h4 {
+            color: var(--primary-hover);
+            font-size: 0.95rem;
+            margin-bottom: 6px;
+        }
+
+        .highlight-card p {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin: 0;
+        }
+
+        /* Typography & Structure */
+        section {
+            margin-bottom: 40px;
+            scroll-margin-top: 100px;
+        }
+
+        h2 {
+            font-size: 1.4rem;
+            color: var(--text-main);
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+        }
+
+        p {
+            margin-bottom: 14px;
+            color: var(--text-muted);
+        }
+
+        ul {
+            margin-left: 20px;
+            margin-bottom: 16px;
+            color: var(--text-muted);
+        }
+
+        li {
+            margin-bottom: 8px;
+        }
+
+        .table-responsive {
+            overflow-x: auto;
+            margin: 20px 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+
+        th,
+        td {
+            padding: 12px 15px;
+            text-align: left;
+            border: 1px solid var(--border-color);
+        }
+
+        th {
+            background-color: #f1f5f9;
+            color: var(--text-main);
+        }
+
+        .contact-box {
+            background-color: var(--accent-bg);
+            border: 1px solid #bae6fd;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+
+        .contact-box a {
+            color: var(--primary-color);
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        /* Responsive */
+        @media (max-width: 900px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar {
+                display: none;
+            }
+
+            .main-content {
+                padding: 24px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Header Navigation -->
+    <nav class="navbar">
+        <div class="navbar-content">
+            <a href="#" class="brand-name">Cyan International</a>
+            <div class="nav-links">
+                <a href="#contact">Contact Support</a>
+                <a href="#deletion">Data Deletion</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- Table of Contents Sidebar -->
+        <aside class="sidebar">
+            <h3>Table of Contents</h3>
+            <ul>
+                <li><a href="#overview">Overview</a></li>
+                <li><a href="#collection">Data Collection</a></li>
+                <li><a href="#permissions">Device Permissions</a></li>
+                <li><a href="#usage">How Data Is Used</a></li>
+                <li><a href="#third-parties">Third-Party Services</a></li>
+                <li><a href="#retention">Data Retention & Deletion</a></li>
+                <li><a href="#children">Children's Privacy</a></li>
+                <li><a href="#security">Data Security</a></li>
+                <li><a href="#rights">User Rights</a></li>
+                <li><a href="#contact">Contact Us</a></li>
+            </ul>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <div class="header">
+                <h1>Privacy Policy</h1>
+                <p class="effective-date">Effective Date: November 9, 2026 | Last Updated: November 9, 2026</p>
+            </div>
+
+            <p>This Privacy Policy explains how <strong>Cyan International</strong> ("Company", "we", "us", or "our")
+                collects, uses, shares, and protects your information when you use our mobile applications and digital
+                services available via the Google Play Store.</p>
+
+            <!-- Play Store Compliance Summary -->
+            <div class="highlights-grid">
+                <div class="highlight-card">
+                    <h4>No Data Selling</h4>
+                    <p>Cyan International does not sell your personal or sensitive data to third parties.</p>
+                </div>
+                <div class="highlight-card">
+                    <h4>Encrypted Data</h4>
+                    <p>All data transmitted between your device and servers is encrypted in transit (HTTPS/TLS).</p>
+                </div>
+                <div class="highlight-card">
+                    <h4>Data Deletion</h4>
+                    <p>You have the right to request full account and personal data erasure at any time.</p>
+                </div>
+            </div>
+
+            <!-- Sections -->
+            <section id="overview">
+                <h2>1. Overview</h2>
+                <p>We respect your privacy and are committed to protecting it through compliance with this policy.
+                    Please read this Privacy Policy carefully to understand our policies and practices regarding your
+                    information and how we will treat it. If you do not agree with our policies and practices, your
+                    choice is not to use our applications.</p>
+            </section>
+
+            <section id="collection">
+                <h2>2. Information We Collect</h2>
+                <p>We collect several types of information from and about users of our applications, including:</p>
+                <ul>
+                    <li><strong>Personal Identifiers:</strong> Name, email address (e.g., when registering an account),
+                        phone number, and unique device identifiers.</li>
+                    <li><strong>Account & Authentication Credentials:</strong> Encrypted passwords, security tokens, and
+                        authentication session data.</li>
+                    <li><strong>Usage Data:</strong> Application launch frequency, feature interaction, crash logs,
+                        diagnostic performance reports, and system log files.</li>
+                    <li><strong>Financial Information:</strong> Payment details processed securely through compliant
+                        third-party payment gateways (e.g., BillDesk, Stripe). We do not directly store credit card
+                        numbers or banking PINs.</li>
+                </ul>
+            </section>
+
+            <section id="permissions">
+                <h2>3. Android Device Permissions</h2>
+                <p>To provide specific functional features, our applications may request access to certain system
+                    permissions on your Android device:</p>
+
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Permission</th>
+                                <th>Purpose / Usage</th>
+                                <th>Optional / Required</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><code>INTERNET</code></td>
+                                <td>Allows the app to connect to network services and server endpoints.</td>
+                                <td>Required</td>
+                            </tr>
+                            <tr>
+                                <td><code>ACCESS_NETWORK_STATE</code></td>
+                                <td>Checks active internet connectivity status to prevent failed network requests.</td>
+                                <td>Required</td>
+                            </tr>
+                            <tr>
+                                <td><code>POST_NOTIFICATIONS</code></td>
+                                <td>Delivers account updates, system alerts, and security notifications.</td>
+                                <td>Optional</td>
+                            </tr>
+                            <tr>
+                                <td><code>CAMERA / GALLERY</code></td>
+                                <td>Allows uploading profile images, document scans, or attachments within the app.</td>
+                                <td>Optional</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section id="usage">
+                <h2>4. How We Use Your Information</h2>
+                <p>Cyan International uses the collected information for legitimate operational and business purposes,
+                    including:</p>
+                <ul>
+                    <li>Providing, maintaining, and improving our application services and backend APIs.</li>
+                    <li>Authenticating user sessions and securing user accounts against unauthorized access.</li>
+                    <li>Processing financial transactions and sending receipt notifications.</li>
+                    <li>Monitoring app stability, debugging runtime crashes, and optimizing user interface
+                        responsiveness.</li>
+                    <li>Complying with legal obligations, enforce terms of service, and prevent fraud.</li>
+                </ul>
+            </section>
+
+            <section id="third-parties">
+                <h2>5. Third-Party Services & Sub-Processors</h2>
+                <p>We may share limited anonymized data with trusted third-party service providers to support
+                    application operation and performance monitoring. These services operate under strict
+                    confidentiality agreements:</p>
+                <ul>
+                    <li><strong>Google Play Services:</strong> Used for core application distribution, updates, and
+                        licensing.</li>
+                    <li><strong>Firebase Analytics / Crashlytics:</strong> Used for collecting anonymous crash logs and
+                        stability monitoring.</li>
+                    <li><strong>Payment Gateways:</strong> Used for secure transaction processing.</li>
+                </ul>
+            </section>
+
+            <section id="retention" class="deletion-section">
+                <h2>6. Data Retention & Account Deletion Policy</h2>
+                <p>We retain your personal data only for as long as necessary to fulfill the purposes outlined in this
+                    Privacy Policy, unless a longer retention period is required by law.</p>
+                <p id="deletion"><strong>How to Request Data Deletion:</strong></p>
+                <p>In accordance with Google Play Developer Policy rules, users can request the complete deletion of
+                    their account and associated data. To request account erasure, email us at <a
+                        href="mailto:cloud.cyaninternational@gmail.com">cloud.cyaninternational@gmail.com</a> with the
+                    subject line <code>Data Deletion Request</code>. We will process and confirm deletion within 30
+                    calendar days.</p>
+            </section>
+
+            <section id="children">
+                <h2>7. Children's Privacy</h2>
+                <p>Our applications are not intended for children under 13 years of age. We do not knowingly collect
+                    personal information from children under 13. If we learn we have collected or received personal
+                    information from a child under 13 without verification of parental consent, we will delete that
+                    information immediately.</p>
+            </section>
+
+            <section id="security">
+                <h2>8. Data Security Measures</h2>
+                <p>We implement administrative, technical, and physical safeguards to protect your personal information
+                    from unauthorized access, loss, misuse, or alteration. All network communications are encrypted
+                    using HTTPS (SSL/TLS), and sensitive database storage uses industry-standard encryption protocols.
+                </p>
+            </section>
+
+            <section id="rights">
+                <h2>9. Your Privacy Rights</h2>
+                <p>Depending on your region, you have rights regarding your personal data, including the right to
+                    access, correct, port, or restrict processing of your information. You may exercise these rights at
+                    any time by contacting our privacy compliance team.</p>
+            </section>
+
+            <section id="contact">
+                <h2>10. Contact Us</h2>
+                <p>If you have questions, concerns, or requests regarding this Privacy Policy or our privacy practices,
+                    please reach out to us:</p>
+                <div class="contact-box">
+                    <p><strong>Company Name:</strong> Cyan International</p>
+                    <p><strong>Email Contact:</strong> <a
+                            href="mailto:cloud.cyaninternational@gmail.com">cloud.cyaninternational@gmail.com</a></p>
+                    <p><strong>Support Operating Hours:</strong> Monday – Friday (9:00 AM – 6:00 PM IST)</p>
+                </div>
+            </section>
+        </main>
+    </div>
+
+</body>
+
+</html>

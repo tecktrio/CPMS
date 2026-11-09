@@ -166,6 +166,59 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
     }
   }
 
+  Widget _buildFieldLabel(String label) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Text(
+        label,
+        style: const TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w800,
+          color: Color(0xFF64748B),
+          letterSpacing: 0.5,
+        ),
+      ),
+    );
+  }
+
+  InputDecoration _buildInputDecoration({
+    required String hintText,
+    required Widget prefixIcon,
+  }) {
+    return InputDecoration(
+      hintText: hintText,
+      hintStyle: const TextStyle(
+        color: Color(0xFF94A3B8),
+        fontSize: 14,
+        fontWeight: FontWeight.w400,
+      ),
+      prefixIcon: prefixIcon,
+      filled: true,
+      fillColor: Colors.white,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Colors.black, width: 1.5),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Colors.red),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Colors.red, width: 1.5),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final inventory = context.watch<InventoryProvider>();
@@ -178,156 +231,173 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
     }
 
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('Register Item SKU'),
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.black, size: 24),
+          onPressed: () => Navigator.pop(context),
+        ),
+        titleSpacing: 0,
+        title: const Text(
+          'Register Item SKU',
+          style: TextStyle(
+            color: Colors.black,
+            fontSize: 20,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.5,
+          ),
+        ),
         actions: const [
-          UserProfileAvatar(),
-          SizedBox(width: 4),
+          Padding(
+            padding: EdgeInsets.only(right: 8),
+            child: UserProfileAvatar(),
+          ),
         ],
+        bottom: const PreferredSize(
+          preferredSize: Size.fromHeight(1),
+          child: Divider(height: 1, color: Color(0xFFF1F5F9)),
+        ),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
         child: Form(
           key: _formKey,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF0FDFA),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: const Color(0xFF99F6E4)),
-                ),
-                child: const Row(
-                  children: [
-                    Icon(Icons.inventory_2_outlined,
-                        color: Color(0xFF0F766E), size: 24),
-                    SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        'Operational Module: Items & Products\nPermission: permission.item.create',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF0F766E),
-                        ),
-                      ),
+              // Add Item Image Card (Dashed Border Box)
+              Center(
+                child: InkWell(
+                  onTap: _pickImage,
+                  borderRadius: BorderRadius.circular(16),
+                  child: CustomPaint(
+                    painter: DashedBorderPainter(
+                      color: const Color(0xFFCBD5E1),
+                      strokeWidth: 1.5,
+                      radius: 16,
+                      dash: 6,
+                      gap: 4,
                     ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              // Item Photo Picker Card
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF8FAFC),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
-                ),
-                child: _selectedImageBytes != null
-                    ? Row(
-                        children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(10),
-                            child: Image.memory(
-                              _selectedImageBytes!,
-                              width: 72,
-                              height: 72,
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                          const SizedBox(width: 14),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                    child: Container(
+                      width: 220,
+                      padding: const EdgeInsets.symmetric(vertical: 22, horizontal: 16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: _selectedImageBytes != null
+                          ? Column(
+                              mainAxisSize: MainAxisSize.min,
                               children: [
-                                Text(
-                                  _selectedImage?.name ?? 'Item Photo',
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: Image.memory(
+                                    _selectedImageBytes!,
+                                    width: 80,
+                                    height: 80,
+                                    fit: BoxFit.cover,
+                                  ),
+                                ),
+                                const SizedBox(height: 10),
+                                const Text(
+                                  'Change Photo',
+                                  style: TextStyle(
+                                    fontSize: 13,
                                     fontWeight: FontWeight.w700,
-                                    fontSize: 14,
+                                    color: Colors.black,
                                   ),
                                 ),
                                 const SizedBox(height: 4),
+                                GestureDetector(
+                                  onTap: () {
+                                    setState(() {
+                                      _selectedImage = null;
+                                      _selectedImageBytes = null;
+                                    });
+                                  },
+                                  child: const Text(
+                                    'Remove',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xFFDC2626),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            )
+                          : Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  width: 48,
+                                  height: 48,
+                                  decoration: const BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: Color(0xFFF1F5F9),
+                                  ),
+                                  alignment: Alignment.center,
+                                  child: const Icon(
+                                    Icons.camera_alt_outlined,
+                                    color: Colors.black,
+                                    size: 22,
+                                  ),
+                                ),
+                                const SizedBox(height: 10),
                                 const Text(
-                                  'Ready to upload to AWS S3',
+                                  'Add Item Image',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w800,
+                                    color: Colors.black,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                const Text(
+                                  '(Optional)',
                                   style: TextStyle(
                                     fontSize: 12,
-                                    color: Color(0xFF0F766E),
-                                    fontWeight: FontWeight.w600,
+                                    color: Color(0xFF94A3B8),
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                const Text(
+                                  'JPEG, PNG, WEBP',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w500,
+                                    color: Color(0xFF94A3B8),
                                   ),
                                 ),
                               ],
                             ),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.refresh, color: Color(0xFF0F766E)),
-                            tooltip: 'Change Photo',
-                            onPressed: _pickImage,
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.delete_outline, color: Color(0xFFDC2626)),
-                            tooltip: 'Remove',
-                            onPressed: () {
-                              setState(() {
-                                _selectedImage = null;
-                                _selectedImageBytes = null;
-                              });
-                            },
-                          ),
-                        ],
-                      )
-                    : InkWell(
-                        onTap: _pickImage,
-                        borderRadius: BorderRadius.circular(10),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(vertical: 18),
-                          alignment: Alignment.center,
-                          child: const Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.add_a_photo_outlined,
-                                size: 32,
-                                color: Color(0xFF0F766E),
-                              ),
-                              SizedBox(height: 8),
-                              Text(
-                                'Add Item Image (Optional)',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w700,
-                                  color: Color(0xFF0F766E),
-                                ),
-                              ),
-                              SizedBox(height: 2),
-                              Text(
-                                'Supports JPEG, PNG, WEBP — 1 image per item',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Color(0xFF64748B),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
+                    ),
+                  ),
+                ),
               ),
-              const SizedBox(height: 20),
+
+              const SizedBox(height: 24),
 
               // Item Name
+              _buildFieldLabel('ITEM NAME *'),
               TextFormField(
                 controller: _nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Item Name *',
-                  hintText: 'e.g., Raw Organic Almonds',
-                  prefixIcon: Icon(Icons.label_outline),
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black,
+                ),
+                decoration: _buildInputDecoration(
+                  hintText: 'e.g. Frozen Beef Tenderloin',
+                  prefixIcon: const Icon(
+                    Icons.local_offer_outlined,
+                    size: 20,
+                    color: Color(0xFF94A3B8),
+                  ),
                 ),
                 validator: (val) {
                   if (val == null || val.trim().isEmpty) {
@@ -336,16 +406,26 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
                   return null;
                 },
               ),
-              const SizedBox(height: 16),
 
-              // SKU Code
+              const SizedBox(height: 18),
+
+              // Product SKU
+              _buildFieldLabel('PRODUCT SKU *'),
               TextFormField(
                 controller: _skuController,
                 textCapitalization: TextCapitalization.characters,
-                decoration: const InputDecoration(
-                  labelText: 'Product SKU *',
-                  hintText: 'e.g., RAW-ALMD-001',
-                  prefixIcon: Icon(Icons.qr_code),
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black,
+                ),
+                decoration: _buildInputDecoration(
+                  hintText: 'SKU-8829-KL',
+                  prefixIcon: const Icon(
+                    Icons.qr_code_2_outlined,
+                    size: 20,
+                    color: Color(0xFF94A3B8),
+                  ),
                 ),
                 validator: (val) {
                   if (val == null || val.trim().isEmpty) {
@@ -354,59 +434,154 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
                   return null;
                 },
               ),
-              const SizedBox(height: 16),
 
-              // Item Type & Unit
+              const SizedBox(height: 18),
+
+              // Item Type & Unit Row
               Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(
-                    child: DropdownButtonFormField<String>(
-                      initialValue: _selectedItemType,
-                      decoration:
-                          const InputDecoration(labelText: 'Item Type *'),
-                      items: _itemTypes
-                          .map((type) => DropdownMenuItem(
-                                value: type,
-                                child: Text(type.replaceAll('_', ' ')),
-                              ))
-                          .toList(),
-                      onChanged: (val) {
-                        if (val != null) setState(() => _selectedItemType = val);
-                      },
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildFieldLabel('ITEM TYPE *'),
+                        DropdownButtonFormField<String>(
+                          initialValue: _selectedItemType,
+                          icon: const Icon(
+                            Icons.keyboard_arrow_down,
+                            color: Color(0xFF64748B),
+                          ),
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.black,
+                          ),
+                          decoration: InputDecoration(
+                            filled: true,
+                            fillColor: Colors.white,
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 14,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide:
+                                  const BorderSide(color: Color(0xFFE2E8F0)),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide:
+                                  const BorderSide(color: Color(0xFFE2E8F0)),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(
+                                  color: Colors.black, width: 1.5),
+                            ),
+                          ),
+                          items: _itemTypes
+                              .map((type) => DropdownMenuItem(
+                                    value: type,
+                                    child: Text(type.replaceAll('_', ' ')),
+                                  ))
+                              .toList(),
+                          onChanged: (val) {
+                            if (val != null) {
+                              setState(() => _selectedItemType = val);
+                            }
+                          },
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 14),
                   Expanded(
-                    child: DropdownButtonFormField<String>(
-                      initialValue: _selectedUnit,
-                      decoration: const InputDecoration(labelText: 'Unit *'),
-                      items: _units
-                          .map((unit) => DropdownMenuItem(
-                                value: unit,
-                                child: Text(unit),
-                              ))
-                          .toList(),
-                      onChanged: (val) {
-                        if (val != null) setState(() => _selectedUnit = val);
-                      },
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildFieldLabel('UNIT *'),
+                        DropdownButtonFormField<String>(
+                          initialValue: _selectedUnit,
+                          icon: const Icon(
+                            Icons.keyboard_arrow_down,
+                            color: Color(0xFF64748B),
+                          ),
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.black,
+                          ),
+                          decoration: InputDecoration(
+                            filled: true,
+                            fillColor: Colors.white,
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 14,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide:
+                                  const BorderSide(color: Color(0xFFE2E8F0)),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide:
+                                  const BorderSide(color: Color(0xFFE2E8F0)),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(
+                                  color: Colors.black, width: 1.5),
+                            ),
+                          ),
+                          items: _units
+                              .map((unit) => DropdownMenuItem(
+                                    value: unit,
+                                    child: Text(unit),
+                                  ))
+                              .toList(),
+                          onChanged: (val) {
+                            if (val != null) {
+                              setState(() => _selectedUnit = val);
+                            }
+                          },
+                        ),
+                      ],
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
 
-              // Storage Store Room
+              const SizedBox(height: 18),
+
+              // Store Room
+              _buildFieldLabel('STORE ROOM *'),
               DropdownButtonFormField<String>(
                 initialValue: _selectedStoreRoomId,
-                decoration: const InputDecoration(
-                  labelText: 'Store Room *',
-                  prefixIcon: Icon(Icons.meeting_room_outlined),
+                icon: const Icon(
+                  Icons.keyboard_arrow_down,
+                  color: Color(0xFF64748B),
+                ),
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.black,
+                ),
+                decoration: _buildInputDecoration(
+                  hintText: 'Select store room',
+                  prefixIcon: const Icon(
+                    Icons.inventory_2_outlined,
+                    size: 20,
+                    color: Color(0xFF64748B),
+                  ),
                 ),
                 items: inventory.storeRooms
                     .map((room) => DropdownMenuItem(
                           value: room.storeRoomId,
                           child: Text(
                             '${room.roomName} (${room.temperature != null ? '${room.temperature}°C' : 'Ambient'})',
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ))
                     .toList(),
@@ -431,17 +606,31 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
                   return null;
                 },
               ),
-              const SizedBox(height: 16),
 
-              // Division Pickup
+              const SizedBox(height: 18),
+
+              // Store Room Division / Section
+              _buildFieldLabel('STORE ROOM DIVISION / SECTION *'),
               if (selectedRoom != null && selectedRoom.divisions.isNotEmpty)
                 DropdownButtonFormField<String>(
                   key: ValueKey('div_${_selectedStoreRoomId}_$_selectedDivision'),
                   initialValue: _selectedDivision,
-                  decoration: const InputDecoration(
-                    labelText: 'Store Room Division / Section *',
-                    prefixIcon: Icon(Icons.grid_view_outlined),
-                    helperText: 'Pick which division or section inside the room',
+                  icon: const Icon(
+                    Icons.keyboard_arrow_down,
+                    color: Color(0xFF64748B),
+                  ),
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.black,
+                  ),
+                  decoration: _buildInputDecoration(
+                    hintText: 'Select division',
+                    prefixIcon: const Icon(
+                      Icons.grid_view_outlined,
+                      size: 20,
+                      color: Color(0xFF64748B),
+                    ),
                   ),
                   items: selectedRoom.divisions.toSet().toList()
                       .map((div) => DropdownMenuItem(
@@ -462,80 +651,213 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
               else
                 TextFormField(
                   controller: _customDivisionController,
-                  decoration: const InputDecoration(
-                    labelText: 'Division / Section Identifier',
-                    hintText: 'e.g. Section A, Shelf 1',
-                    prefixIcon: Icon(Icons.grid_view_outlined),
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black,
                   ),
-                ),
-              const SizedBox(height: 16),
-
-              // Current Stock Quantity & Reorder Threshold
-              Row(
-                children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: _stockQuantityController,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      decoration: const InputDecoration(
-                        labelText: 'Initial Stock Quantity *',
-                        prefixIcon: Icon(Icons.inventory_outlined),
-                      ),
-                      validator: (val) {
-                        if (val == null || double.tryParse(val.trim()) == null) {
-                          return 'Enter valid quantity';
-                        }
-                        return null;
-                      },
+                  decoration: _buildInputDecoration(
+                    hintText: 'e.g. Section 1 (Aisle A-01)',
+                    prefixIcon: const Icon(
+                      Icons.grid_view_outlined,
+                      size: 20,
+                      color: Color(0xFF64748B),
                     ),
                   ),
-                  const SizedBox(width: 12),
+                ),
+              const SizedBox(height: 4),
+              const Text(
+                'Pick which division or section inside the room',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Color(0xFF94A3B8),
+                  fontWeight: FontWeight.w400,
+                ),
+              ),
+
+              const SizedBox(height: 18),
+
+              // Initial Stock & Reorder Level Row
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                   Expanded(
-                    child: TextFormField(
-                      controller: _reorderThresholdController,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      decoration: const InputDecoration(
-                        labelText: 'Reorder Level *',
-                        prefixIcon: Icon(Icons.warning_amber),
-                      ),
-                      validator: (val) {
-                        if (val == null || double.tryParse(val.trim()) == null) {
-                          return 'Enter valid number';
-                        }
-                        return null;
-                      },
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildFieldLabel('INITIAL STOCK *'),
+                        TextFormField(
+                          controller: _stockQuantityController,
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.black,
+                          ),
+                          decoration: _buildInputDecoration(
+                            hintText: '0',
+                            prefixIcon: const Icon(
+                              Icons.inventory_2_outlined,
+                              size: 20,
+                              color: Color(0xFF94A3B8),
+                            ),
+                          ),
+                          validator: (val) {
+                            if (val == null ||
+                                double.tryParse(val.trim()) == null) {
+                              return 'Enter quantity';
+                            }
+                            return null;
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildFieldLabel('REORDER LEVEL *'),
+                        TextFormField(
+                          controller: _reorderThresholdController,
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.black,
+                          ),
+                          decoration: _buildInputDecoration(
+                            hintText: '50',
+                            prefixIcon: const Icon(
+                              Icons.warning_amber_rounded,
+                              size: 20,
+                              color: Color(0xFF94A3B8),
+                            ),
+                          ),
+                          validator: (val) {
+                            if (val == null ||
+                                double.tryParse(val.trim()) == null) {
+                              return 'Enter reorder level';
+                            }
+                            return null;
+                          },
+                        ),
+                      ],
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 30),
 
-              // Submit Button
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF0F766E),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                  ),
-                  icon: _isSubmitting
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                              color: Colors.white, strokeWidth: 2),
-                        )
-                      : const Icon(Icons.check),
-                  label: Text(
-                      _isSubmitting ? 'Registering SKU...' : 'Save & Register SKU'),
-                  onPressed: _isSubmitting ? null : _submit,
-                ),
-              ),
+              const SizedBox(height: 32),
             ],
+          ),
+        ),
+      ),
+      bottomNavigationBar: Container(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          border: Border(
+            top: BorderSide(color: Color(0xFFF1F5F9)),
+          ),
+        ),
+        child: SizedBox(
+          width: double.infinity,
+          height: 52,
+          child: ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.black,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            onPressed: _isSubmitting ? null : _submit,
+            child: _isSubmitting
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      color: Colors.white,
+                      strokeWidth: 2,
+                    ),
+                  )
+                : const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.check, size: 20, color: Colors.white),
+                      SizedBox(width: 8),
+                      Text(
+                        'Save & Register SKU',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 15,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
           ),
         ),
       ),
     );
   }
+}
+
+class DashedBorderPainter extends CustomPainter {
+  final Color color;
+  final double strokeWidth;
+  final double gap;
+  final double dash;
+  final double radius;
+
+  DashedBorderPainter({
+    this.color = const Color(0xFFCBD5E1),
+    this.strokeWidth = 1.5,
+    this.dash = 6,
+    this.gap = 4,
+    this.radius = 16,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = strokeWidth
+      ..style = PaintingStyle.stroke;
+
+    final rrect = RRect.fromRectAndRadius(
+      Rect.fromLTWH(
+        strokeWidth / 2,
+        strokeWidth / 2,
+        size.width - strokeWidth,
+        size.height - strokeWidth,
+      ),
+      Radius.circular(radius),
+    );
+    final path = Path()..addRRect(rrect);
+
+    final metrics = path.computeMetrics();
+    for (final metric in metrics) {
+      double distance = 0.0;
+      while (distance < metric.length) {
+        final len = (distance + dash <= metric.length)
+            ? dash
+            : metric.length - distance;
+        final extractPath = metric.extractPath(distance, distance + len);
+        canvas.drawPath(extractPath, paint);
+        distance += dash + gap;
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant DashedBorderPainter oldDelegate) =>
+      color != oldDelegate.color || radius != oldDelegate.radius;
 }

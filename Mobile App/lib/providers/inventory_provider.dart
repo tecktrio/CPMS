@@ -431,6 +431,20 @@ class InventoryProvider extends ChangeNotifier {
     }
   }
 
+  Future<bool> removeItemImage(String itemId) async {
+    _setLoading(true);
+    _errorMessage = null;
+    try {
+      await apiClient.put('${ApiConstants.items}/$itemId', body: {'image_url': null});
+      await loadItems();
+      return true;
+    } catch (e) {
+      _errorMessage = e.toString();
+      _setLoading(false);
+      return false;
+    }
+  }
+
   Future<bool> createItem({
     required String sku,
     required String itemName,
@@ -499,7 +513,9 @@ class InventoryProvider extends ChangeNotifier {
       if (measurementUnit != null) body['measurement_unit'] = measurementUnit;
       if (reorderThreshold != null) body['reorder_threshold_quantity'] = reorderThreshold;
       if (stockQuantity != null) body['stock_quantity'] = stockQuantity;
-      if (imageUrl != null) body['image_url'] = imageUrl;
+      if (imageUrl != null) {
+        body['image_url'] = imageUrl.isEmpty ? null : imageUrl;
+      }
       if (storeRoomId != null || division != null) {
         final loc = <String, dynamic>{
           'location_code': division ?? 'LOC-01',

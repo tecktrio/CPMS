@@ -6,6 +6,7 @@ import '../../core/constants/api_constants.dart';
 import '../../core/constants/permissions.dart';
 import '../../providers/inventory_provider.dart';
 import '../../providers/tenant_provider.dart';
+import 'edit_item_screen.dart';
 
 class ItemDetailScreen extends StatefulWidget {
   final ItemModel item;
@@ -150,12 +151,14 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child: const Text('Cancel', style: TextStyle(color: Color(0xFF64748B))),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF0F766E),
+              backgroundColor: Colors.black,
               foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
             onPressed: () async {
               if (!formKey.currentState!.validate()) return;
@@ -185,65 +188,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
     );
   }
 
-  void _showEditDialog(ItemModel item) {
-    final inventory = context.read<InventoryProvider>();
-    final nameCtrl = TextEditingController(text: item.itemName);
-    final thresholdCtrl =
-        TextEditingController(text: item.reorderThresholdQuantity.toString());
-    final stockCtrl =
-        TextEditingController(text: item.totalAvailableStock.toString());
-
-    final List<Map<String, String>> typeOptions = [
-      {'value': 'RAW_MATERIAL', 'label': 'Raw Material'},
-      {'value': 'FINISHED_GOOD', 'label': 'Finished Good'},
-      {'value': 'PACKAGING', 'label': 'Packaging'},
-    ];
-    String selectedType = item.itemType.trim();
-    if (selectedType.isEmpty) selectedType = 'RAW_MATERIAL';
-    final matchingTypeIndex = typeOptions.indexWhere(
-        (t) => t['value']!.toUpperCase() == selectedType.toUpperCase());
-    if (matchingTypeIndex >= 0) {
-      selectedType = typeOptions[matchingTypeIndex]['value']!;
-    } else {
-      typeOptions.add({'value': selectedType, 'label': selectedType});
-    }
-
-    final List<Map<String, String>> unitOptions = [
-      {'value': 'KILOGRAM', 'label': 'Kilogram (KG)'},
-      {'value': 'KG', 'label': 'Kilogram (KG)'},
-      {'value': 'LITER', 'label': 'Liter (L)'},
-      {'value': 'LITRE', 'label': 'Litre (L)'},
-      {'value': 'PIECE', 'label': 'Piece (PC)'},
-      {'value': 'CARTOON_BOX', 'label': 'Carton Box'},
-      {'value': 'CARTON', 'label': 'Carton'},
-      {'value': 'GRAM', 'label': 'Gram (G)'},
-      {'value': 'MILLILITRE', 'label': 'Millilitre (ML)'},
-      {'value': 'UNIT', 'label': 'Unit'},
-    ];
-    String selectedUnit = item.measurementUnit.trim();
-    if (selectedUnit.isEmpty) selectedUnit = 'KILOGRAM';
-    final matchingUnitIndex = unitOptions.indexWhere(
-        (u) => u['value']!.toUpperCase() == selectedUnit.toUpperCase());
-    if (matchingUnitIndex >= 0) {
-      selectedUnit = unitOptions[matchingUnitIndex]['value']!;
-    } else {
-      unitOptions.add({'value': selectedUnit, 'label': selectedUnit});
-    }
-
-    String? selectedRoomId = item.storeRoomId;
-    if (selectedRoomId != null &&
-        !inventory.storeRooms.any((r) => r.storeRoomId == selectedRoomId)) {
-      selectedRoomId = null;
-    }
-    if (selectedRoomId == null && inventory.storeRooms.isNotEmpty) {
-      selectedRoomId = inventory.storeRooms.first.storeRoomId;
-    }
-
-    String? selectedDivision = item.division;
-    final formKey = GlobalKey<FormState>();
-
-    showDialog(
-      context: context,
+  // REMOVE_MARKER
       builder: (ctx) => StatefulBuilder(
         builder: (dialogCtx, setDialogState) {
           StoreRoomModel? currentRoom;
@@ -408,12 +353,14 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx),
-                child: const Text('Cancel'),
+                child: const Text('Cancel', style: TextStyle(color: Color(0xFF64748B))),
               ),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF0F766E),
+                  backgroundColor: Colors.black,
                   foregroundColor: Colors.white,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 ),
                 onPressed: () async {
                   if (!formKey.currentState!.validate()) return;
@@ -526,11 +473,27 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
     final isAlert = currentItem.isBelowReorderThreshold;
 
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text(currentItem.itemName),
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.black, size: 24),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: Text(
+          currentItem.itemName,
+          style: const TextStyle(
+            color: Colors.black,
+            fontSize: 20,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh),
+            icon: const Icon(Icons.refresh, color: Colors.black),
             tooltip: 'Refresh',
             onPressed: () {
               inventory.loadItems();
@@ -813,7 +776,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                             IconButton.filled(
                               tooltip: 'Increase by 1',
                               style: IconButton.styleFrom(
-                                backgroundColor: const Color(0xFF0F766E),
+                                backgroundColor: Colors.black,
                                 foregroundColor: Colors.white,
                               ),
                               icon: const Icon(Icons.add, size: 20),
@@ -825,7 +788,8 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                             IconButton.outlined(
                               tooltip: 'Set Exact Stock',
                               style: IconButton.styleFrom(
-                                foregroundColor: const Color(0xFF0F766E),
+                                foregroundColor: Colors.black,
+                                side: const BorderSide(color: Color(0xFFCBD5E1)),
                               ),
                               icon: const Icon(Icons.edit_note, size: 20),
                               onPressed: _isUpdatingStock
@@ -1040,11 +1004,12 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                   width: double.infinity,
                   child: ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF0F766E),
+                      backgroundColor: Colors.black,
                       foregroundColor: Colors.white,
+                      elevation: 0,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(12),
                       ),
                     ),
                     icon: const Icon(Icons.edit_outlined, size: 18),
@@ -1052,7 +1017,17 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                       'Edit Item Details',
                       style: TextStyle(fontWeight: FontWeight.w700),
                     ),
-                    onPressed: () => _showEditDialog(currentItem),
+                    onPressed: () async {
+                      final updated = await Navigator.push<bool>(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => EditItemScreen(item: currentItem),
+                        ),
+                      );
+                      if (updated == true && mounted) {
+                        context.read<InventoryProvider>().loadItems();
+                      }
+                    },
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -1060,11 +1035,11 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                   width: double.infinity,
                   child: OutlinedButton.icon(
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: const Color(0xFF0F766E),
-                      side: const BorderSide(color: Color(0xFF0F766E)),
+                      foregroundColor: Colors.black,
+                      side: const BorderSide(color: Color(0xFFCBD5E1)),
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(12),
                       ),
                     ),
                     icon: const Icon(Icons.tune_outlined, size: 18),

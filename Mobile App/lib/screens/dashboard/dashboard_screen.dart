@@ -30,6 +30,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
   String _universalSearchQuery = '';
   String _selectedSearchModule = 'ALL'; // 'ALL', 'ITEMS', 'STORE_ROOMS', 'DEPARTMENTS', 'STAFF'
 
+  // Alerts View State
+  String _selectedAlertFilter = 'ALL'; // 'ALL', 'CRITICAL', 'RESOLVED'
+
   // Settings View State
   final TextEditingController _firstNameController = TextEditingController();
   final TextEditingController _lastNameController = TextEditingController();
@@ -1401,6 +1404,127 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
+  void _showRestockDialog(BuildContext context, ItemModel item) {
+    final suggestedQty = item.reorderShortfallQuantity > 0
+        ? (item.totalAvailableStock + item.reorderShortfallQuantity)
+        : (item.totalAvailableStock + 50);
+    final stockCtrl = TextEditingController(
+      text: suggestedQty.toStringAsFixed(0),
+    );
+    final formKey = GlobalKey<FormState>();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        title: Text(
+          'Restock: ${item.itemName}',
+          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
+        ),
+        content: Form(
+          key: formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Current Stock: ${item.totalAvailableStock.toStringAsFixed(1)} ${item.measurementUnit}',
+                style: const TextStyle(fontSize: 13, color: Color(0xFF64748B)),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                'Reorder Threshold: ${item.reorderThresholdQuantity.toStringAsFixed(1)} ${item.measurementUnit}',
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: Color(0xFFB45309),
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: stockCtrl,
+                autofocus: true,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                decoration: InputDecoration(
+                  labelText: 'New Total Stock (${item.measurementUnit}) *',
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                  prefixIcon: const Icon(Icons.inventory_2_outlined),
+                ),
+                validator: (val) {
+                  if (val == null || val.trim().isEmpty) return 'Enter quantity';
+                  final num = double.tryParse(val.trim());
+                  if (num == null || num < 0) return 'Enter valid quantity';
+                  return null;
+                },
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel', style: TextStyle(color: Color(0xFF64748B))),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.black,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            onPressed: () async {
+              if (!formKey.currentState!.validate()) return;
+              final qty = double.parse(stockCtrl.text.trim());
+              Navigator.pop(ctx);
+
+              final inv = context.read<InventoryProvider>();
+              final ok = await inv.updateItemStock(item.itemId, qty);
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(ok
+                        ? '${item.itemName} stock updated to $qty ${item.measurementUnit}!'
+                        : (inv.errorMessage ?? 'Update failed')),
+                    backgroundColor: ok ? const Color(0xFF0F766E) : Colors.red,
+                  ),
+                );
+              }
+            },
+            child: const Text('Restock', style: TextStyle(fontWeight: FontWeight.w700)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAlertFilterPill({required String id, required String label}) {
+    final isSelected = _selectedAlertFilter == id;
+    return InkWell(
+      onTap: () {
+        setState(() {
+          _selectedAlertFilter = id;
+        });
+      },
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? Colors.black : const Color(0xFFF1F5F9),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+            color: isSelected ? Colors.white : const Color(0xFF475569),
+          ),
+        ),
+      ),
+    );
+  }
+
   // ==========================================
   // ALERTS VIEW
   // ==========================================
@@ -1410,52 +1534,130 @@ class _DashboardScreenState extends State<DashboardScreen> {
     required InventoryProvider inventory,
   }) {
     final alertItems = inventory.items.where((i) => i.isBelowReorderThreshold).toList();
+    final criticalCount = alertItems.length;
+
+    List<ItemModel> displayedItems = [];
+    if (_selectedAlertFilter == 'ALL' || _selectedAlertFilter == 'CRITICAL') {
+      displayedItems = alertItems;
+    }
 
     return Center(
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 1080),
+        constraints: const BoxConstraints(maxWidth: 680),
         child: ListView(
           padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: 16),
           children: [
+            // Header Row: Alerts + [ • 2 Critical ]
             Row(
               children: [
-                const Icon(Icons.warning_amber_rounded, color: Color(0xFFD97706), size: 24),
-                const SizedBox(width: 8),
                 const Text(
-                  'Inventory Alerts',
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Colors.black),
+                  'Alerts',
+                  style: TextStyle(
+                    fontSize: 26,
+                    fontWeight: FontWeight.w900,
+                    color: Colors.black,
+                    letterSpacing: -0.6,
+                  ),
                 ),
                 const Spacer(),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
                     color: const Color(0xFFFEF3C7),
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: const Color(0xFFFDE68A)),
                   ),
-                  child: Text(
-                    '${alertItems.length} Shortfalls',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w800,
-                      color: Color(0xFFB45309),
-                    ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 6,
+                        height: 6,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFD97706),
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        '$criticalCount Critical',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFFB45309),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 6),
             const Text(
-              'Items currently below configured minimum reorder threshold levels.',
-              style: TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
+              'System notifications, threshold triggers, and operational events requiring attention.',
+              style: TextStyle(
+                fontSize: 13,
+                color: Color(0xFF6B7280),
+                fontWeight: FontWeight.w500,
+              ),
             ),
             const SizedBox(height: 16),
 
-            if (alertItems.isEmpty)
+            // Filter Pills Row
+            Row(
+              children: [
+                _buildAlertFilterPill(
+                  id: 'ALL',
+                  label: 'All Alerts ($criticalCount)',
+                ),
+                const SizedBox(width: 8),
+                _buildAlertFilterPill(
+                  id: 'CRITICAL',
+                  label: 'Critical ($criticalCount)',
+                ),
+                const SizedBox(width: 8),
+                _buildAlertFilterPill(
+                  id: 'RESOLVED',
+                  label: 'Resolved (0)',
+                ),
+              ],
+            ),
+            const SizedBox(height: 18),
+
+            // Alerts List
+            if (_selectedAlertFilter == 'RESOLVED')
               Container(
                 padding: const EdgeInsets.all(32),
+                alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF6F7F9),
-                  borderRadius: BorderRadius.circular(16),
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: const Color(0xFFE5E7EB)),
+                ),
+                child: const Column(
+                  children: [
+                    Icon(Icons.done_all_rounded, size: 40, color: Color(0xFF10B981)),
+                    SizedBox(height: 10),
+                    Text(
+                      'No resolved alerts to display',
+                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      'Past resolved events will appear here once archived.',
+                      style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                    ),
+                  ],
+                ),
+              )
+            else if (displayedItems.isEmpty)
+              Container(
+                padding: const EdgeInsets.all(32),
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: const Color(0xFFE5E7EB)),
                 ),
                 child: const Column(
                   children: [
@@ -1475,66 +1677,148 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
               )
             else
-              ...alertItems.map((item) {
+              ...displayedItems.map((item) {
                 return Container(
-                  margin: const EdgeInsets.only(bottom: 10),
-                  child: InkWell(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => ItemDetailScreen(item: item)),
-                      );
-                    },
-                    borderRadius: BorderRadius.circular(16),
-                    child: Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFFFBEB),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: const Color(0xFFFDE68A)),
+                  margin: const EdgeInsets.only(bottom: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: const Color(0xFFE5E7EB)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.02),
+                        blurRadius: 8,
+                        offset: const Offset(0, 3),
                       ),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 44,
-                            height: 44,
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: const Color(0xFFFDE68A)),
-                            ),
-                            child: const Icon(Icons.warning_amber_rounded,
-                                color: Color(0xFFD97706), size: 22),
+                    ],
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Top Row: Icon + Title/Details + Chevron
+                        InkWell(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => ItemDetailScreen(item: item),
+                              ),
+                            );
+                          },
+                          borderRadius: BorderRadius.circular(12),
+                          child: Row(
+                            children: [
+                              // Amber Warning Icon Box
+                              Container(
+                                width: 44,
+                                height: 44,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFFFFBEB),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: const Color(0xFFFDE68A)),
+                                ),
+                                child: const Icon(
+                                  Icons.warning_amber_rounded,
+                                  color: Color(0xFFB45309),
+                                  size: 24,
+                                ),
+                              ),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      item.itemName,
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w800,
+                                        color: Colors.black,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    RichText(
+                                      text: TextSpan(
+                                        style: const TextStyle(
+                                          fontSize: 13,
+                                          color: Color(0xFF64748B),
+                                        ),
+                                        children: [
+                                          const TextSpan(text: 'SKU: '),
+                                          TextSpan(
+                                            text: item.sku,
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.w800,
+                                              color: Colors.black,
+                                            ),
+                                          ),
+                                          const TextSpan(text: '  •  Stock: '),
+                                          TextSpan(
+                                            text:
+                                                '${item.totalAvailableStock.toStringAsFixed(0)} ${item.measurementUnit}',
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.w800,
+                                              color: Colors.black,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const Icon(
+                                Icons.chevron_right,
+                                size: 20,
+                                color: Color(0xFF94A3B8),
+                              ),
+                            ],
                           ),
-                          const SizedBox(width: 14),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  item.itemName,
-                                  style: const TextStyle(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w800,
-                                    color: Colors.black,
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  'SKU: ${item.sku} • Stock: ${item.totalAvailableStock} ${item.measurementUnit}',
-                                  style: const TextStyle(fontSize: 13, color: Color(0xFFB45309)),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  'Reorder Shortfall: ${item.reorderShortfallQuantity} (Min: ${item.reorderThresholdQuantity})',
-                                  style: const TextStyle(fontSize: 12, color: Color(0xFF92400E)),
-                                ),
-                              ],
+                        ),
+                        const SizedBox(height: 12),
+                        const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                        const SizedBox(height: 12),
+
+                        // Bottom Row: Auto-flagged info + Restock button
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Text(
+                              'Auto-flagged • Min: ${item.reorderThresholdQuantity.toStringAsFixed(0)} ${item.measurementUnit}',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Color(0xFF64748B),
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
-                          ),
-                          const Icon(Icons.chevron_right, size: 20, color: Color(0xFFB45309)),
-                        ],
-                      ),
+                            ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.black,
+                                foregroundColor: Colors.white,
+                                elevation: 0,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 18,
+                                  vertical: 8,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                              ),
+                              onPressed: () => _showRestockDialog(context, item),
+                              child: const Text(
+                                'Restock',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
                   ),
                 );
