@@ -40,6 +40,13 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
 
     if (po != null) {
       _orderItems.addAll(po.items);
+      _selectedCustomer = CustomerModel(
+        customerId: po.customerId,
+        tenantId: po.tenantId,
+        customerName: po.customerName,
+        address: po.customerAddress,
+        contactDetails: po.customerContact,
+      );
     }
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
@@ -52,20 +59,11 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
       ]);
 
       if (po != null && mounted) {
-        final match = poProv.customers.where((c) => c.customerId == po.customerId);
+        final match =
+            poProv.customers.where((c) => c.customerId == po.customerId);
         if (match.isNotEmpty) {
           setState(() {
             _selectedCustomer = match.first;
-          });
-        } else {
-          setState(() {
-            _selectedCustomer = CustomerModel(
-              customerId: po.customerId,
-              tenantId: po.tenantId,
-              customerName: po.customerName,
-              address: po.customerAddress,
-              contactDetails: po.customerContact,
-            );
           });
         }
       }
@@ -284,6 +282,196 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _showCustomerPickerModal() {
+    final searchCtrl = TextEditingController();
+    String query = '';
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setModalState) {
+          final customers = context.watch<PurchaseOrderProvider>().customers;
+          final filtered = customers.where((c) {
+            return c.customerName.toLowerCase().contains(query.toLowerCase()) ||
+                c.address.toLowerCase().contains(query.toLowerCase());
+          }).toList();
+
+          return SafeArea(
+            child: Container(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(ctx).viewInsets.bottom,
+              ),
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(context).size.height * 0.75,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    margin: const EdgeInsets.only(top: 12, bottom: 8),
+                    width: 36,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFCBD5E1),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Select Customer / Consignee',
+                          style: TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.black,
+                          ),
+                        ),
+                        TextButton.icon(
+                          style: TextButton.styleFrom(
+                            foregroundColor: const Color(0xFF0F766E),
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                          ),
+                          icon: const Icon(Icons.add, size: 16),
+                          label: const Text(
+                            'Add New',
+                            style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
+                          ),
+                          onPressed: () {
+                            Navigator.pop(ctx);
+                            _showAddCustomerDialog();
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 10),
+                    child: Container(
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                      ),
+                      child: Row(
+                        children: [
+                          const Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 12),
+                            child: Icon(Icons.search, size: 18, color: Color(0xFF94A3B8)),
+                          ),
+                          Expanded(
+                            child: TextField(
+                              controller: searchCtrl,
+                              decoration: const InputDecoration(
+                                hintText: 'Search customer...',
+                                hintStyle: TextStyle(fontSize: 13, color: Color(0xFF94A3B8)),
+                                border: InputBorder.none,
+                                isDense: true,
+                              ),
+                              onChanged: (val) {
+                                setModalState(() => query = val.trim());
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                  Flexible(
+                    child: filtered.isEmpty
+                        ? Padding(
+                            padding: const EdgeInsets.all(32),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.business_outlined, size: 36, color: Color(0xFFCBD5E1)),
+                                const SizedBox(height: 8),
+                                const Text(
+                                  'No customers found',
+                                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+                                ),
+                                const SizedBox(height: 12),
+                                ElevatedButton.icon(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.black,
+                                    foregroundColor: Colors.white,
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                  ),
+                                  icon: const Icon(Icons.add, size: 16),
+                                  label: const Text('Add This Customer'),
+                                  onPressed: () {
+                                    Navigator.pop(ctx);
+                                    _showAddCustomerDialog();
+                                  },
+                                ),
+                              ],
+                            ),
+                          )
+                        : ListView.separated(
+                            shrinkWrap: true,
+                            itemCount: filtered.length,
+                            separatorBuilder: (_, _) => const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                            itemBuilder: (ctx, i) {
+                              final c = filtered[i];
+                              final isSelected = _selectedCustomer?.customerId == c.customerId;
+                              return ListTile(
+                                leading: Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: isSelected ? Colors.black : const Color(0xFFF8FAFC),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Icon(
+                                    Icons.business,
+                                    size: 18,
+                                    color: isSelected ? Colors.white : const Color(0xFF64748B),
+                                  ),
+                                ),
+                                title: Text(
+                                  c.customerName,
+                                  style: TextStyle(
+                                    fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                                    fontSize: 14,
+                                    color: Colors.black,
+                                  ),
+                                ),
+                                subtitle: c.address.isNotEmpty
+                                    ? Text(
+                                        c.address,
+                                        style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      )
+                                    : null,
+                                trailing: isSelected
+                                    ? const Icon(Icons.check_circle, color: Colors.black)
+                                    : null,
+                                onTap: () {
+                                  setState(() => _selectedCustomer = c);
+                                  Navigator.pop(ctx);
+                                },
+                              );
+                            },
+                          ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -728,8 +916,6 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final poProv = context.watch<PurchaseOrderProvider>();
-    final customers = poProv.customers;
     final isEdit = widget.existingPo != null;
     final dateFormat = DateFormat('dd/MM/yyyy');
 
@@ -769,18 +955,19 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
           child: Divider(height: 1, color: Color(0xFFF1F5F9)),
         ),
       ),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1000),
-          child: Form(
-            key: _formKey,
-            child: ListView(
-              padding: EdgeInsets.fromLTRB(
-                isWide ? 28 : 16,
-                20,
-                isWide ? 28 : 16,
-                100,
-              ),
+      body: SizedBox.expand(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1000),
+            child: Form(
+              key: _formKey,
+              child: ListView(
+                padding: EdgeInsets.fromLTRB(
+                  isWide ? 28 : 16,
+                  20,
+                  isWide ? 28 : 16,
+                  100,
+                ),
           children: [
             // 1. PO Number
             const Text(
@@ -916,7 +1103,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
 
             const SizedBox(height: 18),
 
-            // 3. Customer / Consignee Dropdown with Add Option
+            // 3. Customer / Consignee Selector with Add Option
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -947,52 +1134,67 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
             ),
             const SizedBox(height: 6),
 
-            DropdownButtonFormField<String>(
-              initialValue: _selectedCustomer?.customerId,
-              icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF64748B)),
-              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.black),
-              decoration: InputDecoration(
-                filled: true,
-                fillColor: const Color(0xFFF8FAFC),
-                prefixIcon: const Icon(Icons.business_outlined, size: 20, color: Color(0xFF64748B)),
-                hintText: 'Select Consignee / Customer',
-                hintStyle: const TextStyle(fontSize: 13, color: Color(0xFF94A3B8)),
-                border: OutlineInputBorder(
+            InkWell(
+              onTap: _showCustomerPickerModal,
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                width: double.infinity,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF8FAFC),
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
                 ),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                child: Row(
+                  children: [
+                    const Icon(Icons.business_outlined,
+                        size: 20, color: Color(0xFF64748B)),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _selectedCustomer != null
+                          ? Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  _selectedCustomer!.customerName,
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w800,
+                                    color: Colors.black,
+                                  ),
+                                ),
+                                if (_selectedCustomer!.address.isNotEmpty)
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 2),
+                                    child: Text(
+                                      _selectedCustomer!.address,
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        color: Color(0xFF64748B),
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                              ],
+                            )
+                          : const Text(
+                              'Select Consignee / Customer',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Color(0xFF94A3B8),
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                    ),
+                    const Icon(Icons.swap_horiz,
+                        size: 20, color: Color(0xFF64748B)),
+                  ],
+                ),
               ),
-              items: customers.map((c) {
-                return DropdownMenuItem<String>(
-                  value: c.customerId,
-                  child: Text(
-                    c.customerName,
-                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                );
-              }).toList(),
-              onChanged: (val) {
-                if (val != null) {
-                  final match = customers.where((c) => c.customerId == val);
-                  if (match.isNotEmpty) {
-                    setState(() => _selectedCustomer = match.first);
-                  }
-                }
-              },
             ),
-
-            if (_selectedCustomer != null && _selectedCustomer!.address.isNotEmpty) ...[
-              const SizedBox(height: 6),
-              Padding(
-                padding: const EdgeInsets.only(left: 4),
-                child: Text(
-                  'Address: ${_selectedCustomer!.address}',
-                  style: const TextStyle(fontSize: 11, color: Color(0xFF64748B), fontWeight: FontWeight.w500),
-                ),
-              ),
-            ],
 
             const SizedBox(height: 24),
 
@@ -1280,6 +1482,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
       ),
     ),
   ),
+),
   bottomNavigationBar: Container(
     padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
     decoration: const BoxDecoration(
