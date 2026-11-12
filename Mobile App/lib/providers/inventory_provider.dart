@@ -159,6 +159,9 @@ class ItemModel {
   final String? division;
   final String? imageUrl;
   final bool isActive;
+  final String description;
+  final bool hasIngredients;
+  final List<String> ingredients;
 
   ItemModel({
     required this.itemId,
@@ -176,6 +179,9 @@ class ItemModel {
     this.division,
     this.imageUrl,
     required this.isActive,
+    this.description = '',
+    this.hasIngredients = false,
+    this.ingredients = const [],
   });
 
   ItemModel copyWith({
@@ -194,6 +200,9 @@ class ItemModel {
     String? division,
     String? imageUrl,
     bool? isActive,
+    String? description,
+    bool? hasIngredients,
+    List<String>? ingredients,
     bool clearStoreRoom = false,
   }) {
     final newStock = totalAvailableStock ?? this.totalAvailableStock;
@@ -218,6 +227,9 @@ class ItemModel {
       division: clearStoreRoom ? null : (division ?? this.division),
       imageUrl: imageUrl ?? this.imageUrl,
       isActive: isActive ?? this.isActive,
+      description: description ?? this.description,
+      hasIngredients: hasIngredients ?? this.hasIngredients,
+      ingredients: ingredients ?? this.ingredients,
     );
   }
 
@@ -234,6 +246,9 @@ class ItemModel {
         'reorder_shortfall_quantity': reorderShortfallQuantity,
         'image_url': imageUrl,
         'is_active': isActive,
+        'description': description,
+        'has_ingredients': hasIngredients,
+        'ingredients': ingredients,
       };
 
   factory ItemModel.fromJson(Map<String, dynamic> json) {
@@ -250,6 +265,13 @@ class ItemModel {
         (json['current_stock_quantity'] as num?)?.toDouble() ??
         (json['stock_quantity'] as num?)?.toDouble() ??
         0.0;
+
+    List<String> parsedIngredients = [];
+    if (json['ingredients'] is List) {
+      parsedIngredients = (json['ingredients'] as List)
+          .map((e) => e.toString())
+          .toList();
+    }
 
     return ItemModel(
       itemId: json['item_id'] ?? '',
@@ -269,6 +291,9 @@ class ItemModel {
       division: div,
       imageUrl: json['image_url'],
       isActive: json['is_active'] ?? true,
+      description: json['description'] ?? '',
+      hasIngredients: json['has_ingredients'] == true,
+      ingredients: parsedIngredients,
     );
   }
 }
@@ -685,8 +710,11 @@ class InventoryProvider extends ChangeNotifier {
     required String itemName,
     required String itemType,
     required String measurementUnit,
-    required double reorderThreshold,
+    double reorderThreshold = 0.0,
     String? imageUrl,
+    String? description,
+    bool? hasIngredients,
+    List<String>? ingredients,
   }) async {
     final cleanSku = sku.trim().toUpperCase();
     final cleanName = itemName.trim();
@@ -706,6 +734,9 @@ class InventoryProvider extends ChangeNotifier {
       reorderShortfallQuantity: reorderThreshold,
       imageUrl: imageUrl,
       isActive: true,
+      description: description ?? '',
+      hasIngredients: hasIngredients ?? false,
+      ingredients: ingredients ?? [],
     );
 
     _items.insert(0, optimisticItem);
@@ -720,6 +751,10 @@ class InventoryProvider extends ChangeNotifier {
       'measurement_unit': measurementUnit,
       'reorder_threshold_quantity': reorderThreshold,
     };
+
+    if (description != null) body['description'] = description;
+    if (hasIngredients != null) body['has_ingredients'] = hasIngredients;
+    if (ingredients != null) body['ingredients'] = ingredients;
 
     if (imageUrl != null && imageUrl.isNotEmpty) {
       body['image_url'] = imageUrl;
@@ -743,6 +778,9 @@ class InventoryProvider extends ChangeNotifier {
     String? measurementUnit,
     double? reorderThreshold,
     String? imageUrl,
+    String? description,
+    bool? hasIngredients,
+    List<String>? ingredients,
   }) async {
     // 1. INSTANT OPTIMISTIC UPDATE IN LOCAL MEMORY & DISK CACHE
     final index = _items.indexWhere((i) => i.itemId == itemId);
@@ -754,6 +792,9 @@ class InventoryProvider extends ChangeNotifier {
         measurementUnit: measurementUnit,
         reorderThresholdQuantity: reorderThreshold,
         imageUrl: imageUrl,
+        description: description,
+        hasIngredients: hasIngredients,
+        ingredients: ingredients,
       );
       _persistItemsLocally();
       notifyListeners();
@@ -765,6 +806,9 @@ class InventoryProvider extends ChangeNotifier {
     if (itemType != null) body['item_type'] = itemType;
     if (measurementUnit != null) body['measurement_unit'] = measurementUnit;
     if (reorderThreshold != null) body['reorder_threshold_quantity'] = reorderThreshold;
+    if (description != null) body['description'] = description;
+    if (hasIngredients != null) body['has_ingredients'] = hasIngredients;
+    if (ingredients != null) body['ingredients'] = ingredients;
     if (imageUrl != null) {
       body['image_url'] = imageUrl.isEmpty ? null : imageUrl;
     }

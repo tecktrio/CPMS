@@ -55,8 +55,17 @@ export class Item {
   })
   measurement_unit: MeasurementUnit;
 
-  @Prop({ type: Number, required: true, min: 0, default: 0 })
+  @Prop({ type: Number, required: false, min: 0, default: 0 })
   reorder_threshold_quantity: number;
+
+  @Prop({ type: String, default: '' })
+  description: string;
+
+  @Prop({ type: Boolean, default: false })
+  has_ingredients: boolean;
+
+  @Prop({ type: [String], default: [] })
+  ingredients: string[];
 
   @Prop({ type: String, default: null })
   image_url: string | null;

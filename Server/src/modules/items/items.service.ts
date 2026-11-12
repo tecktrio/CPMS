@@ -55,7 +55,10 @@ export class ItemsService {
       item_name: dto.item_name.trim(),
       item_type: dto.item_type,
       measurement_unit: dto.measurement_unit,
-      reorder_threshold_quantity: dto.reorder_threshold_quantity,
+      reorder_threshold_quantity: dto.reorder_threshold_quantity ?? 0,
+      description: dto.description || '',
+      has_ingredients: dto.has_ingredients ?? false,
+      ingredients: dto.ingredients || [],
       image_url: dto.image_url || null,
       is_active: true,
     });
@@ -218,6 +221,9 @@ export class ItemsService {
       item.image_url = dto.image_url;
     }
     if (dto.is_active !== undefined) item.is_active = dto.is_active;
+    if (dto.description !== undefined) item.description = dto.description;
+    if (dto.has_ingredients !== undefined) item.has_ingredients = dto.has_ingredients;
+    if (dto.ingredients !== undefined) item.ingredients = dto.ingredients;
 
     await item.save();
     return item;

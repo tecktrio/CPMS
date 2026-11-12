@@ -1,5 +1,6 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import {
+  IsArray,
   IsBoolean,
   IsEnum,
   IsNumber,
@@ -41,6 +42,22 @@ export class UpdateItemDto {
   @Min(0)
   @IsOptional()
   reorder_threshold_quantity?: number;
+
+  @ApiPropertyOptional({ example: 'Updated item description' })
+  @IsString()
+  @IsOptional()
+  description?: string;
+
+  @ApiPropertyOptional({ example: true })
+  @IsBoolean()
+  @IsOptional()
+  has_ingredients?: boolean;
+
+  @ApiPropertyOptional({ example: ['item-uuid-1', 'item-uuid-2'] })
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  ingredients?: string[];
 
   @ApiPropertyOptional({
     example: 'https://my-bucket.s3.amazonaws.com/items/flour.jpg',

@@ -177,19 +177,6 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
       orElse: () => widget.item,
     );
 
-    final containingRooms = <Map<String, dynamic>>[];
-    for (final rm in inventory.storeRooms) {
-      for (final it in rm.items) {
-        if (it.itemId == currentItem.itemId) {
-          containingRooms.add({
-            'room': rm,
-            'item': it,
-          });
-        }
-      }
-    }
-
-    final isAlert = currentItem.isBelowReorderThreshold;
     final hasImage =
         currentItem.imageUrl != null && currentItem.imageUrl!.isNotEmpty;
 
@@ -538,8 +525,9 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
 
             const SizedBox(height: 14),
 
-            // 2. Stock & Inventory Level Card
+            // 2. Description Card
             Container(
+              width: double.infinity,
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: Colors.white,
@@ -549,7 +537,6 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Section Header
                   Row(
                     children: [
                       Container(
@@ -560,14 +547,14 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: const Icon(
-                          Icons.inventory_2_outlined,
+                          Icons.description_outlined,
                           size: 15,
                           color: Color(0xFF334155),
                         ),
                       ),
                       const SizedBox(width: 8),
                       const Text(
-                        'STOCK & INVENTORY LEVEL',
+                        'DESCRIPTION',
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w800,
@@ -577,126 +564,31 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                       ),
                     ],
                   ),
-
-                  const SizedBox(height: 14),
-
-                  // Inner Current Stock Box
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFAFAFA),
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: const Color(0xFFF1F5F9)),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'CURRENT STOCK',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFF64748B),
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.baseline,
-                          textBaseline: TextBaseline.alphabetic,
-                          children: [
-                            Text(
-                              currentItem.totalAvailableStock
-                                  .toStringAsFixed(1),
-                              style: const TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.w900,
-                                color: Colors.black,
-                              ),
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              currentItem.measurementUnit.toUpperCase(),
-                              style: const TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w800,
-                                color: Color(0xFF64748B),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
+                  const SizedBox(height: 12),
+                  Text(
+                    currentItem.description.isNotEmpty
+                        ? currentItem.description
+                        : 'No description provided.',
+                    style: TextStyle(
+                      fontSize: 14,
+                      height: 1.5,
+                      color: currentItem.description.isNotEmpty
+                          ? Colors.black87
+                          : const Color(0xFF94A3B8),
+                      fontWeight: currentItem.description.isNotEmpty
+                          ? FontWeight.w500
+                          : FontWeight.w400,
                     ),
                   ),
-
-                  const SizedBox(height: 14),
-
-                  // Reorder Threshold Row
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Reorder Threshold',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF64748B),
-                        ),
-                      ),
-                      Text(
-                        '${currentItem.reorderThresholdQuantity.toStringAsFixed(1)} ${currentItem.measurementUnit.toUpperCase()}',
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w800,
-                          color: Colors.black,
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  // Shortfall Warning Banner
-                  if (isAlert) ...[
-                    const SizedBox(height: 12),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 10,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFFFBEB),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: const Color(0xFFFDE68A)),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(
-                            Icons.warning_amber_rounded,
-                            color: Color(0xFFD97706),
-                            size: 18,
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              'Reorder Shortfall: ${currentItem.reorderShortfallQuantity.toStringAsFixed(1)} ${currentItem.measurementUnit.toUpperCase()} (Stock below threshold)',
-                              style: const TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                                color: Color(0xFFB45309),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
                 ],
               ),
             ),
 
             const SizedBox(height: 14),
 
-            // 3. Store Rooms Containing This Item Card
+            // 3. Ingredients Card
             Container(
+              width: double.infinity,
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: Colors.white,
@@ -706,7 +598,6 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Section Header
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -720,14 +611,14 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: const Icon(
-                              Icons.storefront_outlined,
+                              Icons.science_outlined,
                               size: 15,
                               color: Color(0xFF334155),
                             ),
                           ),
                           const SizedBox(width: 8),
                           const Text(
-                            'STORE ROOMS CONTAINING THIS ITEM',
+                            'INGREDIENTS',
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w800,
@@ -737,73 +628,81 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                           ),
                         ],
                       ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 3),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF1F5F9),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Text(
-                          '${containingRooms.length} ${containingRooms.length == 1 ? 'Room' : 'Rooms'}',
-                          style: const TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w800,
-                            color: Color(0xFF475569),
+                      if (currentItem.hasIngredients)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF0FDFA),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: const Color(0xFF99F6E4)),
+                          ),
+                          child: Text(
+                            '${currentItem.ingredients.length} ${currentItem.ingredients.length == 1 ? 'Raw Material' : 'Raw Materials'}',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFF0F766E),
+                            ),
                           ),
                         ),
-                      ),
                     ],
                   ),
-
-                  const SizedBox(height: 14),
-
-                  if (containingRooms.isEmpty)
+                  const SizedBox(height: 12),
+                  if (!currentItem.hasIngredients)
                     Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
                         color: const Color(0xFFF8FAFC),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(color: const Color(0xFFF1F5F9)),
                       ),
-                      child: const Column(
+                      child: const Row(
                         children: [
-                          Icon(Icons.inventory_2_outlined,
-                              size: 28, color: Color(0xFF94A3B8)),
-                          SizedBox(height: 8),
-                          Text(
-                            'Not stored in any store room yet.',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.black,
-                            ),
-                          ),
-                          SizedBox(height: 2),
-                          Text(
-                            'Add this item into any store room directly from the Store Rooms tab.',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Color(0xFF64748B),
+                          Icon(Icons.info_outline, size: 18, color: Color(0xFF94A3B8)),
+                          SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              'This item does not contain ingredients (Standalone / Raw Material).',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Color(0xFF64748B),
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
                           ),
                         ],
                       ),
                     )
+                  else if (currentItem.ingredients.isEmpty)
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFFF1F5F9)),
+                      ),
+                      child: const Text(
+                        'No raw materials assigned as ingredients yet. Tap Edit Item to select ingredients.',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF64748B),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    )
                   else
-                    ...containingRooms.map((entry) {
-                      final StoreRoomModel rm = entry['room'] as StoreRoomModel;
-                      final StoreRoomItemModel sri =
-                          entry['item'] as StoreRoomItemModel;
+                    ...currentItem.ingredients.map((ingId) {
+                      final match = inventory.items.where((i) => i.itemId == ingId);
+                      final ingItem = match.isNotEmpty ? match.first : null;
+                      final ingName = ingItem != null ? ingItem.itemName : 'Unknown Raw Material';
+                      final ingSku = ingItem != null ? ingItem.sku : ingId;
+                      final ingUnit = ingItem != null ? ingItem.measurementUnit.toUpperCase() : '';
 
                       return Container(
                         margin: const EdgeInsets.only(bottom: 8),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 12,
-                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                         decoration: BoxDecoration(
                           color: const Color(0xFFFAFAFA),
                           borderRadius: BorderRadius.circular(12),
@@ -812,19 +711,15 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                         child: Row(
                           children: [
                             Container(
-                              width: 38,
-                              height: 38,
+                              width: 36,
+                              height: 36,
                               decoration: BoxDecoration(
                                 color: Colors.white,
-                                borderRadius: BorderRadius.circular(10),
-                                border:
-                                    Border.all(color: const Color(0xFFE2E8F0)),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: const Color(0xFFE2E8F0)),
                               ),
-                              child: const Icon(
-                                Icons.home_outlined,
-                                size: 19,
-                                color: Colors.black,
-                              ),
+                              alignment: Alignment.center,
+                              child: const Icon(Icons.eco_outlined, size: 18, color: Color(0xFF0F766E)),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
@@ -832,7 +727,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    rm.roomName,
+                                    ingName,
                                     style: const TextStyle(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w800,
@@ -840,48 +735,15 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                                     ),
                                   ),
                                   const SizedBox(height: 2),
-                                  Wrap(
-                                    spacing: 6,
-                                    children: [
-                                      Text(
-                                        rm.roomCode,
-                                        style: const TextStyle(
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w700,
-                                          color: Color(0xFF64748B),
-                                        ),
-                                      ),
-                                      const Text('•',
-                                          style: TextStyle(
-                                              fontSize: 11,
-                                              color: Color(0xFF94A3B8))),
-                                      Text(
-                                        sri.division,
-                                        style: const TextStyle(
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w700,
-                                          color: Color(0xFF3B82F6),
-                                        ),
-                                      ),
-                                    ],
+                                  Text(
+                                    ingUnit.isNotEmpty ? '$ingSku • $ingUnit' : ingSku,
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xFF64748B),
+                                    ),
                                   ),
                                 ],
-                              ),
-                            ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 10, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: Colors.black,
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Text(
-                                '${sri.quantity.toStringAsFixed(1)} ${currentItem.measurementUnit.toUpperCase()}',
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w800,
-                                  color: Colors.white,
-                                ),
                               ),
                             ),
                           ],

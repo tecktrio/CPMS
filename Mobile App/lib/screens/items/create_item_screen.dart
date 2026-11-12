@@ -16,7 +16,12 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
   final _formKey = GlobalKey<FormState>();
   final _skuController = TextEditingController();
   final _nameController = TextEditingController();
-  final _reorderThresholdController = TextEditingController(text: '50');
+  final _descriptionController = TextEditingController();
+  final _ingredientSearchController = TextEditingController();
+
+  bool _hasIngredients = false;
+  final List<String> _selectedIngredientIds = [];
+  String _ingredientSearchQuery = '';
 
   String _selectedItemType = 'RAW_MATERIAL';
   String _selectedUnit = 'KILOGRAM';
@@ -45,7 +50,8 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
   void dispose() {
     _skuController.dispose();
     _nameController.dispose();
-    _reorderThresholdController.dispose();
+    _descriptionController.dispose();
+    _ingredientSearchController.dispose();
     super.dispose();
   }
 
@@ -97,8 +103,10 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
       itemName: _nameController.text.trim(),
       itemType: _selectedItemType,
       measurementUnit: _selectedUnit,
-      reorderThreshold:
-          double.tryParse(_reorderThresholdController.text.trim()) ?? 0,
+      reorderThreshold: 0.0,
+      description: _descriptionController.text.trim(),
+      hasIngredients: _hasIngredients,
+      ingredients: _hasIngredients ? _selectedIngredientIds : [],
       imageUrl: uploadedImageUrl,
     );
 
@@ -358,6 +366,42 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
 
               const SizedBox(height: 18),
 
+              // Description
+              _buildFieldLabel('DESCRIPTION'),
+              TextFormField(
+                controller: _descriptionController,
+                maxLines: 3,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black,
+                ),
+                decoration: InputDecoration(
+                  hintText: 'Enter item description or recipe notes...',
+                  hintStyle: const TextStyle(
+                    color: Color(0xFF94A3B8),
+                    fontSize: 14,
+                  ),
+                  filled: true,
+                  fillColor: Colors.white,
+                  contentPadding: const EdgeInsets.all(14),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Colors.black, width: 1.5),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 18),
+
               // Product SKU
               _buildFieldLabel('PRODUCT SKU *'),
               TextFormField(
@@ -552,34 +596,210 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
 
               const SizedBox(height: 18),
 
-              // Reorder Level
-              _buildFieldLabel('REORDER LEVEL *'),
-              TextFormField(
-                controller: _reorderThresholdController,
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
-                ),
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.black,
-                ),
-                decoration: _buildInputDecoration(
-                  hintText: '50',
-                  prefixIcon: const Icon(
-                    Icons.warning_amber_rounded,
-                    size: 20,
-                    color: Color(0xFF94A3B8),
+              // Ingredients Checkbox
+              Container(
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: _hasIngredients ? Colors.black : const Color(0xFFE2E8F0),
+                    width: _hasIngredients ? 1.5 : 1.0,
                   ),
                 ),
-                validator: (val) {
-                  if (val == null ||
-                      double.tryParse(val.trim()) == null) {
-                    return 'Enter reorder level';
-                  }
-                  return null;
-                },
+                child: CheckboxListTile(
+                  value: _hasIngredients,
+                  activeColor: Colors.black,
+                  checkColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+                  controlAffinity: ListTileControlAffinity.leading,
+                  title: const Text(
+                    'Ingredients',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.black,
+                    ),
+                  ),
+                  subtitle: const Text(
+                    'Check to select raw material items used as ingredients',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF64748B),
+                    ),
+                  ),
+                  onChanged: (val) {
+                    setState(() {
+                      _hasIngredients = val ?? false;
+                    });
+                  },
+                ),
               ),
+
+              // On Checking Ingredients: Raw items search and list
+              if (_hasIngredients) ...[
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'SELECT RAW MATERIAL INGREDIENTS',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFF64748B),
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF0FDFA),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: const Color(0xFF99F6E4)),
+                            ),
+                            child: Text(
+                              '${_selectedIngredientIds.length} Selected',
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w800,
+                                color: Color(0xFF0F766E),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+
+                      // Search Bar
+                      Container(
+                        height: 44,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                        ),
+                        child: Row(
+                          children: [
+                            const Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 10),
+                              child: Icon(Icons.search, size: 18, color: Color(0xFF64748B)),
+                            ),
+                            Expanded(
+                              child: TextField(
+                                controller: _ingredientSearchController,
+                                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                                decoration: const InputDecoration(
+                                  hintText: 'Search raw materials by title or SKU...',
+                                  hintStyle: TextStyle(fontSize: 13, color: Color(0xFF94A3B8)),
+                                  border: InputBorder.none,
+                                  isDense: true,
+                                  contentPadding: EdgeInsets.zero,
+                                ),
+                                onChanged: (val) {
+                                  setState(() => _ingredientSearchQuery = val);
+                                },
+                              ),
+                            ),
+                            if (_ingredientSearchQuery.isNotEmpty)
+                              IconButton(
+                                icon: const Icon(Icons.close, size: 16, color: Color(0xFF94A3B8)),
+                                onPressed: () {
+                                  _ingredientSearchController.clear();
+                                  setState(() => _ingredientSearchQuery = '');
+                                },
+                              ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+
+                      // Raw Material Items Selection List
+                      Builder(
+                        builder: (context) {
+                          final inventory = context.watch<InventoryProvider>();
+                          final rawItems = inventory.items.where((i) {
+                            final isRaw = i.itemType == 'RAW_MATERIAL';
+                            final q = _ingredientSearchQuery.toLowerCase();
+                            final matches = q.isEmpty ||
+                                i.itemName.toLowerCase().contains(q) ||
+                                i.sku.toLowerCase().contains(q);
+                            return isRaw && matches;
+                          }).toList();
+
+                          if (rawItems.isEmpty) {
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 20),
+                              child: Center(
+                                child: Text(
+                                  _ingredientSearchQuery.isNotEmpty
+                                      ? 'No matching raw materials found.'
+                                      : 'No raw material items found in inventory.',
+                                  style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                                ),
+                              ),
+                            );
+                          }
+
+                          return ConstrainedBox(
+                            constraints: const BoxConstraints(maxHeight: 220),
+                            child: ListView.separated(
+                              shrinkWrap: true,
+                              itemCount: rawItems.length,
+                              separatorBuilder: (_, _) =>
+                                  const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                              itemBuilder: (context, idx) {
+                                final raw = rawItems[idx];
+                                final isChecked =
+                                    _selectedIngredientIds.contains(raw.itemId);
+
+                                return CheckboxListTile(
+                                  value: isChecked,
+                                  dense: true,
+                                  activeColor: Colors.black,
+                                  checkColor: Colors.white,
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+                                  title: Text(
+                                    raw.itemName,
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: isChecked ? FontWeight.w800 : FontWeight.w600,
+                                      color: Colors.black,
+                                    ),
+                                  ),
+                                  subtitle: Text(
+                                    '${raw.sku} • ${raw.measurementUnit.toUpperCase()}',
+                                    style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                                  ),
+                                  onChanged: (checked) {
+                                    setState(() {
+                                      if (checked == true) {
+                                        _selectedIngredientIds.add(raw.itemId);
+                                      } else {
+                                        _selectedIngredientIds.remove(raw.itemId);
+                                      }
+                                    });
+                                  },
+                                );
+                              },
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ],
 
               const SizedBox(height: 32),
             ],

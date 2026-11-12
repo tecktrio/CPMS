@@ -1,5 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
+  IsArray,
+  IsBoolean,
   IsEnum,
   IsNotEmpty,
   IsNumber,
@@ -47,13 +49,39 @@ export class CreateItemDto {
   @IsNotEmpty()
   measurement_unit: MeasurementUnit;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     example: 250,
     description: 'Stock threshold triggering reorder shortfall alerts',
   })
   @IsNumber()
   @Min(0)
-  reorder_threshold_quantity: number;
+  @IsOptional()
+  reorder_threshold_quantity?: number;
+
+  @ApiPropertyOptional({
+    example: 'High quality organic wheat flour for bakery products',
+    description: 'Item description',
+  })
+  @IsString()
+  @IsOptional()
+  description?: string;
+
+  @ApiPropertyOptional({
+    example: false,
+    description: 'Whether the item has ingredients',
+  })
+  @IsBoolean()
+  @IsOptional()
+  has_ingredients?: boolean;
+
+  @ApiPropertyOptional({
+    example: ['item-uuid-1', 'item-uuid-2'],
+    description: 'List of raw material item IDs used as ingredients',
+  })
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  ingredients?: string[];
 
   @ApiPropertyOptional({
     example: 'https://my-bucket.s3.amazonaws.com/items/flour.jpg',
