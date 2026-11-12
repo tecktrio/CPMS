@@ -693,12 +693,16 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                       ),
                     )
                   else
-                    ...currentItem.ingredients.map((ingId) {
-                      final match = inventory.items.where((i) => i.itemId == ingId);
+                    ...currentItem.ingredients.map((ing) {
+                      final match = inventory.items.where((i) => i.itemId == ing.itemId);
                       final ingItem = match.isNotEmpty ? match.first : null;
                       final ingName = ingItem != null ? ingItem.itemName : 'Unknown Raw Material';
-                      final ingSku = ingItem != null ? ingItem.sku : ingId;
-                      final ingUnit = ingItem != null ? ingItem.measurementUnit.toUpperCase() : '';
+                      final ingSku = ingItem != null ? ingItem.sku : ing.itemId;
+                      final ingUnit = ing.unit.isNotEmpty
+                          ? ing.unit.toUpperCase()
+                          : (ingItem != null ? ingItem.measurementUnit.toUpperCase() : '');
+                      final formattedQty = ing.quantity.toStringAsFixed(
+                          ing.quantity.truncateToDouble() == ing.quantity ? 0 : 2);
 
                       return Container(
                         margin: const EdgeInsets.only(bottom: 8),
@@ -736,7 +740,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
-                                    ingUnit.isNotEmpty ? '$ingSku • $ingUnit' : ingSku,
+                                    ingSku,
                                     style: const TextStyle(
                                       fontSize: 11,
                                       fontWeight: FontWeight.w600,
@@ -744,6 +748,22 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                                     ),
                                   ),
                                 ],
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: const Color(0xFFE2E8F0)),
+                              ),
+                              child: Text(
+                                '$formattedQty $ingUnit',
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w800,
+                                  color: Colors.black,
+                                ),
                               ),
                             ),
                           ],

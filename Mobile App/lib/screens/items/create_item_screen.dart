@@ -21,6 +21,7 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
 
   bool _hasIngredients = false;
   final List<String> _selectedIngredientIds = [];
+  final Map<String, TextEditingController> _qtyControllers = {};
   String _ingredientSearchQuery = '';
 
   String _selectedItemType = 'RAW_MATERIAL';
@@ -52,6 +53,9 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
     _nameController.dispose();
     _descriptionController.dispose();
     _ingredientSearchController.dispose();
+    for (final c in _qtyControllers.values) {
+      c.dispose();
+    }
     super.dispose();
   }
 
@@ -98,6 +102,15 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
       );
     }
 
+    final ingredientsPayload = _selectedIngredientIds.map((id) {
+      final ctrl = _qtyControllers[id];
+      final qty = (ctrl != null) ? (double.tryParse(ctrl.text.trim()) ?? 1.0) : 1.0;
+      return ItemIngredientModel(
+        itemId: id,
+        quantity: qty,
+      );
+    }).toList();
+
     final success = await inventory.createItem(
       sku: _skuController.text.trim().toUpperCase(),
       itemName: _nameController.text.trim(),
@@ -106,7 +119,7 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
       reorderThreshold: 0.0,
       description: _descriptionController.text.trim(),
       hasIngredients: _hasIngredients,
-      ingredients: _hasIngredients ? _selectedIngredientIds : [],
+      ingredients: _hasIngredients ? ingredientsPayload : [],
       imageUrl: uploadedImageUrl,
     );
 
@@ -752,7 +765,7 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
                           }
 
                           return ConstrainedBox(
-                            constraints: const BoxConstraints(maxHeight: 220),
+                            constraints: const BoxConstraints(maxHeight: 260),
                             child: ListView.separated(
                               shrinkWrap: true,
                               itemCount: rawItems.length,
@@ -763,33 +776,126 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
                                 final isChecked =
                                     _selectedIngredientIds.contains(raw.itemId);
 
-                                return CheckboxListTile(
-                                  value: isChecked,
-                                  dense: true,
-                                  activeColor: Colors.black,
-                                  checkColor: Colors.white,
-                                  contentPadding: const EdgeInsets.symmetric(horizontal: 4),
-                                  title: Text(
-                                    raw.itemName,
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: isChecked ? FontWeight.w800 : FontWeight.w600,
-                                      color: Colors.black,
-                                    ),
+                                return Padding(
+                                  padding: const EdgeInsets.symmetric(vertical: 4),
+                                  child: Row(
+                                    crossAxisAlignment: CrossAxisAlignment.center,
+                                    children: [
+                                      SizedBox(
+                                        width: 32,
+                                        height: 32,
+                                        child: Checkbox(
+                                          value: isChecked,
+                                          activeColor: Colors.black,
+                                          checkColor: Colors.white,
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(4),
+                                          ),
+                                          onChanged: (checked) {
+                                            setState(() {
+                                              if (checked == true) {
+                                                _selectedIngredientIds.add(raw.itemId);
+                                                _qtyControllers.putIfAbsent(
+                                                  raw.itemId,
+                                                  () => TextEditingController(text: '1'),
+                                                );
+                                              } else {
+                                                _selectedIngredientIds.remove(raw.itemId);
+                                              }
+                                            });
+                                          },
+                                        ),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Expanded(
+                                        child: InkWell(
+                                          onTap: () {
+                                            setState(() {
+                                              if (!isChecked) {
+                                                _selectedIngredientIds.add(raw.itemId);
+                                                _qtyControllers.putIfAbsent(
+                                                  raw.itemId,
+                                                  () => TextEditingController(text: '1'),
+                                                );
+                                              } else {
+                                                _selectedIngredientIds.remove(raw.itemId);
+                                              }
+                                            });
+                                          },
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                raw.itemName,
+                                                style: TextStyle(
+                                                  fontSize: 13,
+                                                  fontWeight: isChecked ? FontWeight.w800 : FontWeight.w600,
+                                                  color: Colors.black,
+                                                ),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                              const SizedBox(height: 2),
+                                              Text(
+                                                '${raw.sku} • ${raw.measurementUnit.toUpperCase()}',
+                                                style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                      if (isChecked) ...[
+                                        const SizedBox(width: 8),
+                                        SizedBox(
+                                          width: 105,
+                                          height: 38,
+                                          child: TextFormField(
+                                            controller: _qtyControllers.putIfAbsent(
+                                              raw.itemId,
+                                              () => TextEditingController(text: '1'),
+                                            ),
+                                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                            textAlign: TextAlign.center,
+                                            style: const TextStyle(
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.w800,
+                                              color: Colors.black,
+                                            ),
+                                            decoration: InputDecoration(
+                                              isDense: true,
+                                              hintText: 'Qty',
+                                              hintStyle: const TextStyle(fontSize: 11, color: Color(0xFF94A3B8)),
+                                              suffixText: raw.measurementUnit.length > 3
+                                                  ? raw.measurementUnit.substring(0, 2).toUpperCase()
+                                                  : raw.measurementUnit.toUpperCase(),
+                                              suffixStyle: const TextStyle(
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.w800,
+                                                color: Color(0xFF64748B),
+                                              ),
+                                              filled: true,
+                                              fillColor: const Color(0xFFF8FAFC),
+                                              contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                                              border: OutlineInputBorder(
+                                                borderRadius: BorderRadius.circular(8),
+                                                borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                                              ),
+                                              enabledBorder: OutlineInputBorder(
+                                                borderRadius: BorderRadius.circular(8),
+                                                borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                                              ),
+                                              focusedBorder: OutlineInputBorder(
+                                                borderRadius: BorderRadius.circular(8),
+                                                borderSide: const BorderSide(color: Colors.black, width: 1.5),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ],
                                   ),
-                                  subtitle: Text(
-                                    '${raw.sku} • ${raw.measurementUnit.toUpperCase()}',
-                                    style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
-                                  ),
-                                  onChanged: (checked) {
-                                    setState(() {
-                                      if (checked == true) {
-                                        _selectedIngredientIds.add(raw.itemId);
-                                      } else {
-                                        _selectedIngredientIds.remove(raw.itemId);
-                                      }
-                                    });
-                                  },
                                 );
                               },
                             ),

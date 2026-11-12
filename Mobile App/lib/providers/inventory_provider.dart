@@ -143,6 +143,38 @@ class StoreRoomModel {
   }
 }
 
+class ItemIngredientModel {
+  final String itemId;
+  final double quantity;
+  final String unit;
+
+  ItemIngredientModel({
+    required this.itemId,
+    this.quantity = 1.0,
+    this.unit = '',
+  });
+
+  Map<String, dynamic> toJson() => {
+        'item_id': itemId,
+        'quantity': quantity,
+        'unit': unit,
+      };
+
+  factory ItemIngredientModel.fromJson(dynamic json) {
+    if (json is String) {
+      return ItemIngredientModel(itemId: json, quantity: 1.0);
+    }
+    if (json is Map) {
+      return ItemIngredientModel(
+        itemId: json['item_id']?.toString() ?? '',
+        quantity: (json['quantity'] as num?)?.toDouble() ?? 1.0,
+        unit: json['unit']?.toString() ?? '',
+      );
+    }
+    return ItemIngredientModel(itemId: json?.toString() ?? '', quantity: 1.0);
+  }
+}
+
 class ItemModel {
   final String itemId;
   final String tenantId;
@@ -161,7 +193,7 @@ class ItemModel {
   final bool isActive;
   final String description;
   final bool hasIngredients;
-  final List<String> ingredients;
+  final List<ItemIngredientModel> ingredients;
 
   ItemModel({
     required this.itemId,
@@ -202,7 +234,7 @@ class ItemModel {
     bool? isActive,
     String? description,
     bool? hasIngredients,
-    List<String>? ingredients,
+    List<ItemIngredientModel>? ingredients,
     bool clearStoreRoom = false,
   }) {
     final newStock = totalAvailableStock ?? this.totalAvailableStock;
@@ -248,7 +280,7 @@ class ItemModel {
         'is_active': isActive,
         'description': description,
         'has_ingredients': hasIngredients,
-        'ingredients': ingredients,
+        'ingredients': ingredients.map((i) => i.toJson()).toList(),
       };
 
   factory ItemModel.fromJson(Map<String, dynamic> json) {
@@ -266,10 +298,10 @@ class ItemModel {
         (json['stock_quantity'] as num?)?.toDouble() ??
         0.0;
 
-    List<String> parsedIngredients = [];
+    List<ItemIngredientModel> parsedIngredients = [];
     if (json['ingredients'] is List) {
       parsedIngredients = (json['ingredients'] as List)
-          .map((e) => e.toString())
+          .map((e) => ItemIngredientModel.fromJson(e))
           .toList();
     }
 
@@ -714,7 +746,7 @@ class InventoryProvider extends ChangeNotifier {
     String? imageUrl,
     String? description,
     bool? hasIngredients,
-    List<String>? ingredients,
+    List<ItemIngredientModel>? ingredients,
   }) async {
     final cleanSku = sku.trim().toUpperCase();
     final cleanName = itemName.trim();
@@ -754,7 +786,9 @@ class InventoryProvider extends ChangeNotifier {
 
     if (description != null) body['description'] = description;
     if (hasIngredients != null) body['has_ingredients'] = hasIngredients;
-    if (ingredients != null) body['ingredients'] = ingredients;
+    if (ingredients != null) {
+      body['ingredients'] = ingredients.map((i) => i.toJson()).toList();
+    }
 
     if (imageUrl != null && imageUrl.isNotEmpty) {
       body['image_url'] = imageUrl;
@@ -780,7 +814,7 @@ class InventoryProvider extends ChangeNotifier {
     String? imageUrl,
     String? description,
     bool? hasIngredients,
-    List<String>? ingredients,
+    List<ItemIngredientModel>? ingredients,
   }) async {
     // 1. INSTANT OPTIMISTIC UPDATE IN LOCAL MEMORY & DISK CACHE
     final index = _items.indexWhere((i) => i.itemId == itemId);
@@ -808,7 +842,9 @@ class InventoryProvider extends ChangeNotifier {
     if (reorderThreshold != null) body['reorder_threshold_quantity'] = reorderThreshold;
     if (description != null) body['description'] = description;
     if (hasIngredients != null) body['has_ingredients'] = hasIngredients;
-    if (ingredients != null) body['ingredients'] = ingredients;
+    if (ingredients != null) {
+      body['ingredients'] = ingredients.map((i) => i.toJson()).toList();
+    }
     if (imageUrl != null) {
       body['image_url'] = imageUrl.isEmpty ? null : imageUrl;
     }

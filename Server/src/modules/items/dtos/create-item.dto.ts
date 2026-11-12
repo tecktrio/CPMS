@@ -75,13 +75,12 @@ export class CreateItemDto {
   has_ingredients?: boolean;
 
   @ApiPropertyOptional({
-    example: ['item-uuid-1', 'item-uuid-2'],
-    description: 'List of raw material item IDs used as ingredients',
+    example: [{ item_id: 'item-uuid-1', quantity: 2.5 }],
+    description: 'List of raw material ingredients with quantities',
   })
   @IsArray()
-  @IsString({ each: true })
   @IsOptional()
-  ingredients?: string[];
+  ingredients?: any[];
 
   @ApiPropertyOptional({
     example: 'https://my-bucket.s3.amazonaws.com/items/flour.jpg',

@@ -64,8 +64,8 @@ export class Item {
   @Prop({ type: Boolean, default: false })
   has_ingredients: boolean;
 
-  @Prop({ type: [String], default: [] })
-  ingredients: string[];
+  @Prop({ type: Array, default: [] })
+  ingredients: Array<{ item_id: string; quantity: number; unit?: string }>;
 
   @Prop({ type: String, default: null })
   image_url: string | null;

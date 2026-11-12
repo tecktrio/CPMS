@@ -21,6 +21,20 @@ import { CreateItemDto } from './dtos/create-item.dto';
 import { UpdateItemDto } from './dtos/update-item.dto';
 import { StorageService } from '../storage/storage.service';
 
+function normalizeIngredients(ingredients?: any[]): Array<{ item_id: string; quantity: number; unit?: string }> {
+  if (!ingredients || !Array.isArray(ingredients)) return [];
+  return ingredients.map((ing) => {
+    if (typeof ing === 'string') {
+      return { item_id: ing, quantity: 1, unit: '' };
+    }
+    return {
+      item_id: ing?.item_id || '',
+      quantity: typeof ing?.quantity === 'number' ? ing.quantity : parseFloat(ing?.quantity) || 1,
+      unit: ing?.unit || '',
+    };
+  });
+}
+
 @Injectable()
 export class ItemsService {
   constructor(
@@ -58,7 +72,7 @@ export class ItemsService {
       reorder_threshold_quantity: dto.reorder_threshold_quantity ?? 0,
       description: dto.description || '',
       has_ingredients: dto.has_ingredients ?? false,
-      ingredients: dto.ingredients || [],
+      ingredients: normalizeIngredients(dto.ingredients),
       image_url: dto.image_url || null,
       is_active: true,
     });
@@ -223,7 +237,7 @@ export class ItemsService {
     if (dto.is_active !== undefined) item.is_active = dto.is_active;
     if (dto.description !== undefined) item.description = dto.description;
     if (dto.has_ingredients !== undefined) item.has_ingredients = dto.has_ingredients;
-    if (dto.ingredients !== undefined) item.ingredients = dto.ingredients;
+    if (dto.ingredients !== undefined) item.ingredients = normalizeIngredients(dto.ingredients);
 
     await item.save();
     return item;
