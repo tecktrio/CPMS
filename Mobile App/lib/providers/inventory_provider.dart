@@ -146,6 +146,7 @@ class ItemModel {
     String? division,
     String? imageUrl,
     bool? isActive,
+    bool clearStoreRoom = false,
   }) {
     final newStock = totalAvailableStock ?? this.totalAvailableStock;
     final newThreshold =
@@ -164,9 +165,9 @@ class ItemModel {
       totalAvailableStock: newStock,
       isBelowReorderThreshold: isBelowReorderThreshold ?? below,
       reorderShortfallQuantity: reorderShortfallQuantity ?? shortfall,
-      storeRoomId: storeRoomId ?? this.storeRoomId,
-      locationCode: locationCode ?? this.locationCode,
-      division: division ?? this.division,
+      storeRoomId: clearStoreRoom ? null : (storeRoomId ?? this.storeRoomId),
+      locationCode: clearStoreRoom ? null : (locationCode ?? this.locationCode),
+      division: clearStoreRoom ? null : (division ?? this.division),
       imageUrl: imageUrl ?? this.imageUrl,
       isActive: isActive ?? this.isActive,
     );
@@ -642,7 +643,7 @@ class InventoryProvider extends ChangeNotifier {
     required String itemType,
     required String measurementUnit,
     required double reorderThreshold,
-    required String storeRoomId,
+    String? storeRoomId,
     String? locationCode,
     String? division,
     double? stockQuantity,
@@ -652,6 +653,7 @@ class InventoryProvider extends ChangeNotifier {
     final cleanName = itemName.trim();
     final initialStock = stockQuantity ?? 0.0;
     final tempId = 'item_${DateTime.now().millisecondsSinceEpoch}';
+    final hasStoreRoom = storeRoomId != null && storeRoomId.isNotEmpty;
 
     // 1. INSTANT OPTIMISTIC INSERTION
     final optimisticItem = ItemModel(
@@ -666,9 +668,9 @@ class InventoryProvider extends ChangeNotifier {
       isBelowReorderThreshold: initialStock <= reorderThreshold,
       reorderShortfallQuantity:
           initialStock <= reorderThreshold ? (reorderThreshold - initialStock) : 0.0,
-      storeRoomId: storeRoomId,
-      locationCode: locationCode ?? division ?? 'LOC-01',
-      division: division ?? 'Default Section',
+      storeRoomId: hasStoreRoom ? storeRoomId : null,
+      locationCode: hasStoreRoom ? (locationCode ?? division ?? 'LOC-01') : null,
+      division: hasStoreRoom ? (division ?? 'Default Section') : null,
       imageUrl: imageUrl,
       isActive: true,
     );
@@ -685,7 +687,10 @@ class InventoryProvider extends ChangeNotifier {
       'measurement_unit': measurementUnit,
       'reorder_threshold_quantity': reorderThreshold,
       'stock_quantity': initialStock,
-      'storage_location_details': {
+    };
+
+    if (hasStoreRoom) {
+      body['storage_location_details'] = {
         'store_room_id': storeRoomId,
         'location_code': (locationCode != null && locationCode.isNotEmpty)
             ? locationCode.trim()
@@ -696,8 +701,9 @@ class InventoryProvider extends ChangeNotifier {
         'bin_identifier': 'B1',
         'allowed_category': itemType,
         'is_active': true,
-      },
-    };
+      };
+    }
+
     if (imageUrl != null && imageUrl.isNotEmpty) {
       body['image_url'] = imageUrl;
     }
@@ -723,6 +729,7 @@ class InventoryProvider extends ChangeNotifier {
     String? division,
     double? stockQuantity,
     String? imageUrl,
+    bool clearStoreRoom = false,
   }) async {
     // 1. INSTANT OPTIMISTIC UPDATE IN LOCAL MEMORY & DISK CACHE
     final index = _items.indexWhere((i) => i.itemId == itemId);
@@ -734,9 +741,10 @@ class InventoryProvider extends ChangeNotifier {
         measurementUnit: measurementUnit,
         reorderThresholdQuantity: reorderThreshold,
         totalAvailableStock: stockQuantity,
-        storeRoomId: storeRoomId,
-        division: division,
+        storeRoomId: clearStoreRoom ? null : (storeRoomId ?? existing.storeRoomId),
+        division: clearStoreRoom ? null : (division ?? existing.division),
         imageUrl: imageUrl,
+        clearStoreRoom: clearStoreRoom,
       );
       _persistItemsLocally();
       notifyListeners();
@@ -752,12 +760,21 @@ class InventoryProvider extends ChangeNotifier {
     if (imageUrl != null) {
       body['image_url'] = imageUrl.isEmpty ? null : imageUrl;
     }
-    if (storeRoomId != null || division != null) {
+
+    if (clearStoreRoom) {
+      body['storage_location_details'] = {
+        'store_room_id': null,
+        'location_code': '',
+        'division': '',
+      };
+    } else if (storeRoomId != null || division != null) {
       final loc = <String, dynamic>{
         'location_code': division ?? 'LOC-01',
         'division': division ?? '',
       };
-      if (storeRoomId != null) loc['store_room_id'] = storeRoomId;
+      if (storeRoomId != null) {
+        loc['store_room_id'] = storeRoomId.isEmpty ? null : storeRoomId;
+      }
       body['storage_location_details'] = loc;
     }
 

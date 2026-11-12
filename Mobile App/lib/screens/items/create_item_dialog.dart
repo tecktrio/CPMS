@@ -56,18 +56,6 @@ class _CreateItemDialogState extends State<CreateItemDialog> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    if (_selectedStoreRoomId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select a storage store room first.'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
-    setState(() => _isSubmitting = true);
-
     final inventory = context.read<InventoryProvider>();
     final success = await inventory.createItem(
       sku: _skuController.text.trim().toUpperCase(),
@@ -75,7 +63,7 @@ class _CreateItemDialogState extends State<CreateItemDialog> {
       itemType: _selectedItemType,
       measurementUnit: _selectedUnit,
       reorderThreshold: double.tryParse(_reorderThresholdController.text) ?? 0,
-      storeRoomId: _selectedStoreRoomId!,
+      storeRoomId: _selectedStoreRoomId,
       locationCode: _locationCodeController.text.trim(),
     );
 

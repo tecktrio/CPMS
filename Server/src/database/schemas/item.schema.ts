@@ -24,10 +24,10 @@ export enum AllowedCategory {
 
 @Schema({ _id: false })
 export class StorageLocationDetails {
-  @Prop({ type: String, required: true })
-  store_room_id: string;
+  @Prop({ type: String, required: false, default: null })
+  store_room_id: string | null;
 
-  @Prop({ type: String, required: true, trim: true })
+  @Prop({ type: String, required: false, default: '', trim: true })
   location_code: string;
 
   @Prop({ type: String, default: '', trim: true })
@@ -106,7 +106,7 @@ export class Item {
   @Prop({ type: String, default: null })
   image_url: string | null;
 
-  @Prop({ type: StorageLocationDetailsSchema, required: true })
+  @Prop({ type: StorageLocationDetailsSchema, required: false, default: null })
   storage_location_details: StorageLocationDetails;
 }
 

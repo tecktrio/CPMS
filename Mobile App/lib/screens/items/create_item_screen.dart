@@ -22,8 +22,6 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
 
   String _selectedItemType = 'RAW_MATERIAL';
   String _selectedUnit = 'KILOGRAM';
-  String? _selectedStoreRoomId;
-  String? _selectedDivision;
   bool _isSubmitting = false;
 
   XFile? _selectedImage;
@@ -48,18 +46,8 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      final inventory = context.read<InventoryProvider>();
-      await inventory.loadStoreRooms();
-      if (mounted && inventory.storeRooms.isNotEmpty) {
-        final firstRoom = inventory.storeRooms.first;
-        setState(() {
-          _selectedStoreRoomId = firstRoom.storeRoomId;
-          if (firstRoom.divisions.isNotEmpty) {
-            _selectedDivision = firstRoom.divisions.first;
-          }
-        });
-      }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<InventoryProvider>().loadStoreRooms();
     });
   }
 
@@ -103,23 +91,10 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    if (_selectedStoreRoomId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select a storage store room first.'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
 
     setState(() => _isSubmitting = true);
 
     final inventory = context.read<InventoryProvider>();
-    final chosenDivision = _selectedDivision ??
-        (_customDivisionController.text.trim().isNotEmpty
-            ? _customDivisionController.text.trim()
-            : 'Default Section');
 
     String? uploadedImageUrl;
     if (_selectedImageBytes != null && _selectedImage != null) {
@@ -138,9 +113,6 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
           double.tryParse(_reorderThresholdController.text.trim()) ?? 0,
       stockQuantity:
           double.tryParse(_stockQuantityController.text.trim()) ?? 0,
-      storeRoomId: _selectedStoreRoomId!,
-      division: chosenDivision,
-      locationCode: chosenDivision,
       imageUrl: uploadedImageUrl,
     );
 
@@ -221,15 +193,6 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final inventory = context.watch<InventoryProvider>();
-
-    StoreRoomModel? selectedRoom;
-    if (_selectedStoreRoomId != null) {
-      final matches = inventory.storeRooms
-          .where((r) => r.storeRoomId == _selectedStoreRoomId);
-      if (matches.isNotEmpty) selectedRoom = matches.first;
-    }
-
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -555,123 +518,49 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
 
               const SizedBox(height: 18),
 
-              // Store Room
-              _buildFieldLabel('STORE ROOM *'),
-              DropdownButtonFormField<String>(
-                initialValue: _selectedStoreRoomId,
-                icon: const Icon(
-                  Icons.keyboard_arrow_down,
-                  color: Color(0xFF64748B),
+              // Storage Allocation Note
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
                 ),
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.black,
-                ),
-                decoration: _buildInputDecoration(
-                  hintText: 'Select store room',
-                  prefixIcon: const Icon(
-                    Icons.inventory_2_outlined,
-                    size: 20,
-                    color: Color(0xFF64748B),
-                  ),
-                ),
-                items: inventory.storeRooms
-                    .map((room) => DropdownMenuItem(
-                          value: room.storeRoomId,
-                          child: Text(
-                            '${room.roomName} (${room.temperature != null ? '${room.temperature}°C' : 'Ambient'})',
-                            overflow: TextOverflow.ellipsis,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: const [
+                    Icon(
+                      Icons.storefront_outlined,
+                      size: 20,
+                      color: Color(0xFF64748B),
+                    ),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Store Room Allocation',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.black,
+                            ),
                           ),
-                        ))
-                    .toList(),
-                onChanged: (val) {
-                  setState(() {
-                    _selectedStoreRoomId = val;
-                    final r = inventory.storeRooms.firstWhere(
-                      (rm) => rm.storeRoomId == val,
-                      orElse: () => inventory.storeRooms.first,
-                    );
-                    if (r.divisions.isNotEmpty) {
-                      _selectedDivision = r.divisions.first;
-                    } else {
-                      _selectedDivision = null;
-                    }
-                  });
-                },
-                validator: (val) {
-                  if (val == null || val.isEmpty) {
-                    return 'Please select a storage store room';
-                  }
-                  return null;
-                },
-              ),
-
-              const SizedBox(height: 18),
-
-              // Store Room Division / Section
-              _buildFieldLabel('STORE ROOM DIVISION / SECTION *'),
-              if (selectedRoom != null && selectedRoom.divisions.isNotEmpty)
-                DropdownButtonFormField<String>(
-                  key: ValueKey('div_${_selectedStoreRoomId}_$_selectedDivision'),
-                  initialValue: _selectedDivision,
-                  icon: const Icon(
-                    Icons.keyboard_arrow_down,
-                    color: Color(0xFF64748B),
-                  ),
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.black,
-                  ),
-                  decoration: _buildInputDecoration(
-                    hintText: 'Select division',
-                    prefixIcon: const Icon(
-                      Icons.grid_view_outlined,
-                      size: 20,
-                      color: Color(0xFF64748B),
+                          SizedBox(height: 3),
+                          Text(
+                            'Items are registered independently in the catalog. You can search and assign this item to any store room and division directly from within Store Rooms.',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Color(0xFF64748B),
+                              height: 1.35,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                  items: selectedRoom.divisions.toSet().toList()
-                      .map((div) => DropdownMenuItem(
-                            value: div,
-                            child: Text(div),
-                          ))
-                      .toList(),
-                  onChanged: (val) {
-                    setState(() => _selectedDivision = val);
-                  },
-                  validator: (val) {
-                    if (val == null || val.isEmpty) {
-                      return 'Please select a division';
-                    }
-                    return null;
-                  },
-                )
-              else
-                TextFormField(
-                  controller: _customDivisionController,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black,
-                  ),
-                  decoration: _buildInputDecoration(
-                    hintText: 'e.g. Section 1 (Aisle A-01)',
-                    prefixIcon: const Icon(
-                      Icons.grid_view_outlined,
-                      size: 20,
-                      color: Color(0xFF64748B),
-                    ),
-                  ),
-                ),
-              const SizedBox(height: 4),
-              const Text(
-                'Pick which division or section inside the room',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Color(0xFF94A3B8),
-                  fontWeight: FontWeight.w400,
+                  ],
                 ),
               ),
 

@@ -48,17 +48,19 @@ export class ItemsService {
       );
     }
 
-    // Verify store room exists and is active
-    const storeRoom = await this.storeRoomModel.findOne({
-      tenant_id: tenantId,
-      store_room_id: dto.storage_location_details.store_room_id,
-      is_active: true,
-    });
+    // Verify store room exists and is active if provided
+    if (dto.storage_location_details?.store_room_id) {
+      const storeRoom = await this.storeRoomModel.findOne({
+        tenant_id: tenantId,
+        store_room_id: dto.storage_location_details.store_room_id,
+        is_active: true,
+      });
 
-    if (!storeRoom) {
-      throw new BadRequestException(
-        'Assigned store room is invalid or inactive',
-      );
+      if (!storeRoom) {
+        throw new BadRequestException(
+          'Assigned store room is invalid or inactive',
+        );
+      }
     }
 
     const newItem = new this.itemModel({
@@ -71,11 +73,20 @@ export class ItemsService {
       reorder_threshold_quantity: dto.reorder_threshold_quantity,
       stock_quantity: dto.stock_quantity ?? 0,
       image_url: dto.image_url || null,
-      storage_location_details: {
-        ...dto.storage_location_details,
-        division: dto.storage_location_details?.division || '',
-        is_active: true,
-      },
+      storage_location_details: dto.storage_location_details
+        ? {
+            ...dto.storage_location_details,
+            store_room_id: dto.storage_location_details.store_room_id || null,
+            location_code: dto.storage_location_details.location_code || '',
+            division: dto.storage_location_details.division || '',
+            is_active: true,
+          }
+        : {
+            store_room_id: null,
+            location_code: '',
+            division: '',
+            is_active: true,
+          },
     });
 
     await newItem.save();
@@ -208,7 +219,10 @@ export class ItemsService {
     }
 
     if (dto.storage_location_details) {
-      if (dto.storage_location_details.store_room_id) {
+      if (
+        dto.storage_location_details.store_room_id &&
+        dto.storage_location_details.store_room_id.trim().length > 0
+      ) {
         const room = await this.storeRoomModel.findOne({
           tenant_id: tenantId,
           store_room_id: dto.storage_location_details.store_room_id,
@@ -221,6 +235,14 @@ export class ItemsService {
       item.storage_location_details = {
         ...item.storage_location_details,
         ...dto.storage_location_details,
+        store_room_id:
+          dto.storage_location_details.store_room_id !== undefined
+            ? (dto.storage_location_details.store_room_id || null)
+            : item.storage_location_details?.store_room_id,
+        division:
+          dto.storage_location_details.division !== undefined
+            ? dto.storage_location_details.division
+            : (item.storage_location_details?.division || ''),
       };
     }
 

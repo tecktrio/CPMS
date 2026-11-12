@@ -183,6 +183,7 @@ class _EditItemScreenState extends State<EditItemScreen> {
         storeRoomId: _selectedStoreRoomId,
         division: chosenDivision,
         imageUrl: finalImageUrl,
+        clearStoreRoom: _selectedStoreRoomId == null || _selectedStoreRoomId!.isEmpty,
       );
 
       if (!mounted) return;
@@ -726,8 +727,8 @@ class _EditItemScreenState extends State<EditItemScreen> {
               const SizedBox(height: 18),
 
               // Store Room
-              _buildFieldLabel('STORE ROOM *'),
-              DropdownButtonFormField<String>(
+              _buildFieldLabel('STORE ROOM (optional)'),
+              DropdownButtonFormField<String?>(
                 initialValue: _selectedStoreRoomId,
                 icon: const Icon(
                   Icons.keyboard_arrow_down,
@@ -746,43 +747,45 @@ class _EditItemScreenState extends State<EditItemScreen> {
                     color: Color(0xFF64748B),
                   ),
                 ),
-                items: inventory.storeRooms
-                    .map((room) => DropdownMenuItem(
-                          value: room.storeRoomId,
-                          child: Text(
-                            '${room.roomName} (${room.temperature != null ? '${room.temperature}°C' : 'Ambient'})',
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ))
-                    .toList(),
+                items: [
+                  const DropdownMenuItem<String?>(
+                    value: null,
+                    child: Text('Unassigned (No store room)'),
+                  ),
+                  ...inventory.storeRooms.map((room) => DropdownMenuItem<String?>(
+                        value: room.storeRoomId,
+                        child: Text(
+                          '${room.roomName} (${room.temperature != null ? '${room.temperature}°C' : 'Ambient'})',
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      )),
+                ],
                 onChanged: (val) {
                   setState(() {
                     _selectedStoreRoomId = val;
-                    final r = inventory.storeRooms.firstWhere(
-                      (rm) => rm.storeRoomId == val,
-                      orElse: () => inventory.storeRooms.first,
-                    );
-                    if (r.divisions.isNotEmpty) {
-                      _selectedDivision = r.divisions.first;
-                    } else {
+                    if (val == null) {
                       _selectedDivision = null;
+                    } else {
+                      final r = inventory.storeRooms.firstWhere(
+                        (rm) => rm.storeRoomId == val,
+                        orElse: () => inventory.storeRooms.first,
+                      );
+                      if (r.divisions.isNotEmpty) {
+                        _selectedDivision = r.divisions.first;
+                      } else {
+                        _selectedDivision = null;
+                      }
                     }
                   });
-                },
-                validator: (val) {
-                  if (val == null || val.isEmpty) {
-                    return 'Please select a storage store room';
-                  }
-                  return null;
                 },
               ),
 
               const SizedBox(height: 18),
 
               // Store Room Division / Section
-              _buildFieldLabel('STORE ROOM DIVISION / SECTION *'),
+              _buildFieldLabel('STORE ROOM DIVISION / SECTION (optional)'),
               if (selectedRoom != null && selectedRoom.divisions.isNotEmpty)
-                DropdownButtonFormField<String>(
+                DropdownButtonFormField<String?>(
                   key: ValueKey('div_${_selectedStoreRoomId}_$_selectedDivision'),
                   initialValue: _selectedDivision,
                   icon: const Icon(
@@ -803,19 +806,13 @@ class _EditItemScreenState extends State<EditItemScreen> {
                     ),
                   ),
                   items: selectedRoom.divisions.toSet().toList()
-                      .map((div) => DropdownMenuItem(
+                      .map((div) => DropdownMenuItem<String?>(
                             value: div,
                             child: Text(div),
                           ))
                       .toList(),
                   onChanged: (val) {
                     setState(() => _selectedDivision = val);
-                  },
-                  validator: (val) {
-                    if (val == null || val.isEmpty) {
-                      return 'Please select a division';
-                    }
-                    return null;
                   },
                 )
               else

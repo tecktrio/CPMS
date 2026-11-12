@@ -17,21 +17,21 @@ import {
 } from '../../../database/schemas/item.schema';
 
 export class StorageLocationDetailsDto {
-  @ApiProperty({
+  @ApiPropertyOptional({
     example: 'store-room-uuid-001',
-    description: 'UUID of the assigned cold room',
+    description: 'UUID of the assigned store room',
   })
   @IsString()
-  @IsNotEmpty()
-  store_room_id: string;
+  @IsOptional()
+  store_room_id?: string;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     example: 'A-01-02',
     description: 'Physical location code within the store room',
   })
   @IsString()
-  @IsNotEmpty()
-  location_code: string;
+  @IsOptional()
+  location_code?: string;
 
   @ApiPropertyOptional({ example: 'Section A', description: 'Division or section within store room' })
   @IsString()
@@ -128,9 +128,9 @@ export class CreateItemDto {
   @IsOptional()
   image_url?: string;
 
-  @ApiProperty({ type: StorageLocationDetailsDto })
+  @ApiPropertyOptional({ type: StorageLocationDetailsDto })
   @ValidateNested()
   @Type(() => StorageLocationDetailsDto)
-  @IsNotEmpty()
-  storage_location_details: StorageLocationDetailsDto;
+  @IsOptional()
+  storage_location_details?: StorageLocationDetailsDto;
 }

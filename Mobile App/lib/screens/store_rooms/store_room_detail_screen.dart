@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../core/constants/api_constants.dart';
 import '../../core/constants/permissions.dart';
 import '../../providers/inventory_provider.dart';
 import '../../providers/tenant_provider.dart';
+import '../items/item_detail_screen.dart';
 
 class StoreRoomDetailScreen extends StatefulWidget {
   final StoreRoomModel room;
@@ -512,6 +514,201 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
               }
             },
             child: const Text('Delete', style: TextStyle(fontWeight: FontWeight.w700)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _itemSearchQuery = '';
+
+  void _showAddItemToRoomSheet(StoreRoomModel room) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => _AddItemToRoomModal(
+        room: room,
+        onItemAssigned: () {
+          if (mounted) setState(() {});
+        },
+      ),
+    );
+  }
+
+  void _showMoveDivisionDialog(ItemModel item, StoreRoomModel room) {
+    final messenger = ScaffoldMessenger.of(context);
+    final inventory = context.read<InventoryProvider>();
+    String selected = item.division ??
+        (room.divisions.isNotEmpty ? room.divisions.first : 'Default Section');
+    final customCtrl = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDlgState) {
+          return AlertDialog(
+            backgroundColor: Colors.white,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: Text(
+              'Move "${item.itemName}"',
+              style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 17),
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Select division within ${room.roomName}:',
+                  style: const TextStyle(fontSize: 13, color: Color(0xFF64748B)),
+                ),
+                const SizedBox(height: 12),
+                if (room.divisions.isNotEmpty)
+                  ...room.divisions.map((div) {
+                    final isSel = selected == div;
+                    return InkWell(
+                      onTap: () => setDlgState(() => selected = div),
+                      borderRadius: BorderRadius.circular(8),
+                      child: Container(
+                        margin: const EdgeInsets.only(bottom: 6),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: isSel ? Colors.black : const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: isSel ? Colors.black : const Color(0xFFE2E8F0),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              isSel ? Icons.check_circle : Icons.circle_outlined,
+                              size: 16,
+                              color: isSel ? Colors.white : const Color(0xFF94A3B8),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                div,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 13,
+                                  color: isSel ? Colors.white : Colors.black,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  })
+                else
+                  TextFormField(
+                    controller: customCtrl,
+                    decoration: InputDecoration(
+                      hintText: 'Enter division name',
+                      filled: true,
+                      fillColor: const Color(0xFFF8FAFC),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Cancel', style: TextStyle(color: Color(0xFF64748B))),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.black,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                onPressed: () async {
+                  Navigator.pop(ctx);
+                  final finalDiv = room.divisions.isNotEmpty
+                      ? selected
+                      : (customCtrl.text.trim().isNotEmpty
+                          ? customCtrl.text.trim()
+                          : 'Default Section');
+                  final ok = await inventory.updateItem(
+                    itemId: item.itemId,
+                    storeRoomId: room.storeRoomId,
+                    division: finalDiv,
+                  );
+                  if (mounted) {
+                    messenger.showSnackBar(
+                      SnackBar(
+                        content: Text(ok
+                            ? 'Moved "${item.itemName}" to $finalDiv'
+                            : (inventory.errorMessage ?? 'Failed to move division')),
+                        backgroundColor: ok ? const Color(0xFF0F766E) : Colors.red.shade700,
+                      ),
+                    );
+                  }
+                },
+                child: const Text('Move Division', style: TextStyle(fontWeight: FontWeight.w700)),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  void _confirmRemoveItemFromRoom(ItemModel item, StoreRoomModel room) {
+    final messenger = ScaffoldMessenger.of(context);
+    final inventory = context.read<InventoryProvider>();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text(
+          'Remove from Store Room?',
+          style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
+        ),
+        content: Text(
+          'Are you sure you want to remove "${item.itemName}" from "${room.roomName}"? The item will remain available in your catalog as Unassigned.',
+          style: const TextStyle(fontSize: 14, color: Color(0xFF64748B), height: 1.4),
+        ),
+        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel', style: TextStyle(color: Color(0xFF64748B))),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFDC2626),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              final ok = await inventory.updateItem(
+                itemId: item.itemId,
+                clearStoreRoom: true,
+              );
+              if (mounted) {
+                messenger.showSnackBar(
+                  SnackBar(
+                    content: Text(ok
+                        ? 'Removed "${item.itemName}" from ${room.roomName}'
+                        : (inventory.errorMessage ?? 'Failed to remove item')),
+                    backgroundColor: ok ? const Color(0xFF0F766E) : Colors.red.shade700,
+                  ),
+                );
+              }
+            },
+            child: const Text('Remove Item', style: TextStyle(fontWeight: FontWeight.w700)),
           ),
         ],
       ),
@@ -1202,9 +1399,339 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
               ),
             ),
 
+              const SizedBox(height: 14),
+
+            // 4. Store Room Items Card
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Section Header Row
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            width: 26,
+                            height: 26,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF1F5F9),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: const Icon(
+                              Icons.inventory_2_outlined,
+                              size: 15,
+                              color: Color(0xFF334155),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          const Text(
+                            'STORE ROOM ITEMS',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.black,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: Colors.black,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              '${roomItems.length}',
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w800,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (canUpdate)
+                        ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.black,
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                          ),
+                          icon: const Icon(Icons.add, size: 14, color: Colors.white),
+                          label: const Text(
+                            'Add Item',
+                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
+                          ),
+                          onPressed: () => _showAddItemToRoomSheet(currentRoom),
+                        ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  // Search within room items if there are any
+                  if (roomItems.isNotEmpty) ...[
+                    Container(
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                      ),
+                      child: TextField(
+                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                        decoration: InputDecoration(
+                          hintText: 'Search items in ${currentRoom.roomName}...',
+                          hintStyle: const TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
+                          prefixIcon: const Icon(Icons.search, size: 18, color: Color(0xFF94A3B8)),
+                          border: InputBorder.none,
+                          contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                        ),
+                        onChanged: (val) => setState(() => _itemSearchQuery = val.trim()),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+
+                  // Items List or Empty State
+                  if (roomItems.isEmpty)
+                    Container(
+                      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.inventory_2_outlined, size: 36, color: Colors.grey.shade400),
+                          const SizedBox(height: 10),
+                          const Text(
+                            'No items assigned to this store room',
+                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Colors.black),
+                          ),
+                          const SizedBox(height: 4),
+                          const Text(
+                            'Search your catalog and assign items to this room.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                          ),
+                          if (canUpdate) ...[
+                            const SizedBox(height: 14),
+                            ElevatedButton.icon(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.black,
+                                foregroundColor: Colors.white,
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                              ),
+                              icon: const Icon(Icons.search, size: 16),
+                              label: const Text('Search & Add Items', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
+                              onPressed: () => _showAddItemToRoomSheet(currentRoom),
+                            ),
+                          ],
+                        ],
+                      ),
+                    )
+                  else ...[
+                    ...roomItems.where((item) {
+                      if (_itemSearchQuery.isEmpty) return true;
+                      final q = _itemSearchQuery.toLowerCase();
+                      return item.itemName.toLowerCase().contains(q) ||
+                          item.sku.toLowerCase().contains(q);
+                    }).map((item) {
+                      final resolvedImg = ApiConstants.resolveImageUrl(item.imageUrl);
+                      final divText = item.division != null && item.division!.isNotEmpty
+                          ? item.division!
+                          : 'General Section';
+
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 10),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0xFFF1F5F9)),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            // Thumbnail
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Container(
+                                width: 44,
+                                height: 44,
+                                decoration: BoxDecoration(
+                                  color: Colors.black,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: resolvedImg != null
+                                    ? Image.network(
+                                        resolvedImg,
+                                        width: 44,
+                                        height: 44,
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (context, error, stackTrace) => const Icon(
+                                          Icons.inventory_2_outlined,
+                                          color: Colors.white,
+                                          size: 20,
+                                        ),
+                                      )
+                                    : const Icon(
+                                        Icons.inventory_2_outlined,
+                                        color: Colors.white,
+                                        size: 20,
+                                      ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            // Details
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    item.itemName,
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w800,
+                                      color: Colors.black,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const SizedBox(height: 3),
+                                  Wrap(
+                                    spacing: 6,
+                                    runSpacing: 4,
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFE2E8F0),
+                                          borderRadius: BorderRadius.circular(4),
+                                        ),
+                                        child: Text(
+                                          item.sku,
+                                          style: const TextStyle(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w800,
+                                            color: Color(0xFF334155),
+                                          ),
+                                        ),
+                                      ),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFE0E7FF),
+                                          borderRadius: BorderRadius.circular(4),
+                                        ),
+                                        child: Text(
+                                          divText,
+                                          style: const TextStyle(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w700,
+                                            color: Color(0xFF3730A3),
+                                          ),
+                                        ),
+                                      ),
+                                      Text(
+                                        '${item.totalAvailableStock.toStringAsFixed(1)} ${item.measurementUnit}',
+                                        style: const TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w800,
+                                          color: Colors.black,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                            // Actions Menu
+                            PopupMenuButton<String>(
+                              icon: const Icon(Icons.more_vert, size: 20, color: Color(0xFF64748B)),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              onSelected: (val) {
+                                if (val == 'view') {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => ItemDetailScreen(item: item),
+                                    ),
+                                  );
+                                } else if (val == 'move') {
+                                  _showMoveDivisionDialog(item, currentRoom);
+                                } else if (val == 'remove') {
+                                  _confirmRemoveItemFromRoom(item, currentRoom);
+                                }
+                              },
+                              itemBuilder: (ctx) => [
+                                const PopupMenuItem(
+                                  value: 'view',
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.visibility_outlined, size: 18),
+                                      SizedBox(width: 8),
+                                      Text('View Item Details', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                                    ],
+                                  ),
+                                ),
+                                if (canUpdate && currentRoom.divisions.length > 1)
+                                  const PopupMenuItem(
+                                    value: 'move',
+                                    child: Row(
+                                      children: [
+                                        Icon(Icons.swap_horiz, size: 18),
+                                        SizedBox(width: 8),
+                                        Text('Change Division', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                                      ],
+                                    ),
+                                  ),
+                                if (canUpdate)
+                                  const PopupMenuItem(
+                                    value: 'remove',
+                                    child: Row(
+                                      children: [
+                                        Icon(Icons.delete_outline, size: 18, color: Color(0xFFDC2626)),
+                                        SizedBox(width: 8),
+                                        Text('Remove from Room', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFFDC2626))),
+                                      ],
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      );
+                    }),
+                  ],
+                ],
+              ),
+            ),
+
             const SizedBox(height: 20),
 
-            // 4. Action Buttons
+            // 5. Action Buttons
             if (canUpdate) ...[
               SizedBox(
                 width: double.infinity,
@@ -1273,6 +1800,632 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
             ),
             const SizedBox(height: 16),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _AddItemToRoomModal extends StatefulWidget {
+  final StoreRoomModel room;
+  final VoidCallback onItemAssigned;
+
+  const _AddItemToRoomModal({
+    required this.room,
+    required this.onItemAssigned,
+  });
+
+  @override
+  State<_AddItemToRoomModal> createState() => _AddItemToRoomModalState();
+}
+
+class _AddItemToRoomModalState extends State<_AddItemToRoomModal> {
+  final TextEditingController _searchCtrl = TextEditingController();
+  final TextEditingController _customDivCtrl = TextEditingController();
+  String _searchQuery = '';
+  String _categoryFilter = 'ALL';
+  ItemModel? _selectedItem;
+  String? _selectedDivision;
+  bool _isAssigning = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.room.divisions.isNotEmpty) {
+      _selectedDivision = widget.room.divisions.first;
+    }
+  }
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    _customDivCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final inventory = context.watch<InventoryProvider>();
+    final allItems = inventory.items;
+
+    final filtered = allItems.where((item) {
+      if (_categoryFilter == 'UNASSIGNED') {
+        if (item.storeRoomId != null && item.storeRoomId!.isNotEmpty) {
+          return false;
+        }
+      } else if (_categoryFilter != 'ALL' && item.itemType != _categoryFilter) {
+        return false;
+      }
+
+      if (_searchQuery.isNotEmpty) {
+        final q = _searchQuery.toLowerCase();
+        final matchName = item.itemName.toLowerCase().contains(q);
+        final matchSku = item.sku.toLowerCase().contains(q);
+        if (!matchName && !matchSku) return false;
+      }
+      return true;
+    }).toList();
+
+    return Container(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.88,
+      ),
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: SafeArea(
+        child: _selectedItem == null
+            ? _buildCatalogSearchView(context, inventory, filtered, allItems)
+            : _buildDivisionSelectionView(context, inventory),
+      ),
+    );
+  }
+
+  Widget _buildCatalogSearchView(
+    BuildContext context,
+    InventoryProvider inventory,
+    List<ItemModel> filtered,
+    List<ItemModel> allItems,
+  ) {
+    final unassignedCount = allItems
+        .where((i) => i.storeRoomId == null || i.storeRoomId!.isEmpty)
+        .length;
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Handle bar
+        Container(
+          margin: const EdgeInsets.only(top: 12, bottom: 8),
+          width: 36,
+          height: 4,
+          decoration: BoxDecoration(
+            color: const Color(0xFFCBD5E1),
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
+
+        // Header
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Add Item to ${widget.room.roomName}',
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.black,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 2),
+                    const Text(
+                      'Search items from your catalog to assign here',
+                      style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                    ),
+                  ],
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.close, size: 20),
+                onPressed: () => Navigator.pop(context),
+              ),
+            ],
+          ),
+        ),
+
+        const Divider(height: 1, color: Color(0xFFF1F5F9)),
+
+        // Search Field
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+          child: Container(
+            height: 44,
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+            ),
+            child: TextField(
+              controller: _searchCtrl,
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+              decoration: InputDecoration(
+                hintText: 'Search items by name, SKU...',
+                hintStyle: const TextStyle(fontSize: 13, color: Color(0xFF94A3B8)),
+                prefixIcon: const Icon(Icons.search, size: 18, color: Color(0xFF94A3B8)),
+                suffixIcon: _searchQuery.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear, size: 16),
+                        onPressed: () {
+                          _searchCtrl.clear();
+                          setState(() => _searchQuery = '');
+                        },
+                      )
+                    : null,
+                border: InputBorder.none,
+                contentPadding: const EdgeInsets.symmetric(vertical: 12),
+              ),
+              onChanged: (val) => setState(() => _searchQuery = val.trim()),
+            ),
+          ),
+        ),
+
+        // Filter Pills Row
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+          child: Row(
+            children: [
+              _buildFilterChip('ALL', 'All (${allItems.length})'),
+              const SizedBox(width: 6),
+              _buildFilterChip('UNASSIGNED', 'Unassigned ($unassignedCount)'),
+              const SizedBox(width: 6),
+              _buildFilterChip('RAW_MATERIAL', 'Raw Materials'),
+              const SizedBox(width: 6),
+              _buildFilterChip('FINISHED_GOOD', 'Finished Goods'),
+              const SizedBox(width: 6),
+              _buildFilterChip('PACKAGING', 'Packaging'),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 8),
+
+        // Items List
+        Expanded(
+          child: filtered.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.search_off, size: 48, color: Colors.grey.shade300),
+                      const SizedBox(height: 10),
+                      const Text(
+                        'No matching items found',
+                        style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                      ),
+                      const SizedBox(height: 4),
+                      const Text(
+                        'Try adjusting your search query or filters',
+                        style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                      ),
+                    ],
+                  ),
+                )
+              : ListView.builder(
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
+                  itemCount: filtered.length,
+                  itemBuilder: (context, idx) {
+                    final item = filtered[idx];
+                    final isAlreadyInRoom = item.storeRoomId == widget.room.storeRoomId;
+                    final isUnassigned = item.storeRoomId == null || item.storeRoomId!.isEmpty;
+                    final resolvedImg = ApiConstants.resolveImageUrl(item.imageUrl);
+
+                    String otherRoomName = '';
+                    if (!isAlreadyInRoom && !isUnassigned) {
+                      final matchRoom = inventory.storeRooms.where(
+                        (r) => r.storeRoomId == item.storeRoomId,
+                      );
+                      otherRoomName = matchRoom.isNotEmpty ? matchRoom.first.roomName : 'Other Room';
+                    }
+
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: isAlreadyInRoom
+                              ? const Color(0xFFCBD5E1)
+                              : const Color(0xFFE2E8F0),
+                        ),
+                      ),
+                      child: ListTile(
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                        leading: ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Container(
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              color: Colors.black,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: resolvedImg != null
+                                ? Image.network(
+                                    resolvedImg,
+                                    width: 44,
+                                    height: 44,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) => const Icon(
+                                      Icons.inventory_2_outlined,
+                                      color: Colors.white,
+                                      size: 20,
+                                    ),
+                                  )
+                                : const Icon(
+                                    Icons.inventory_2_outlined,
+                                    color: Colors.white,
+                                    size: 20,
+                                  ),
+                          ),
+                        ),
+                        title: Text(
+                          item.itemName,
+                          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        subtitle: Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: Wrap(
+                            spacing: 6,
+                            runSpacing: 4,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFF1F5F9),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Text(
+                                  item.sku,
+                                  style: const TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w800,
+                                    color: Color(0xFF475569),
+                                  ),
+                                ),
+                              ),
+                              if (isAlreadyInRoom)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF1F5F9),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text(
+                                    'In this room (${item.division ?? 'Default'})',
+                                    style: const TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w700,
+                                      color: Color(0xFF64748B),
+                                    ),
+                                  ),
+                                )
+                              else if (isUnassigned)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFDCFCE7),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: const Text(
+                                    'Unassigned',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w800,
+                                      color: Color(0xFF16A34A),
+                                    ),
+                                  ),
+                                )
+                              else
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFFEF3C7),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text(
+                                    'In $otherRoomName',
+                                    style: const TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w700,
+                                      color: Color(0xFFD97706),
+                                    ),
+                                  ),
+                                ),
+                              Text(
+                                '${item.totalAvailableStock.toStringAsFixed(1)} ${item.measurementUnit}',
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.black,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        trailing: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: isAlreadyInRoom ? const Color(0xFFF1F5F9) : Colors.black,
+                            foregroundColor: isAlreadyInRoom ? const Color(0xFF475569) : Colors.white,
+                            elevation: 0,
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              _selectedItem = item;
+                              _selectedDivision = item.division ??
+                                  (widget.room.divisions.isNotEmpty
+                                      ? widget.room.divisions.first
+                                      : 'Default Section');
+                            });
+                          },
+                          child: Text(
+                            isAlreadyInRoom ? 'Change' : '+ Add',
+                            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDivisionSelectionView(
+    BuildContext context,
+    InventoryProvider inventory,
+  ) {
+    final item = _selectedItem!;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header with Back
+          Row(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.arrow_back, size: 22),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                onPressed: () => setState(() => _selectedItem = null),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Text(
+                  'Select Division in Store Room',
+                  style: TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.black,
+                  ),
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.close, size: 20),
+                onPressed: () => Navigator.pop(context),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 14),
+
+          // Selected Item Card
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: Colors.black,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  alignment: Alignment.center,
+                  child: const Icon(Icons.inventory_2_outlined, color: Colors.white, size: 18),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        item.itemName,
+                        style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'SKU: ${item.sku} • Stock: ${item.totalAvailableStock} ${item.measurementUnit}',
+                        style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 18),
+
+          Text(
+            'ASSIGN TO DIVISION IN ${widget.room.roomName.toUpperCase()}',
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+              color: Color(0xFF64748B),
+              letterSpacing: 0.5,
+            ),
+          ),
+          const SizedBox(height: 8),
+
+          if (widget.room.divisions.isNotEmpty)
+            ...widget.room.divisions.map((div) {
+              final isSel = _selectedDivision == div;
+              return InkWell(
+                onTap: () => setState(() => _selectedDivision = div),
+                borderRadius: BorderRadius.circular(10),
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: isSel ? Colors.black : Colors.white,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: isSel ? Colors.black : const Color(0xFFE2E8F0),
+                      width: isSel ? 1.5 : 1.0,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        isSel ? Icons.check_circle : Icons.circle_outlined,
+                        size: 18,
+                        color: isSel ? Colors.white : const Color(0xFF94A3B8),
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        div,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w800,
+                          color: isSel ? Colors.white : Colors.black,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            })
+          else
+            TextFormField(
+              controller: _customDivCtrl,
+              decoration: InputDecoration(
+                hintText: 'Enter division name (e.g. Section 1)',
+                filled: true,
+                fillColor: const Color(0xFFF8FAFC),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                ),
+              ),
+            ),
+
+          const SizedBox(height: 20),
+
+          // Confirm Button
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.black,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              onPressed: _isAssigning
+                  ? null
+                  : () async {
+                      setState(() => _isAssigning = true);
+                      final targetDiv = widget.room.divisions.isNotEmpty
+                          ? (_selectedDivision ?? widget.room.divisions.first)
+                          : (_customDivCtrl.text.trim().isNotEmpty
+                              ? _customDivCtrl.text.trim()
+                              : 'Default Section');
+
+                      final messenger = ScaffoldMessenger.of(context);
+                      final navigator = Navigator.of(context);
+
+                      final ok = await inventory.updateItem(
+                        itemId: item.itemId,
+                        storeRoomId: widget.room.storeRoomId,
+                        division: targetDiv,
+                      );
+
+                      if (!mounted) return;
+                      setState(() => _isAssigning = false);
+                      navigator.pop();
+
+                      widget.onItemAssigned();
+
+                      messenger.showSnackBar(
+                        SnackBar(
+                          content: Text(ok
+                              ? 'Assigned "${item.itemName}" to ${widget.room.roomName} ($targetDiv)'
+                              : (inventory.errorMessage ?? 'Failed to assign item')),
+                          backgroundColor: ok ? const Color(0xFF0F766E) : Colors.red.shade700,
+                        ),
+                      );
+                    },
+              child: _isAssigning
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    )
+                  : Text(
+                      'Assign to ${widget.room.roomName}',
+                      style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
+                    ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilterChip(String key, String label) {
+    final isSel = _categoryFilter == key;
+    return InkWell(
+      onTap: () => setState(() => _categoryFilter = key),
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSel ? Colors.black : const Color(0xFFF1F5F9),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+            color: isSel ? Colors.white : const Color(0xFF475569),
+          ),
         ),
       ),
     );
