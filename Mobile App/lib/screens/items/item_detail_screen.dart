@@ -18,7 +18,6 @@ class ItemDetailScreen extends StatefulWidget {
 }
 
 class _ItemDetailScreenState extends State<ItemDetailScreen> {
-  bool _isUpdatingStock = false;
   bool _isUploadingImage = false;
 
   Future<void> _updateItemImage(String itemId) async {
@@ -90,158 +89,6 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
         );
       }
     }
-  }
-
-  Future<void> _adjustStock(ItemModel item, double delta) async {
-    if (_isUpdatingStock) return;
-    final newStock = (item.totalAvailableStock + delta).clamp(0.0, 99999999.0);
-    setState(() => _isUpdatingStock = true);
-    final inventory = context.read<InventoryProvider>();
-    final ok = await inventory.updateItemStock(item.itemId, newStock);
-    if (mounted) {
-      setState(() => _isUpdatingStock = false);
-      if (!ok) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(inventory.errorMessage ?? 'Failed to update stock'),
-            backgroundColor: Colors.red.shade700,
-          ),
-        );
-      }
-    }
-  }
-
-  void _showSetStockDialog(ItemModel item) {
-    final stockCtrl =
-        TextEditingController(text: item.totalAvailableStock.toString());
-    final formKey = GlobalKey<FormState>();
-
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(
-          'Update Stock: ${item.itemName}',
-          style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w800,
-            color: Colors.black,
-          ),
-        ),
-        content: Form(
-          key: formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Current Stock: ${item.totalAvailableStock.toStringAsFixed(1)} ${item.measurementUnit}',
-                style: const TextStyle(fontSize: 13, color: Color(0xFF64748B)),
-              ),
-              const SizedBox(height: 14),
-              TextFormField(
-                controller: stockCtrl,
-                autofocus: true,
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.black,
-                ),
-                decoration: InputDecoration(
-                  labelText: 'New Stock Quantity (${item.measurementUnit}) *',
-                  labelStyle: const TextStyle(
-                    fontSize: 13,
-                    color: Color(0xFF64748B),
-                  ),
-                  filled: true,
-                  fillColor: const Color(0xFFF8FAFC),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide:
-                        const BorderSide(color: Colors.black, width: 1.5),
-                  ),
-                  prefixIcon: const Icon(
-                    Icons.inventory_2_outlined,
-                    color: Color(0xFF94A3B8),
-                    size: 20,
-                  ),
-                ),
-                validator: (val) {
-                  if (val == null || val.trim().isEmpty) {
-                    return 'Enter quantity';
-                  }
-                  final num = double.tryParse(val.trim());
-                  if (num == null || num < 0) {
-                    return 'Enter a valid non-negative number';
-                  }
-                  return null;
-                },
-              ),
-            ],
-          ),
-        ),
-        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text(
-              'Cancel',
-              style: TextStyle(
-                color: Color(0xFF64748B),
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.black,
-              foregroundColor: Colors.white,
-              elevation: 0,
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
-            onPressed: () async {
-              if (!formKey.currentState!.validate()) return;
-              final qty = double.parse(stockCtrl.text.trim());
-              Navigator.pop(ctx);
-
-              setState(() => _isUpdatingStock = true);
-              final inventory = context.read<InventoryProvider>();
-              final ok = await inventory.updateItemStock(item.itemId, qty);
-              if (mounted) {
-                setState(() => _isUpdatingStock = false);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(ok
-                        ? 'Stock updated successfully to $qty ${item.measurementUnit}'
-                        : (inventory.errorMessage ?? 'Stock update failed')),
-                    backgroundColor:
-                        ok ? const Color(0xFF0F766E) : Colors.red.shade700,
-                  ),
-                );
-              }
-            },
-            child: const Text(
-              'Update Stock',
-              style: TextStyle(fontWeight: FontWeight.w700),
-            ),
-          ),
-        ],
-      ),
-    );
   }
 
   void _confirmDelete(ItemModel item) {
@@ -330,27 +177,17 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
       orElse: () => widget.item,
     );
 
-    StoreRoomModel? room;
-    if (currentItem.storeRoomId != null && currentItem.storeRoomId!.isNotEmpty) {
-      final matches = inventory.storeRooms
-          .where((r) => r.storeRoomId == currentItem.storeRoomId);
-      if (matches.isNotEmpty) room = matches.first;
+    final containingRooms = <Map<String, dynamic>>[];
+    for (final rm in inventory.storeRooms) {
+      for (final it in rm.items) {
+        if (it.itemId == currentItem.itemId) {
+          containingRooms.add({
+            'room': rm,
+            'item': it,
+          });
+        }
+      }
     }
-
-    final divisionDisplay = (currentItem.division != null &&
-            currentItem.division!.isNotEmpty)
-        ? currentItem.division!
-        : (currentItem.locationCode != null &&
-                currentItem.locationCode!.isNotEmpty
-            ? currentItem.locationCode!
-            : 'Default Section');
-
-    final storeRoomDisplay = room != null
-        ? '${room.roomName} (${room.roomCode})'
-        : (currentItem.storeRoomId != null &&
-                currentItem.storeRoomId!.isNotEmpty
-            ? currentItem.storeRoomId!
-            : 'Not Assigned');
 
     final isAlert = currentItem.isBelowReorderThreshold;
     final hasImage =
@@ -788,83 +625,6 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                             ),
                           ],
                         ),
-                        const SizedBox(height: 12),
-                        if (canUpdate)
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-                              // Decrease Stock Button
-                              InkWell(
-                                onTap: _isUpdatingStock
-                                    ? null
-                                    : () => _adjustStock(currentItem, -1.0),
-                                borderRadius: BorderRadius.circular(20),
-                                child: Container(
-                                  width: 38,
-                                  height: 38,
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    shape: BoxShape.circle,
-                                    border: Border.all(
-                                      color: const Color(0xFFCBD5E1),
-                                    ),
-                                  ),
-                                  child: const Icon(
-                                    Icons.remove,
-                                    size: 18,
-                                    color: Colors.black,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-
-                              // Increase Stock Button (Black)
-                              InkWell(
-                                onTap: _isUpdatingStock
-                                    ? null
-                                    : () => _adjustStock(currentItem, 1.0),
-                                borderRadius: BorderRadius.circular(20),
-                                child: Container(
-                                  width: 38,
-                                  height: 38,
-                                  decoration: const BoxDecoration(
-                                    color: Colors.black,
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: const Icon(
-                                    Icons.add,
-                                    size: 18,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-
-                              // Set Stock Exact (Edit icon)
-                              InkWell(
-                                onTap: _isUpdatingStock
-                                    ? null
-                                    : () => _showSetStockDialog(currentItem),
-                                borderRadius: BorderRadius.circular(20),
-                                child: Container(
-                                  width: 38,
-                                  height: 38,
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    shape: BoxShape.circle,
-                                    border: Border.all(
-                                      color: const Color(0xFFCBD5E1),
-                                    ),
-                                  ),
-                                  child: const Icon(
-                                    Icons.edit_outlined,
-                                    size: 17,
-                                    color: Colors.black,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
                       ],
                     ),
                   ),
@@ -935,7 +695,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
 
             const SizedBox(height: 14),
 
-            // 3. Storage Location Details Card
+            // 3. Store Rooms Containing This Item Card
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -948,28 +708,49 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                 children: [
                   // Section Header
                   Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
+                      Row(
+                        children: [
+                          Container(
+                            width: 26,
+                            height: 26,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF1F5F9),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: const Icon(
+                              Icons.storefront_outlined,
+                              size: 15,
+                              color: Color(0xFF334155),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          const Text(
+                            'STORE ROOMS CONTAINING THIS ITEM',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.black,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ],
+                      ),
                       Container(
-                        width: 26,
-                        height: 26,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 3),
                         decoration: BoxDecoration(
                           color: const Color(0xFFF1F5F9),
-                          borderRadius: BorderRadius.circular(6),
+                          borderRadius: BorderRadius.circular(10),
                         ),
-                        child: const Icon(
-                          Icons.storefront_outlined,
-                          size: 15,
-                          color: Color(0xFF334155),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      const Text(
-                        'STORAGE LOCATION DETAILS',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w800,
-                          color: Colors.black,
-                          letterSpacing: 0.5,
+                        child: Text(
+                          '${containingRooms.length} ${containingRooms.length == 1 ? 'Room' : 'Rooms'}',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFF475569),
+                          ),
                         ),
                       ),
                     ],
@@ -977,121 +758,136 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
 
                   const SizedBox(height: 14),
 
-                  // Store Room Item
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 12,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFAFAFA),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: const Color(0xFFF1F5F9)),
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 38,
-                          height: 38,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: const Color(0xFFE2E8F0)),
+                  if (containingRooms.isEmpty)
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFFF1F5F9)),
+                      ),
+                      child: const Column(
+                        children: [
+                          Icon(Icons.inventory_2_outlined,
+                              size: 28, color: Color(0xFF94A3B8)),
+                          SizedBox(height: 8),
+                          Text(
+                            'Not stored in any store room yet.',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.black,
+                            ),
                           ),
-                          child: const Icon(
-                            Icons.home_outlined,
-                            size: 19,
-                            color: Colors.black,
+                          SizedBox(height: 2),
+                          Text(
+                            'Add this item into any store room directly from the Store Rooms tab.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Color(0xFF64748B),
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'STORE ROOM',
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w700,
-                                  color: Color(0xFF64748B),
-                                  letterSpacing: 0.5,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                storeRoomDisplay,
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w800,
-                                  color: Colors.black,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                        ],
+                      ),
+                    )
+                  else
+                    ...containingRooms.map((entry) {
+                      final StoreRoomModel rm = entry['room'] as StoreRoomModel;
+                      final StoreRoomItemModel sri =
+                          entry['item'] as StoreRoomItemModel;
 
-                  const SizedBox(height: 10),
-
-                  // Section / Division Item
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 12,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFAFAFA),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: const Color(0xFFF1F5F9)),
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 38,
-                          height: 38,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: const Color(0xFFE2E8F0)),
-                          ),
-                          child: const Icon(
-                            Icons.grid_view_outlined,
-                            size: 18,
-                            color: Colors.black,
-                          ),
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 12,
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'SECTION / DIVISION',
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w700,
-                                  color: Color(0xFF64748B),
-                                  letterSpacing: 0.5,
-                                ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFAFAFA),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0xFFF1F5F9)),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 38,
+                              height: 38,
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(10),
+                                border:
+                                    Border.all(color: const Color(0xFFE2E8F0)),
                               ),
-                              const SizedBox(height: 2),
-                              Text(
-                                divisionDisplay,
+                              child: const Icon(
+                                Icons.home_outlined,
+                                size: 19,
+                                color: Colors.black,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    rm.roomName,
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w800,
+                                      color: Colors.black,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Wrap(
+                                    spacing: 6,
+                                    children: [
+                                      Text(
+                                        rm.roomCode,
+                                        style: const TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w700,
+                                          color: Color(0xFF64748B),
+                                        ),
+                                      ),
+                                      const Text('•',
+                                          style: TextStyle(
+                                              fontSize: 11,
+                                              color: Color(0xFF94A3B8))),
+                                      Text(
+                                        sri.division,
+                                        style: const TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w700,
+                                          color: Color(0xFF3B82F6),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.black,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                '${sri.quantity.toStringAsFixed(1)} ${currentItem.measurementUnit.toUpperCase()}',
                                 style: const TextStyle(
-                                  fontSize: 14,
+                                  fontSize: 12,
                                   fontWeight: FontWeight.w800,
-                                  color: Colors.black,
+                                  color: Colors.white,
                                 ),
                               ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                  ),
+                      );
+                    }),
                 ],
               ),
             ),
@@ -1145,40 +941,6 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                         SizedBox(width: 8),
                         Text(
                           'Edit Item Details',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 10),
-
-                // Set Stock Quantity Button
-                SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: OutlinedButton(
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.black,
-                      backgroundColor: Colors.white,
-                      elevation: 0,
-                      side: const BorderSide(color: Color(0xFFE2E8F0)),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    onPressed: () => _showSetStockDialog(currentItem),
-                    child: const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.tune_outlined,
-                            size: 18, color: Colors.black),
-                        SizedBox(width: 8),
-                        Text(
-                          'Set Stock Quantity',
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w700,

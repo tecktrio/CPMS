@@ -1,12 +1,33 @@
-import { ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsArray,
   IsBoolean,
+  IsNotEmpty,
   IsNumber,
   IsOptional,
   IsString,
   Min,
+  ValidateNested,
 } from 'class-validator';
+import { Type } from 'class-transformer';
+
+export class StoreRoomItemDto {
+  @ApiProperty({ example: 'item-uuid-001' })
+  @IsString()
+  @IsNotEmpty()
+  item_id: string;
+
+  @ApiPropertyOptional({ example: 'Section 1' })
+  @IsString()
+  @IsOptional()
+  division?: string;
+
+  @ApiPropertyOptional({ example: 50.0 })
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  quantity?: number;
+}
 
 export class UpdateStoreRoomDto {
   @ApiPropertyOptional({ example: 'CR-01-A' })
@@ -39,6 +60,19 @@ export class UpdateStoreRoomDto {
   @IsString({ each: true })
   @IsOptional()
   divisions?: string[];
+
+  @ApiPropertyOptional({ type: [StoreRoomItemDto] })
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => StoreRoomItemDto)
+  @IsOptional()
+  items?: StoreRoomItemDto[];
+
+  @ApiPropertyOptional({ type: [String] })
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  item_ids?: string[];
 
   @ApiPropertyOptional({ example: true })
   @IsBoolean()

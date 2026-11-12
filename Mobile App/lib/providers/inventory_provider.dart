@@ -3,6 +3,44 @@ import '../core/constants/api_constants.dart';
 import '../core/network/api_client.dart';
 import '../core/sync/sync_manager.dart';
 
+class StoreRoomItemModel {
+  final String itemId;
+  final String division;
+  final double quantity;
+
+  StoreRoomItemModel({
+    required this.itemId,
+    this.division = 'Default Section',
+    this.quantity = 0.0,
+  });
+
+  StoreRoomItemModel copyWith({
+    String? itemId,
+    String? division,
+    double? quantity,
+  }) {
+    return StoreRoomItemModel(
+      itemId: itemId ?? this.itemId,
+      division: division ?? this.division,
+      quantity: quantity ?? this.quantity,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'item_id': itemId,
+        'division': division,
+        'quantity': quantity,
+      };
+
+  factory StoreRoomItemModel.fromJson(Map<String, dynamic> json) {
+    return StoreRoomItemModel(
+      itemId: json['item_id']?.toString() ?? '',
+      division: json['division']?.toString() ?? 'Default Section',
+      quantity: (json['quantity'] as num?)?.toDouble() ?? 0.0,
+    );
+  }
+}
+
 class StoreRoomModel {
   final String storeRoomId;
   final String tenantId;
@@ -14,6 +52,7 @@ class StoreRoomModel {
   final double capacityUtilizationPercentage;
   final int activeBatchesCount;
   final List<String> divisions;
+  final List<StoreRoomItemModel> items;
   final bool isActive;
 
   StoreRoomModel({
@@ -27,6 +66,7 @@ class StoreRoomModel {
     required this.capacityUtilizationPercentage,
     required this.activeBatchesCount,
     this.divisions = const [],
+    this.items = const [],
     required this.isActive,
   });
 
@@ -41,6 +81,7 @@ class StoreRoomModel {
     double? capacityUtilizationPercentage,
     int? activeBatchesCount,
     List<String>? divisions,
+    List<StoreRoomItemModel>? items,
     bool? isActive,
   }) {
     return StoreRoomModel(
@@ -55,6 +96,7 @@ class StoreRoomModel {
           capacityUtilizationPercentage ?? this.capacityUtilizationPercentage,
       activeBatchesCount: activeBatchesCount ?? this.activeBatchesCount,
       divisions: divisions ?? this.divisions,
+      items: items ?? this.items,
       isActive: isActive ?? this.isActive,
     );
   }
@@ -70,6 +112,7 @@ class StoreRoomModel {
         'capacity_utilization_percentage': capacityUtilizationPercentage,
         'active_batches_count': activeBatchesCount,
         'divisions': divisions,
+        'items': items.map((i) => i.toJson()).toList(),
         'is_active': isActive,
       };
 
@@ -88,6 +131,11 @@ class StoreRoomModel {
       activeBatchesCount: json['active_batches_count'] ?? 0,
       divisions: (json['divisions'] as List<dynamic>?)
               ?.map((e) => e.toString())
+              .toList() ??
+          const [],
+      items: (json['items'] as List<dynamic>?)
+              ?.map((e) => StoreRoomItemModel.fromJson(
+                  Map<String, dynamic>.from(e as Map)))
               .toList() ??
           const [],
       isActive: json['is_active'] ?? true,
@@ -184,11 +232,6 @@ class ItemModel {
         'total_available_stock': totalAvailableStock,
         'is_below_reorder_threshold': isBelowReorderThreshold,
         'reorder_shortfall_quantity': reorderShortfallQuantity,
-        'storage_location_details': {
-          'store_room_id': storeRoomId,
-          'location_code': locationCode,
-          'division': division,
-        },
         'image_url': imageUrl,
         'is_active': isActive,
       };
@@ -643,17 +686,11 @@ class InventoryProvider extends ChangeNotifier {
     required String itemType,
     required String measurementUnit,
     required double reorderThreshold,
-    String? storeRoomId,
-    String? locationCode,
-    String? division,
-    double? stockQuantity,
     String? imageUrl,
   }) async {
     final cleanSku = sku.trim().toUpperCase();
     final cleanName = itemName.trim();
-    final initialStock = stockQuantity ?? 0.0;
     final tempId = 'item_${DateTime.now().millisecondsSinceEpoch}';
-    final hasStoreRoom = storeRoomId != null && storeRoomId.isNotEmpty;
 
     // 1. INSTANT OPTIMISTIC INSERTION
     final optimisticItem = ItemModel(
@@ -664,13 +701,9 @@ class InventoryProvider extends ChangeNotifier {
       itemType: itemType,
       measurementUnit: measurementUnit,
       reorderThresholdQuantity: reorderThreshold,
-      totalAvailableStock: initialStock,
-      isBelowReorderThreshold: initialStock <= reorderThreshold,
-      reorderShortfallQuantity:
-          initialStock <= reorderThreshold ? (reorderThreshold - initialStock) : 0.0,
-      storeRoomId: hasStoreRoom ? storeRoomId : null,
-      locationCode: hasStoreRoom ? (locationCode ?? division ?? 'LOC-01') : null,
-      division: hasStoreRoom ? (division ?? 'Default Section') : null,
+      totalAvailableStock: 0.0,
+      isBelowReorderThreshold: 0.0 <= reorderThreshold,
+      reorderShortfallQuantity: reorderThreshold,
       imageUrl: imageUrl,
       isActive: true,
     );
@@ -686,23 +719,7 @@ class InventoryProvider extends ChangeNotifier {
       'item_type': itemType,
       'measurement_unit': measurementUnit,
       'reorder_threshold_quantity': reorderThreshold,
-      'stock_quantity': initialStock,
     };
-
-    if (hasStoreRoom) {
-      body['storage_location_details'] = {
-        'store_room_id': storeRoomId,
-        'location_code': (locationCode != null && locationCode.isNotEmpty)
-            ? locationCode.trim()
-            : (division != null && division.isNotEmpty ? division : 'LOC-01'),
-        'division': division ?? '',
-        'rack_identifier': 'R1',
-        'shelf_identifier': 'S1',
-        'bin_identifier': 'B1',
-        'allowed_category': itemType,
-        'is_active': true,
-      };
-    }
 
     if (imageUrl != null && imageUrl.isNotEmpty) {
       body['image_url'] = imageUrl;
@@ -725,11 +742,7 @@ class InventoryProvider extends ChangeNotifier {
     String? itemType,
     String? measurementUnit,
     double? reorderThreshold,
-    String? storeRoomId,
-    String? division,
-    double? stockQuantity,
     String? imageUrl,
-    bool clearStoreRoom = false,
   }) async {
     // 1. INSTANT OPTIMISTIC UPDATE IN LOCAL MEMORY & DISK CACHE
     final index = _items.indexWhere((i) => i.itemId == itemId);
@@ -740,11 +753,7 @@ class InventoryProvider extends ChangeNotifier {
         itemType: itemType,
         measurementUnit: measurementUnit,
         reorderThresholdQuantity: reorderThreshold,
-        totalAvailableStock: stockQuantity,
-        storeRoomId: clearStoreRoom ? null : (storeRoomId ?? existing.storeRoomId),
-        division: clearStoreRoom ? null : (division ?? existing.division),
         imageUrl: imageUrl,
-        clearStoreRoom: clearStoreRoom,
       );
       _persistItemsLocally();
       notifyListeners();
@@ -756,26 +765,8 @@ class InventoryProvider extends ChangeNotifier {
     if (itemType != null) body['item_type'] = itemType;
     if (measurementUnit != null) body['measurement_unit'] = measurementUnit;
     if (reorderThreshold != null) body['reorder_threshold_quantity'] = reorderThreshold;
-    if (stockQuantity != null) body['stock_quantity'] = stockQuantity;
     if (imageUrl != null) {
       body['image_url'] = imageUrl.isEmpty ? null : imageUrl;
-    }
-
-    if (clearStoreRoom) {
-      body['storage_location_details'] = {
-        'store_room_id': null,
-        'location_code': '',
-        'division': '',
-      };
-    } else if (storeRoomId != null || division != null) {
-      final loc = <String, dynamic>{
-        'location_code': division ?? 'LOC-01',
-        'division': division ?? '',
-      };
-      if (storeRoomId != null) {
-        loc['store_room_id'] = storeRoomId.isEmpty ? null : storeRoomId;
-      }
-      body['storage_location_details'] = loc;
     }
 
     syncManager.enqueue(SyncOperation(
@@ -783,6 +774,182 @@ class InventoryProvider extends ChangeNotifier {
       type: SyncOperationType.updateItem,
       targetId: itemId,
       payload: body,
+      createdAt: DateTime.now(),
+    ));
+
+    return true;
+  }
+
+  void _recalculateItemStock(String itemId) {
+    double totalStock = 0.0;
+    for (final room in _storeRooms) {
+      for (final it in room.items) {
+        if (it.itemId == itemId) {
+          totalStock += it.quantity;
+        }
+      }
+    }
+    final itemIdx = _items.indexWhere((i) => i.itemId == itemId);
+    if (itemIdx != -1) {
+      final existing = _items[itemIdx];
+      _items[itemIdx] = existing.copyWith(totalAvailableStock: totalStock);
+      _persistItemsLocally();
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Store Room Item Operations (Dedicated inventory operation inside rooms)
+  // ---------------------------------------------------------------------------
+
+  Future<bool> addItemToStoreRoom({
+    required String storeRoomId,
+    required String itemId,
+    String? division,
+    double quantity = 0.0,
+  }) async {
+    final div = division?.trim().isNotEmpty == true ? division!.trim() : 'Default Section';
+    final qty = quantity < 0 ? 0.0 : quantity;
+
+    final roomIdx = _storeRooms.indexWhere((r) => r.storeRoomId == storeRoomId);
+    if (roomIdx != -1) {
+      final room = _storeRooms[roomIdx];
+      final existingItems = List<StoreRoomItemModel>.from(room.items);
+      final itemSubIdx = existingItems.indexWhere((it) => it.itemId == itemId);
+      if (itemSubIdx != -1) {
+        existingItems[itemSubIdx] = existingItems[itemSubIdx].copyWith(
+          division: div,
+          quantity: qty,
+        );
+      } else {
+        existingItems.add(StoreRoomItemModel(
+          itemId: itemId,
+          division: div,
+          quantity: qty,
+        ));
+      }
+      _storeRooms[roomIdx] = room.copyWith(items: existingItems);
+      _persistStoreRoomsLocally();
+      _recalculateItemStock(itemId);
+      notifyListeners();
+    }
+
+    syncManager.enqueue(SyncOperation(
+      id: 'op_${DateTime.now().microsecondsSinceEpoch}',
+      type: SyncOperationType.addStoreRoomItem,
+      targetId: storeRoomId,
+      payload: {
+        'item_id': itemId,
+        'division': div,
+        'quantity': qty,
+      },
+      createdAt: DateTime.now(),
+    ));
+
+    return true;
+  }
+
+  Future<bool> updateStoreRoomItemQuantity({
+    required String storeRoomId,
+    required String itemId,
+    required double quantity,
+    String? division,
+  }) async {
+    final qty = quantity < 0 ? 0.0 : quantity;
+
+    final roomIdx = _storeRooms.indexWhere((r) => r.storeRoomId == storeRoomId);
+    if (roomIdx != -1) {
+      final room = _storeRooms[roomIdx];
+      final existingItems = List<StoreRoomItemModel>.from(room.items);
+      final itemSubIdx = existingItems.indexWhere((it) => it.itemId == itemId);
+      if (itemSubIdx != -1) {
+        existingItems[itemSubIdx] = existingItems[itemSubIdx].copyWith(
+          quantity: qty,
+          division: division?.trim().isNotEmpty == true
+              ? division!.trim()
+              : existingItems[itemSubIdx].division,
+        );
+        _storeRooms[roomIdx] = room.copyWith(items: existingItems);
+        _persistStoreRoomsLocally();
+        _recalculateItemStock(itemId);
+        notifyListeners();
+      }
+    }
+
+    final payload = <String, dynamic>{
+      'item_id': itemId,
+      'quantity': qty,
+    };
+    if (division != null && division.isNotEmpty) {
+      payload['division'] = division;
+    }
+
+    syncManager.enqueue(SyncOperation(
+      id: 'op_${DateTime.now().microsecondsSinceEpoch}',
+      type: SyncOperationType.updateStoreRoomItemQuantity,
+      targetId: storeRoomId,
+      payload: payload,
+      createdAt: DateTime.now(),
+    ));
+
+    return true;
+  }
+
+  Future<bool> updateStoreRoomItemDivision({
+    required String storeRoomId,
+    required String itemId,
+    required String division,
+  }) async {
+    final roomIdx = _storeRooms.indexWhere((r) => r.storeRoomId == storeRoomId);
+    double curQty = 0.0;
+    if (roomIdx != -1) {
+      final room = _storeRooms[roomIdx];
+      final existingItems = List<StoreRoomItemModel>.from(room.items);
+      final itemSubIdx = existingItems.indexWhere((it) => it.itemId == itemId);
+      if (itemSubIdx != -1) {
+        curQty = existingItems[itemSubIdx].quantity;
+        existingItems[itemSubIdx] =
+            existingItems[itemSubIdx].copyWith(division: division);
+        _storeRooms[roomIdx] = room.copyWith(items: existingItems);
+        _persistStoreRoomsLocally();
+        notifyListeners();
+      }
+    }
+
+    syncManager.enqueue(SyncOperation(
+      id: 'op_${DateTime.now().microsecondsSinceEpoch}',
+      type: SyncOperationType.updateStoreRoomItemQuantity,
+      targetId: storeRoomId,
+      payload: {
+        'item_id': itemId,
+        'division': division,
+        'quantity': curQty,
+      },
+      createdAt: DateTime.now(),
+    ));
+
+    return true;
+  }
+
+  Future<bool> removeItemFromStoreRoom({
+    required String storeRoomId,
+    required String itemId,
+  }) async {
+    final roomIdx = _storeRooms.indexWhere((r) => r.storeRoomId == storeRoomId);
+    if (roomIdx != -1) {
+      final room = _storeRooms[roomIdx];
+      final existingItems = List<StoreRoomItemModel>.from(room.items);
+      existingItems.removeWhere((it) => it.itemId == itemId);
+      _storeRooms[roomIdx] = room.copyWith(items: existingItems);
+      _persistStoreRoomsLocally();
+      _recalculateItemStock(itemId);
+      notifyListeners();
+    }
+
+    syncManager.enqueue(SyncOperation(
+      id: 'op_${DateTime.now().microsecondsSinceEpoch}',
+      type: SyncOperationType.removeStoreRoomItem,
+      targetId: storeRoomId,
+      payload: {'item_id': itemId},
       createdAt: DateTime.now(),
     ));
 

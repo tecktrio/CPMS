@@ -19,13 +19,9 @@ class _EditItemScreenState extends State<EditItemScreen> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _nameController;
   late final TextEditingController _reorderThresholdController;
-  late final TextEditingController _customDivisionController;
 
   late String _selectedItemType;
   late String _selectedUnit;
-  String? _selectedStoreRoomId;
-  String? _selectedDivision;
-  late double _stockQuantity;
   bool _isSaving = false;
 
   XFile? _newPickedImage;
@@ -56,10 +52,6 @@ class _EditItemScreenState extends State<EditItemScreen> {
     _reorderThresholdController = TextEditingController(
       text: widget.item.reorderThresholdQuantity.toStringAsFixed(0),
     );
-    _customDivisionController = TextEditingController(
-      text: widget.item.division ?? '',
-    );
-    _stockQuantity = widget.item.totalAvailableStock;
 
     // Normalizing item type
     _selectedItemType = widget.item.itemType;
@@ -82,22 +74,12 @@ class _EditItemScreenState extends State<EditItemScreen> {
         'abbr': _selectedUnit,
       });
     }
-
-    _selectedStoreRoomId = widget.item.storeRoomId;
-    _selectedDivision = widget.item.division;
-
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      final inventory = context.read<InventoryProvider>();
-      await inventory.loadStoreRooms();
-      if (mounted) setState(() {});
-    });
   }
 
   @override
   void dispose() {
     _nameController.dispose();
     _reorderThresholdController.dispose();
-    _customDivisionController.dispose();
     super.dispose();
   }
 
@@ -166,11 +148,6 @@ class _EditItemScreenState extends State<EditItemScreen> {
         finalImageUrl = ''; // Empty string signals removal to inventory_provider
       }
 
-      final chosenDivision = _selectedDivision ??
-          (_customDivisionController.text.trim().isNotEmpty
-              ? _customDivisionController.text.trim()
-              : 'Default Section');
-
       final ok = await inventory.updateItem(
         itemId: widget.item.itemId,
         itemName: _nameController.text.trim(),
@@ -179,11 +156,7 @@ class _EditItemScreenState extends State<EditItemScreen> {
         reorderThreshold:
             double.tryParse(_reorderThresholdController.text.trim()) ??
                 widget.item.reorderThresholdQuantity,
-        stockQuantity: _stockQuantity,
-        storeRoomId: _selectedStoreRoomId,
-        division: chosenDivision,
         imageUrl: finalImageUrl,
-        clearStoreRoom: _selectedStoreRoomId == null || _selectedStoreRoomId!.isEmpty,
       );
 
       if (!mounted) return;
@@ -326,15 +299,6 @@ class _EditItemScreenState extends State<EditItemScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final inventory = context.watch<InventoryProvider>();
-
-    StoreRoomModel? selectedRoom;
-    if (_selectedStoreRoomId != null) {
-      final matches = inventory.storeRooms
-          .where((r) => r.storeRoomId == _selectedStoreRoomId);
-      if (matches.isNotEmpty) selectedRoom = matches.first;
-    }
-
     final hasExistingImage =
         widget.item.imageUrl != null && widget.item.imageUrl!.isNotEmpty;
     final showImage =
@@ -726,260 +690,59 @@ class _EditItemScreenState extends State<EditItemScreen> {
 
               const SizedBox(height: 18),
 
-              // Store Room
-              _buildFieldLabel('STORE ROOM (optional)'),
-              DropdownButtonFormField<String?>(
-                initialValue: _selectedStoreRoomId,
-                icon: const Icon(
-                  Icons.keyboard_arrow_down,
-                  color: Color(0xFF64748B),
+              // Reorder Level
+              _buildFieldLabel('REORDER LEVEL *'),
+              Container(
+                height: 48,
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
                 ),
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.black,
-                ),
-                decoration: _buildInputDecoration(
-                  hintText: 'Select store room',
-                  prefixIcon: const Icon(
-                    Icons.inventory_2_outlined,
-                    size: 20,
-                    color: Color(0xFF64748B),
-                  ),
-                ),
-                items: [
-                  const DropdownMenuItem<String?>(
-                    value: null,
-                    child: Text('Unassigned (No store room)'),
-                  ),
-                  ...inventory.storeRooms.map((room) => DropdownMenuItem<String?>(
-                        value: room.storeRoomId,
-                        child: Text(
-                          '${room.roomName} (${room.temperature != null ? '${room.temperature}°C' : 'Ambient'})',
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      )),
-                ],
-                onChanged: (val) {
-                  setState(() {
-                    _selectedStoreRoomId = val;
-                    if (val == null) {
-                      _selectedDivision = null;
-                    } else {
-                      final r = inventory.storeRooms.firstWhere(
-                        (rm) => rm.storeRoomId == val,
-                        orElse: () => inventory.storeRooms.first,
-                      );
-                      if (r.divisions.isNotEmpty) {
-                        _selectedDivision = r.divisions.first;
-                      } else {
-                        _selectedDivision = null;
-                      }
-                    }
-                  });
-                },
-              ),
-
-              const SizedBox(height: 18),
-
-              // Store Room Division / Section
-              _buildFieldLabel('STORE ROOM DIVISION / SECTION (optional)'),
-              if (selectedRoom != null && selectedRoom.divisions.isNotEmpty)
-                DropdownButtonFormField<String?>(
-                  key: ValueKey('div_${_selectedStoreRoomId}_$_selectedDivision'),
-                  initialValue: _selectedDivision,
-                  icon: const Icon(
-                    Icons.keyboard_arrow_down,
-                    color: Color(0xFF64748B),
-                  ),
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.black,
-                  ),
-                  decoration: _buildInputDecoration(
-                    hintText: 'Select division',
-                    prefixIcon: const Icon(
-                      Icons.grid_view_outlined,
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.warning_amber_rounded,
                       size: 20,
-                      color: Color(0xFF64748B),
+                      color: Color(0xFF94A3B8),
                     ),
-                  ),
-                  items: selectedRoom.divisions.toSet().toList()
-                      .map((div) => DropdownMenuItem<String?>(
-                            value: div,
-                            child: Text(div),
-                          ))
-                      .toList(),
-                  onChanged: (val) {
-                    setState(() => _selectedDivision = val);
-                  },
-                )
-              else
-                TextFormField(
-                  controller: _customDivisionController,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black,
-                  ),
-                  decoration: _buildInputDecoration(
-                    hintText: 'e.g. Section 1 (Aisle A-01)',
-                    prefixIcon: const Icon(
-                      Icons.grid_view_outlined,
-                      size: 20,
-                      color: Color(0xFF64748B),
-                    ),
-                  ),
-                ),
-              const SizedBox(height: 4),
-              const Text(
-                'Pick which division or section inside the room',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Color(0xFF94A3B8),
-                  fontWeight: FontWeight.w400,
-                ),
-              ),
-
-              const SizedBox(height: 18),
-
-              // Current Stock & Reorder Level Row
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Stepper Box for Current Stock
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildFieldLabel('CURRENT STOCK *'),
-                        Container(
-                          height: 48,
-                          padding: const EdgeInsets.symmetric(horizontal: 10),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: const Color(0xFFE2E8F0)),
-                          ),
-                          child: Row(
-                            children: [
-                              GestureDetector(
-                                onTap: () {
-                                  setState(() {
-                                    _stockQuantity = (_stockQuantity - 1.0)
-                                        .clamp(0.0, 99999999.0);
-                                  });
-                                },
-                                child: const Icon(
-                                  Icons.remove,
-                                  size: 18,
-                                  color: Colors.black,
-                                ),
-                              ),
-                              const Spacer(),
-                              Text(
-                                _stockQuantity.toStringAsFixed(0),
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w800,
-                                  color: Colors.black,
-                                ),
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                _getUnitAbbr(),
-                                style: const TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w700,
-                                  color: Color(0xFF94A3B8),
-                                ),
-                              ),
-                              const Spacer(),
-                              GestureDetector(
-                                onTap: () {
-                                  setState(() {
-                                    _stockQuantity = (_stockQuantity + 1.0)
-                                        .clamp(0.0, 99999999.0);
-                                  });
-                                },
-                                child: const Icon(
-                                  Icons.add,
-                                  size: 18,
-                                  color: Colors.black,
-                                ),
-                              ),
-                            ],
-                          ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: TextFormField(
+                        controller: _reorderThresholdController,
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
                         ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 14),
-
-                  // Reorder Level with Warning Icon
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildFieldLabel('REORDER LEVEL *'),
-                        Container(
-                          height: 48,
-                          padding: const EdgeInsets.symmetric(horizontal: 10),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: const Color(0xFFE2E8F0)),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(
-                                Icons.warning_amber_rounded,
-                                size: 20,
-                                color: Color(0xFF94A3B8),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: TextFormField(
-                                  controller: _reorderThresholdController,
-                                  keyboardType:
-                                      const TextInputType.numberWithOptions(
-                                    decimal: true,
-                                  ),
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w800,
-                                    color: Colors.black,
-                                  ),
-                                  decoration: const InputDecoration(
-                                    border: InputBorder.none,
-                                    isDense: true,
-                                    contentPadding: EdgeInsets.zero,
-                                  ),
-                                  validator: (val) {
-                                    if (val == null ||
-                                        double.tryParse(val.trim()) == null) {
-                                      return 'Enter number';
-                                    }
-                                    return null;
-                                  },
-                                ),
-                              ),
-                              Text(
-                                _getUnitAbbr(),
-                                style: const TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w700,
-                                  color: Color(0xFF94A3B8),
-                                ),
-                              ),
-                            ],
-                          ),
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.black,
                         ),
-                      ],
+                        decoration: const InputDecoration(
+                          border: InputBorder.none,
+                          isDense: true,
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                        validator: (val) {
+                          if (val == null ||
+                              double.tryParse(val.trim()) == null) {
+                            return 'Enter number';
+                          }
+                          return null;
+                        },
+                      ),
                     ),
-                  ),
-                ],
+                    Text(
+                      _getUnitAbbr(),
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF94A3B8),
+                      ),
+                    ),
+                  ],
+                ),
               ),
 
               const SizedBox(height: 30),

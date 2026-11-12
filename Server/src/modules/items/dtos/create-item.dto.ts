@@ -1,72 +1,16 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
-  IsBoolean,
   IsEnum,
   IsNotEmpty,
   IsNumber,
   IsOptional,
   IsString,
   Min,
-  ValidateNested,
 } from 'class-validator';
-import { Type } from 'class-transformer';
 import {
   ItemType,
   MeasurementUnit,
-  AllowedCategory,
 } from '../../../database/schemas/item.schema';
-
-export class StorageLocationDetailsDto {
-  @ApiPropertyOptional({
-    example: 'store-room-uuid-001',
-    description: 'UUID of the assigned store room',
-  })
-  @IsString()
-  @IsOptional()
-  store_room_id?: string;
-
-  @ApiPropertyOptional({
-    example: 'A-01-02',
-    description: 'Physical location code within the store room',
-  })
-  @IsString()
-  @IsOptional()
-  location_code?: string;
-
-  @ApiPropertyOptional({ example: 'Section A', description: 'Division or section within store room' })
-  @IsString()
-  @IsOptional()
-  division?: string;
-
-  @ApiPropertyOptional({ example: 'RACK-A' })
-  @IsString()
-  @IsOptional()
-  rack_identifier?: string;
-
-  @ApiPropertyOptional({ example: 'SHELF-01' })
-  @IsString()
-  @IsOptional()
-  shelf_identifier?: string;
-
-  @ApiPropertyOptional({ example: 'BIN-02' })
-  @IsString()
-  @IsOptional()
-  bin_identifier?: string;
-
-  @ApiPropertyOptional({
-    enum: AllowedCategory,
-    example: AllowedCategory.ALL,
-    description: 'Allowed category in this location',
-  })
-  @IsEnum(AllowedCategory)
-  @IsOptional()
-  allowed_category?: AllowedCategory;
-
-  @ApiPropertyOptional({ example: true })
-  @IsBoolean()
-  @IsOptional()
-  is_active?: boolean;
-}
 
 export class CreateItemDto {
   @ApiProperty({
@@ -97,7 +41,7 @@ export class CreateItemDto {
   @ApiProperty({
     enum: MeasurementUnit,
     example: MeasurementUnit.KILOGRAM,
-    description: 'Unit of measure for stock quantity',
+    description: 'Unit of measure',
   })
   @IsEnum(MeasurementUnit)
   @IsNotEmpty()
@@ -112,25 +56,10 @@ export class CreateItemDto {
   reorder_threshold_quantity: number;
 
   @ApiPropertyOptional({
-    example: 100,
-    description: 'Current stock quantity stored in this store room and division',
-  })
-  @IsNumber()
-  @Min(0)
-  @IsOptional()
-  stock_quantity?: number;
-
-  @ApiPropertyOptional({
     example: 'https://my-bucket.s3.amazonaws.com/items/flour.jpg',
     description: 'Image URL of the item',
   })
   @IsString()
   @IsOptional()
   image_url?: string;
-
-  @ApiPropertyOptional({ type: StorageLocationDetailsDto })
-  @ValidateNested()
-  @Type(() => StorageLocationDetailsDto)
-  @IsOptional()
-  storage_location_details?: StorageLocationDetailsDto;
 }

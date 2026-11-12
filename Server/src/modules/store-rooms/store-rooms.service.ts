@@ -69,10 +69,15 @@ export class StoreRoomsService {
           batch_status: { $in: [BatchStatus.AVAILABLE, BatchStatus.RESERVED] },
         });
 
-        const allocatedUnits = batches.reduce(
+        const batchUnits = batches.reduce(
           (sum, b) => sum + (b.available_quantity || 0),
           0,
         );
+        const itemUnits = (room.items || []).reduce(
+          (sum, it) => sum + (it.quantity || 0),
+          0,
+        );
+        const allocatedUnits = Math.max(batchUnits, itemUnits);
 
         return {
           ...room.toObject(),
@@ -115,10 +120,15 @@ export class StoreRoomsService {
       batch_status: { $in: [BatchStatus.AVAILABLE, BatchStatus.RESERVED] },
     });
 
-    const allocatedUnits = batches.reduce(
+    const batchUnits = batches.reduce(
       (sum, b) => sum + (b.available_quantity || 0),
       0,
     );
+    const itemUnits = (room.items || []).reduce(
+      (sum, it) => sum + (it.quantity || 0),
+      0,
+    );
+    const allocatedUnits = Math.max(batchUnits, itemUnits);
 
     return {
       ...room.toObject(),
@@ -180,6 +190,103 @@ export class StoreRoomsService {
     if (dto.divisions !== undefined) room.divisions = dto.divisions;
     if (dto.is_active !== undefined) room.is_active = dto.is_active;
 
+    if (dto.items !== undefined) {
+      room.items = dto.items.map((it) => ({
+        item_id: it.item_id,
+        division: it.division || 'Default Section',
+        quantity: Math.max(0, it.quantity || 0),
+      }));
+      room.item_ids = Array.from(new Set(room.items.map((it) => it.item_id)));
+    } else if (dto.item_ids !== undefined) {
+      room.item_ids = dto.item_ids;
+    }
+
+    await room.save();
+    return room;
+  }
+
+  async addItem(
+    tenantId: string,
+    storeRoomId: string,
+    itemId: string,
+    division?: string,
+    quantity?: number,
+  ) {
+    const room = await this.storeRoomModel.findOne({
+      tenant_id: tenantId,
+      store_room_id: storeRoomId,
+    });
+    if (!room) throw new NotFoundException('Store room not found');
+
+    const targetDivision = division?.trim() || (room.divisions.length > 0 ? room.divisions[0] : 'Default Section');
+    const targetQty = Math.max(0, quantity ?? 0);
+
+    const existingIdx = room.items.findIndex(
+      (it) => it.item_id === itemId && it.division === targetDivision,
+    );
+
+    if (existingIdx !== -1) {
+      room.items[existingIdx].quantity += targetQty;
+    } else {
+      room.items.push({
+        item_id: itemId,
+        division: targetDivision,
+        quantity: targetQty,
+      });
+    }
+
+    room.item_ids = Array.from(new Set(room.items.map((it) => it.item_id)));
+    await room.save();
+    return room;
+  }
+
+  async updateItemQuantity(
+    tenantId: string,
+    storeRoomId: string,
+    itemId: string,
+    quantity: number,
+    division?: string,
+  ) {
+    const room = await this.storeRoomModel.findOne({
+      tenant_id: tenantId,
+      store_room_id: storeRoomId,
+    });
+    if (!room) throw new NotFoundException('Store room not found');
+
+    const matchIdx = room.items.findIndex((it) => {
+      if (division) {
+        return it.item_id === itemId && it.division === division;
+      }
+      return it.item_id === itemId;
+    });
+
+    if (matchIdx === -1) {
+      room.items.push({
+        item_id: itemId,
+        division: division?.trim() || (room.divisions.length > 0 ? room.divisions[0] : 'Default Section'),
+        quantity: Math.max(0, quantity),
+      });
+    } else {
+      room.items[matchIdx].quantity = Math.max(0, quantity);
+      if (division) {
+        room.items[matchIdx].division = division.trim();
+      }
+    }
+
+    room.item_ids = Array.from(new Set(room.items.map((it) => it.item_id)));
+    await room.save();
+    return room;
+  }
+
+  async removeItem(tenantId: string, storeRoomId: string, itemId: string) {
+    const room = await this.storeRoomModel.findOne({
+      tenant_id: tenantId,
+      store_room_id: storeRoomId,
+    });
+    if (!room) throw new NotFoundException('Store room not found');
+
+    room.items = room.items.filter((it) => it.item_id !== itemId);
+    room.item_ids = Array.from(new Set(room.items.map((it) => it.item_id)));
     await room.save();
     return room;
   }

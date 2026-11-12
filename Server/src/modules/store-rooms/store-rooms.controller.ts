@@ -17,7 +17,7 @@ import {
 } from '@nestjs/swagger';
 import { StoreRoomsService } from './store-rooms.service';
 import { CreateStoreRoomDto } from './dtos/create-store-room.dto';
-import { UpdateStoreRoomDto } from './dtos/update-store-room.dto';
+import { UpdateStoreRoomDto, StoreRoomItemDto } from './dtos/update-store-room.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { TenantGuard } from '../../common/guards/tenant.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
@@ -108,6 +108,62 @@ export class StoreRoomsController {
     @Body() dto: UpdateStoreRoomDto,
   ) {
     return this.storeRoomsService.update(tenantId, storeRoomId, dto);
+  }
+
+  @Post(':id/items')
+  @RequirePermissions('permission.storeroom.update')
+  @ApiOperation({
+    summary: 'Add item to store room',
+    description: 'Assigns an item from catalog into this store room.',
+  })
+  async addItem(
+    @CurrentTenant() tenantId: string,
+    @Param('id') storeRoomId: string,
+    @Body() dto: StoreRoomItemDto,
+  ) {
+    return this.storeRoomsService.addItem(
+      tenantId,
+      storeRoomId,
+      dto.item_id,
+      dto.division,
+      dto.quantity,
+    );
+  }
+
+  @Put(':id/items/:itemId/quantity')
+  @RequirePermissions('permission.storeroom.update')
+  @ApiOperation({
+    summary: 'Update item quantity in store room',
+    description: 'Adjusts the stored quantity of an item within this store room.',
+  })
+  async updateItemQuantity(
+    @CurrentTenant() tenantId: string,
+    @Param('id') storeRoomId: string,
+    @Param('itemId') itemId: string,
+    @Body('quantity') quantity: number,
+    @Body('division') division?: string,
+  ) {
+    return this.storeRoomsService.updateItemQuantity(
+      tenantId,
+      storeRoomId,
+      itemId,
+      quantity,
+      division,
+    );
+  }
+
+  @Delete(':id/items/:itemId')
+  @RequirePermissions('permission.storeroom.update')
+  @ApiOperation({
+    summary: 'Remove item from store room',
+    description: 'Removes an item assignment from this store room.',
+  })
+  async removeItem(
+    @CurrentTenant() tenantId: string,
+    @Param('id') storeRoomId: string,
+    @Param('itemId') itemId: string,
+  ) {
+    return this.storeRoomsService.removeItem(tenantId, storeRoomId, itemId);
   }
 
   @Delete(':id')

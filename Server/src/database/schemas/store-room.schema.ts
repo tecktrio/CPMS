@@ -4,6 +4,19 @@ import { v4 as uuidv4 } from 'uuid';
 
 export type StoreRoomDocument = StoreRoom & Document;
 
+@Schema({ _id: false })
+export class StoreRoomItem {
+  @Prop({ type: String, required: true })
+  item_id: string;
+
+  @Prop({ type: String, default: 'Default Section', trim: true })
+  division: string;
+
+  @Prop({ type: Number, default: 0, min: 0 })
+  quantity: number;
+}
+export const StoreRoomItemSchema = SchemaFactory.createForClass(StoreRoomItem);
+
 @Schema({
   collection: 'store_rooms',
   timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' },
@@ -36,6 +49,12 @@ export class StoreRoom {
 
   @Prop({ type: [String], default: [] })
   divisions: string[]; // Divisions / sections / areas inside this store room
+
+  @Prop({ type: [StoreRoomItemSchema], default: [] })
+  items: StoreRoomItem[];
+
+  @Prop({ type: [String], default: [] })
+  item_ids: string[]; // List of item_ids stored in this store room
 
   @Prop({ type: Boolean, default: true })
   is_active: boolean;

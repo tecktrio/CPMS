@@ -1,18 +1,16 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import {
+  IsBoolean,
   IsEnum,
   IsNumber,
   IsOptional,
   IsString,
   Min,
-  ValidateNested,
 } from 'class-validator';
-import { Type } from 'class-transformer';
 import {
   ItemType,
   MeasurementUnit,
 } from '../../../database/schemas/item.schema';
-import { StorageLocationDetailsDto } from './create-item.dto';
 
 export class UpdateItemDto {
   @ApiPropertyOptional({ example: 'RM-FLOUR-001' })
@@ -44,12 +42,6 @@ export class UpdateItemDto {
   @IsOptional()
   reorder_threshold_quantity?: number;
 
-  @ApiPropertyOptional({ example: 100 })
-  @IsNumber()
-  @Min(0)
-  @IsOptional()
-  stock_quantity?: number;
-
   @ApiPropertyOptional({
     example: 'https://my-bucket.s3.amazonaws.com/items/flour.jpg',
   })
@@ -57,9 +49,8 @@ export class UpdateItemDto {
   @IsOptional()
   image_url?: string;
 
-  @ApiPropertyOptional({ type: StorageLocationDetailsDto })
-  @ValidateNested()
-  @Type(() => StorageLocationDetailsDto)
+  @ApiPropertyOptional({ example: true })
+  @IsBoolean()
   @IsOptional()
-  storage_location_details?: StorageLocationDetailsDto;
+  is_active?: boolean;
 }

@@ -11,6 +11,9 @@ enum SyncOperationType {
   createStoreRoom,
   updateStoreRoom,
   deleteStoreRoom,
+  addStoreRoomItem,
+  updateStoreRoomItemQuantity,
+  removeStoreRoomItem,
 }
 
 enum SyncStatus {
@@ -254,6 +257,24 @@ class SyncManager {
 
       case SyncOperationType.deleteStoreRoom:
         await client.delete('/store-rooms/${op.targetId}');
+        return true;
+
+      case SyncOperationType.addStoreRoomItem:
+        await client.post('/store-rooms/${op.targetId}/items', body: op.payload);
+        return true;
+
+      case SyncOperationType.updateStoreRoomItemQuantity:
+        await client.put(
+          '/store-rooms/${op.targetId}/items/${op.payload['item_id']}/quantity',
+          body: {
+            'quantity': op.payload['quantity'],
+            if (op.payload['division'] != null) 'division': op.payload['division'],
+          },
+        );
+        return true;
+
+      case SyncOperationType.removeStoreRoomItem:
+        await client.delete('/store-rooms/${op.targetId}/items/${op.payload['item_id']}');
         return true;
     }
   }

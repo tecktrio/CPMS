@@ -539,6 +539,90 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
     );
   }
 
+  void _showEditItemQuantityDialog(
+    ItemModel item,
+    StoreRoomItemModel sri,
+    StoreRoomModel room,
+  ) {
+    final qtyCtrl = TextEditingController(text: sri.quantity.toString());
+    final formKey = GlobalKey<FormState>();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          'Set Quantity: ${item.itemName}',
+          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 17),
+        ),
+        content: Form(
+          key: formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Stored in ${room.roomName} (${sri.division})',
+                style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+              ),
+              const SizedBox(height: 14),
+              TextFormField(
+                controller: qtyCtrl,
+                autofocus: true,
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
+                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                decoration: InputDecoration(
+                  labelText: 'Quantity (${item.measurementUnit}) *',
+                  filled: true,
+                  fillColor: const Color(0xFFF8FAFC),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                  ),
+                ),
+                validator: (val) {
+                  if (val == null || val.trim().isEmpty) return 'Enter quantity';
+                  final n = double.tryParse(val.trim());
+                  if (n == null || n < 0) return 'Enter valid non-negative number';
+                  return null;
+                },
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel', style: TextStyle(color: Color(0xFF64748B))),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.black,
+              foregroundColor: Colors.white,
+              shape:
+                  RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            onPressed: () async {
+              if (!formKey.currentState!.validate()) return;
+              final qty = double.parse(qtyCtrl.text.trim());
+              Navigator.pop(ctx);
+              final inventory = context.read<InventoryProvider>();
+              await inventory.updateStoreRoomItemQuantity(
+                storeRoomId: room.storeRoomId,
+                itemId: item.itemId,
+                quantity: qty,
+              );
+            },
+            child: const Text('Save Quantity',
+                style: TextStyle(fontWeight: FontWeight.w700)),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showMoveDivisionDialog(ItemModel item, StoreRoomModel room) {
     final messenger = ScaffoldMessenger.of(context);
     final inventory = context.read<InventoryProvider>();
@@ -638,9 +722,9 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                       : (customCtrl.text.trim().isNotEmpty
                           ? customCtrl.text.trim()
                           : 'Default Section');
-                  final ok = await inventory.updateItem(
-                    itemId: item.itemId,
+                  final ok = await inventory.updateStoreRoomItemDivision(
                     storeRoomId: room.storeRoomId,
+                    itemId: item.itemId,
                     division: finalDiv,
                   );
                   if (mounted) {
@@ -676,7 +760,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
           style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
         ),
         content: Text(
-          'Are you sure you want to remove "${item.itemName}" from "${room.roomName}"? The item will remain available in your catalog as Unassigned.',
+          'Are you sure you want to remove "${item.itemName}" from "${room.roomName}"? The item will remain in your tenant catalog.',
           style: const TextStyle(fontSize: 14, color: Color(0xFF64748B), height: 1.4),
         ),
         actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
@@ -693,9 +777,9 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
             ),
             onPressed: () async {
               Navigator.pop(ctx);
-              final ok = await inventory.updateItem(
+              final ok = await inventory.removeItemFromStoreRoom(
+                storeRoomId: room.storeRoomId,
                 itemId: item.itemId,
-                clearStoreRoom: true,
               );
               if (mounted) {
                 messenger.showSnackBar(
@@ -734,10 +818,8 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
     final tempStr =
         !isAmbient ? '${currentRoom.temperature!.toStringAsFixed(1)} °C' : 'Ambient';
 
-    // Count items matching this store room
-    final roomItems = inventory.items
-        .where((i) => i.storeRoomId == currentRoom.storeRoomId)
-        .toList();
+    // Items stored in this store room
+    final roomItems = currentRoom.items;
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -1552,15 +1634,48 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                       ),
                     )
                   else ...[
-                    ...roomItems.where((item) {
+                    ...roomItems.where((sri) {
                       if (_itemSearchQuery.isEmpty) return true;
                       final q = _itemSearchQuery.toLowerCase();
+                      final item = inventory.items.firstWhere(
+                        (i) => i.itemId == sri.itemId,
+                        orElse: () => ItemModel(
+                          itemId: sri.itemId,
+                          tenantId: currentRoom.tenantId,
+                          sku: '',
+                          itemName: sri.itemId,
+                          itemType: '',
+                          measurementUnit: 'UNIT',
+                          reorderThresholdQuantity: 0,
+                          totalAvailableStock: sri.quantity,
+                          isBelowReorderThreshold: false,
+                          reorderShortfallQuantity: 0,
+                          isActive: true,
+                        ),
+                      );
                       return item.itemName.toLowerCase().contains(q) ||
-                          item.sku.toLowerCase().contains(q);
-                    }).map((item) {
+                          item.sku.toLowerCase().contains(q) ||
+                          sri.division.toLowerCase().contains(q);
+                    }).map((sri) {
+                      final item = inventory.items.firstWhere(
+                        (i) => i.itemId == sri.itemId,
+                        orElse: () => ItemModel(
+                          itemId: sri.itemId,
+                          tenantId: currentRoom.tenantId,
+                          sku: '',
+                          itemName: sri.itemId,
+                          itemType: '',
+                          measurementUnit: 'UNIT',
+                          reorderThresholdQuantity: 0,
+                          totalAvailableStock: sri.quantity,
+                          isBelowReorderThreshold: false,
+                          reorderShortfallQuantity: 0,
+                          isActive: true,
+                        ),
+                      );
                       final resolvedImg = ApiConstants.resolveImageUrl(item.imageUrl);
-                      final divText = item.division != null && item.division!.isNotEmpty
-                          ? item.division!
+                      final divText = sri.division.isNotEmpty
+                          ? sri.division
                           : 'General Section';
 
                       return Container(
@@ -1654,19 +1769,107 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                                           ),
                                         ),
                                       ),
-                                      Text(
-                                        '${item.totalAvailableStock.toStringAsFixed(1)} ${item.measurementUnit}',
-                                        style: const TextStyle(
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w800,
-                                          color: Colors.black,
-                                        ),
-                                      ),
                                     ],
                                   ),
                                 ],
                               ),
                             ),
+                            const SizedBox(width: 8),
+                            // Quantity Controls in Store Room
+                            if (canUpdate)
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  InkWell(
+                                    onTap: sri.quantity > 0
+                                        ? () {
+                                            final newQty = (sri.quantity - 1.0)
+                                                .clamp(0.0, 99999999.0);
+                                            inventory.updateStoreRoomItemQuantity(
+                                              storeRoomId: currentRoom.storeRoomId,
+                                              itemId: item.itemId,
+                                              quantity: newQty,
+                                            );
+                                          }
+                                        : null,
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: Container(
+                                      width: 28,
+                                      height: 28,
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(color: const Color(0xFFCBD5E1)),
+                                      ),
+                                      alignment: Alignment.center,
+                                      child: const Icon(Icons.remove, size: 14, color: Colors.black),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 5),
+                                  InkWell(
+                                    onTap: () => _showEditItemQuantityDialog(
+                                      item,
+                                      sri,
+                                      currentRoom,
+                                    ),
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                                      decoration: BoxDecoration(
+                                        color: Colors.black,
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Text(
+                                        '${sri.quantity.toStringAsFixed(1)} ${item.measurementUnit}',
+                                        style: const TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w800,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 5),
+                                  InkWell(
+                                    onTap: () {
+                                      final newQty = sri.quantity + 1.0;
+                                      inventory.updateStoreRoomItemQuantity(
+                                        storeRoomId: currentRoom.storeRoomId,
+                                        itemId: item.itemId,
+                                        quantity: newQty,
+                                      );
+                                    },
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: Container(
+                                      width: 28,
+                                      height: 28,
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(color: const Color(0xFFCBD5E1)),
+                                      ),
+                                      alignment: Alignment.center,
+                                      child: const Icon(Icons.add, size: 14, color: Colors.black),
+                                    ),
+                                  ),
+                                ],
+                              )
+                            else
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                                decoration: BoxDecoration(
+                                  color: Colors.black,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  '${sri.quantity.toStringAsFixed(1)} ${item.measurementUnit}',
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w800,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
                             // Actions Menu
                             PopupMenuButton<String>(
                               icon: const Icon(Icons.more_vert, size: 20, color: Color(0xFF64748B)),
@@ -1822,6 +2025,7 @@ class _AddItemToRoomModal extends StatefulWidget {
 class _AddItemToRoomModalState extends State<_AddItemToRoomModal> {
   final TextEditingController _searchCtrl = TextEditingController();
   final TextEditingController _customDivCtrl = TextEditingController();
+  final TextEditingController _initialQtyCtrl = TextEditingController(text: '0');
   String _searchQuery = '';
   String _categoryFilter = 'ALL';
   ItemModel? _selectedItem;
@@ -1840,6 +2044,7 @@ class _AddItemToRoomModalState extends State<_AddItemToRoomModal> {
   void dispose() {
     _searchCtrl.dispose();
     _customDivCtrl.dispose();
+    _initialQtyCtrl.dispose();
     super.dispose();
   }
 
@@ -1850,7 +2055,8 @@ class _AddItemToRoomModalState extends State<_AddItemToRoomModal> {
 
     final filtered = allItems.where((item) {
       if (_categoryFilter == 'UNASSIGNED') {
-        if (item.storeRoomId != null && item.storeRoomId!.isNotEmpty) {
+        if (inventory.storeRooms
+            .any((r) => r.items.any((it) => it.itemId == item.itemId))) {
           return false;
         }
       } else if (_categoryFilter != 'ALL' && item.itemType != _categoryFilter) {
@@ -1888,7 +2094,8 @@ class _AddItemToRoomModalState extends State<_AddItemToRoomModal> {
     List<ItemModel> allItems,
   ) {
     final unassignedCount = allItems
-        .where((i) => i.storeRoomId == null || i.storeRoomId!.isEmpty)
+        .where((i) => !inventory.storeRooms
+            .any((r) => r.items.any((it) => it.itemId == i.itemId)))
         .length;
 
     return Column(
@@ -2023,14 +2230,16 @@ class _AddItemToRoomModalState extends State<_AddItemToRoomModal> {
                   itemCount: filtered.length,
                   itemBuilder: (context, idx) {
                     final item = filtered[idx];
-                    final isAlreadyInRoom = item.storeRoomId == widget.room.storeRoomId;
-                    final isUnassigned = item.storeRoomId == null || item.storeRoomId!.isEmpty;
+                    final matchInThisRoom = widget.room.items.where((it) => it.itemId == item.itemId);
+                    final isAlreadyInRoom = matchInThisRoom.isNotEmpty;
+                    final isUnassigned = !inventory.storeRooms.any((r) => r.items.any((it) => it.itemId == item.itemId));
                     final resolvedImg = ApiConstants.resolveImageUrl(item.imageUrl);
 
                     String otherRoomName = '';
                     if (!isAlreadyInRoom && !isUnassigned) {
                       final matchRoom = inventory.storeRooms.where(
-                        (r) => r.storeRoomId == item.storeRoomId,
+                        (r) => r.storeRoomId != widget.room.storeRoomId &&
+                            r.items.any((it) => it.itemId == item.itemId),
                       );
                       otherRoomName = matchRoom.isNotEmpty ? matchRoom.first.roomName : 'Other Room';
                     }
@@ -2111,7 +2320,7 @@ class _AddItemToRoomModalState extends State<_AddItemToRoomModal> {
                                     borderRadius: BorderRadius.circular(4),
                                   ),
                                   child: Text(
-                                    'In this room (${item.division ?? 'Default'})',
+                                    'In this room (${matchInThisRoom.first.division})',
                                     style: const TextStyle(
                                       fontSize: 10,
                                       fontWeight: FontWeight.w700,
@@ -2177,10 +2386,15 @@ class _AddItemToRoomModalState extends State<_AddItemToRoomModal> {
                           onPressed: () {
                             setState(() {
                               _selectedItem = item;
-                              _selectedDivision = item.division ??
-                                  (widget.room.divisions.isNotEmpty
-                                      ? widget.room.divisions.first
-                                      : 'Default Section');
+                              if (matchInThisRoom.isNotEmpty) {
+                                _selectedDivision = matchInThisRoom.first.division;
+                                _initialQtyCtrl.text = matchInThisRoom.first.quantity.toString();
+                              } else {
+                                _selectedDivision = widget.room.divisions.isNotEmpty
+                                    ? widget.room.divisions.first
+                                    : 'Default Section';
+                                _initialQtyCtrl.text = '0';
+                              }
                             });
                           },
                           child: Text(
@@ -2344,6 +2558,38 @@ class _AddItemToRoomModalState extends State<_AddItemToRoomModal> {
               ),
             ),
 
+          const SizedBox(height: 18),
+
+          Text(
+            'STORED QUANTITY IN ROOM (${item.measurementUnit.toUpperCase()})',
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+              color: Color(0xFF64748B),
+              letterSpacing: 0.5,
+            ),
+          ),
+          const SizedBox(height: 8),
+          TextFormField(
+            controller: _initialQtyCtrl,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+            decoration: InputDecoration(
+              hintText: '0',
+              filled: true,
+              fillColor: const Color(0xFFF8FAFC),
+              prefixIcon: const Icon(Icons.inventory_2_outlined, size: 20, color: Color(0xFF94A3B8)),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+              ),
+            ),
+          ),
+
           const SizedBox(height: 20),
 
           // Confirm Button
@@ -2366,14 +2612,16 @@ class _AddItemToRoomModalState extends State<_AddItemToRoomModal> {
                           : (_customDivCtrl.text.trim().isNotEmpty
                               ? _customDivCtrl.text.trim()
                               : 'Default Section');
+                      final qty = double.tryParse(_initialQtyCtrl.text.trim()) ?? 0.0;
 
                       final messenger = ScaffoldMessenger.of(context);
                       final navigator = Navigator.of(context);
 
-                      final ok = await inventory.updateItem(
-                        itemId: item.itemId,
+                      final ok = await inventory.addItemToStoreRoom(
                         storeRoomId: widget.room.storeRoomId,
+                        itemId: item.itemId,
                         division: targetDiv,
+                        quantity: qty,
                       );
 
                       if (!mounted) return;
@@ -2385,7 +2633,7 @@ class _AddItemToRoomModalState extends State<_AddItemToRoomModal> {
                       messenger.showSnackBar(
                         SnackBar(
                           content: Text(ok
-                              ? 'Assigned "${item.itemName}" to ${widget.room.roomName} ($targetDiv)'
+                              ? 'Saved "${item.itemName}" in ${widget.room.roomName} ($targetDiv, $qty ${item.measurementUnit})'
                               : (inventory.errorMessage ?? 'Failed to assign item')),
                           backgroundColor: ok ? const Color(0xFF0F766E) : Colors.red.shade700,
                         ),
@@ -2398,7 +2646,7 @@ class _AddItemToRoomModalState extends State<_AddItemToRoomModal> {
                       child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                     )
                   : Text(
-                      'Assign to ${widget.room.roomName}',
+                      'Save to ${widget.room.roomName}',
                       style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
                     ),
             ),

@@ -15,48 +15,6 @@ export enum MeasurementUnit {
   CARTOON_BOX = 'CARTOON_BOX',
 }
 
-export enum AllowedCategory {
-  RAW_MATERIAL = 'RAW_MATERIAL',
-  FINISHED_GOOD = 'FINISHED_GOOD',
-  PACKAGING = 'PACKAGING',
-  ALL = 'ALL',
-}
-
-@Schema({ _id: false })
-export class StorageLocationDetails {
-  @Prop({ type: String, required: false, default: null })
-  store_room_id: string | null;
-
-  @Prop({ type: String, required: false, default: '', trim: true })
-  location_code: string;
-
-  @Prop({ type: String, default: '', trim: true })
-  division: string;
-
-  @Prop({ type: String, default: '', trim: true })
-  rack_identifier: string;
-
-  @Prop({ type: String, default: '', trim: true })
-  shelf_identifier: string;
-
-  @Prop({ type: String, default: '', trim: true })
-  bin_identifier: string;
-
-  @Prop({
-    type: String,
-    enum: Object.values(AllowedCategory),
-    default: AllowedCategory.ALL,
-  })
-  allowed_category: AllowedCategory;
-
-  @Prop({ type: Boolean, default: true })
-  is_active: boolean;
-}
-
-export const StorageLocationDetailsSchema = SchemaFactory.createForClass(
-  StorageLocationDetails,
-);
-
 export type ItemDocument = Item & Document;
 
 @Schema({
@@ -100,14 +58,11 @@ export class Item {
   @Prop({ type: Number, required: true, min: 0, default: 0 })
   reorder_threshold_quantity: number;
 
-  @Prop({ type: Number, default: 0, min: 0 })
-  stock_quantity: number;
-
   @Prop({ type: String, default: null })
   image_url: string | null;
 
-  @Prop({ type: StorageLocationDetailsSchema, required: false, default: null })
-  storage_location_details: StorageLocationDetails;
+  @Prop({ type: Boolean, default: true })
+  is_active: boolean;
 }
 
 export const ItemSchema = SchemaFactory.createForClass(Item);

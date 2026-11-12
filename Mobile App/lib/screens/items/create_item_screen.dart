@@ -17,8 +17,6 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
   final _skuController = TextEditingController();
   final _nameController = TextEditingController();
   final _reorderThresholdController = TextEditingController(text: '50');
-  final _stockQuantityController = TextEditingController(text: '0');
-  final _customDivisionController = TextEditingController();
 
   String _selectedItemType = 'RAW_MATERIAL';
   String _selectedUnit = 'KILOGRAM';
@@ -44,20 +42,10 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
   ];
 
   @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<InventoryProvider>().loadStoreRooms();
-    });
-  }
-
-  @override
   void dispose() {
     _skuController.dispose();
     _nameController.dispose();
     _reorderThresholdController.dispose();
-    _stockQuantityController.dispose();
-    _customDivisionController.dispose();
     super.dispose();
   }
 
@@ -111,8 +99,6 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
       measurementUnit: _selectedUnit,
       reorderThreshold:
           double.tryParse(_reorderThresholdController.text.trim()) ?? 0,
-      stockQuantity:
-          double.tryParse(_stockQuantityController.text.trim()) ?? 0,
       imageUrl: uploadedImageUrl,
     );
 
@@ -566,80 +552,33 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
 
               const SizedBox(height: 18),
 
-              // Initial Stock & Reorder Level Row
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildFieldLabel('INITIAL STOCK *'),
-                        TextFormField(
-                          controller: _stockQuantityController,
-                          keyboardType: const TextInputType.numberWithOptions(
-                            decimal: true,
-                          ),
-                          style: const TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.black,
-                          ),
-                          decoration: _buildInputDecoration(
-                            hintText: '0',
-                            prefixIcon: const Icon(
-                              Icons.inventory_2_outlined,
-                              size: 20,
-                              color: Color(0xFF94A3B8),
-                            ),
-                          ),
-                          validator: (val) {
-                            if (val == null ||
-                                double.tryParse(val.trim()) == null) {
-                              return 'Enter quantity';
-                            }
-                            return null;
-                          },
-                        ),
-                      ],
-                    ),
+              // Reorder Level
+              _buildFieldLabel('REORDER LEVEL *'),
+              TextFormField(
+                controller: _reorderThresholdController,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.black,
+                ),
+                decoration: _buildInputDecoration(
+                  hintText: '50',
+                  prefixIcon: const Icon(
+                    Icons.warning_amber_rounded,
+                    size: 20,
+                    color: Color(0xFF94A3B8),
                   ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildFieldLabel('REORDER LEVEL *'),
-                        TextFormField(
-                          controller: _reorderThresholdController,
-                          keyboardType: const TextInputType.numberWithOptions(
-                            decimal: true,
-                          ),
-                          style: const TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.black,
-                          ),
-                          decoration: _buildInputDecoration(
-                            hintText: '50',
-                            prefixIcon: const Icon(
-                              Icons.warning_amber_rounded,
-                              size: 20,
-                              color: Color(0xFF94A3B8),
-                            ),
-                          ),
-                          validator: (val) {
-                            if (val == null ||
-                                double.tryParse(val.trim()) == null) {
-                              return 'Enter reorder level';
-                            }
-                            return null;
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+                ),
+                validator: (val) {
+                  if (val == null ||
+                      double.tryParse(val.trim()) == null) {
+                    return 'Enter reorder level';
+                  }
+                  return null;
+                },
               ),
 
               const SizedBox(height: 32),

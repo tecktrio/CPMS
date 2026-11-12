@@ -48,21 +48,6 @@ export class ItemsService {
       );
     }
 
-    // Verify store room exists and is active if provided
-    if (dto.storage_location_details?.store_room_id) {
-      const storeRoom = await this.storeRoomModel.findOne({
-        tenant_id: tenantId,
-        store_room_id: dto.storage_location_details.store_room_id,
-        is_active: true,
-      });
-
-      if (!storeRoom) {
-        throw new BadRequestException(
-          'Assigned store room is invalid or inactive',
-        );
-      }
-    }
-
     const newItem = new this.itemModel({
       item_id: uuidv4(),
       tenant_id: tenantId,
@@ -71,22 +56,8 @@ export class ItemsService {
       item_type: dto.item_type,
       measurement_unit: dto.measurement_unit,
       reorder_threshold_quantity: dto.reorder_threshold_quantity,
-      stock_quantity: dto.stock_quantity ?? 0,
       image_url: dto.image_url || null,
-      storage_location_details: dto.storage_location_details
-        ? {
-            ...dto.storage_location_details,
-            store_room_id: dto.storage_location_details.store_room_id || null,
-            location_code: dto.storage_location_details.location_code || '',
-            division: dto.storage_location_details.division || '',
-            is_active: true,
-          }
-        : {
-            store_room_id: null,
-            location_code: '',
-            division: '',
-            is_active: true,
-          },
+      is_active: true,
     });
 
     await newItem.save();
@@ -113,7 +84,17 @@ export class ItemsService {
           0,
         );
 
-        const totalStock = (item.stock_quantity ?? 0) + batchStock;
+        const rooms = await this.storeRoomModel.find({
+          tenant_id: tenantId,
+          'items.item_id': item.item_id,
+        });
+
+        const roomStock = rooms.reduce((roomSum, r) => {
+          const itemEntries = (r.items || []).filter((it) => it.item_id === item.item_id);
+          return roomSum + itemEntries.reduce((s, it) => s + (it.quantity || 0), 0);
+        }, 0);
+
+        const totalStock = roomStock > 0 ? roomStock : batchStock;
 
         const isBelowThreshold =
           totalStock <= item.reorder_threshold_quantity;
@@ -129,6 +110,11 @@ export class ItemsService {
           active_batches_count: batches.length,
           is_below_reorder_threshold: isBelowThreshold,
           reorder_shortfall_quantity: shortfall,
+          store_rooms: rooms.map((r) => ({
+            store_room_id: r.store_room_id,
+            room_name: r.room_name,
+            room_code: r.room_code,
+          })),
         };
       }),
     );
@@ -161,7 +147,17 @@ export class ItemsService {
       )
       .reduce((sum, b) => sum + (b.available_quantity || 0), 0);
 
-    const totalAvailableStock = (item.stock_quantity ?? 0) + totalBatchStock;
+    const rooms = await this.storeRoomModel.find({
+      tenant_id: tenantId,
+      'items.item_id': itemId,
+    });
+
+    const roomStock = rooms.reduce((roomSum, r) => {
+      const itemEntries = (r.items || []).filter((it) => it.item_id === itemId);
+      return roomSum + itemEntries.reduce((s, it) => s + (it.quantity || 0), 0);
+    }, 0);
+
+    const totalAvailableStock = roomStock > 0 ? roomStock : totalBatchStock;
 
     const isBelowThreshold =
       totalAvailableStock <= item.reorder_threshold_quantity;
@@ -175,6 +171,12 @@ export class ItemsService {
         ? item.reorder_threshold_quantity - totalAvailableStock
         : 0,
       batches,
+      store_rooms: rooms.map((r) => ({
+        store_room_id: r.store_room_id,
+        room_name: r.room_name,
+        room_code: r.room_code,
+        items: (r.items || []).filter((it) => it.item_id === itemId),
+      })),
     };
   }
 
@@ -209,42 +211,13 @@ export class ItemsService {
       item.measurement_unit = dto.measurement_unit;
     if (dto.reorder_threshold_quantity !== undefined)
       item.reorder_threshold_quantity = dto.reorder_threshold_quantity;
-    if (dto.stock_quantity !== undefined)
-      item.stock_quantity = dto.stock_quantity;
     if (dto.image_url !== undefined && dto.image_url !== item.image_url) {
       if (item.image_url) {
         await this.storageService.deleteFile(item.image_url);
       }
       item.image_url = dto.image_url;
     }
-
-    if (dto.storage_location_details) {
-      if (
-        dto.storage_location_details.store_room_id &&
-        dto.storage_location_details.store_room_id.trim().length > 0
-      ) {
-        const room = await this.storeRoomModel.findOne({
-          tenant_id: tenantId,
-          store_room_id: dto.storage_location_details.store_room_id,
-          is_active: true,
-        });
-        if (!room) {
-          throw new BadRequestException('Assigned store room is invalid');
-        }
-      }
-      item.storage_location_details = {
-        ...item.storage_location_details,
-        ...dto.storage_location_details,
-        store_room_id:
-          dto.storage_location_details.store_room_id !== undefined
-            ? (dto.storage_location_details.store_room_id || null)
-            : item.storage_location_details?.store_room_id,
-        division:
-          dto.storage_location_details.division !== undefined
-            ? dto.storage_location_details.division
-            : (item.storage_location_details?.division || ''),
-      };
-    }
+    if (dto.is_active !== undefined) item.is_active = dto.is_active;
 
     await item.save();
     return item;

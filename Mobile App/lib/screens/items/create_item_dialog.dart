@@ -63,8 +63,6 @@ class _CreateItemDialogState extends State<CreateItemDialog> {
       itemType: _selectedItemType,
       measurementUnit: _selectedUnit,
       reorderThreshold: double.tryParse(_reorderThresholdController.text) ?? 0,
-      storeRoomId: _selectedStoreRoomId,
-      locationCode: _locationCodeController.text.trim(),
     );
 
     if (!mounted) return;
