@@ -48,3 +48,4 @@ export class UpdateCustomerDto {
   @IsOptional()
   is_active?: boolean;
 }
+

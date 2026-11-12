@@ -106,3 +106,4 @@ export const PurchaseOrderSchema = SchemaFactory.createForClass(PurchaseOrder);
 PurchaseOrderSchema.index({ po_id: 1 }, { unique: true });
 PurchaseOrderSchema.index({ tenant_id: 1, po_number: 1 });
 PurchaseOrderSchema.index({ tenant_id: 1, po_date: -1 });
+
