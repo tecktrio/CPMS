@@ -10,6 +10,7 @@ import '../../providers/tenant_provider.dart';
 import '../departments/departments_list_screen.dart';
 import '../items/item_detail_screen.dart';
 import '../items/items_list_screen.dart';
+import '../purchase_orders/purchase_orders_list_screen.dart';
 import '../store_rooms/store_rooms_list_screen.dart';
 import '../tenant/tenant_selector_screen.dart';
 import '../../widgets/sync_status_indicator.dart';
@@ -499,6 +500,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Navigator.push(
             context,
             MaterialPageRoute(builder: (_) => const StoreRoomsListScreen()),
+          );
+        },
+      ),
+      _DashboardModuleItem(
+        title: 'Purchase Orders',
+        subtitle: 'Orders & Shipment Planning',
+        icon: Icons.receipt_long_outlined,
+        isPermitted: true,
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (_) => const PurchaseOrdersListScreen()),
           );
         },
       ),

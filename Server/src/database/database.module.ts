@@ -13,6 +13,11 @@ import { StockBatch, StockBatchSchema } from './schemas/stock-batch.schema';
 import { OtpRecord, OtpRecordSchema } from './schemas/otp-record.schema';
 import { Department, DepartmentSchema } from './schemas/department.schema';
 import { Permission, PermissionSchema } from './schemas/permission.schema';
+import { Customer, CustomerSchema } from './schemas/customer.schema';
+import {
+  PurchaseOrder,
+  PurchaseOrderSchema,
+} from './schemas/purchase-order.schema';
 
 @Module({
   imports: [
@@ -33,6 +38,8 @@ import { Permission, PermissionSchema } from './schemas/permission.schema';
       { name: OtpRecord.name, schema: OtpRecordSchema },
       { name: Department.name, schema: DepartmentSchema },
       { name: Permission.name, schema: PermissionSchema },
+      { name: Customer.name, schema: CustomerSchema },
+      { name: PurchaseOrder.name, schema: PurchaseOrderSchema },
     ]),
   ],
   exports: [MongooseModule],

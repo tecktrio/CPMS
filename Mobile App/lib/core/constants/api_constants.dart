@@ -65,5 +65,9 @@ class ApiConstants {
   static const String expiringSoonBatches = '/stock-batches/expiring-soon';
   static const String suggestFefo = '/stock-batches/suggest-fefo';
   static const String deductBatches = '/stock-batches/deduct-batches';
+
+  // Purchase Orders & Customers
+  static const String purchaseOrders = '/purchase-orders';
+  static const String customers = '/customers';
 }
 

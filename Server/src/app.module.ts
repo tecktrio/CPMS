@@ -11,6 +11,7 @@ import { ItemsModule } from './modules/items/items.module';
 import { StockBatchesModule } from './modules/stock-batches/stock-batches.module';
 import { DepartmentsModule } from './modules/departments/departments.module';
 import { PermissionsModule } from './modules/permissions/permissions.module';
+import { PurchaseOrdersModule } from './modules/purchase-orders/purchase-orders.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { PermissionsModule } from './modules/permissions/permissions.module';
     StockBatchesModule,
     DepartmentsModule,
     PermissionsModule,
+    PurchaseOrdersModule,
   ],
 })
 export class AppModule {}
