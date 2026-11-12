@@ -934,17 +934,19 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
       ),
     ),
   ),
-  bottomNavigationBar: Container(
-    padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
-    decoration: const BoxDecoration(
-      color: Colors.white,
-      border: Border(
-        top: BorderSide(color: Color(0xFFF1F5F9)),
+  bottomNavigationBar: SafeArea(
+    child: Container(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(
+          top: BorderSide(color: Color(0xFFF1F5F9)),
+        ),
       ),
-    ),
-    child: Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 960),
+      child: Center(
+        heightFactor: 1.0,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 960),
         child: SizedBox(
           width: double.infinity,
           height: 52,
@@ -987,6 +989,7 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
       ),
     ),
   ),
+),
 );
   }
 }
