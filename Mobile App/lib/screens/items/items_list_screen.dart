@@ -20,15 +20,12 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   String _selectedCategory = 'ALL';
-  String? _selectedStoreRoomFilter;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final inv = context.read<InventoryProvider>();
-      inv.loadItems();
-      inv.loadStoreRooms();
+      context.read<InventoryProvider>().loadItems();
     });
   }
 
@@ -36,102 +33,6 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
   void dispose() {
     _searchController.dispose();
     super.dispose();
-  }
-
-  void _showStoreRoomPicker(BuildContext context, List<StoreRoomModel> rooms) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (ctx) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Handle pill
-              Container(
-                margin: const EdgeInsets.only(top: 12, bottom: 8),
-                width: 36,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFCBD5E1),
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'Select Store Room',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.black,
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.close, size: 20),
-                      onPressed: () => Navigator.pop(ctx),
-                    ),
-                  ],
-                ),
-              ),
-              const Divider(height: 1, color: Color(0xFFF1F5F9)),
-              Flexible(
-                child: ListView(
-                  shrinkWrap: true,
-                  children: [
-                    ListTile(
-                      leading: const Icon(Icons.all_inclusive, color: Colors.black),
-                      title: const Text(
-                        'All Store Rooms',
-                        style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
-                      ),
-                      trailing: _selectedStoreRoomFilter == null
-                          ? const Icon(Icons.check_circle, color: Colors.black)
-                          : null,
-                      onTap: () {
-                        setState(() => _selectedStoreRoomFilter = null);
-                        Navigator.pop(ctx);
-                      },
-                    ),
-                    ...rooms.map((room) {
-                      final isSelected = _selectedStoreRoomFilter == room.storeRoomId;
-                      return ListTile(
-                        leading: const Icon(Icons.meeting_room_outlined, color: Colors.black),
-                        title: Text(
-                          room.roomName,
-                          style: TextStyle(
-                            fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-                            fontSize: 15,
-                          ),
-                        ),
-                        subtitle: Text(
-                          'Code: ${room.roomCode}',
-                          style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
-                        ),
-                        trailing: isSelected
-                            ? const Icon(Icons.check_circle, color: Colors.black)
-                            : null,
-                        onTap: () {
-                          setState(() => _selectedStoreRoomFilter = room.storeRoomId);
-                          Navigator.pop(ctx);
-                        },
-                      );
-                    }),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 12),
-            ],
-          ),
-        );
-      },
-    );
   }
 
   void _showCategoryPicker(BuildContext context) {
@@ -228,9 +129,7 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
           item.sku.toLowerCase().contains(_searchQuery.toLowerCase());
       final matchesCat =
           _selectedCategory == 'ALL' || item.itemType == _selectedCategory;
-      final matchesRoom = _selectedStoreRoomFilter == null ||
-          item.storeRoomId == _selectedStoreRoomFilter;
-      return matchesSearch && matchesCat && matchesRoom;
+      return matchesSearch && matchesCat;
     }).toList();
 
     String pageTitle = 'Items & Materials';
@@ -241,16 +140,6 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
         pageTitle = 'Delete Items';
       } else {
         pageTitle = 'Manage Items';
-      }
-    }
-
-    // Determine current store room label
-    String storeRoomLabel = 'All Store Rooms';
-    if (_selectedStoreRoomFilter != null) {
-      final match = inventory.storeRooms
-          .where((r) => r.storeRoomId == _selectedStoreRoomFilter);
-      if (match.isNotEmpty) {
-        storeRoomLabel = match.first.roomName;
       }
     }
 
@@ -347,39 +236,6 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
             ),
           ),
 
-          // Store Room Filter Button
-          GestureDetector(
-            onTap: () => _showStoreRoomPicker(context, inventory.storeRooms),
-            child: Container(
-              height: 48,
-              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-              padding: const EdgeInsets.symmetric(horizontal: 14),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFE2E8F0)),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.link, size: 20, color: Colors.black),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      storeRoomLabel,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 15,
-                        color: Colors.black,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  const Icon(Icons.swap_horiz, size: 20, color: Color(0xFF64748B)),
-                ],
-              ),
-            ),
-          ),
-
           // Material Category Filter Button
           GestureDetector(
             onTap: () => _showCategoryPicker(context),
@@ -421,7 +277,6 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
               color: Colors.black,
               onRefresh: () async {
                 await inventory.loadItems();
-                await inventory.loadStoreRooms();
               },
               child: inventory.isLoading
                   ? const Center(
@@ -508,7 +363,7 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
                                       ),
                                       const SizedBox(width: 14),
 
-                                      // Item Name & SKU / Type
+                                      // Item Name & SKU / Type / Unit
                                       Expanded(
                                         child: Column(
                                           crossAxisAlignment:
@@ -527,7 +382,7 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
                                             ),
                                             const SizedBox(height: 4),
                                             Text(
-                                              '${item.sku} • ${item.itemType.replaceAll('_', ' ').toUpperCase()}',
+                                              '${item.sku} • ${item.itemType.replaceAll('_', ' ').toUpperCase()} • ${item.measurementUnit.toUpperCase()}',
                                               style: const TextStyle(
                                                 fontSize: 12,
                                                 fontWeight: FontWeight.w600,
@@ -542,105 +397,21 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
                                       ),
                                       const SizedBox(width: 8),
 
-                                      // Quantity Controls
-                                      Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          // Minus Button
-                                          GestureDetector(
-                                            onTap: canUpdate
-                                                ? () {
-                                                    final newStock =
-                                                        (item.totalAvailableStock - 1.0)
-                                                            .clamp(0.0, 99999999.0);
-                                                    inventory.updateItemStock(
-                                                        item.itemId, newStock);
-                                                  }
-                                                : null,
-                                            child: Container(
-                                              width: 38,
-                                              height: 38,
-                                              decoration: BoxDecoration(
-                                                shape: BoxShape.circle,
-                                                color: Colors.white,
-                                                border: Border.all(
-                                                  color: const Color(0xFFCBD5E1),
-                                                ),
-                                              ),
-                                              alignment: Alignment.center,
-                                              child: const Icon(
-                                                Icons.remove,
-                                                size: 18,
-                                                color: Colors.black,
-                                              ),
-                                            ),
-                                          ),
-
-                                          // Stock Value and Unit
-                                          GestureDetector(
-                                            onTap: canUpdate
-                                                ? () => _showQuickStockDialog(
-                                                    context, item)
-                                                : null,
-                                            child: Padding(
-                                              padding: const EdgeInsets.symmetric(
-                                                horizontal: 10,
-                                              ),
-                                              child: Column(
-                                                mainAxisSize: MainAxisSize.min,
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.center,
-                                                children: [
-                                                  Text(
-                                                    item.totalAvailableStock
-                                                        .toStringAsFixed(1),
-                                                    style: const TextStyle(
-                                                      fontSize: 16,
-                                                      fontWeight: FontWeight.w800,
-                                                      color: Colors.black,
-                                                    ),
-                                                  ),
-                                                  Text(
-                                                    item.measurementUnit
-                                                        .toUpperCase(),
-                                                    style: const TextStyle(
-                                                      fontSize: 10,
-                                                      fontWeight: FontWeight.w700,
-                                                      color: Color(0xFF64748B),
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                          ),
-
-                                          // Plus Button
-                                          GestureDetector(
-                                            onTap: canUpdate
-                                                ? () {
-                                                    final newStock =
-                                                        (item.totalAvailableStock + 1.0)
-                                                            .clamp(0.0, 99999999.0);
-                                                    inventory.updateItemStock(
-                                                        item.itemId, newStock);
-                                                  }
-                                                : null,
-                                            child: Container(
-                                              width: 38,
-                                              height: 38,
-                                              decoration: const BoxDecoration(
-                                                shape: BoxShape.circle,
-                                                color: Colors.black,
-                                              ),
-                                              alignment: Alignment.center,
-                                              child: const Icon(
-                                                Icons.add,
-                                                size: 18,
-                                                color: Colors.white,
-                                              ),
-                                            ),
-                                          ),
-                                        ],
+                                      // Trailing Navigation Chevron
+                                      Container(
+                                        width: 34,
+                                        height: 34,
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFF8FAFC),
+                                          shape: BoxShape.circle,
+                                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                                        ),
+                                        alignment: Alignment.center,
+                                        child: const Icon(
+                                          Icons.chevron_right,
+                                          size: 18,
+                                          color: Color(0xFF64748B),
+                                        ),
                                       ),
                                     ],
                                   ),
@@ -678,91 +449,6 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
               },
             )
           : null,
-    );
-  }
-
-  void _showQuickStockDialog(BuildContext context, ItemModel item) {
-    final stockCtrl =
-        TextEditingController(text: item.totalAvailableStock.toString());
-    final formKey = GlobalKey<FormState>();
-
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        title: Text(
-          'Update Stock: ${item.itemName}',
-          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
-        ),
-        content: Form(
-          key: formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Current Stock: ${item.totalAvailableStock.toStringAsFixed(1)} ${item.measurementUnit}',
-                style: const TextStyle(fontSize: 13, color: Color(0xFF64748B)),
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: stockCtrl,
-                autofocus: true,
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
-                decoration: InputDecoration(
-                  labelText: 'New Stock Quantity (${item.measurementUnit}) *',
-                  contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                  border:
-                      OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                  prefixIcon: const Icon(Icons.inventory_2_outlined),
-                ),
-                validator: (val) {
-                  if (val == null || val.trim().isEmpty) return 'Enter quantity';
-                  final num = double.tryParse(val.trim());
-                  if (num == null || num < 0) return 'Enter a valid non-negative number';
-                  return null;
-                },
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel', style: TextStyle(color: Color(0xFF64748B))),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.black,
-              foregroundColor: Colors.white,
-              elevation: 0,
-              shape:
-                  RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            ),
-            onPressed: () async {
-              if (!formKey.currentState!.validate()) return;
-              final qty = double.parse(stockCtrl.text.trim());
-              Navigator.pop(ctx);
-              final inventory = context.read<InventoryProvider>();
-              final ok = await inventory.updateItemStock(item.itemId, qty);
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(ok
-                        ? 'Stock updated to $qty ${item.measurementUnit}'
-                        : (inventory.errorMessage ?? 'Stock update failed')),
-                    backgroundColor:
-                        ok ? const Color(0xFF0F766E) : Colors.red.shade700,
-                  ),
-                );
-              }
-            },
-            child: const Text('Update Stock', style: TextStyle(fontWeight: FontWeight.w700)),
-          ),
-        ],
-      ),
     );
   }
 
