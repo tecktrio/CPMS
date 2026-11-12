@@ -180,6 +180,9 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
     final hasImage =
         currentItem.imageUrl != null && currentItem.imageUrl!.isNotEmpty;
 
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isWide = screenWidth >= 700;
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -192,13 +195,23 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         centerTitle: true,
-        title: Text(
-          currentItem.itemName,
-          style: const TextStyle(
-            color: Colors.black,
-            fontSize: 18,
-            fontWeight: FontWeight.w800,
-            letterSpacing: -0.3,
+        title: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 960),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  currentItem.itemName,
+                  style: const TextStyle(
+                    color: Colors.black,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.3,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
         actions: [
@@ -216,11 +229,17 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
           child: Divider(height: 1, color: Color(0xFFF1F5F9)),
         ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 960),
+          child: SingleChildScrollView(
+            padding: EdgeInsets.symmetric(
+              horizontal: isWide ? 28 : 16,
+              vertical: 20,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
             // 1. Item Header Card
             Container(
               decoration: BoxDecoration(
@@ -889,6 +908,8 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
           ],
         ),
       ),
-    );
+    ),
+  ),
+);
   }
 }

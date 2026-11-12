@@ -113,21 +113,65 @@ class _CreateStoreRoomScreenState extends State<CreateStoreRoomScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isWide = screenWidth >= 700;
+
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('Create Store Room'),
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.black, size: 24),
+          onPressed: () => Navigator.pop(context),
+        ),
+        titleSpacing: 0,
+        title: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 860),
+            child: Row(
+              children: const [
+                Text(
+                  'Create Store Room',
+                  style: TextStyle(
+                    color: Colors.black,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.3,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
         actions: const [
-          UserProfileAvatar(),
-          SizedBox(width: 4),
+          Padding(
+            padding: EdgeInsets.only(right: 12),
+            child: UserProfileAvatar(),
+          ),
         ],
+        bottom: const PreferredSize(
+          preferredSize: Size.fromHeight(1),
+          child: Divider(height: 1, color: Color(0xFFF1F5F9)),
+        ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 860),
+          child: SingleChildScrollView(
+            padding: EdgeInsets.fromLTRB(
+              isWide ? 28 : 20,
+              20,
+              isWide ? 28 : 20,
+              32,
+            ),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
@@ -359,20 +403,35 @@ class _CreateStoreRoomScreenState extends State<CreateStoreRoomScreen> {
               // Submit Button
               SizedBox(
                 width: double.infinity,
+                height: 50,
                 child: ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF0284C7),
+                    backgroundColor: Colors.black,
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                   icon: _isSubmitting
                       ? const SizedBox(
                           width: 20,
                           height: 20,
-                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
                         )
-                      : const Icon(Icons.check),
-                  label: Text(_isSubmitting ? 'Creating Room...' : 'Create Store Room'),
+                      : const Icon(Icons.check, size: 20),
+                  label: Text(
+                    _isSubmitting
+                        ? 'Creating Room...'
+                        : 'Create Store Room',
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
                   onPressed: _isSubmitting ? null : _submit,
                 ),
               ),
@@ -380,6 +439,8 @@ class _CreateStoreRoomScreenState extends State<CreateStoreRoomScreen> {
           ),
         ),
       ),
-    );
+    ),
+  ),
+);
   }
 }

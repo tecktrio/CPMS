@@ -135,6 +135,8 @@ class _PurchaseOrderDetailScreenState extends State<PurchaseOrderDetailScreen> {
     }
 
     final po = poList[poIndex];
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isWide = screenWidth >= 700;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
@@ -148,13 +150,22 @@ class _PurchaseOrderDetailScreenState extends State<PurchaseOrderDetailScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         titleSpacing: 0,
-        title: Text(
-          po.poNumber,
-          style: const TextStyle(
-            color: Colors.black,
-            fontSize: 20,
-            fontWeight: FontWeight.w800,
-            letterSpacing: -0.5,
+        title: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1050),
+            child: Row(
+              children: [
+                Text(
+                  po.poNumber,
+                  style: const TextStyle(
+                    color: Colors.black,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
         actions: [
@@ -182,11 +193,17 @@ class _PurchaseOrderDetailScreenState extends State<PurchaseOrderDetailScreen> {
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1050),
+          child: SingleChildScrollView(
+            padding: EdgeInsets.symmetric(
+              horizontal: isWide ? 28 : 16,
+              vertical: 20,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
             // MALTA PO Header Banner
             Container(
               padding: const EdgeInsets.all(18),
@@ -743,6 +760,8 @@ class _PurchaseOrderDetailScreenState extends State<PurchaseOrderDetailScreen> {
           ],
         ),
       ),
-    );
+    ),
+  ),
+);
   }
 }

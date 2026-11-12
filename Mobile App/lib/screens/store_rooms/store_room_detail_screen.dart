@@ -852,6 +852,9 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
     // Items stored in this store room
     final roomItems = currentRoom.items;
 
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isWide = screenWidth >= 700;
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -864,29 +867,34 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         centerTitle: true,
-        title: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              'FACILITY ZONE 01',
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w800,
-                color: Color(0xFF94A3B8),
-                letterSpacing: 0.8,
-              ),
+        title: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1050),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'FACILITY ZONE 01',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF94A3B8),
+                    letterSpacing: 0.8,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                const Text(
+                  'Store Room Details',
+                  style: TextStyle(
+                    color: Colors.black,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.3,
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 2),
-            const Text(
-              'Store Room Details',
-              style: TextStyle(
-                color: Colors.black,
-                fontSize: 17,
-                fontWeight: FontWeight.w800,
-                letterSpacing: -0.3,
-              ),
-            ),
-          ],
+          ),
         ),
         actions: [
           IconButton(
@@ -903,11 +911,17 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
           child: Divider(height: 1, color: Color(0xFFF1F5F9)),
         ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1050),
+          child: SingleChildScrollView(
+            padding: EdgeInsets.symmetric(
+              horizontal: isWide ? 28 : 16,
+              vertical: 20,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
             // 1. Store Room Hero Card
             Container(
               padding: const EdgeInsets.all(16),
@@ -2036,7 +2050,9 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
           ],
         ),
       ),
-    );
+    ),
+  ),
+);
   }
 }
 

@@ -75,6 +75,9 @@ class _PurchaseOrdersListScreenState extends State<PurchaseOrdersListScreen> {
     final poProvider = context.watch<PurchaseOrderProvider>();
     final allOrders = poProvider.purchaseOrders;
 
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isWide = screenWidth >= 700;
+
     final filteredOrders = allOrders.where((po) {
       final matchesSearch = po.poNumber
               .toLowerCase()
@@ -100,13 +103,22 @@ class _PurchaseOrdersListScreenState extends State<PurchaseOrdersListScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         titleSpacing: 0,
-        title: const Text(
-          'Purchase Orders',
-          style: TextStyle(
-            color: Colors.black,
-            fontSize: 22,
-            fontWeight: FontWeight.w800,
-            letterSpacing: -0.5,
+        title: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1100),
+            child: Row(
+              children: const [
+                Text(
+                  'Purchase Orders',
+                  style: TextStyle(
+                    color: Colors.black,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
         actions: const [
@@ -116,258 +128,254 @@ class _PurchaseOrdersListScreenState extends State<PurchaseOrdersListScreen> {
           ),
         ],
       ),
-      body: Column(
-        children: [
-          // Search Bar
-          Container(
-            height: 48,
-            margin: const EdgeInsets.fromLTRB(16, 8, 16, 10),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFFE2E8F0)),
-            ),
-            child: Row(
-              children: [
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 14),
-                  child: Icon(Icons.search, color: Color(0xFF94A3B8), size: 20),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1100),
+          child: Column(
+            children: [
+              // Search & Filter Controls
+              Padding(
+                padding: EdgeInsets.fromLTRB(
+                  isWide ? 24 : 16,
+                  8,
+                  isWide ? 24 : 16,
+                  10,
                 ),
-                Expanded(
-                  child: TextField(
-                    controller: _searchController,
-                    onChanged: (val) {
-                      setState(() {
-                        _searchQuery = val.trim();
-                      });
-                    },
-                    decoration: const InputDecoration(
-                      hintText: 'Search PO number or customer...',
-                      hintStyle: TextStyle(
-                        color: Color(0xFF94A3B8),
-                        fontSize: 14,
-                        fontWeight: FontWeight.w400,
+                child: isWide
+                    ? Row(
+                        children: [
+                          Expanded(
+                            flex: 5,
+                            child: _buildSearchBar(),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            flex: 6,
+                            child: SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              child: _buildStatusChipsRow(),
+                            ),
+                          ),
+                        ],
+                      )
+                    : Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          _buildSearchBar(),
+                          const SizedBox(height: 10),
+                          SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: _buildStatusChipsRow(),
+                          ),
+                        ],
                       ),
-                      border: InputBorder.none,
-                      isDense: true,
-                    ),
-                  ),
+              ),
+
+              // Metrics Banner (Total POs & Total Cartons)
+              Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: isWide ? 24 : 16,
                 ),
-                if (_searchQuery.isNotEmpty)
-                  IconButton(
-                    icon: const Icon(Icons.clear, color: Color(0xFF94A3B8), size: 18),
-                    onPressed: () {
-                      _searchController.clear();
-                      setState(() {
-                        _searchQuery = '';
-                      });
-                    },
-                  ),
-              ],
-            ),
-          ),
-
-          // Status Filter Chips
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              children: [
-                _buildStatusChip('ALL', 'All Orders'),
-                const SizedBox(width: 8),
-                _buildStatusChip('CONFIRMED', 'Confirmed'),
-                const SizedBox(width: 8),
-                _buildStatusChip('IN_PRODUCTION', 'In Production'),
-                const SizedBox(width: 8),
-                _buildStatusChip('SHIPPED', 'Shipped'),
-                const SizedBox(width: 8),
-                _buildStatusChip('DRAFT', 'Draft'),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 12),
-
-          // Metrics Banner (Total POs & Total Cartons)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 10),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF8FAFC),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: const Color(0xFFE2E8F0)),
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFEFF6FF),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: const Icon(
-                            Icons.receipt_long,
-                            color: Color(0xFF1D4ED8),
-                            size: 18,
-                          ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
                         ),
-                        const SizedBox(width: 10),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                        child: Row(
                           children: [
-                            const Text(
-                              'TOTAL ORDERS',
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w700,
-                                color: Color(0xFF64748B),
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFEFF6FF),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Icon(
+                                Icons.receipt_long,
+                                color: Color(0xFF1D4ED8),
+                                size: 18,
                               ),
                             ),
-                            Text(
-                              '${allOrders.length}',
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w900,
-                                color: Color(0xFF0F172A),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 10),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF8FAFC),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: const Color(0xFFE2E8F0)),
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFECFDF5),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: const Icon(
-                            Icons.inventory_2_outlined,
-                            color: Color(0xFF0F766E),
-                            size: 18,
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'TOTAL CARTONS',
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w700,
-                                color: Color(0xFF64748B),
-                              ),
-                            ),
-                            Text(
-                              '$totalCartonsAll',
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w900,
-                                color: Color(0xFF0F766E),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 8),
-
-          // Orders List
-          Expanded(
-            child: poProvider.isLoading && allOrders.isEmpty
-                ? const Center(
-                    child: CircularProgressIndicator(color: Color(0xFF0F766E)),
-                  )
-                : RefreshIndicator(
-                    onRefresh: _refreshData,
-                    color: const Color(0xFF0F766E),
-                    child: filteredOrders.isEmpty
-                        ? ListView(
-                            physics: const AlwaysScrollableScrollPhysics(),
-                            children: [
-                              SizedBox(
-                                height: MediaQuery.of(context).size.height * 0.4,
-                                child: Center(
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Container(
-                                        padding: const EdgeInsets.all(16),
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFFF1F5F9),
-                                          shape: BoxShape.circle,
-                                        ),
-                                        child: const Icon(
-                                          Icons.receipt_long_outlined,
-                                          size: 40,
-                                          color: Color(0xFF94A3B8),
-                                        ),
-                                      ),
-                                      const SizedBox(height: 14),
-                                      Text(
-                                        _searchQuery.isNotEmpty ||
-                                                _selectedStatus != 'ALL'
-                                            ? 'No matching purchase orders'
-                                            : 'No purchase orders yet',
-                                        style: const TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w700,
-                                          color: Color(0xFF334155),
-                                        ),
-                                      ),
-                                      const SizedBox(height: 6),
-                                      const Text(
-                                        'Create your first PO to start tracking customer orders',
-                                        style: TextStyle(
-                                          fontSize: 13,
-                                          color: Color(0xFF64748B),
-                                        ),
-                                      ),
-                                    ],
+                            const SizedBox(width: 12),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'TOTAL ORDERS',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w700,
+                                    color: Color(0xFF64748B),
                                   ),
                                 ),
+                                Text(
+                                  '${allOrders.length}',
+                                  style: const TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w900,
+                                    color: Color(0xFF0F172A),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFECFDF5),
+                                borderRadius: BorderRadius.circular(8),
                               ),
-                            ],
-                          )
-                        : ListView.separated(
-                            padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
-                            itemCount: filteredOrders.length,
-                            separatorBuilder: (_, _) =>
-                                const SizedBox(height: 12),
-                            itemBuilder: (context, idx) {
-                              final po = filteredOrders[idx];
-                              return _buildPoCard(context, po);
-                            },
-                          ),
-                  ),
+                              child: const Icon(
+                                Icons.inventory_2_outlined,
+                                color: Color(0xFF0F766E),
+                                size: 18,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'TOTAL CARTONS',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w700,
+                                    color: Color(0xFF64748B),
+                                  ),
+                                ),
+                                Text(
+                                  '$totalCartonsAll',
+                                  style: const TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w900,
+                                    color: Color(0xFF0F766E),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 12),
+
+              // Orders List / Grid
+              Expanded(
+                child: poProvider.isLoading && allOrders.isEmpty
+                    ? const Center(
+                        child:
+                            CircularProgressIndicator(color: Color(0xFF0F766E)),
+                      )
+                    : RefreshIndicator(
+                        onRefresh: _refreshData,
+                        color: const Color(0xFF0F766E),
+                        child: filteredOrders.isEmpty
+                            ? ListView(
+                                physics: const AlwaysScrollableScrollPhysics(),
+                                children: [
+                                  SizedBox(
+                                    height:
+                                        MediaQuery.of(context).size.height * 0.4,
+                                    child: Center(
+                                      child: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Container(
+                                            padding: const EdgeInsets.all(16),
+                                            decoration: const BoxDecoration(
+                                              color: Color(0xFFF1F5F9),
+                                              shape: BoxShape.circle,
+                                            ),
+                                            child: const Icon(
+                                              Icons.receipt_long_outlined,
+                                              size: 40,
+                                              color: Color(0xFF94A3B8),
+                                            ),
+                                          ),
+                                          const SizedBox(height: 14),
+                                          Text(
+                                            _searchQuery.isNotEmpty ||
+                                                    _selectedStatus != 'ALL'
+                                                ? 'No matching purchase orders'
+                                                : 'No purchase orders yet',
+                                            style: const TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w700,
+                                              color: Color(0xFF334155),
+                                            ),
+                                          ),
+                                          const SizedBox(height: 6),
+                                          const Text(
+                                            'Create your first PO to start tracking customer orders',
+                                            style: TextStyle(
+                                              fontSize: 13,
+                                              color: Color(0xFF64748B),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              )
+                            : isWide
+                                ? GridView.builder(
+                                    padding: const EdgeInsets.fromLTRB(
+                                        24, 8, 24, 96),
+                                    gridDelegate:
+                                        SliverGridDelegateWithFixedCrossAxisCount(
+                                      crossAxisCount:
+                                          screenWidth >= 1050 ? 2 : 1,
+                                      crossAxisSpacing: 16,
+                                      mainAxisSpacing: 16,
+                                      mainAxisExtent: 178,
+                                    ),
+                                    itemCount: filteredOrders.length,
+                                    itemBuilder: (context, idx) {
+                                      final po = filteredOrders[idx];
+                                      return _buildPoCard(context, po);
+                                    },
+                                  )
+                                : ListView.separated(
+                                    padding: const EdgeInsets.fromLTRB(
+                                        16, 8, 16, 96),
+                                    itemCount: filteredOrders.length,
+                                    separatorBuilder: (_, _) =>
+                                        const SizedBox(height: 12),
+                                    itemBuilder: (context, idx) {
+                                      final po = filteredOrders[idx];
+                                      return _buildPoCard(context, po);
+                                    },
+                                  ),
+                      ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: Colors.black,
@@ -387,6 +395,71 @@ class _PurchaseOrdersListScreenState extends State<PurchaseOrdersListScreen> {
           );
         },
       ),
+    );
+  }
+
+  Widget _buildSearchBar() {
+    return Container(
+      height: 48,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Row(
+        children: [
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 14),
+            child: Icon(Icons.search, color: Color(0xFF94A3B8), size: 20),
+          ),
+          Expanded(
+            child: TextField(
+              controller: _searchController,
+              onChanged: (val) {
+                setState(() {
+                  _searchQuery = val.trim();
+                });
+              },
+              decoration: const InputDecoration(
+                hintText: 'Search PO number or customer...',
+                hintStyle: TextStyle(
+                  color: Color(0xFF94A3B8),
+                  fontSize: 14,
+                  fontWeight: FontWeight.w400,
+                ),
+                border: InputBorder.none,
+                isDense: true,
+              ),
+            ),
+          ),
+          if (_searchQuery.isNotEmpty)
+            IconButton(
+              icon: const Icon(Icons.clear, color: Color(0xFF94A3B8), size: 18),
+              onPressed: () {
+                _searchController.clear();
+                setState(() {
+                  _searchQuery = '';
+                });
+              },
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatusChipsRow() {
+    return Row(
+      children: [
+        _buildStatusChip('ALL', 'All Orders'),
+        const SizedBox(width: 8),
+        _buildStatusChip('CONFIRMED', 'Confirmed'),
+        const SizedBox(width: 8),
+        _buildStatusChip('IN_PRODUCTION', 'In Production'),
+        const SizedBox(width: 8),
+        _buildStatusChip('SHIPPED', 'Shipped'),
+        const SizedBox(width: 8),
+        _buildStatusChip('DRAFT', 'Draft'),
+      ],
     );
   }
 
@@ -436,6 +509,7 @@ class _PurchaseOrdersListScreenState extends State<PurchaseOrdersListScreen> {
         borderRadius: BorderRadius.circular(14),
         child: InkWell(
           borderRadius: BorderRadius.circular(14),
+          hoverColor: const Color(0xFFF8FAFC),
           onTap: () {
             Navigator.push(
               context,
@@ -448,6 +522,7 @@ class _PurchaseOrdersListScreenState extends State<PurchaseOrdersListScreen> {
             padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 // Top row: PO Number + Status
                 Row(
@@ -497,7 +572,7 @@ class _PurchaseOrdersListScreenState extends State<PurchaseOrdersListScreen> {
                   ],
                 ),
 
-                const SizedBox(height: 10),
+                const SizedBox(height: 8),
 
                 // Customer Name
                 Row(
@@ -520,7 +595,7 @@ class _PurchaseOrdersListScreenState extends State<PurchaseOrdersListScreen> {
                   ],
                 ),
 
-                const SizedBox(height: 8),
+                const SizedBox(height: 6),
 
                 // Dates info
                 Row(
@@ -529,7 +604,7 @@ class _PurchaseOrdersListScreenState extends State<PurchaseOrdersListScreen> {
                         size: 13, color: Color(0xFF94A3B8)),
                     const SizedBox(width: 5),
                     Text(
-                      'PO Date: ${_dateFormat.format(po.poDate)}',
+                      'PO: ${_dateFormat.format(po.poDate)}',
                       style: const TextStyle(
                         fontSize: 12,
                         color: Color(0xFF64748B),
@@ -553,14 +628,14 @@ class _PurchaseOrdersListScreenState extends State<PurchaseOrdersListScreen> {
                   ],
                 ),
 
-                const Divider(height: 18, color: Color(0xFFF1F5F9)),
+                const Divider(height: 16, color: Color(0xFFF1F5F9)),
 
                 // Bottom row: Metrics (Total Items & Total Cartons)
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      '${po.items.length} ${po.items.length == 1 ? 'item' : 'items'} (${po.totalPackets} packets)',
+                      '${po.items.length} ${po.items.length == 1 ? 'item' : 'items'} (${po.totalPackets} pkts)',
                       style: const TextStyle(
                         fontSize: 12,
                         color: Color(0xFF64748B),
@@ -593,4 +668,3 @@ class _PurchaseOrdersListScreenState extends State<PurchaseOrdersListScreen> {
     );
   }
 }
-

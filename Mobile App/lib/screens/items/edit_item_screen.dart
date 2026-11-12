@@ -321,6 +321,9 @@ class _EditItemScreenState extends State<EditItemScreen> {
     final showImage =
         (_newPickedImageBytes != null) || (hasExistingImage && !_imageMarkedForRemoval);
 
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isWide = screenWidth >= 700;
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -333,13 +336,22 @@ class _EditItemScreenState extends State<EditItemScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         titleSpacing: 0,
-        title: const Text(
-          'Edit Item',
-          style: TextStyle(
-            color: Colors.black,
-            fontSize: 20,
-            fontWeight: FontWeight.w800,
-            letterSpacing: -0.5,
+        title: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 960),
+            child: Row(
+              children: const [
+                Text(
+                  'Edit Item',
+                  style: TextStyle(
+                    color: Colors.black,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
         actions: [
@@ -356,7 +368,7 @@ class _EditItemScreenState extends State<EditItemScreen> {
             },
           ),
           const Padding(
-            padding: EdgeInsets.only(right: 8),
+            padding: EdgeInsets.only(right: 12),
             child: UserProfileAvatar(),
           ),
         ],
@@ -365,13 +377,21 @@ class _EditItemScreenState extends State<EditItemScreen> {
           child: Divider(height: 1, color: Color(0xFFF1F5F9)),
         ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 960),
+          child: SingleChildScrollView(
+            padding: EdgeInsets.fromLTRB(
+              isWide ? 28 : 16,
+              20,
+              isWide ? 28 : 16,
+              32,
+            ),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
               // Centered Item Image with Edit & Remove Buttons
               Center(
                 child: Column(
@@ -1113,6 +1133,8 @@ class _EditItemScreenState extends State<EditItemScreen> {
           ),
         ),
       ),
-    );
+    ),
+  ),
+);
   }
 }

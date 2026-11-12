@@ -733,6 +733,9 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
     final isEdit = widget.existingPo != null;
     final dateFormat = DateFormat('dd/MM/yyyy');
 
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isWide = screenWidth >= 700;
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -743,13 +746,22 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
           icon: const Icon(Icons.arrow_back, color: Colors.black, size: 24),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text(
-          isEdit ? 'Edit Purchase Order' : 'Create Purchase Order',
-          style: const TextStyle(
-            color: Colors.black,
-            fontSize: 18,
-            fontWeight: FontWeight.w800,
-            letterSpacing: -0.3,
+        title: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1000),
+            child: Row(
+              children: [
+                Text(
+                  isEdit ? 'Edit Purchase Order' : 'Create Purchase Order',
+                  style: const TextStyle(
+                    color: Colors.black,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.3,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
         bottom: const PreferredSize(
@@ -757,10 +769,18 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
           child: Divider(height: 1, color: Color(0xFFF1F5F9)),
         ),
       ),
-      body: Form(
-        key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1000),
+          child: Form(
+            key: _formKey,
+            child: ListView(
+              padding: EdgeInsets.fromLTRB(
+                isWide ? 28 : 16,
+                20,
+                isWide ? 28 : 16,
+                100,
+              ),
           children: [
             // 1. PO Number
             const Text(
@@ -1258,12 +1278,17 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
           ],
         ),
       ),
-      bottomNavigationBar: Container(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          border: Border(top: BorderSide(color: Color(0xFFF1F5F9))),
-        ),
+    ),
+  ),
+  bottomNavigationBar: Container(
+    padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
+    decoration: const BoxDecoration(
+      color: Colors.white,
+      border: Border(top: BorderSide(color: Color(0xFFF1F5F9))),
+    ),
+    child: Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 1000),
         child: SizedBox(
           width: double.infinity,
           height: 50,
@@ -1288,7 +1313,9 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
           ),
         ),
       ),
-    );
+    ),
+  ),
+);
   }
 }
 

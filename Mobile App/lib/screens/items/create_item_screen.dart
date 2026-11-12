@@ -200,6 +200,9 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isWide = screenWidth >= 700;
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -212,18 +215,27 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         titleSpacing: 0,
-        title: const Text(
-          'Register Item SKU',
-          style: TextStyle(
-            color: Colors.black,
-            fontSize: 20,
-            fontWeight: FontWeight.w800,
-            letterSpacing: -0.5,
+        title: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 960),
+            child: Row(
+              children: const [
+                Text(
+                  'Register Item SKU',
+                  style: TextStyle(
+                    color: Colors.black,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
         actions: const [
           Padding(
-            padding: EdgeInsets.only(right: 8),
+            padding: EdgeInsets.only(right: 12),
             child: UserProfileAvatar(),
           ),
         ],
@@ -232,13 +244,21 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
           child: Divider(height: 1, color: Color(0xFFF1F5F9)),
         ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 960),
+          child: SingleChildScrollView(
+            padding: EdgeInsets.fromLTRB(
+              isWide ? 28 : 16,
+              20,
+              isWide ? 28 : 16,
+              32,
+            ),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
               // Add Item Image Card (Dashed Border Box)
               Center(
                 child: InkWell(
@@ -912,14 +932,19 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
           ),
         ),
       ),
-      bottomNavigationBar: Container(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          border: Border(
-            top: BorderSide(color: Color(0xFFF1F5F9)),
-          ),
-        ),
+    ),
+  ),
+  bottomNavigationBar: Container(
+    padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
+    decoration: const BoxDecoration(
+      color: Colors.white,
+      border: Border(
+        top: BorderSide(color: Color(0xFFF1F5F9)),
+      ),
+    ),
+    child: Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 960),
         child: SizedBox(
           width: double.infinity,
           height: 52,
@@ -960,7 +985,9 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
           ),
         ),
       ),
-    );
+    ),
+  ),
+);
   }
 }
 
