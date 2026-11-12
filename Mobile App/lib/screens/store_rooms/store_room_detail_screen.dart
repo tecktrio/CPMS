@@ -626,8 +626,23 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
   void _showMoveDivisionDialog(ItemModel item, StoreRoomModel room) {
     final messenger = ScaffoldMessenger.of(context);
     final inventory = context.read<InventoryProvider>();
-    String selected = item.division ??
-        (room.divisions.isNotEmpty ? room.divisions.first : 'Default Section');
+
+    final List<String> availableDivisions = [];
+    if (room.divisions.isNotEmpty) {
+      availableDivisions.addAll(room.divisions);
+      if (!availableDivisions.contains('Default Section')) {
+        availableDivisions.add('Default Section');
+      }
+    } else {
+      availableDivisions.addAll(['Default Section', 'Section 1', 'Section 2', 'Section 3']);
+    }
+    if (!availableDivisions.contains('+ Custom Division')) {
+      availableDivisions.add('+ Custom Division');
+    }
+
+    String selected = (item.division != null && availableDivisions.contains(item.division))
+        ? item.division!
+        : availableDivisions.first;
     final customCtrl = TextEditingController();
 
     showDialog(
@@ -650,58 +665,76 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                   style: const TextStyle(fontSize: 13, color: Color(0xFF64748B)),
                 ),
                 const SizedBox(height: 12),
-                if (room.divisions.isNotEmpty)
-                  ...room.divisions.map((div) {
-                    final isSel = selected == div;
-                    return InkWell(
-                      onTap: () => setDlgState(() => selected = div),
-                      borderRadius: BorderRadius.circular(8),
-                      child: Container(
-                        margin: const EdgeInsets.only(bottom: 6),
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                        decoration: BoxDecoration(
-                          color: isSel ? Colors.black : const Color(0xFFF8FAFC),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: isSel ? Colors.black : const Color(0xFFE2E8F0),
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              isSel ? Icons.check_circle : Icons.circle_outlined,
-                              size: 16,
-                              color: isSel ? Colors.white : const Color(0xFF94A3B8),
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Text(
-                                div,
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 13,
-                                  color: isSel ? Colors.white : Colors.black,
-                                ),
-                              ),
-                            ),
-                          ],
+                DropdownButtonFormField<String>(
+                  initialValue: availableDivisions.contains(selected)
+                      ? selected
+                      : availableDivisions.first,
+                  icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF64748B)),
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.black,
+                  ),
+                  decoration: InputDecoration(
+                    filled: true,
+                    fillColor: const Color(0xFFF8FAFC),
+                    prefixIcon: const Icon(
+                      Icons.grid_view_outlined,
+                      size: 20,
+                      color: Color(0xFF64748B),
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Colors.black, width: 1.5),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  ),
+                  items: availableDivisions.map((div) {
+                    final isCustom = div == '+ Custom Division';
+                    return DropdownMenuItem<String>(
+                      value: div,
+                      child: Text(
+                        div,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: isCustom ? FontWeight.w800 : FontWeight.w600,
+                          color: isCustom ? const Color(0xFF0F766E) : Colors.black,
                         ),
                       ),
                     );
-                  })
-                else
+                  }).toList(),
+                  onChanged: (val) {
+                    if (val != null) {
+                      setDlgState(() => selected = val);
+                    }
+                  },
+                ),
+                if (selected == '+ Custom Division') ...[
+                  const SizedBox(height: 10),
                   TextFormField(
                     controller: customCtrl,
+                    autofocus: true,
+                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
                     decoration: InputDecoration(
-                      hintText: 'Enter division name',
+                      hintText: 'Enter new division name',
                       filled: true,
-                      fillColor: const Color(0xFFF8FAFC),
+                      fillColor: Colors.white,
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(12),
                         borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                       ),
+                      prefixIcon: const Icon(Icons.edit_note, size: 20, color: Color(0xFF64748B)),
                     ),
                   ),
+                ],
               ],
             ),
             actions: [
@@ -717,11 +750,9 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                 ),
                 onPressed: () async {
                   Navigator.pop(ctx);
-                  final finalDiv = room.divisions.isNotEmpty
-                      ? selected
-                      : (customCtrl.text.trim().isNotEmpty
-                          ? customCtrl.text.trim()
-                          : 'Default Section');
+                  final finalDiv = (selected == '+ Custom Division' && customCtrl.text.trim().isNotEmpty)
+                      ? customCtrl.text.trim()
+                      : (selected == '+ Custom Division' ? 'Default Section' : selected);
                   final ok = await inventory.updateStoreRoomItemDivision(
                     storeRoomId: room.storeRoomId,
                     itemId: item.itemId,
@@ -2506,57 +2537,108 @@ class _AddItemToRoomModalState extends State<_AddItemToRoomModal> {
           ),
           const SizedBox(height: 8),
 
-          if (widget.room.divisions.isNotEmpty)
-            ...widget.room.divisions.map((div) {
-              final isSel = _selectedDivision == div;
-              return InkWell(
-                onTap: () => setState(() => _selectedDivision = div),
-                borderRadius: BorderRadius.circular(10),
-                child: Container(
-                  margin: const EdgeInsets.only(bottom: 8),
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                  decoration: BoxDecoration(
-                    color: isSel ? Colors.black : Colors.white,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: isSel ? Colors.black : const Color(0xFFE2E8F0),
-                      width: isSel ? 1.5 : 1.0,
+          Builder(
+            builder: (context) {
+              final List<String> availableDivisions = [];
+              if (widget.room.divisions.isNotEmpty) {
+                availableDivisions.addAll(widget.room.divisions);
+                if (!availableDivisions.contains('Default Section')) {
+                  availableDivisions.add('Default Section');
+                }
+              } else {
+                availableDivisions.addAll(['Default Section', 'Section 1', 'Section 2', 'Section 3']);
+              }
+              if (!availableDivisions.contains('+ Custom Division')) {
+                availableDivisions.add('+ Custom Division');
+              }
+
+              final currentSelectedDiv = (_selectedDivision != null && availableDivisions.contains(_selectedDivision))
+                  ? _selectedDivision!
+                  : availableDivisions.first;
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  DropdownButtonFormField<String>(
+                    initialValue: currentSelectedDiv,
+                    icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF64748B)),
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.black,
                     ),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        isSel ? Icons.check_circle : Icons.circle_outlined,
-                        size: 18,
-                        color: isSel ? Colors.white : const Color(0xFF94A3B8),
+                    decoration: InputDecoration(
+                      filled: true,
+                      fillColor: const Color(0xFFF8FAFC),
+                      prefixIcon: const Icon(
+                        Icons.grid_view_outlined,
+                        size: 20,
+                        color: Color(0xFF64748B),
                       ),
-                      const SizedBox(width: 10),
-                      Text(
-                        div,
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w800,
-                          color: isSel ? Colors.white : Colors.black,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: Colors.black, width: 1.5),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    ),
+                    items: availableDivisions.map((div) {
+                      final isCustom = div == '+ Custom Division';
+                      return DropdownMenuItem<String>(
+                        value: div,
+                        child: Text(
+                          div,
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: isCustom ? FontWeight.w800 : FontWeight.w600,
+                            color: isCustom ? const Color(0xFF0F766E) : Colors.black,
+                          ),
                         ),
-                      ),
-                    ],
+                      );
+                    }).toList(),
+                    onChanged: (val) {
+                      if (val != null) {
+                        setState(() => _selectedDivision = val);
+                      }
+                    },
                   ),
-                ),
+                  if (currentSelectedDiv == '+ Custom Division') ...[
+                    const SizedBox(height: 10),
+                    TextFormField(
+                      controller: _customDivCtrl,
+                      autofocus: true,
+                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+                      decoration: InputDecoration(
+                        hintText: 'Enter new division name (e.g. Section 1)',
+                        filled: true,
+                        fillColor: Colors.white,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: Colors.black, width: 1.5),
+                        ),
+                        prefixIcon: const Icon(Icons.edit_note, size: 20, color: Color(0xFF64748B)),
+                      ),
+                    ),
+                  ],
+                ],
               );
-            })
-          else
-            TextFormField(
-              controller: _customDivCtrl,
-              decoration: InputDecoration(
-                hintText: 'Enter division name (e.g. Section 1)',
-                filled: true,
-                fillColor: const Color(0xFFF8FAFC),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                ),
-              ),
-            ),
+            },
+          ),
 
           const SizedBox(height: 18),
 
@@ -2607,11 +2689,15 @@ class _AddItemToRoomModalState extends State<_AddItemToRoomModal> {
                   ? null
                   : () async {
                       setState(() => _isAssigning = true);
-                      final targetDiv = widget.room.divisions.isNotEmpty
-                          ? (_selectedDivision ?? widget.room.divisions.first)
-                          : (_customDivCtrl.text.trim().isNotEmpty
+                      final isCustom = _selectedDivision == '+ Custom Division';
+                      final targetDiv = isCustom
+                          ? (_customDivCtrl.text.trim().isNotEmpty
                               ? _customDivCtrl.text.trim()
-                              : 'Default Section');
+                              : 'Default Section')
+                          : (_selectedDivision ??
+                              (widget.room.divisions.isNotEmpty
+                                  ? widget.room.divisions.first
+                                  : 'Default Section'));
                       final qty = double.tryParse(_initialQtyCtrl.text.trim()) ?? 0.0;
 
                       final messenger = ScaffoldMessenger.of(context);
