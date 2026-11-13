@@ -179,7 +179,6 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
       orElse: () => widget.item,
     );
 
-    final allItems = inventory.items;
     final currentItemIsLow = currentItem.isBelowReorderThreshold ||
         (currentItem.reorderThresholdQuantity > 0 &&
             currentItem.totalAvailableStock <= currentItem.reorderThresholdQuantity);
@@ -257,69 +256,6 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-            // Summary Containers (Total Items & Items Less Than Threshold)
-            Row(
-              children: [
-                Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(4),
-                      border: Border.all(color: const Color(0xFFE5E5E5)),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'TOTAL ITEMS',
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFF71717A),
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Text(
-                              '${allItems.length}',
-                              style: const TextStyle(
-                                fontSize: 26,
-                                fontWeight: FontWeight.w900,
-                                color: Colors.black,
-                                height: 1.0,
-                              ),
-                            ),
-                            Container(
-                              width: 36,
-                              height: 36,
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFF8FAFC),
-                                borderRadius: BorderRadius.circular(2),
-                                border:
-                                    Border.all(color: const Color(0xFFF1F5F9)),
-                              ),
-                              child: const Icon(
-                                Icons.inventory_2_outlined,
-                                color: Colors.black87,
-                                size: 18,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 14),
-
             // 1. Item Header Card
             Container(
               decoration: BoxDecoration(
