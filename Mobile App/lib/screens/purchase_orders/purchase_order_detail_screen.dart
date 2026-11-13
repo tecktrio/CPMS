@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../providers/purchase_order_provider.dart';
+import '../../services/purchase_order_export_service.dart';
 import '../../widgets/user_profile_avatar.dart';
 import 'create_purchase_order_screen.dart';
+import 'purchase_order_export_screen.dart';
 
 class PurchaseOrderDetailScreen extends StatefulWidget {
   final String poId;
@@ -389,6 +391,18 @@ class _PurchaseOrderDetailScreenState extends State<PurchaseOrderDetailScreen> {
           ),
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.file_upload_outlined, color: Colors.black, size: 20),
+            tooltip: 'Export',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => PurchaseOrderExportScreen(po: po),
+                ),
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.edit_outlined, color: Colors.black, size: 20),
             tooltip: 'Edit PO',
@@ -856,7 +870,7 @@ class _PurchaseOrderDetailScreenState extends State<PurchaseOrderDetailScreen> {
                                         ),
                                       ),
                                       Text(
-                                        '${item.quantityPerPacket.toStringAsFixed(item.quantityPerPacket.truncateToDouble() == item.quantityPerPacket ? 0 : 2)} ${item.unit}',
+                                        PurchaseOrderExportService.formatQtyPerPacketShort(item.quantityPerPacket, item.unit),
                                         style: const TextStyle(
                                           fontSize: 12,
                                           fontWeight: FontWeight.w800,
@@ -936,7 +950,7 @@ class _PurchaseOrderDetailScreenState extends State<PurchaseOrderDetailScreen> {
 
                 const SizedBox(height: 24),
 
-                // Primary Action Button - Solid Black Rectangle
+                // Primary Export Button - Solid Black Rectangle
                 SizedBox(
                   height: 48,
                   child: ElevatedButton(
@@ -944,6 +958,45 @@ class _PurchaseOrderDetailScreenState extends State<PurchaseOrderDetailScreen> {
                       backgroundColor: Colors.black,
                       foregroundColor: Colors.white,
                       elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => PurchaseOrderExportScreen(po: po),
+                        ),
+                      );
+                    },
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.file_upload_outlined, size: 18),
+                        SizedBox(width: 8),
+                        Text(
+                          'Export',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.2,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 12),
+
+                // Edit Action Button - Clean Outline
+                SizedBox(
+                  height: 44,
+                  child: OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.black,
+                      side: const BorderSide(color: Color(0xFFD4D4D8)),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(4),
                       ),
@@ -959,14 +1012,13 @@ class _PurchaseOrderDetailScreenState extends State<PurchaseOrderDetailScreen> {
                     child: const Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.edit_outlined, size: 18),
+                        Icon(Icons.edit_outlined, size: 16),
                         SizedBox(width: 8),
                         Text(
                           'Edit Purchase Order',
                           style: TextStyle(
-                            fontSize: 14,
+                            fontSize: 13,
                             fontWeight: FontWeight.w700,
-                            letterSpacing: 0.2,
                           ),
                         ),
                       ],

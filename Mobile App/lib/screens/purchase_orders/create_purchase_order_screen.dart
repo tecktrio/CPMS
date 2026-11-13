@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../providers/inventory_provider.dart';
 import '../../providers/purchase_order_provider.dart';
+import '../../services/purchase_order_export_service.dart';
 
 class CreatePurchaseOrderScreen extends StatefulWidget {
   final PurchaseOrderModel? existingPo;
@@ -1407,11 +1408,11 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                     // Blue Table Header matching MALTA PO document
                     Container(
                       color: const Color(0xFF93C5FD),
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
                       child: const Row(
                         children: [
                           SizedBox(
-                            width: 32,
+                            width: 26,
                             child: Text(
                               'SL.',
                               style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11, color: Colors.black),
@@ -1427,7 +1428,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                           Expanded(
                             flex: 2,
                             child: Text(
-                              'PACKET/CTN',
+                              'QTY/PKT',
                               textAlign: TextAlign.center,
                               style: TextStyle(fontWeight: FontWeight.w900, fontSize: 10, color: Colors.black),
                             ),
@@ -1435,12 +1436,20 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                           Expanded(
                             flex: 2,
                             child: Text(
-                              'CARTONS',
+                              'PKT/CTN',
                               textAlign: TextAlign.center,
                               style: TextStyle(fontWeight: FontWeight.w900, fontSize: 10, color: Colors.black),
                             ),
                           ),
-                          SizedBox(width: 32),
+                          Expanded(
+                            flex: 2,
+                            child: Text(
+                              'CTNS',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 10, color: Colors.black),
+                            ),
+                          ),
+                          SizedBox(width: 28),
                         ],
                       ),
                     ),
@@ -1455,11 +1464,11 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                         final item = _orderItems[idx];
                         return Container(
                           color: idx % 2 == 0 ? Colors.white : const Color(0xFFFAFAFA),
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
                           child: Row(
                             children: [
                               SizedBox(
-                                width: 32,
+                                width: 26,
                                 child: Text(
                                   '${idx + 1}',
                                   style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
@@ -1476,10 +1485,20 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                                     ),
                                     const SizedBox(height: 1),
                                     Text(
-                                      '${item.sku} • ${item.quantityPerPacket.toStringAsFixed(item.quantityPerPacket.truncateToDouble() == item.quantityPerPacket ? 0 : 2)} ${item.unit}/pkt • ${item.totalPackets} pkts',
+                                      item.sku.isNotEmpty
+                                          ? '${item.sku} • ${item.totalPackets} pkts'
+                                          : '${item.totalPackets} pkts',
                                       style: const TextStyle(fontSize: 10, color: Color(0xFF64748B)),
                                     ),
                                   ],
+                                ),
+                              ),
+                              Expanded(
+                                flex: 2,
+                                child: Text(
+                                  PurchaseOrderExportService.formatQtyPerPacketShort(item.quantityPerPacket, item.unit),
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 11, color: Color(0xFF334155)),
                                 ),
                               ),
                               Expanded(
@@ -1499,7 +1518,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                                 ),
                               ),
                               SizedBox(
-                                width: 32,
+                                width: 28,
                                 child: PopupMenuButton<String>(
                                   icon: const Icon(Icons.more_vert, size: 18, color: Color(0xFF64748B)),
                                   padding: EdgeInsets.zero,
@@ -1543,16 +1562,20 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                     // Table Footer showing TOTAL CARTONS
                     Container(
                       color: const Color(0xFFF1F5F9),
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
                       child: Row(
                         children: [
-                          const SizedBox(width: 32),
+                          const SizedBox(width: 26),
                           const Expanded(
                             flex: 4,
                             child: Text(
                               'TOTAL CARTONS',
                               style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: Colors.black),
                             ),
+                          ),
+                          const Expanded(
+                            flex: 2,
+                            child: SizedBox.shrink(),
                           ),
                           Expanded(
                             flex: 2,
@@ -1570,7 +1593,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                               style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: Colors.black),
                             ),
                           ),
-                          const SizedBox(width: 32),
+                          const SizedBox(width: 28),
                         ],
                       ),
                     ),
