@@ -127,7 +127,136 @@ class _StoreRoomsListScreenState extends State<StoreRoomsListScreen> {
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 1100),
-          child: RefreshIndicator(
+          child: Column(
+            children: [
+              // Summary Metrics Row (Total Store Rooms & Active Rooms)
+              Padding(
+                padding: EdgeInsets.fromLTRB(
+                  isWide ? 24 : 16,
+                  16,
+                  isWide ? 24 : 16,
+                  4,
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(color: const Color(0xFFE5E5E5)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'TOTAL STORE ROOMS',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF71717A),
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Row(
+                              mainAxisAlignment:
+                                  MainAxisAlignment.spaceBetween,
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text(
+                                  '${inventory.storeRooms.length}',
+                                  style: const TextStyle(
+                                    fontSize: 26,
+                                    fontWeight: FontWeight.w900,
+                                    color: Colors.black,
+                                    height: 1.0,
+                                  ),
+                                ),
+                                Container(
+                                  width: 36,
+                                  height: 36,
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF8FAFC),
+                                    borderRadius: BorderRadius.circular(2),
+                                    border: Border.all(
+                                        color: const Color(0xFFF1F5F9)),
+                                  ),
+                                  child: const Icon(
+                                    Icons.warehouse_outlined,
+                                    color: Colors.black87,
+                                    size: 18,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(color: const Color(0xFFE5E5E5)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'ACTIVE ROOMS',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF71717A),
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Row(
+                              mainAxisAlignment:
+                                  MainAxisAlignment.spaceBetween,
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text(
+                                  '${inventory.storeRooms.where((r) => r.isActive).length}',
+                                  style: const TextStyle(
+                                    fontSize: 26,
+                                    fontWeight: FontWeight.w900,
+                                    color: Colors.black,
+                                    height: 1.0,
+                                  ),
+                                ),
+                                Container(
+                                  width: 36,
+                                  height: 36,
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF8FAFC),
+                                    borderRadius: BorderRadius.circular(2),
+                                    border: Border.all(
+                                        color: const Color(0xFFF1F5F9)),
+                                  ),
+                                  child: const Icon(
+                                    Icons.meeting_room_outlined,
+                                    color: Colors.black87,
+                                    size: 18,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: RefreshIndicator(
             color: Colors.black,
             onRefresh: () async {
               await inventory.loadStoreRooms();
@@ -218,10 +347,13 @@ class _StoreRoomsListScreenState extends State<StoreRoomsListScreen> {
                               );
                             },
                           ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
-      ),
-    );
+      );
   }
 
   Widget _buildRoomCard(BuildContext context, StoreRoomModel room) {

@@ -20,6 +20,7 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   String _selectedCategory = 'ALL';
+  bool _filterBelowThreshold = false;
 
   @override
   void initState() {
@@ -125,14 +126,24 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
     final screenWidth = MediaQuery.of(context).size.width;
     final isWide = screenWidth >= 700;
 
-    final filteredItems = inventory.items.where((item) {
+    final allItems = inventory.items;
+    final lowStockItems = allItems.where((item) =>
+        item.isBelowReorderThreshold ||
+        (item.reorderThresholdQuantity > 0 &&
+            item.totalAvailableStock <= item.reorderThresholdQuantity)).toList();
+
+    final filteredItems = allItems.where((item) {
       final matchesSearch = item.itemName
               .toLowerCase()
               .contains(_searchQuery.toLowerCase()) ||
           item.sku.toLowerCase().contains(_searchQuery.toLowerCase());
       final matchesCat =
           _selectedCategory == 'ALL' || item.itemType == _selectedCategory;
-      return matchesSearch && matchesCat;
+      final matchesThreshold = !_filterBelowThreshold ||
+          item.isBelowReorderThreshold ||
+          (item.reorderThresholdQuantity > 0 &&
+              item.totalAvailableStock <= item.reorderThresholdQuantity);
+      return matchesSearch && matchesCat && matchesThreshold;
     }).toList();
 
     String pageTitle = 'Items & Materials';
@@ -230,7 +241,168 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
                       ),
               ),
 
-              const SizedBox(height: 4),
+              // Summary Metrics Row
+              Padding(
+                padding: EdgeInsets.fromLTRB(
+                  isWide ? 24 : 16,
+                  0,
+                  isWide ? 24 : 16,
+                  12,
+                ),
+                child: Row(
+                  children: [
+                    // Card 1: Total Items
+                    Expanded(
+                      child: InkWell(
+                        onTap: () {
+                          if (_filterBelowThreshold) {
+                            setState(() => _filterBelowThreshold = false);
+                          }
+                        },
+                        borderRadius: BorderRadius.circular(4),
+                        child: Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(4),
+                            border: Border.all(
+                              color: !_filterBelowThreshold
+                                  ? Colors.black
+                                  : const Color(0xFFE5E5E5),
+                              width: !_filterBelowThreshold ? 1.5 : 1.0,
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'TOTAL ITEMS',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF71717A),
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Text(
+                                    '${allItems.length}',
+                                    style: const TextStyle(
+                                      fontSize: 26,
+                                      fontWeight: FontWeight.w900,
+                                      color: Colors.black,
+                                      height: 1.0,
+                                    ),
+                                  ),
+                                  Container(
+                                    width: 36,
+                                    height: 36,
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFF8FAFC),
+                                      borderRadius: BorderRadius.circular(2),
+                                      border: Border.all(
+                                          color: const Color(0xFFF1F5F9)),
+                                    ),
+                                    child: const Icon(
+                                      Icons.inventory_2_outlined,
+                                      color: Colors.black87,
+                                      size: 18,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    // Card 2: Items Less Than Threshold
+                    Expanded(
+                      child: InkWell(
+                        onTap: () {
+                          setState(() => _filterBelowThreshold =
+                              !_filterBelowThreshold);
+                        },
+                        borderRadius: BorderRadius.circular(4),
+                        child: Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(4),
+                            border: Border.all(
+                              color: _filterBelowThreshold
+                                  ? Colors.black
+                                  : const Color(0xFFE5E5E5),
+                              width: _filterBelowThreshold ? 1.5 : 1.0,
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'LESS THAN THRESHOLD',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF71717A),
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Text(
+                                    '${lowStockItems.length}',
+                                    style: TextStyle(
+                                      fontSize: 26,
+                                      fontWeight: FontWeight.w900,
+                                      color: lowStockItems.isNotEmpty
+                                          ? const Color(0xFFDC2626)
+                                          : Colors.black,
+                                      height: 1.0,
+                                    ),
+                                  ),
+                                  Container(
+                                    width: 36,
+                                    height: 36,
+                                    decoration: BoxDecoration(
+                                      color: lowStockItems.isNotEmpty
+                                          ? const Color(0xFFFEF2F2)
+                                          : const Color(0xFFF8FAFC),
+                                      borderRadius: BorderRadius.circular(2),
+                                      border: Border.all(
+                                        color: lowStockItems.isNotEmpty
+                                            ? const Color(0xFFFECACA)
+                                            : const Color(0xFFF1F5F9),
+                                      ),
+                                    ),
+                                    child: Icon(
+                                      Icons.warning_amber_rounded,
+                                      color: lowStockItems.isNotEmpty
+                                          ? const Color(0xFFDC2626)
+                                          : Colors.black87,
+                                      size: 18,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
 
               // Items Content
               Expanded(
