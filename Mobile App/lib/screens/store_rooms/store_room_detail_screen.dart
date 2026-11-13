@@ -545,12 +545,13 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
     StoreRoomItemModel sri,
     StoreRoomModel room,
   ) {
-    final qtyCtrl = TextEditingController(text: sri.quantity.toString());
+    final qtyCtrl = TextEditingController(text: sri.quantity.toStringAsFixed(sri.quantity.truncateToDouble() == sri.quantity ? 0 : 1));
     final formKey = GlobalKey<FormState>();
 
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDlgState) => AlertDialog(
         backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
         title: Text(
@@ -567,15 +568,24 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                 'Stored in ${room.roomName} (${sri.division})',
                 style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
               ),
+              if (item.quantity > 1) ...[
+                const SizedBox(height: 4),
+                Text(
+                  'Each unit = ${item.quantity.toStringAsFixed(item.quantity.truncateToDouble() == item.quantity ? 0 : 2)} ${item.measurementUnit}',
+                  style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                ),
+              ],
               const SizedBox(height: 14),
               TextFormField(
                 controller: qtyCtrl,
                 autofocus: true,
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
                 style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
                 decoration: InputDecoration(
-                  labelText: 'Quantity (${item.measurementUnit}) *',
+                  labelText: item.quantity > 1
+                      ? 'Number of "${item.itemName}" units *'
+                      : 'Quantity (${item.measurementUnit}) *',
+                  suffixText: item.quantity > 1 ? 'units' : item.measurementUnit,
                   filled: true,
                   fillColor: const Color(0xFFF8FAFC),
                   border: OutlineInputBorder(
@@ -583,6 +593,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                     borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                   ),
                 ),
+                onChanged: (_) => setDlgState(() {}),
                 validator: (val) {
                   if (val == null || val.trim().isEmpty) return 'Enter quantity';
                   final n = double.tryParse(val.trim());
@@ -590,6 +601,20 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                   return null;
                 },
               ),
+              if (item.quantity > 1) ...[
+                const SizedBox(height: 8),
+                Builder(
+                  builder: (context) {
+                    final count = double.tryParse(qtyCtrl.text.trim()) ?? 0.0;
+                    final total = count * item.quantity;
+                    final totalStr = total.toStringAsFixed(total.truncateToDouble() == total ? 0 : 2);
+                    return Text(
+                      '= $totalStr ${item.measurementUnit} total',
+                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.black),
+                    );
+                  },
+                ),
+              ],
             ],
           ),
         ),
@@ -620,6 +645,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                 style: TextStyle(fontWeight: FontWeight.w700)),
           ),
         ],
+      ),
       ),
     );
   }
@@ -2044,15 +2070,33 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                             // Bottom Row: Quantity Stepper & Label below picture, title & description
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
-                                const Text(
-                                  'ROOM QUANTITY',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w800,
-                                    color: Color(0xFF71717A),
-                                    letterSpacing: 0.5,
-                                  ),
+                                // Left: unit count + total raw qty
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      'ROOM QUANTITY',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w800,
+                                        color: Color(0xFF71717A),
+                                        letterSpacing: 0.5,
+                                      ),
+                                    ),
+                                    if (item.quantity > 1) ...[
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        '= ${(sri.quantity * item.quantity).toStringAsFixed((sri.quantity * item.quantity).truncateToDouble() == (sri.quantity * item.quantity) ? 0 : 2)} ${item.measurementUnit} total',
+                                        style: const TextStyle(
+                                          fontSize: 11,
+                                          color: Color(0xFF64748B),
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ],
+                                  ],
                                 ),
                                 if (canUpdate)
                                   Row(
@@ -2097,7 +2141,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                                             borderRadius: BorderRadius.circular(4),
                                           ),
                                           child: Text(
-                                            '${sri.quantity.toStringAsFixed(sri.quantity.truncateToDouble() == sri.quantity ? 0 : 1)} ${item.measurementUnit}',
+                                            '${sri.quantity.toStringAsFixed(sri.quantity.truncateToDouble() == sri.quantity ? 0 : 1)} units',
                                             style: const TextStyle(
                                               fontSize: 12,
                                               fontWeight: FontWeight.w800,
@@ -2139,7 +2183,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                                       borderRadius: BorderRadius.circular(4),
                                     ),
                                     child: Text(
-                                      '${sri.quantity.toStringAsFixed(sri.quantity.truncateToDouble() == sri.quantity ? 0 : 1)} ${item.measurementUnit}',
+                                      '${sri.quantity.toStringAsFixed(sri.quantity.truncateToDouble() == sri.quantity ? 0 : 1)} units',
                                       style: const TextStyle(
                                         fontSize: 12,
                                         fontWeight: FontWeight.w800,
@@ -2636,7 +2680,9 @@ class _AddItemToRoomModalState extends State<_AddItemToRoomModal> {
                                   ),
                                 ),
                               Text(
-                                '${item.totalAvailableStock.toStringAsFixed(1)} ${item.measurementUnit}',
+                                item.quantity > 1
+                                    ? '${item.totalAvailableStock.toStringAsFixed(1)} ${item.measurementUnit} stock'
+                                    : '${item.totalAvailableStock.toStringAsFixed(1)} ${item.measurementUnit}',
                                 style: const TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.w700,
@@ -2758,7 +2804,9 @@ class _AddItemToRoomModalState extends State<_AddItemToRoomModal> {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        'SKU: ${item.sku} • Stock: ${item.totalAvailableStock} ${item.measurementUnit}',
+                        item.quantity > 1
+                            ? 'SKU: ${item.sku} • ${item.totalAvailableStock.toStringAsFixed(1)} ${item.measurementUnit} total stock'
+                            : 'SKU: ${item.sku} • Stock: ${item.totalAvailableStock} ${item.measurementUnit}',
                         style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
                       ),
                     ],
@@ -2887,13 +2935,20 @@ class _AddItemToRoomModalState extends State<_AddItemToRoomModal> {
           const SizedBox(height: 18),
 
           Text(
-            'STORED QUANTITY IN ROOM (${item.measurementUnit.toUpperCase()})',
+            'HOW MANY "${item.itemName.toUpperCase()}"?',
             style: const TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w800,
               color: Color(0xFF64748B),
               letterSpacing: 0.5,
             ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            item.quantity > 1
+                ? 'Each unit = ${item.quantity.toStringAsFixed(item.quantity.truncateToDouble() == item.quantity ? 0 : 2)} ${item.measurementUnit}'
+                : 'Enter the number of units stored in this room',
+            style: const TextStyle(fontSize: 11, color: Color(0xFF94A3B8)),
           ),
           const SizedBox(height: 8),
           TextFormField(
@@ -2905,6 +2960,8 @@ class _AddItemToRoomModalState extends State<_AddItemToRoomModal> {
               filled: true,
               fillColor: const Color(0xFFF8FAFC),
               prefixIcon: const Icon(Icons.inventory_2_outlined, size: 20, color: Color(0xFF94A3B8)),
+              suffixText: 'units',
+              suffixStyle: const TextStyle(fontSize: 12, color: Color(0xFF64748B), fontWeight: FontWeight.w600),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(4),
                 borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
@@ -2915,6 +2972,21 @@ class _AddItemToRoomModalState extends State<_AddItemToRoomModal> {
               ),
             ),
           ),
+          if (item.quantity > 1) ...[
+            const SizedBox(height: 6),
+            ValueListenableBuilder<TextEditingValue>(
+              valueListenable: _initialQtyCtrl,
+              builder: (context, value, _) {
+                final count = double.tryParse(value.text.trim()) ?? 0.0;
+                final total = count * item.quantity;
+                final totalStr = total.toStringAsFixed(total.truncateToDouble() == total ? 0 : 2);
+                return Text(
+                  '= $totalStr ${item.measurementUnit} total',
+                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.black),
+                );
+              },
+            ),
+          ],
 
           const SizedBox(height: 20),
 

@@ -873,15 +873,19 @@ class InventoryProvider extends ChangeNotifier {
   }
 
   void _recalculateItemStock(String itemId) {
+    // sri.quantity = number of item units in room (e.g. 2 bags)
+    // item.quantity = package size per unit (e.g. 100 kg per bag)
+    // totalAvailableStock = sri.quantity * item.quantity (e.g. 2 * 100 = 200 kg)
     double totalStock = 0.0;
+    final itemIdx = _items.indexWhere((i) => i.itemId == itemId);
+    final pkgSize = itemIdx != -1 ? _items[itemIdx].quantity : 1.0;
     for (final room in _storeRooms) {
       for (final it in room.items) {
         if (it.itemId == itemId) {
-          totalStock += it.quantity;
+          totalStock += it.quantity * pkgSize;
         }
       }
     }
-    final itemIdx = _items.indexWhere((i) => i.itemId == itemId);
     if (itemIdx != -1) {
       final existing = _items[itemIdx];
       _items[itemIdx] = existing.copyWith(totalAvailableStock: totalStock);
