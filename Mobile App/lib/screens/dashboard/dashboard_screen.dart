@@ -12,6 +12,7 @@ import '../items/item_detail_screen.dart';
 import '../items/items_list_screen.dart';
 import '../purchase_orders/purchase_orders_list_screen.dart';
 import '../store_rooms/store_rooms_list_screen.dart';
+import '../stock_batches/inward_batch_screen.dart';
 import '../tenant/tenant_selector_screen.dart';
 import '../../utils/app_update_helper.dart';
 import '../../widgets/sync_status_indicator.dart';
@@ -1690,7 +1691,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
                               Text(
-                                'Auto-flagged • Min: ${item.reorderThresholdQuantity.toStringAsFixed(0)} ${item.measurementUnit}',
+                                'Min: ${item.reorderThresholdQuantity.toStringAsFixed(0)} ${item.measurementUnit}',
                                 style: const TextStyle(
                                   fontSize: 12,
                                   color: Color(0xFF64748B),
@@ -1701,11 +1702,46 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 'Shortfall: ${item.reorderShortfallQuantity.toStringAsFixed(0)} ${item.measurementUnit}',
                                 style: const TextStyle(
                                   fontSize: 12,
-                                  color: Color(0xFFB45309),
-                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFFDC2626),
+                                  fontWeight: FontWeight.w800,
                                 ),
                               ),
                             ],
+                          ),
+                          const SizedBox(height: 12),
+
+                          // Direct Link to Fixing Page (Inward Stock)
+                          SizedBox(
+                            width: double.infinity,
+                            height: 38,
+                            child: ElevatedButton.icon(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.black,
+                                foregroundColor: Colors.white,
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                              ),
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => InwardBatchScreen(
+                                      initialItemId: item.itemId,
+                                    ),
+                                  ),
+                                );
+                              },
+                              icon: const Icon(Icons.build_outlined, size: 14),
+                              label: const Text(
+                                'Fix Alert (Inward Stock)',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ),
                           ),
                         ],
                       ),

@@ -6,6 +6,7 @@ import '../../core/constants/api_constants.dart';
 import '../../core/constants/permissions.dart';
 import '../../providers/inventory_provider.dart';
 import '../../providers/tenant_provider.dart';
+import '../stock_batches/inward_batch_screen.dart';
 import 'edit_item_screen.dart';
 
 class ItemDetailScreen extends StatefulWidget {
@@ -164,6 +165,152 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
     );
   }
 
+  void _showFixAlertModal(BuildContext context, ItemModel currentItem) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(8)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 36,
+                    height: 4,
+                    margin: const EdgeInsets.only(bottom: 16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFCBD5E1),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                Row(
+                  children: [
+                    Container(
+                      width: 32,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFEE2E2),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: const Icon(
+                        Icons.warning_amber_rounded,
+                        color: Color(0xFFDC2626),
+                        size: 18,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Fix Low Stock: ${currentItem.itemName}',
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.black,
+                            ),
+                          ),
+                          Text(
+                            'Shortfall: ${currentItem.reorderShortfallQuantity.toStringAsFixed(currentItem.reorderShortfallQuantity.truncateToDouble() == currentItem.reorderShortfallQuantity ? 0 : 2)} ${currentItem.measurementUnit.toUpperCase()}',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Color(0xFF64748B),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                const SizedBox(height: 8),
+
+                // Option 1: Inward Stock
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF8FAFC),
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                    ),
+                    child: const Icon(Icons.add_business_outlined, color: Colors.black, size: 20),
+                  ),
+                  title: const Text(
+                    'Inward Stock Batch (Recommended)',
+                    style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
+                  ),
+                  subtitle: const Text(
+                    'Receive and assign a new stock batch to store rooms',
+                    style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                  ),
+                  trailing: const Icon(Icons.arrow_forward_ios, size: 14, color: Color(0xFF94A3B8)),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => InwardBatchScreen(initialItemId: currentItem.itemId),
+                      ),
+                    );
+                  },
+                ),
+
+                const Divider(height: 1, color: Color(0xFFF1F5F9)),
+
+                // Option 2: Adjust Reorder Threshold
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF8FAFC),
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                    ),
+                    child: const Icon(Icons.tune_outlined, color: Colors.black, size: 20),
+                  ),
+                  title: const Text(
+                    'Adjust Reorder Threshold',
+                    style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
+                  ),
+                  subtitle: const Text(
+                    'Modify threshold quantity in item configuration',
+                    style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                  ),
+                  trailing: const Icon(Icons.arrow_forward_ios, size: 14, color: Color(0xFF94A3B8)),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => EditItemScreen(item: currentItem),
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 8),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final inventory = context.watch<InventoryProvider>();
@@ -309,66 +456,70 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(4),
-                      border: Border.all(color: const Color(0xFFE5E5E5)),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'LESS THAN THRESHOLD',
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFF71717A),
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Text(
-                              '$belowThresholdCount',
-                              style: TextStyle(
-                                fontSize: 26,
-                                fontWeight: FontWeight.w900,
-                                color: belowThresholdCount > 0
-                                    ? const Color(0xFFDC2626)
-                                    : Colors.black,
-                                height: 1.0,
-                              ),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(4),
+                    onTap: () => _showFixAlertModal(context, currentItem),
+                    child: Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(color: const Color(0xFFE5E5E5)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'LESS THAN THRESHOLD',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF71717A),
+                              letterSpacing: 0.5,
                             ),
-                            Container(
-                              width: 36,
-                              height: 36,
-                              decoration: BoxDecoration(
-                                color: belowThresholdCount > 0
-                                    ? const Color(0xFFFEF2F2)
-                                    : const Color(0xFFF8FAFC),
-                                borderRadius: BorderRadius.circular(2),
-                                border: Border.all(
+                          ),
+                          const SizedBox(height: 6),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text(
+                                '$belowThresholdCount',
+                                style: TextStyle(
+                                  fontSize: 26,
+                                  fontWeight: FontWeight.w900,
                                   color: belowThresholdCount > 0
-                                      ? const Color(0xFFFECACA)
-                                      : const Color(0xFFF1F5F9),
+                                      ? const Color(0xFFDC2626)
+                                      : Colors.black,
+                                  height: 1.0,
                                 ),
                               ),
-                              child: Icon(
-                                Icons.warning_amber_rounded,
-                                color: belowThresholdCount > 0
-                                    ? const Color(0xFFDC2626)
-                                    : Colors.black87,
-                                size: 18,
+                              Container(
+                                width: 36,
+                                height: 36,
+                                decoration: BoxDecoration(
+                                  color: belowThresholdCount > 0
+                                      ? const Color(0xFFFEF2F2)
+                                      : const Color(0xFFF8FAFC),
+                                  borderRadius: BorderRadius.circular(2),
+                                  border: Border.all(
+                                    color: belowThresholdCount > 0
+                                        ? const Color(0xFFFECACA)
+                                        : const Color(0xFFF1F5F9),
+                                  ),
+                                ),
+                                child: Icon(
+                                  Icons.warning_amber_rounded,
+                                  color: belowThresholdCount > 0
+                                      ? const Color(0xFFDC2626)
+                                      : Colors.black87,
+                                  size: 18,
+                                ),
                               ),
-                            ),
-                          ],
-                        ),
-                      ],
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -673,115 +824,82 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                           ),
                         ),
 
-                        const SizedBox(height: 14),
-
-                        // Item Stock & Reorder Threshold Details Card
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: currentItemIsLow
-                                ? const Color(0xFFFEF2F2)
-                                : const Color(0xFFF8FAFC),
-                            borderRadius: BorderRadius.circular(4),
-                            border: Border.all(
-                              color: currentItemIsLow
-                                  ? const Color(0xFFFECACA)
-                                  : const Color(0xFFE2E8F0),
+                        if (currentItemIsLow) ...[
+                          const SizedBox(height: 14),
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFEF2F2),
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(color: const Color(0xFFFECACA)),
                             ),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        const Text(
-                                          'AVAILABLE STOCK',
-                                          style: TextStyle(
-                                            fontSize: 10,
-                                            fontWeight: FontWeight.w800,
-                                            color: Color(0xFF64748B),
-                                            letterSpacing: 0.5,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          '${currentItem.totalAvailableStock.toStringAsFixed(currentItem.totalAvailableStock.truncateToDouble() == currentItem.totalAvailableStock ? 0 : 2)} ${currentItem.measurementUnit.toUpperCase()}',
-                                          style: TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.w900,
-                                            color: currentItemIsLow
-                                                ? const Color(0xFFDC2626)
-                                                : Colors.black,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 32,
+                                  height: 32,
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFFEE2E2),
+                                    borderRadius: BorderRadius.circular(4),
                                   ),
-                                  Container(
-                                    width: 1,
-                                    height: 36,
-                                    color: currentItemIsLow
-                                        ? const Color(0xFFFECACA)
-                                        : const Color(0xFFE2E8F0),
+                                  child: const Icon(
+                                    Icons.warning_amber_rounded,
+                                    color: Color(0xFFDC2626),
+                                    size: 18,
                                   ),
-                                  const SizedBox(width: 14),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        const Text(
-                                          'REORDER THRESHOLD',
-                                          style: TextStyle(
-                                            fontSize: 10,
-                                            fontWeight: FontWeight.w800,
-                                            color: Color(0xFF64748B),
-                                            letterSpacing: 0.5,
-                                          ),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Text(
+                                        'Stock Shortfall Alert',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w800,
+                                          color: Color(0xFF991B1B),
                                         ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          '${currentItem.reorderThresholdQuantity.toStringAsFixed(currentItem.reorderThresholdQuantity.truncateToDouble() == currentItem.reorderThresholdQuantity ? 0 : 2)} ${currentItem.measurementUnit.toUpperCase()}',
-                                          style: const TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.w900,
-                                            color: Colors.black,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              if (currentItemIsLow) ...[
-                                const SizedBox(height: 8),
-                                const Divider(
-                                    height: 1, color: Color(0xFFFECACA)),
-                                const SizedBox(height: 8),
-                                Row(
-                                  children: const [
-                                    Icon(Icons.warning_amber_rounded,
-                                        size: 14, color: Color(0xFFDC2626)),
-                                    SizedBox(width: 6),
-                                    Text(
-                                      'Low Stock: On-hand quantity is below reorder threshold',
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w700,
-                                        color: Color(0xFFDC2626),
                                       ),
+                                      const SizedBox(height: 1),
+                                      Text(
+                                        'Shortfall: ${currentItem.reorderShortfallQuantity.toStringAsFixed(currentItem.reorderShortfallQuantity.truncateToDouble() == currentItem.reorderShortfallQuantity ? 0 : 2)} ${currentItem.measurementUnit.toUpperCase()}',
+                                        style: const TextStyle(
+                                          fontSize: 11,
+                                          color: Color(0xFFB91C1C),
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                ElevatedButton.icon(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFFDC2626),
+                                    foregroundColor: Colors.white,
+                                    elevation: 0,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 8,
                                     ),
-                                  ],
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                  ),
+                                  onPressed: () => _showFixAlertModal(context, currentItem),
+                                  icon: const Icon(Icons.build_outlined, size: 14),
+                                  label: const Text(
+                                    'Fix Alert',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
                                 ),
                               ],
-                            ],
+                            ),
                           ),
-                        ),
+                        ],
                       ],
                     ),
                   ),
