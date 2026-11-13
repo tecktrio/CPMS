@@ -817,18 +817,10 @@ class _PurchaseOrderDetailScreenState extends State<PurchaseOrderDetailScreen> {
                                 ),
                               ),
                               Expanded(
-                                flex: 4,
+                                flex: 6,
                                 child: Text(
                                   'ITEMS',
                                   style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11, color: Colors.white),
-                                ),
-                              ),
-                              Expanded(
-                                flex: 2,
-                                child: Text(
-                                  'QTY/PKT',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 10, color: Colors.white),
                                 ),
                               ),
                               Expanded(
@@ -859,6 +851,12 @@ class _PurchaseOrderDetailScreenState extends State<PurchaseOrderDetailScreen> {
                           separatorBuilder: (_, _) => const Divider(height: 1, color: Color(0xFFE2E8F0)),
                           itemBuilder: (context, idx) {
                             final item = po.items[idx];
+                            final itemDescription = item.specification.isNotEmpty
+                                ? item.specification
+                                : PurchaseOrderExportService.formatQtyPerPacketShort(
+                                    item.quantityPerPacket,
+                                    item.unit,
+                                  );
                             return Container(
                               color: idx % 2 == 0 ? Colors.white : const Color(0xFFFAFAFA),
                               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
@@ -872,7 +870,7 @@ class _PurchaseOrderDetailScreenState extends State<PurchaseOrderDetailScreen> {
                                     ),
                                   ),
                                   Expanded(
-                                    flex: 4,
+                                    flex: 6,
                                     child: Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
@@ -881,21 +879,12 @@ class _PurchaseOrderDetailScreenState extends State<PurchaseOrderDetailScreen> {
                                           style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
                                         ),
                                         const SizedBox(height: 1),
-                                        Text(
-                                          item.sku.isNotEmpty
-                                              ? '${item.sku} • ${PurchaseOrderExportService.formatQtyPerPacketShort(item.quantityPerPacket, item.unit)} • ${item.totalPackets} pkts (${item.totalQuantity.toStringAsFixed(item.totalQuantity.truncateToDouble() == item.totalQuantity ? 0 : 2)} ${item.unit})'
-                                              : '${PurchaseOrderExportService.formatQtyPerPacketShort(item.quantityPerPacket, item.unit)} • ${item.totalPackets} pkts (${item.totalQuantity.toStringAsFixed(item.totalQuantity.truncateToDouble() == item.totalQuantity ? 0 : 2)} ${item.unit})',
-                                          style: const TextStyle(fontSize: 10, color: Color(0xFF64748B)),
-                                        ),
+                                        if (itemDescription.isNotEmpty)
+                                          Text(
+                                            '$itemDescription per packet',
+                                            style: const TextStyle(fontSize: 10, color: Color(0xFF64748B)),
+                                          ),
                                       ],
-                                    ),
-                                  ),
-                                  Expanded(
-                                    flex: 2,
-                                    child: Text(
-                                      PurchaseOrderExportService.formatQtyPerPacketShort(item.quantityPerPacket, item.unit),
-                                      textAlign: TextAlign.center,
-                                      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 11, color: Color(0xFF334155)),
                                     ),
                                   ),
                                   Expanded(
@@ -928,15 +917,11 @@ class _PurchaseOrderDetailScreenState extends State<PurchaseOrderDetailScreen> {
                             children: [
                               const SizedBox(width: 26),
                               const Expanded(
-                                flex: 4,
+                                flex: 6,
                                 child: Text(
                                   'TOTAL CARTONS',
                                   style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: Colors.black),
                                 ),
-                              ),
-                              const Expanded(
-                                flex: 2,
-                                child: SizedBox.shrink(),
                               ),
                               Expanded(
                                 flex: 2,

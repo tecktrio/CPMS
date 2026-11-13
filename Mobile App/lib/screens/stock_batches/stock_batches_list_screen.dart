@@ -31,9 +31,12 @@ class _StockBatchesListScreenState extends State<StockBatchesListScreen> {
     final inventory = context.watch<InventoryProvider>();
 
     final batches = inventory.stockBatches.where((b) {
+      final catalogItem = inventory.items.where((item) => item.itemId == b.itemId);
+      final specification = catalogItem.isNotEmpty ? catalogItem.first.specification : '';
       final matchesSearch = b.batchNumber.toLowerCase().contains(_searchQuery.toLowerCase()) ||
           (b.itemName?.toLowerCase().contains(_searchQuery.toLowerCase()) ?? false) ||
-          (b.itemSku?.toLowerCase().contains(_searchQuery.toLowerCase()) ?? false);
+          (b.itemSku?.toLowerCase().contains(_searchQuery.toLowerCase()) ?? false) ||
+          specification.toLowerCase().contains(_searchQuery.toLowerCase());
       final matchesExpiry = !_filterExpiringOnly || (b.daysUntilExpiry <= 7 && b.daysUntilExpiry >= 0);
       return matchesSearch && matchesExpiry;
     }).toList();
@@ -150,6 +153,11 @@ class _StockBatchesListScreenState extends State<StockBatchesListScreen> {
                           separatorBuilder: (_, _) => const SizedBox(height: 10),
                           itemBuilder: (context, index) {
                             final batch = batches[index];
+                            final catalogItems = inventory.items
+                                .where((item) => item.itemId == batch.itemId);
+                            final specification = catalogItems.isNotEmpty
+                                ? catalogItems.first.specification
+                                : '';
                             final isExpired = batch.daysUntilExpiry < 0;
                             final isNearExpiry = batch.daysUntilExpiry >= 0 && batch.daysUntilExpiry <= 7;
 
@@ -207,7 +215,7 @@ class _StockBatchesListScreenState extends State<StockBatchesListScreen> {
                                               ),
                                               const SizedBox(height: 2),
                                               Text(
-                                                '${batch.itemSku ?? ''} • ${batch.itemName ?? 'Item ID: ${batch.itemId}'}',
+                                                '${batch.itemSku ?? ''} • ${batch.itemName ?? 'Item ID: ${batch.itemId}'}${specification.isNotEmpty ? ' • $specification' : ''}',
                                                 style: const TextStyle(
                                                   fontSize: 12,
                                                   color: Color(0xFF64748B),

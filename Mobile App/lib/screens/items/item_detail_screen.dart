@@ -179,10 +179,6 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
       orElse: () => widget.item,
     );
 
-    final currentItemIsLow = currentItem.isBelowReorderThreshold ||
-        (currentItem.reorderThresholdQuantity > 0 &&
-            currentItem.totalAvailableStock <= currentItem.reorderThresholdQuantity);
-
     final hasImage =
         currentItem.imageUrl != null && currentItem.imageUrl!.isNotEmpty;
 
@@ -576,115 +572,6 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                           ),
                         ),
 
-                        if (currentItemIsLow) ...[
-                          const SizedBox(height: 14),
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFFEF2F2),
-                              borderRadius: BorderRadius.circular(4),
-                              border: Border.all(color: const Color(0xFFFECACA)),
-                            ),
-                            child: Row(
-                              children: [
-                                Container(
-                                  width: 32,
-                                  height: 32,
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFFEE2E2),
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                  child: const Icon(
-                                    Icons.warning_amber_rounded,
-                                    color: Color(0xFFDC2626),
-                                    size: 18,
-                                  ),
-                                ),
-                                const SizedBox(width: 10),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      const Text(
-                                        'Stock Shortfall Alert',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w800,
-                                          color: Color(0xFF991B1B),
-                                        ),
-                                      ),
-                                      const SizedBox(height: 1),
-                                      Text(
-                                        'Shortfall: ${currentItem.reorderShortfallQuantity.toStringAsFixed(currentItem.reorderShortfallQuantity.truncateToDouble() == currentItem.reorderShortfallQuantity ? 0 : 2)} ${currentItem.measurementUnit.toUpperCase()}',
-                                        style: const TextStyle(
-                                          fontSize: 11,
-                                          color: Color(0xFFB91C1C),
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                ElevatedButton.icon(
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFFDC2626),
-                                    foregroundColor: Colors.white,
-                                    elevation: 0,
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 12,
-                                      vertical: 8,
-                                    ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(4),
-                                    ),
-                                  ),
-                                  onPressed: () {
-                                    final inv = context.read<InventoryProvider>();
-                                    StoreRoomModel? targetRoom;
-                                    final containing = inv.storeRooms.where(
-                                      (r) => r.items.any((it) => it.itemId == currentItem.itemId),
-                                    );
-                                    if (containing.isNotEmpty) {
-                                      targetRoom = containing.first;
-                                    } else if (currentItem.storeRoomId != null &&
-                                        currentItem.storeRoomId!.isNotEmpty) {
-                                      final match = inv.storeRooms.where(
-                                        (r) => r.storeRoomId == currentItem.storeRoomId,
-                                      );
-                                      if (match.isNotEmpty) targetRoom = match.first;
-                                    } else if (inv.storeRooms.isNotEmpty) {
-                                      targetRoom = inv.storeRooms.first;
-                                    }
-
-                                    if (targetRoom != null) {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (_) => StoreRoomDetailScreen(room: targetRoom!),
-                                        ),
-                                      );
-                                    } else {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (_) => const StoreRoomsListScreen(),
-                                        ),
-                                      );
-                                    }
-                                  },
-                                  icon: const Icon(Icons.meeting_room_outlined, size: 14),
-                                  label: const Text(
-                                    'Fix in Store Room',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w800,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
                       ],
                     ),
                   ),
@@ -867,6 +754,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                       final ingItem = match.isNotEmpty ? match.first : null;
                       final ingName = ingItem != null ? ingItem.itemName : 'Unknown Raw Material';
                       final ingSku = ingItem != null ? ingItem.sku : ing.itemId;
+                      final ingSpecification = ingItem?.specification ?? '';
                       final ingUnit = ing.unit.isNotEmpty
                           ? ing.unit.toUpperCase()
                           : (ingItem != null ? ingItem.measurementUnit.toUpperCase() : '');
@@ -909,7 +797,9 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
-                                    ingSku,
+                                    ingSpecification.isNotEmpty
+                                        ? '$ingSku • $ingSpecification'
+                                        : ingSku,
                                     style: const TextStyle(
                                       fontSize: 11,
                                       fontWeight: FontWeight.w600,

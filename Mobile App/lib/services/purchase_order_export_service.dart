@@ -201,10 +201,9 @@ class PurchaseOrderExportService {
               border: pw.TableBorder.all(color: PdfColors.grey300, width: 0.5),
               columnWidths: {
                 0: const pw.FixedColumnWidth(30), // SL.
-                1: const pw.FlexColumnWidth(4),   // ITEMS
-                2: const pw.FlexColumnWidth(2),   // QTY/PKT
-                3: const pw.FlexColumnWidth(2),   // PKT/CTN
-                4: const pw.FlexColumnWidth(2),   // CARTONS
+                1: const pw.FlexColumnWidth(6),   // ITEMS
+                2: const pw.FlexColumnWidth(2),   // PKT/CTN
+                3: const pw.FlexColumnWidth(2),   // CARTONS
               },
               children: [
                 // Blue Table Header matching document
@@ -213,7 +212,6 @@ class PurchaseOrderExportService {
                   children: [
                     _buildTableCell('SL.', isHeader: true, align: pw.TextAlign.center),
                     _buildTableCell('ITEMS', isHeader: true, align: pw.TextAlign.left),
-                    _buildTableCell('QTY/PKT', isHeader: true, align: pw.TextAlign.center),
                     _buildTableCell('PKT/CTN', isHeader: true, align: pw.TextAlign.center),
                     _buildTableCell('CARTONS', isHeader: true, align: pw.TextAlign.center),
                   ],
@@ -223,7 +221,9 @@ class PurchaseOrderExportService {
                   final idx = entry.key;
                   final item = entry.value;
                   final isEven = idx % 2 == 0;
-                  final qtyShort = formatQtyPerPacketShort(item.quantityPerPacket, item.unit);
+                  final itemDescription = item.specification.isNotEmpty
+                      ? item.specification
+                      : formatQtyPerPacketShort(item.quantityPerPacket, item.unit);
 
                   return pw.TableRow(
                     decoration: pw.BoxDecoration(
@@ -242,13 +242,12 @@ class PurchaseOrderExportService {
                             ),
                             pw.SizedBox(height: 1),
                             pw.Text(
-                              '${item.sku} • ${item.totalPackets} pkts',
+                              '$itemDescription per packet',
                               style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey600),
                             ),
                           ],
                         ),
                       ),
-                      _buildTableCell(qtyShort, align: pw.TextAlign.center, isBold: true),
                       _buildTableCell('${item.packetPerCarton}', align: pw.TextAlign.center),
                       _buildTableCell('${item.cartons}', align: pw.TextAlign.center, isBold: true),
                     ],
@@ -260,7 +259,6 @@ class PurchaseOrderExportService {
                   children: [
                     _buildTableCell('', align: pw.TextAlign.center),
                     _buildTableCell('TOTAL CARTONS', isBold: true),
-                    _buildTableCell('', align: pw.TextAlign.center),
                     _buildTableCell('$totalPackets pkts', align: pw.TextAlign.center, isBold: true),
                     _buildTableCell('$totalCartons', align: pw.TextAlign.center, isBold: true),
                   ],

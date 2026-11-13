@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../../providers/inventory_provider.dart';
 import '../../widgets/user_profile_avatar.dart';
+import '../../widgets/success_screen.dart';
 
 class CreateItemScreen extends StatefulWidget {
   const CreateItemScreen({super.key});
@@ -130,13 +131,13 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
     setState(() => _isSubmitting = false);
 
     if (success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-              'Item SKU "${_skuController.text.toUpperCase()}" registered successfully!'),
-          backgroundColor: const Color(0xFF0F766E),
-        ),
+      await showSuccessScreen(
+        context,
+        title: 'Item added',
+        message: 'Item SKU ${_skuController.text.toUpperCase()} was added successfully.',
+        returnLabel: 'Return to items',
       );
+      if (!mounted) return;
       Navigator.pop(context);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -801,7 +802,8 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
                             final q = _ingredientSearchQuery.toLowerCase();
                             final matches = q.isEmpty ||
                                 i.itemName.toLowerCase().contains(q) ||
-                                i.sku.toLowerCase().contains(q);
+                                i.sku.toLowerCase().contains(q) ||
+                                i.specification.toLowerCase().contains(q);
                             return isRaw && matches;
                           }).toList();
 
@@ -892,7 +894,7 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
                                               ),
                                               const SizedBox(height: 2),
                                               Text(
-                                                '${raw.sku} • ${raw.measurementUnit.toUpperCase()}',
+                                                '${raw.sku} • ${raw.specification}',
                                                 style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
                                                 maxLines: 1,
                                                 overflow: TextOverflow.ellipsis,

@@ -28,6 +28,11 @@ export class PurchaseOrderItemDto {
   @IsNotEmpty()
   sku: string;
 
+  @ApiPropertyOptional({ example: '400 GM', description: 'Catalog item quantity and measurement unit' })
+  @IsString()
+  @IsOptional()
+  specification?: string;
+
   @ApiProperty({ example: 10, description: 'Packets per carton' })
   @IsNumber()
   @Min(0)

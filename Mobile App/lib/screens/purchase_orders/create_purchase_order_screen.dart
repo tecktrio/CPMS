@@ -5,6 +5,7 @@ import '../../providers/inventory_provider.dart';
 import '../../providers/purchase_order_provider.dart';
 import '../../services/purchase_order_export_service.dart';
 import '../items/create_item_screen.dart';
+import '../../widgets/success_screen.dart';
 
 class CreatePurchaseOrderScreen extends StatefulWidget {
   final PurchaseOrderModel? existingPo;
@@ -483,11 +484,10 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
 
   void _showAddItemModal({PurchaseOrderItemModel? editItem, int? editIndex}) {
     final invProv = context.read<InventoryProvider>();
-    final items = invProv.items;
 
     ItemModel? selectedCatalogItem;
     if (editItem != null) {
-      final match = items.where((i) => i.itemId == editItem.itemId);
+      final match = invProv.items.where((i) => i.itemId == editItem.itemId);
       if (match.isNotEmpty) selectedCatalogItem = match.first;
     }
 
@@ -497,15 +497,6 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
     final cartonCtrl = TextEditingController(
       text: editItem != null ? editItem.cartons.toString() : '20',
     );
-    final qtyPerPacketCtrl = TextEditingController(
-      text: editItem != null
-          ? (editItem.quantityPerPacket.truncateToDouble() ==
-                  editItem.quantityPerPacket
-              ? editItem.quantityPerPacket.toInt().toString()
-              : editItem.quantityPerPacket.toString())
-          : '1',
-    );
-
     String itemSearchQuery = '';
     final searchCtrl = TextEditingController();
 
@@ -518,6 +509,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
       ),
       builder: (ctx) => StatefulBuilder(
         builder: (context, setModalState) {
+          final items = invProv.items;
           final filteredItems = items.where((i) {
             final q = itemSearchQuery.toLowerCase();
             return q.isEmpty ||
@@ -528,8 +520,9 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
 
           final int ppc = int.tryParse(packetCtrl.text.trim()) ?? 0;
           final int cartons = int.tryParse(cartonCtrl.text.trim()) ?? 0;
-          final double qpp =
-              double.tryParse(qtyPerPacketCtrl.text.trim()) ?? 1.0;
+          final double qpp = selectedCatalogItem?.quantity ??
+              editItem?.quantityPerPacket ??
+              1.0;
           final int previewTotalPackets = ppc * cartons;
           final double previewTotalQty = previewTotalPackets * qpp;
           final unitStr =
@@ -579,38 +572,47 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                           color: Color(0xFF64748B),
                         ),
                       ),
-                      GestureDetector(
-                        onTap: () async {
-                          final inv = context.read<InventoryProvider>();
-                          await Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const CreateItemScreen(),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            tooltip: 'Refresh item list',
+                            icon: const Icon(Icons.refresh, size: 18),
+                            onPressed: () async {
+                              await invProv.loadItems(silent: true);
+                              if (mounted) setModalState(() {});
+                            },
+                          ),
+                          GestureDetector(
+                            onTap: () async {
+                              await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const CreateItemScreen(),
+                                ),
+                              );
+                              if (!mounted) return;
+                              await invProv.loadItems(silent: true);
+                              if (mounted) setModalState(() {});
+                            },
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.add, size: 13, color: Colors.black),
+                                SizedBox(width: 3),
+                                Text(
+                                  'Register New Item',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.black,
+                                    decoration: TextDecoration.underline,
+                                  ),
+                                ),
+                              ],
                             ),
-                          );
-                          if (!mounted) return;
-                          setModalState(() {
-                            if (inv.items.isNotEmpty) {
-                              selectedCatalogItem = inv.items.first;
-                            }
-                          });
-                        },
-                        child: const Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.add, size: 13, color: Colors.black),
-                            SizedBox(width: 3),
-                            Text(
-                              'Register New Item',
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                                color: Colors.black,
-                                decoration: TextDecoration.underline,
-                              ),
-                            ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -718,7 +720,6 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                                     const SizedBox(height: 8),
                                     TextButton.icon(
                                       onPressed: () async {
-                                        final inv = context.read<InventoryProvider>();
                                         await Navigator.push(
                                           context,
                                           MaterialPageRoute(
@@ -727,12 +728,8 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                                           ),
                                         );
                                         if (!mounted) return;
-                                        setModalState(() {
-                                          if (inv.items.isNotEmpty) {
-                                            selectedCatalogItem =
-                                                inv.items.first;
-                                          }
-                                        });
+                                        await invProv.loadItems(silent: true);
+                                        if (mounted) setModalState(() {});
                                       },
                                       icon: const Icon(Icons.add,
                                           size: 14, color: Colors.black),
@@ -792,11 +789,6 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                                   onTap: () {
                                     setModalState(() {
                                       selectedCatalogItem = it;
-                                      if (editItem == null && it.quantity > 0) {
-                                        qtyPerPacketCtrl.text = it.quantity.truncateToDouble() == it.quantity
-                                            ? it.quantity.toInt().toString()
-                                            : it.quantity.toString();
-                                      }
                                     });
                                   },
                                 );
@@ -880,60 +872,6 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
 
                   const SizedBox(height: 14),
 
-                  // 3. Quantity per packet (Weight / Unit / Pack size)
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text(
-                            'QUANTITY PER PACKET *',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w800,
-                              color: Color(0xFF64748B),
-                            ),
-                          ),
-                          if (unitStr.isNotEmpty)
-                            Text(
-                              'Base Unit: $unitStr',
-                              style: const TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                                color: Color(0xFF0F766E),
-                              ),
-                            ),
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      TextFormField(
-                        controller: qtyPerPacketCtrl,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
-                        decoration: InputDecoration(
-                          hintText: '1.0',
-                          suffixText: unitStr.isNotEmpty ? unitStr : null,
-                          suffixStyle: const TextStyle(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 13,
-                            color: Color(0xFF64748B),
-                          ),
-                          filled: true,
-                          fillColor: const Color(0xFFF8FAFC),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(4),
-                            borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                          ),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                        ),
-                        onChanged: (_) => setModalState(() {}),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 14),
-
                   // Calculated Packets & Quantity Banner
                   Container(
                     width: double.infinity,
@@ -1001,7 +939,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
 
                         final p = int.tryParse(packetCtrl.text.trim()) ?? 0;
                         final c = int.tryParse(cartonCtrl.text.trim()) ?? 0;
-                        final qpp = double.tryParse(qtyPerPacketCtrl.text.trim()) ?? 1.0;
+                        final qpp = selectedCatalogItem!.quantity;
                         if (p <= 0 || c <= 0) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(content: Text('Please enter valid quantities for packets and cartons')),
@@ -1013,6 +951,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                           itemId: selectedCatalogItem!.itemId,
                           itemName: selectedCatalogItem!.itemName,
                           sku: selectedCatalogItem!.sku,
+                          specification: selectedCatalogItem!.specification,
                           packetPerCarton: p,
                           cartons: c,
                           quantityPerPacket: qpp > 0 ? qpp : 1.0,
@@ -1146,12 +1085,17 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
           : (widget.existingPo != null
               ? 'Purchase Order updated successfully!'
               : 'Purchase Order created successfully!');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(successMsg),
-          backgroundColor: Colors.black,
-        ),
+      await showSuccessScreen(
+        context,
+        title: asDraft
+            ? 'Draft saved'
+            : (widget.existingPo != null
+                ? 'Purchase order updated'
+                : 'Purchase order created'),
+        message: successMsg,
+        returnLabel: 'Return to purchase orders',
       );
+      if (!mounted) return;
       Navigator.pop(context, true);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1594,18 +1538,10 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                             ),
                           ),
                           Expanded(
-                            flex: 4,
+                            flex: 6,
                             child: Text(
                               'ITEMS',
                               style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11, color: Colors.white),
-                            ),
-                          ),
-                          Expanded(
-                            flex: 2,
-                            child: Text(
-                              'QTY/PKT',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 10, color: Colors.white),
                             ),
                           ),
                           Expanded(
@@ -1637,6 +1573,12 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                       separatorBuilder: (_, _) => const Divider(height: 1, color: Color(0xFFE2E8F0)),
                       itemBuilder: (context, idx) {
                         final item = _orderItems[idx];
+                        final itemDescription = item.specification.isNotEmpty
+                            ? item.specification
+                            : PurchaseOrderExportService.formatQtyPerPacketShort(
+                                item.quantityPerPacket,
+                                item.unit,
+                              );
                         return Container(
                           color: idx % 2 == 0 ? Colors.white : const Color(0xFFFAFAFA),
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
@@ -1650,7 +1592,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                                 ),
                               ),
                               Expanded(
-                                flex: 4,
+                                flex: 6,
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
@@ -1659,21 +1601,12 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                                       style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
                                     ),
                                     const SizedBox(height: 1),
-                                    Text(
-                                      item.sku.isNotEmpty
-                                          ? '${item.sku} • ${PurchaseOrderExportService.formatQtyPerPacketShort(item.quantityPerPacket, item.unit)} • ${item.totalPackets} pkts'
-                                          : '${PurchaseOrderExportService.formatQtyPerPacketShort(item.quantityPerPacket, item.unit)} • ${item.totalPackets} pkts',
-                                      style: const TextStyle(fontSize: 10, color: Color(0xFF64748B)),
-                                    ),
+                                    if (itemDescription.isNotEmpty)
+                                      Text(
+                                        '$itemDescription per packet',
+                                        style: const TextStyle(fontSize: 10, color: Color(0xFF64748B)),
+                                      ),
                                   ],
-                                ),
-                              ),
-                              Expanded(
-                                flex: 2,
-                                child: Text(
-                                  PurchaseOrderExportService.formatQtyPerPacketShort(item.quantityPerPacket, item.unit),
-                                  textAlign: TextAlign.center,
-                                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 11, color: Color(0xFF334155)),
                                 ),
                               ),
                               Expanded(
@@ -1742,15 +1675,11 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                         children: [
                           const SizedBox(width: 26),
                           const Expanded(
-                            flex: 4,
+                            flex: 6,
                             child: Text(
                               'TOTAL CARTONS',
                               style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: Colors.black),
                             ),
-                          ),
-                          const Expanded(
-                            flex: 2,
-                            child: SizedBox.shrink(),
                           ),
                           Expanded(
                             flex: 2,

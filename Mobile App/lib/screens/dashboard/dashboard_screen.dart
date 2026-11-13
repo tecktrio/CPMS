@@ -963,6 +963,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       if (query.isEmpty) return true;
       return i.itemName.toLowerCase().contains(query) ||
           i.sku.toLowerCase().contains(query) ||
+          i.specification.toLowerCase().contains(query) ||
           i.itemType.toLowerCase().contains(query) ||
           (i.division != null && i.division!.toLowerCase().contains(query));
     }).toList();

@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../core/constants/api_constants.dart';
 import '../../providers/inventory_provider.dart';
 import '../../widgets/user_profile_avatar.dart';
+import '../../widgets/success_screen.dart';
 
 class EditItemScreen extends StatefulWidget {
   final ItemModel item;
@@ -187,12 +188,13 @@ class _EditItemScreenState extends State<EditItemScreen> {
       setState(() => _isSaving = false);
 
       if (ok) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Item changes saved successfully!'),
-            backgroundColor: Color(0xFF0F766E),
-          ),
+        await showSuccessScreen(
+          context,
+          title: 'Item updated',
+          message: 'Your item changes were saved successfully.',
+          returnLabel: 'Return to item',
         );
+        if (!mounted) return;
         Navigator.pop(context, true);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -961,7 +963,8 @@ class _EditItemScreenState extends State<EditItemScreen> {
                             final q = _ingredientSearchQuery.toLowerCase();
                             final matches = q.isEmpty ||
                                 i.itemName.toLowerCase().contains(q) ||
-                                i.sku.toLowerCase().contains(q);
+                                i.sku.toLowerCase().contains(q) ||
+                                i.specification.toLowerCase().contains(q);
                             return isRaw && notSelf && matches;
                           }).toList();
 
@@ -1052,7 +1055,7 @@ class _EditItemScreenState extends State<EditItemScreen> {
                                               ),
                                               const SizedBox(height: 2),
                                               Text(
-                                                '${raw.sku} • ${raw.measurementUnit.toUpperCase()}',
+                                                '${raw.sku} • ${raw.specification}',
                                                 style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
                                                 maxLines: 1,
                                                 overflow: TextOverflow.ellipsis,

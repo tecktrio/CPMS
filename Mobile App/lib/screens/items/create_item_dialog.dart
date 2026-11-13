@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/inventory_provider.dart';
+import '../../widgets/success_screen.dart';
 
 class CreateItemDialog extends StatefulWidget {
   const CreateItemDialog({super.key});
@@ -73,13 +74,14 @@ class _CreateItemDialogState extends State<CreateItemDialog> {
     setState(() => _isSubmitting = false);
 
     if (success) {
-      Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Item SKU "${_skuController.text.toUpperCase()}" registered successfully!'),
-          backgroundColor: const Color(0xFF0F766E),
-        ),
+      await showSuccessScreen(
+        context,
+        title: 'Item added',
+        message: 'Item SKU ${_skuController.text.toUpperCase()} was added successfully.',
+        returnLabel: 'Return to items',
       );
+      if (!mounted) return;
+      Navigator.pop(context);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

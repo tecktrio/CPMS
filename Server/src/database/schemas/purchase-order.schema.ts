@@ -24,6 +24,9 @@ export class PurchaseOrderItem {
   @Prop({ type: String, required: true })
   sku: string;
 
+  @Prop({ type: String, default: '' })
+  specification: string;
+
   @Prop({ type: Number, required: true, min: 0 })
   packet_per_carton: number;
 

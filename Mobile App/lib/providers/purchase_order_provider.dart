@@ -44,6 +44,7 @@ class PurchaseOrderItemModel {
   final String itemId;
   final String itemName;
   final String sku;
+  final String specification;
   final int packetPerCarton;
   final int cartons;
   final int totalPackets;
@@ -54,6 +55,7 @@ class PurchaseOrderItemModel {
     required this.itemId,
     required this.itemName,
     required this.sku,
+    this.specification = '',
     required this.packetPerCarton,
     required this.cartons,
     int? totalPackets,
@@ -67,6 +69,7 @@ class PurchaseOrderItemModel {
         'item_id': itemId,
         'item_name': itemName,
         'sku': sku,
+        'specification': specification,
         'packet_per_carton': packetPerCarton,
         'cartons': cartons,
         'total_packets': totalPackets,
@@ -84,6 +87,7 @@ class PurchaseOrderItemModel {
       itemId: json['item_id'] ?? '',
       itemName: json['item_name'] ?? '',
       sku: json['sku'] ?? '',
+      specification: json['specification'] ?? '',
       packetPerCarton: perCarton,
       cartons: cartons,
       totalPackets: total,

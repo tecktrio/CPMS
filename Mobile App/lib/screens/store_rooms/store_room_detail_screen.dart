@@ -2839,9 +2839,7 @@ class _AddItemToRoomModalState extends State<_AddItemToRoomModal> {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        item.quantity > 1
-                            ? 'SKU: ${item.sku} • ${item.totalAvailableStock.toStringAsFixed(1)} ${item.measurementUnit} total stock'
-                            : 'SKU: ${item.sku} • Stock: ${item.totalAvailableStock} ${item.measurementUnit}',
+                        'SKU: ${item.sku} • ${item.specification} • Stock: ${item.totalAvailableStock.toStringAsFixed(1)} ${item.measurementUnit}',
                         style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
                       ),
                     ],
