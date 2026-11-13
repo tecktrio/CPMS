@@ -794,173 +794,171 @@ class _PurchaseOrderDetailScreenState extends State<PurchaseOrderDetailScreen> {
                     ),
                   )
                 else
-                  ListView.separated(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: po.items.length,
-                    separatorBuilder: (_, _) => const SizedBox(height: 10),
-                    itemBuilder: (context, idx) {
-                      final item = po.items[idx];
-                      return Container(
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(4),
-                          border: Border.all(color: const Color(0xFFE5E5E5)),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(color: Colors.black, width: 1.2),
+                    ),
+                    clipBehavior: Clip.antiAlias,
+                    child: Column(
+                      children: [
+                        // Black Table Header matching Edit PO
+                        Container(
+                          color: Colors.black,
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                          child: const Row(
+                            children: [
+                              SizedBox(
+                                width: 26,
+                                child: Text(
+                                  'SL.',
+                                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11, color: Colors.white),
+                                ),
+                              ),
+                              Expanded(
+                                flex: 4,
+                                child: Text(
+                                  'ITEMS',
+                                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11, color: Colors.white),
+                                ),
+                              ),
+                              Expanded(
+                                flex: 2,
+                                child: Text(
+                                  'QTY/PKT',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 10, color: Colors.white),
+                                ),
+                              ),
+                              Expanded(
+                                flex: 2,
+                                child: Text(
+                                  'PKT/CTN',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 10, color: Colors.white),
+                                ),
+                              ),
+                              Expanded(
+                                flex: 2,
+                                child: Text(
+                                  'CTNS',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 10, color: Colors.white),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Top item row
-                            Row(
-                              children: [
-                                if (item.sku.isNotEmpty) ...[
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 6,
-                                      vertical: 2,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFF4F4F5),
-                                      borderRadius: BorderRadius.circular(2),
-                                    ),
-                                    child: Text(
-                                      item.sku,
-                                      style: const TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w700,
-                                        color: Color(0xFF52525B),
-                                        letterSpacing: 0.5,
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                ],
-                                Expanded(
-                                  child: Text(
-                                    item.itemName,
-                                    style: const TextStyle(
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w800,
-                                      color: Colors.black,
-                                    ),
-                                  ),
-                                ),
-                                Text(
-                                  '#${idx + 1}',
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                    color: Color(0xFF94A3B8),
-                                  ),
-                                ),
-                              ],
-                            ),
 
-                            const SizedBox(height: 10),
-
-                            // Specs row inside grey box
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 8,
-                              ),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFF8FAFC),
-                                borderRadius: BorderRadius.circular(2),
-                              ),
-                              child: Wrap(
-                                alignment: WrapAlignment.spaceBetween,
-                                spacing: 12,
-                                runSpacing: 6,
+                        // Table rows
+                        ListView.separated(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: po.items.length,
+                          separatorBuilder: (_, _) => const Divider(height: 1, color: Color(0xFFE2E8F0)),
+                          itemBuilder: (context, idx) {
+                            final item = po.items[idx];
+                            return Container(
+                              color: idx % 2 == 0 ? Colors.white : const Color(0xFFFAFAFA),
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                              child: Row(
                                 children: [
-                                  Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      const Text(
-                                        'Qty / Pkt: ',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: Color(0xFF71717A),
-                                        ),
-                                      ),
-                                      Text(
-                                        PurchaseOrderExportService.formatQtyPerPacketShort(item.quantityPerPacket, item.unit),
-                                        style: const TextStyle(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w800,
-                                          color: Colors.black,
-                                        ),
-                                      ),
-                                    ],
+                                  SizedBox(
+                                    width: 26,
+                                    child: Text(
+                                      '${idx + 1}',
+                                      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
+                                    ),
                                   ),
-                                  Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      const Text(
-                                        'Packets / Ctn: ',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: Color(0xFF71717A),
+                                  Expanded(
+                                    flex: 4,
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          item.itemName,
+                                          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
                                         ),
-                                      ),
-                                      Text(
-                                        '${item.packetPerCarton}',
-                                        style: const TextStyle(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w800,
-                                          color: Colors.black,
+                                        const SizedBox(height: 1),
+                                        Text(
+                                          item.sku.isNotEmpty
+                                              ? '${item.sku} • ${item.totalPackets} pkts (${item.totalQuantity.toStringAsFixed(item.totalQuantity.truncateToDouble() == item.totalQuantity ? 0 : 2)} ${item.unit})'
+                                              : '${item.totalPackets} pkts (${item.totalQuantity.toStringAsFixed(item.totalQuantity.truncateToDouble() == item.totalQuantity ? 0 : 2)} ${item.unit})',
+                                          style: const TextStyle(fontSize: 10, color: Color(0xFF64748B)),
                                         ),
-                                      ),
-                                    ],
+                                      ],
+                                    ),
                                   ),
-                                  Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      const Text(
-                                        'Cartons: ',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: Color(0xFF71717A),
-                                        ),
-                                      ),
-                                      Text(
-                                        '${item.cartons}',
-                                        style: const TextStyle(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w800,
-                                          color: Colors.black,
-                                        ),
-                                      ),
-                                    ],
+                                  Expanded(
+                                    flex: 2,
+                                    child: Text(
+                                      PurchaseOrderExportService.formatQtyPerPacketShort(item.quantityPerPacket, item.unit),
+                                      textAlign: TextAlign.center,
+                                      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 11, color: Color(0xFF334155)),
+                                    ),
                                   ),
-                                  Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      const Text(
-                                        'Total: ',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: Color(0xFF71717A),
-                                        ),
-                                      ),
-                                      Text(
-                                        '${item.totalPackets} pkts (${item.totalQuantity.toStringAsFixed(item.totalQuantity.truncateToDouble() == item.totalQuantity ? 0 : 2)} ${item.unit})',
-                                        style: const TextStyle(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w900,
-                                          color: Colors.black,
-                                        ),
-                                      ),
-                                    ],
+                                  Expanded(
+                                    flex: 2,
+                                    child: Text(
+                                      '${item.packetPerCarton}',
+                                      textAlign: TextAlign.center,
+                                      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                                    ),
+                                  ),
+                                  Expanded(
+                                    flex: 2,
+                                    child: Text(
+                                      '${item.cartons}',
+                                      textAlign: TextAlign.center,
+                                      style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13),
+                                    ),
                                   ),
                                 ],
                               ),
-                            ),
-                          ],
+                            );
+                          },
                         ),
-                      );
-                    },
+
+                        // Table Footer showing TOTAL CARTONS
+                        Container(
+                          color: const Color(0xFFF1F5F9),
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                          child: Row(
+                            children: [
+                              const SizedBox(width: 26),
+                              const Expanded(
+                                flex: 4,
+                                child: Text(
+                                  'TOTAL CARTONS',
+                                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: Colors.black),
+                                ),
+                              ),
+                              const Expanded(
+                                flex: 2,
+                                child: SizedBox.shrink(),
+                              ),
+                              Expanded(
+                                flex: 2,
+                                child: Text(
+                                  '${po.totalPackets} pkts',
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 11, color: Color(0xFF64748B)),
+                                ),
+                              ),
+                              Expanded(
+                                flex: 2,
+                                child: Text(
+                                  '${po.totalCartons}',
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: Colors.black),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
 
                 const SizedBox(height: 24),

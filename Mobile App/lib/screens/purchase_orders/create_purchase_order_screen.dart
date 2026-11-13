@@ -1529,14 +1529,14 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(4),
-                  border: Border.all(color: const Color(0xFFCBD5E1)),
+                  border: Border.all(color: Colors.black, width: 1.2),
                 ),
                 clipBehavior: Clip.antiAlias,
                 child: Column(
                   children: [
-                    // Blue Table Header matching MALTA PO document
+                    // Black Table Header
                     Container(
-                      color: const Color(0xFF93C5FD),
+                      color: Colors.black,
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
                       child: const Row(
                         children: [
@@ -1544,14 +1544,14 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                             width: 26,
                             child: Text(
                               'SL.',
-                              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11, color: Colors.black),
+                              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11, color: Colors.white),
                             ),
                           ),
                           Expanded(
                             flex: 4,
                             child: Text(
                               'ITEMS',
-                              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11, color: Colors.black),
+                              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11, color: Colors.white),
                             ),
                           ),
                           Expanded(
@@ -1559,7 +1559,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                             child: Text(
                               'QTY/PKT',
                               textAlign: TextAlign.center,
-                              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 10, color: Colors.black),
+                              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 10, color: Colors.white),
                             ),
                           ),
                           Expanded(
@@ -1567,7 +1567,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                             child: Text(
                               'PKT/CTN',
                               textAlign: TextAlign.center,
-                              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 10, color: Colors.black),
+                              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 10, color: Colors.white),
                             ),
                           ),
                           Expanded(
@@ -1575,7 +1575,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                             child: Text(
                               'CTNS',
                               textAlign: TextAlign.center,
-                              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 10, color: Colors.black),
+                              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 10, color: Colors.white),
                             ),
                           ),
                           SizedBox(width: 28),
