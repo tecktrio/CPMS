@@ -142,6 +142,7 @@ export class StoreRoomsController {
     @Param('itemId') itemId: string,
     @Body('quantity') quantity: number,
     @Body('division') division?: string,
+    @Body('min_count') minCount?: number,
   ) {
     return this.storeRoomsService.updateItemQuantity(
       tenantId,
@@ -149,6 +150,7 @@ export class StoreRoomsController {
       itemId,
       quantity,
       division,
+      minCount,
     );
   }
 

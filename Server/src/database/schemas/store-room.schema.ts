@@ -14,6 +14,9 @@ export class StoreRoomItem {
 
   @Prop({ type: Number, default: 0, min: 0 })
   quantity: number;
+
+  @Prop({ type: Number, default: 0, min: 0 })
+  min_count: number;
 }
 export const StoreRoomItemSchema = SchemaFactory.createForClass(StoreRoomItem);
 

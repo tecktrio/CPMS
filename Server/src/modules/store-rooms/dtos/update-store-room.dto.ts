@@ -27,6 +27,12 @@ export class StoreRoomItemDto {
   @Min(0)
   @IsOptional()
   quantity?: number;
+
+  @ApiPropertyOptional({ example: 5, description: 'Minimum item count for this store room' })
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  min_count?: number;
 }
 
 export class UpdateStoreRoomDto {

@@ -7,22 +7,26 @@ class StoreRoomItemModel {
   final String itemId;
   final String division;
   final double quantity;
+  final double minCount;
 
   StoreRoomItemModel({
     required this.itemId,
     this.division = 'Default Section',
     this.quantity = 0.0,
+    this.minCount = 0.0,
   });
 
   StoreRoomItemModel copyWith({
     String? itemId,
     String? division,
     double? quantity,
+    double? minCount,
   }) {
     return StoreRoomItemModel(
       itemId: itemId ?? this.itemId,
       division: division ?? this.division,
       quantity: quantity ?? this.quantity,
+      minCount: minCount ?? this.minCount,
     );
   }
 
@@ -30,6 +34,7 @@ class StoreRoomItemModel {
         'item_id': itemId,
         'division': division,
         'quantity': quantity,
+        'min_count': minCount,
       };
 
   factory StoreRoomItemModel.fromJson(Map<String, dynamic> json) {
@@ -37,6 +42,7 @@ class StoreRoomItemModel {
       itemId: json['item_id']?.toString() ?? '',
       division: json['division']?.toString() ?? 'Default Section',
       quantity: (json['quantity'] as num?)?.toDouble() ?? 0.0,
+      minCount: (json['min_count'] as num?)?.toDouble() ?? 0.0,
     );
   }
 }
@@ -956,6 +962,7 @@ class InventoryProvider extends ChangeNotifier {
     required String itemId,
     required double quantity,
     String? division,
+    double? minCount,
   }) async {
     final qty = quantity < 0 ? 0.0 : quantity;
 
@@ -967,6 +974,7 @@ class InventoryProvider extends ChangeNotifier {
       if (itemSubIdx != -1) {
         existingItems[itemSubIdx] = existingItems[itemSubIdx].copyWith(
           quantity: qty,
+          minCount: minCount == null ? null : (minCount < 0 ? 0.0 : minCount),
           division: division?.trim().isNotEmpty == true
               ? division!.trim()
               : existingItems[itemSubIdx].division,
@@ -985,6 +993,7 @@ class InventoryProvider extends ChangeNotifier {
     if (division != null && division.isNotEmpty) {
       payload['division'] = division;
     }
+    if (minCount != null) payload['min_count'] = minCount < 0 ? 0.0 : minCount;
 
     syncManager.enqueue(SyncOperation(
       id: 'op_${DateTime.now().microsecondsSinceEpoch}',

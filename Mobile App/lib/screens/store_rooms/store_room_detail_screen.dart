@@ -650,6 +650,63 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
     );
   }
 
+  void _showSetMinimumCountDialog(
+    ItemModel item,
+    StoreRoomItemModel sri,
+    StoreRoomModel room,
+  ) {
+    final controller = TextEditingController(
+      text: sri.minCount.toStringAsFixed(
+        sri.minCount.truncateToDouble() == sri.minCount ? 0 : 2,
+      ),
+    );
+    final formKey = GlobalKey<FormState>();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+        title: Text('Minimum Count: ${item.itemName}',
+            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 17)),
+        content: Form(
+          key: formKey,
+          child: TextFormField(
+            controller: controller,
+            autofocus: true,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            decoration: const InputDecoration(
+              labelText: 'Minimum count',
+              helperText: 'Set to 0 to disable the minimum.',
+            ),
+            validator: (value) {
+              final count = double.tryParse(value?.trim() ?? '');
+              if (count == null || count < 0) return 'Enter a valid non-negative count';
+              return null;
+            },
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.black, foregroundColor: Colors.white),
+            onPressed: () async {
+              if (!formKey.currentState!.validate()) return;
+              final minCount = double.parse(controller.text.trim());
+              Navigator.pop(ctx);
+              await context.read<InventoryProvider>().updateStoreRoomItemQuantity(
+                    storeRoomId: room.storeRoomId,
+                    itemId: item.itemId,
+                    quantity: sri.quantity,
+                    minCount: minCount,
+                  );
+            },
+            child: const Text('Save Minimum'),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showMoveDivisionDialog(ItemModel item, StoreRoomModel room) {
     final messenger = ScaffoldMessenger.of(context);
     final inventory = context.read<InventoryProvider>();
@@ -2039,6 +2096,8 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                                       );
                                     } else if (val == 'move') {
                                       _showMoveDivisionDialog(item, currentRoom);
+                                    } else if (val == 'minimum') {
+                                      _showSetMinimumCountDialog(item, sri, currentRoom);
                                     } else if (val == 'remove') {
                                       _confirmRemoveItemFromRoom(item, currentRoom);
                                     }
@@ -2054,6 +2113,17 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                                         ],
                                       ),
                                     ),
+                                    if (canUpdate)
+                                      const PopupMenuItem(
+                                        value: 'minimum',
+                                        child: Row(
+                                          children: [
+                                            Icon(Icons.inventory_2_outlined, size: 18),
+                                            SizedBox(width: 8),
+                                            Text('Set Minimum Count', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                                          ],
+                                        ),
+                                      ),
                                     if (canUpdate && currentRoom.divisions.length > 1)
                                       const PopupMenuItem(
                                         value: 'move',
@@ -2090,30 +2160,29 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
-                                // Left: unit count + total raw qty
                                 Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     const Text(
-                                      'COUNT',
+                                      'MINIMUM STOCK REQUIRED',
                                       style: TextStyle(
-                                        fontSize: 11,
+                                        fontSize: 10,
                                         fontWeight: FontWeight.w800,
                                         color: Color(0xFF71717A),
-                                        letterSpacing: 0.5,
+                                        letterSpacing: 0.3,
                                       ),
                                     ),
-                                    if (item.quantity > 1) ...[
-                                      const SizedBox(height: 2),
-                                      Text(
-                                        '= ${(sri.quantity * item.quantity).toStringAsFixed((sri.quantity * item.quantity).truncateToDouble() == (sri.quantity * item.quantity) ? 0 : 2)} ${item.measurementUnit} total',
-                                        style: const TextStyle(
-                                          fontSize: 11,
-                                          color: Color(0xFF64748B),
-                                          fontWeight: FontWeight.w600,
-                                        ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      sri.minCount > 0
+                                          ? '${sri.minCount.toStringAsFixed(sri.minCount.truncateToDouble() == sri.minCount ? 0 : 2)} ${item.measurementUnit}'
+                                          : 'Not set',
+                                      style: const TextStyle(
+                                        fontSize: 11,
+                                        color: Color(0xFF64748B),
+                                        fontWeight: FontWeight.w600,
                                       ),
-                                    ],
+                                    ),
                                   ],
                                 ),
                                 if (canUpdate)

@@ -269,6 +269,7 @@ class SyncManager {
           body: {
             'quantity': op.payload['quantity'],
             if (op.payload['division'] != null) 'division': op.payload['division'],
+            if (op.payload['min_count'] != null) 'min_count': op.payload['min_count'],
           },
         );
         return true;

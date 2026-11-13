@@ -195,6 +195,7 @@ export class StoreRoomsService {
         item_id: it.item_id,
         division: it.division || 'Default Section',
         quantity: Math.max(0, it.quantity || 0),
+        min_count: Math.max(0, it.min_count || 0),
       }));
       room.item_ids = Array.from(new Set(room.items.map((it) => it.item_id)));
     } else if (dto.item_ids !== undefined) {
@@ -211,6 +212,7 @@ export class StoreRoomsService {
     itemId: string,
     division?: string,
     quantity?: number,
+    minCount?: number,
   ) {
     const room = await this.storeRoomModel.findOne({
       tenant_id: tenantId,
@@ -232,6 +234,7 @@ export class StoreRoomsService {
         item_id: itemId,
         division: targetDivision,
         quantity: targetQty,
+        min_count: Math.max(0, minCount ?? 0),
       });
     }
 
@@ -246,6 +249,7 @@ export class StoreRoomsService {
     itemId: string,
     quantity: number,
     division?: string,
+    minCount?: number,
   ) {
     const room = await this.storeRoomModel.findOne({
       tenant_id: tenantId,
@@ -265,9 +269,13 @@ export class StoreRoomsService {
         item_id: itemId,
         division: division?.trim() || (room.divisions.length > 0 ? room.divisions[0] : 'Default Section'),
         quantity: Math.max(0, quantity),
+        min_count: Math.max(0, minCount ?? 0),
       });
     } else {
       room.items[matchIdx].quantity = Math.max(0, quantity);
+      if (minCount !== undefined) {
+        room.items[matchIdx].min_count = Math.max(0, minCount);
+      }
       if (division) {
         room.items[matchIdx].division = division.trim();
       }
