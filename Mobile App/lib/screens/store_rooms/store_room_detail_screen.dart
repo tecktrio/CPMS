@@ -922,7 +922,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-            // Summary Containers Row (Total Store Rooms & Stored Items)
+            // Summary Metric (Store Room Items Only - Uber Style)
             Row(
               children: [
                 Expanded(
@@ -937,63 +937,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text(
-                          'TOTAL STORE ROOMS',
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFF71717A),
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Text(
-                              '${inventory.storeRooms.length}',
-                              style: const TextStyle(
-                                fontSize: 26,
-                                fontWeight: FontWeight.w900,
-                                color: Colors.black,
-                                height: 1.0,
-                              ),
-                            ),
-                            Container(
-                              width: 36,
-                              height: 36,
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFF8FAFC),
-                                borderRadius: BorderRadius.circular(2),
-                                border:
-                                    Border.all(color: const Color(0xFFF1F5F9)),
-                              ),
-                              child: const Icon(
-                                Icons.warehouse_outlined,
-                                color: Colors.black87,
-                                size: 18,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(4),
-                      border: Border.all(color: const Color(0xFFE5E5E5)),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'STORED ITEMS',
+                          'STORE ROOM ITEMS',
                           style: TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.w700,
