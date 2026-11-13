@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../providers/inventory_provider.dart';
 import '../../providers/purchase_order_provider.dart';
 import '../../services/purchase_order_export_service.dart';
+import '../items/create_item_screen.dart';
 
 class CreatePurchaseOrderScreen extends StatefulWidget {
   final PurchaseOrderModel? existingPo;
@@ -566,13 +567,51 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                   const SizedBox(height: 14),
 
                   // 1. Item Selector with Search
-                  const Text(
-                    'SELECT CATALOG ITEM *',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w800,
-                      color: Color(0xFF64748B),
-                    ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'SELECT CATALOG ITEM *',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF64748B),
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: () async {
+                          final inv = context.read<InventoryProvider>();
+                          await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const CreateItemScreen(),
+                            ),
+                          );
+                          if (!mounted) return;
+                          setModalState(() {
+                            if (inv.items.isNotEmpty) {
+                              selectedCatalogItem = inv.items.first;
+                            }
+                          });
+                        },
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.add, size: 13, color: Colors.black),
+                            SizedBox(width: 3),
+                            Text(
+                              'Register New Item',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.black,
+                                decoration: TextDecoration.underline,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 6),
 
@@ -665,10 +704,49 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: filteredItems.isEmpty
-                          ? const Center(
+                          ? Center(
                               child: Padding(
-                                padding: EdgeInsets.all(16),
-                                child: Text('No items match search', style: TextStyle(fontSize: 12, color: Color(0xFF64748B))),
+                                padding: const EdgeInsets.all(16),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Text('No items match search',
+                                        style: TextStyle(
+                                            fontSize: 12,
+                                            color: Color(0xFF64748B))),
+                                    const SizedBox(height: 8),
+                                    TextButton.icon(
+                                      onPressed: () async {
+                                        final inv = context.read<InventoryProvider>();
+                                        await Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (_) =>
+                                                const CreateItemScreen(),
+                                          ),
+                                        );
+                                        if (!mounted) return;
+                                        setModalState(() {
+                                          if (inv.items.isNotEmpty) {
+                                            selectedCatalogItem =
+                                                inv.items.first;
+                                          }
+                                        });
+                                      },
+                                      icon: const Icon(Icons.add,
+                                          size: 14, color: Colors.black),
+                                      label: const Text(
+                                        'Register New Item',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w700,
+                                          color: Colors.black,
+                                          decoration: TextDecoration.underline,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             )
                           : ListView.separated(
@@ -1352,17 +1430,46 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                     ),
                   ],
                 ),
-                ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.black,
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-                  ),
-                  onPressed: () => _showAddItemModal(),
-                  icon: const Icon(Icons.add, size: 16),
-                  label: const Text('Add Item', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12)),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    GestureDetector(
+                      onTap: () async {
+                        await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const CreateItemScreen(),
+                          ),
+                        );
+                        setState(() {});
+                      },
+                      child: const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                        child: Text(
+                          '+ Register Item',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.black,
+                            decoration: TextDecoration.underline,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.black,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                      ),
+                      onPressed: () => _showAddItemModal(),
+                      icon: const Icon(Icons.add, size: 16),
+                      label: const Text('Add Item', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12)),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -1388,9 +1495,31 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                     ),
                     const SizedBox(height: 4),
                     const Text(
-                      'Tap "+ Add Item" to select products, packets per carton, and total cartons.',
+                      'Tap "+ Add Item" to select products, or register a new item.',
                       textAlign: TextAlign.center,
                       style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                    ),
+                    const SizedBox(height: 12),
+                    TextButton.icon(
+                      onPressed: () async {
+                        await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const CreateItemScreen(),
+                          ),
+                        );
+                        setState(() {});
+                      },
+                      icon: const Icon(Icons.add, size: 15, color: Colors.black),
+                      label: const Text(
+                        'Register New Item',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.black,
+                          decoration: TextDecoration.underline,
+                        ),
+                      ),
                     ),
                   ],
                 ),
