@@ -50,6 +50,10 @@ class _PurchaseOrdersListScreenState extends State<PurchaseOrdersListScreen> {
         return const Color(0xFFFEF3C7);
       case 'SHIPPED':
         return const Color(0xFFEFF6FF);
+      case 'DELIVERED':
+        return const Color(0xFFF0FDFA);
+      case 'CANCELLED':
+        return const Color(0xFFFEF2F2);
       case 'DRAFT':
       default:
         return const Color(0xFFF1F5F9);
@@ -64,6 +68,10 @@ class _PurchaseOrdersListScreenState extends State<PurchaseOrdersListScreen> {
         return const Color(0xFFB45309);
       case 'SHIPPED':
         return const Color(0xFF1D4ED8);
+      case 'DELIVERED':
+        return const Color(0xFF0F766E);
+      case 'CANCELLED':
+        return const Color(0xFFDC2626);
       case 'DRAFT':
       default:
         return const Color(0xFF475569);

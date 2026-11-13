@@ -91,6 +91,10 @@ class _PurchaseOrderDetailScreenState extends State<PurchaseOrderDetailScreen> {
         return const Color(0xFFFEF3C7);
       case 'SHIPPED':
         return const Color(0xFFEFF6FF);
+      case 'DELIVERED':
+        return const Color(0xFFF0FDFA);
+      case 'CANCELLED':
+        return const Color(0xFFFEF2F2);
       case 'DRAFT':
       default:
         return const Color(0xFFF1F5F9);
@@ -105,10 +109,222 @@ class _PurchaseOrderDetailScreenState extends State<PurchaseOrderDetailScreen> {
         return const Color(0xFFB45309);
       case 'SHIPPED':
         return const Color(0xFF1D4ED8);
+      case 'DELIVERED':
+        return const Color(0xFF0F766E);
+      case 'CANCELLED':
+        return const Color(0xFFDC2626);
       case 'DRAFT':
       default:
         return const Color(0xFF475569);
     }
+  }
+
+  void _showStatusChangeModal(PurchaseOrderModel po) {
+    final availableStatuses = [
+      {
+        'code': 'DRAFT',
+        'label': 'Draft',
+        'description': 'Order saved as draft, awaiting confirmation',
+        'icon': Icons.edit_note_outlined,
+        'bg': const Color(0xFFF1F5F9),
+        'color': const Color(0xFF475569),
+      },
+      {
+        'code': 'CONFIRMED',
+        'label': 'Confirmed',
+        'description': 'Order confirmed and queued for production',
+        'icon': Icons.check_circle_outline,
+        'bg': const Color(0xFFECFDF5),
+        'color': const Color(0xFF047857),
+      },
+      {
+        'code': 'IN_PRODUCTION',
+        'label': 'In Production',
+        'description': 'Goods are being manufactured and packed',
+        'icon': Icons.precision_manufacturing_outlined,
+        'bg': const Color(0xFFFEF3C7),
+        'color': const Color(0xFFB45309),
+      },
+      {
+        'code': 'SHIPPED',
+        'label': 'Shipped',
+        'description': 'Dispatched with carrier / logistics freight',
+        'icon': Icons.local_shipping_outlined,
+        'bg': const Color(0xFFEFF6FF),
+        'color': const Color(0xFF1D4ED8),
+      },
+      {
+        'code': 'DELIVERED',
+        'label': 'Delivered',
+        'description': 'Received and signed by consignee',
+        'icon': Icons.done_all,
+        'bg': const Color(0xFFF0FDFA),
+        'color': const Color(0xFF0F766E),
+      },
+      {
+        'code': 'CANCELLED',
+        'label': 'Cancelled',
+        'description': 'Order has been cancelled or voided',
+        'icon': Icons.cancel_outlined,
+        'bg': const Color(0xFFFEF2F2),
+        'color': const Color(0xFFDC2626),
+      },
+    ];
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(6)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 36,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFCBD5E1),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Update PO Status',
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.black,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close, size: 20, color: Color(0xFF64748B)),
+                      onPressed: () => Navigator.pop(ctx),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Select a new status for PO #${po.poNumber}',
+                  style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                ),
+                const SizedBox(height: 14),
+                ...availableStatuses.map((st) {
+                  final code = st['code'] as String;
+                  final label = st['label'] as String;
+                  final desc = st['description'] as String;
+                  final icon = st['icon'] as IconData;
+                  final bg = st['bg'] as Color;
+                  final col = st['color'] as Color;
+                  final isCurrent = po.status.toUpperCase() == code;
+
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    decoration: BoxDecoration(
+                      color: isCurrent ? const Color(0xFFFAFAFA) : Colors.white,
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(
+                        color: isCurrent ? Colors.black : const Color(0xFFE5E5E5),
+                        width: isCurrent ? 1.5 : 1.0,
+                      ),
+                    ),
+                    child: ListTile(
+                      dense: true,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+                      leading: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: bg,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                        child: Icon(icon, size: 18, color: col),
+                      ),
+                      title: Row(
+                        children: [
+                          Text(
+                            label,
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: isCurrent ? FontWeight.w900 : FontWeight.w700,
+                              color: Colors.black,
+                            ),
+                          ),
+                          if (isCurrent) ...[
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: Colors.black,
+                                borderRadius: BorderRadius.circular(2),
+                              ),
+                              child: const Text(
+                                'CURRENT',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                      subtitle: Text(
+                        desc,
+                        style: const TextStyle(fontSize: 11, color: Color(0xFF71717A)),
+                      ),
+                      trailing: isCurrent
+                          ? const Icon(Icons.check, color: Colors.black, size: 18)
+                          : null,
+                      onTap: () async {
+                        Navigator.pop(ctx);
+                        if (isCurrent) return;
+
+                        final success = await context
+                            .read<PurchaseOrderProvider>()
+                            .updatePurchaseOrder(
+                              poId: po.poId,
+                              status: code,
+                            );
+
+                        if (!mounted) return;
+
+                        if (success) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('PO status updated to "$label"'),
+                              backgroundColor: Colors.black,
+                            ),
+                          );
+                        } else {
+                          final err = context.read<PurchaseOrderProvider>().errorMessage;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(err ?? 'Failed to update status'),
+                              backgroundColor: const Color(0xFFEF4444),
+                            ),
+                          );
+                        }
+                      },
+                    ),
+                  );
+                }),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -266,22 +482,41 @@ class _PurchaseOrderDetailScreenState extends State<PurchaseOrderDetailScreen> {
                               ),
                             ],
                           ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: _getStatusBg(po.status),
-                              borderRadius: BorderRadius.circular(2),
-                            ),
-                            child: Text(
-                              po.status.replaceAll('_', ' ').toUpperCase(),
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w800,
-                                color: _getStatusTextColor(po.status),
-                                letterSpacing: 0.5,
+                          InkWell(
+                            onTap: () => _showStatusChangeModal(po),
+                            borderRadius: BorderRadius.circular(2),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: _getStatusBg(po.status),
+                                borderRadius: BorderRadius.circular(2),
+                                border: Border.all(
+                                  color: _getStatusTextColor(po.status).withValues(alpha: 0.25),
+                                  width: 1,
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    po.status.replaceAll('_', ' ').toUpperCase(),
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w800,
+                                      color: _getStatusTextColor(po.status),
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Icon(
+                                    Icons.arrow_drop_down,
+                                    size: 14,
+                                    color: _getStatusTextColor(po.status),
+                                  ),
+                                ],
                               ),
                             ),
                           ),
@@ -707,6 +942,37 @@ class _PurchaseOrderDetailScreenState extends State<PurchaseOrderDetailScreen> {
                             fontSize: 14,
                             fontWeight: FontWeight.w700,
                             letterSpacing: 0.2,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 12),
+
+                // Change Status Button - Clean Outline
+                SizedBox(
+                  height: 44,
+                  child: OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.black,
+                      side: const BorderSide(color: Color(0xFFD4D4D8)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                    onPressed: () => _showStatusChangeModal(po),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.sync_alt, size: 16),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Change Status (${po.status.replaceAll('_', ' ').toUpperCase()})',
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
                           ),
                         ),
                       ],

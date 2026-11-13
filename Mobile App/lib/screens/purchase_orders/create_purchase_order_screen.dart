@@ -23,6 +23,8 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
   late DateTime _poDate;
   DateTime? _expectedShippingDate;
 
+  late String _status;
+
   CustomerModel? _selectedCustomer;
   final List<PurchaseOrderItemModel> _orderItems = [];
 
@@ -37,6 +39,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
     _notesCtrl = TextEditingController(text: po?.notes ?? '');
     _poDate = po?.poDate ?? DateTime.now();
     _expectedShippingDate = po?.expectedShippingDate;
+    _status = po?.status ?? 'CONFIRMED';
 
     if (po != null) {
       _orderItems.addAll(po.items);
@@ -843,7 +846,43 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
     );
   }
 
-  Future<void> _submit() async {
+  Widget _buildStatusOption(String code, String label) {
+    final isSelected = _status.toUpperCase() == code;
+    return InkWell(
+      onTap: () => setState(() => _status = code),
+      borderRadius: BorderRadius.circular(4),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+        decoration: BoxDecoration(
+          color: isSelected ? Colors.black : const Color(0xFFF8FAFC),
+          borderRadius: BorderRadius.circular(4),
+          border: Border.all(
+            color: isSelected ? Colors.black : const Color(0xFFE2E8F0),
+            width: isSelected ? 1.5 : 1.0,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (isSelected) ...[
+              const Icon(Icons.check, size: 14, color: Colors.white),
+              const SizedBox(width: 6),
+            ],
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                color: isSelected ? Colors.white : const Color(0xFF334155),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _submit({bool asDraft = false}) async {
     if (!_formKey.currentState!.validate()) return;
 
     if (_selectedCustomer == null) {
@@ -860,6 +899,12 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
       return;
     }
 
+    final targetStatus = asDraft
+        ? 'DRAFT'
+        : (_status == 'DRAFT' && widget.existingPo == null
+            ? 'CONFIRMED'
+            : _status);
+
     setState(() => _isSaving = true);
     final poProv = context.read<PurchaseOrderProvider>();
 
@@ -875,6 +920,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
         customerAddress: _selectedCustomer!.address,
         customerContact: _selectedCustomer!.contactDetails,
         items: _orderItems,
+        status: targetStatus,
         notes: _notesCtrl.text.trim(),
       );
     } else {
@@ -887,6 +933,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
         customerAddress: _selectedCustomer!.address,
         customerContact: _selectedCustomer!.contactDetails,
         items: _orderItems,
+        status: targetStatus,
         notes: _notesCtrl.text.trim(),
       );
     }
@@ -895,12 +942,15 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
     setState(() => _isSaving = false);
 
     if (ok) {
+      final successMsg = asDraft
+          ? 'Purchase Order saved as draft!'
+          : (widget.existingPo != null
+              ? 'Purchase Order updated successfully!'
+              : 'Purchase Order created successfully!');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(widget.existingPo != null
-              ? 'Purchase Order updated successfully!'
-              : 'Purchase Order created successfully!'),
-          backgroundColor: const Color(0xFF0F766E),
+          content: Text(successMsg),
+          backgroundColor: Colors.black,
         ),
       );
       Navigator.pop(context, true);
@@ -1441,7 +1491,33 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
 
             const SizedBox(height: 20),
 
-            // 5. Notes / Remarks
+            // 5. Order Status Selection
+            const Text(
+              'ORDER STATUS',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+                color: Color(0xFF64748B),
+                letterSpacing: 0.5,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _buildStatusOption('CONFIRMED', 'Confirmed'),
+                _buildStatusOption('DRAFT', 'Draft'),
+                _buildStatusOption('IN_PRODUCTION', 'In Production'),
+                _buildStatusOption('SHIPPED', 'Shipped'),
+                _buildStatusOption('DELIVERED', 'Delivered'),
+                _buildStatusOption('CANCELLED', 'Cancelled'),
+              ],
+            ),
+
+            const SizedBox(height: 20),
+
+            // 6. Notes / Remarks
             const Text(
               'NOTES & PACKAGING INSTRUCTIONS (OPTIONAL)',
               style: TextStyle(
@@ -1484,31 +1560,69 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
         heightFactor: 1.0,
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 1000),
-          child: SizedBox(
-            width: double.infinity,
-            height: 50,
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.black,
-                foregroundColor: Colors.white,
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(4)),
-              ),
-              onPressed: _isSaving ? null : _submit,
-              child: _isSaving
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                          color: Colors.white, strokeWidth: 2),
-                    )
-                  : Text(
-                      isEdit ? 'Save Changes' : 'Create Purchase Order',
-                      style: const TextStyle(
-                          fontSize: 15, fontWeight: FontWeight.w800),
+          child: Row(
+            children: [
+              // Secondary Outline: Save as Draft
+              Expanded(
+                flex: 4,
+                child: SizedBox(
+                  height: 48,
+                  child: OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.black,
+                      side: const BorderSide(color: Color(0xFFCBD5E1)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(4),
+                      ),
                     ),
-            ),
+                    onPressed: _isSaving ? null : () => _submit(asDraft: true),
+                    icon: const Icon(Icons.edit_note_outlined, size: 18),
+                    label: const Text(
+                      'Save Draft',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              // Primary Solid Black: Create or Save Changes
+              Expanded(
+                flex: 6,
+                child: SizedBox(
+                  height: 48,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.black,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                    onPressed: _isSaving ? null : () => _submit(asDraft: false),
+                    child: _isSaving
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
+                          )
+                        : Text(
+                            isEdit ? 'Save Changes' : 'Create Purchase Order',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),
