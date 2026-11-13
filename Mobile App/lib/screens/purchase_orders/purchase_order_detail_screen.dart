@@ -474,20 +474,12 @@ class _PurchaseOrderDetailScreenState extends State<PurchaseOrderDetailScreen> {
                         icon: Icons.description_outlined,
                       ),
                     ),
-                    const SizedBox(width: 10),
+                    const SizedBox(width: 12),
                     Expanded(
                       child: _buildMetricCard(
                         label: 'TOTAL CARTONS',
                         value: '${po.totalCartons}',
                         icon: Icons.inventory_2_outlined,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: _buildMetricCard(
-                        label: 'TOTAL PACKETS',
-                        value: '${po.totalPackets}',
-                        icon: Icons.layers_outlined,
                       ),
                     ),
                   ],
