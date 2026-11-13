@@ -1660,24 +1660,32 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                         ],
                       ),
                       if (canUpdate)
-                        ElevatedButton.icon(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.black,
-                            foregroundColor: Colors.white,
-                            elevation: 0,
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                            minimumSize: Size.zero,
-                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                            shape: RoundedRectangleBorder(
+                        InkWell(
+                          onTap: () => _showAddItemToRoomSheet(currentRoom),
+                          borderRadius: BorderRadius.circular(4),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: Colors.black,
                               borderRadius: BorderRadius.circular(4),
                             ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.add, size: 14, color: Colors.white),
+                                SizedBox(width: 4),
+                                Text(
+                                  'Add Item',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w800,
+                                    color: Colors.white,
+                                    letterSpacing: 0.2,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                          icon: const Icon(Icons.add, size: 14, color: Colors.white),
-                          label: const Text(
-                            'Add Item',
-                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
-                          ),
-                          onPressed: () => _showAddItemToRoomSheet(currentRoom),
                         ),
                     ],
                   ),
@@ -1686,57 +1694,51 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
 
                   // Search within room items if there are any & Register Item link
                   if (roomItems.isNotEmpty) ...[
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Container(
-                            height: 40,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF8FAFC),
-                              borderRadius: BorderRadius.circular(4),
-                              border: Border.all(color: const Color(0xFFE2E8F0)),
-                            ),
-                            child: TextField(
-                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-                              decoration: InputDecoration(
-                                hintText: 'Search items in ${currentRoom.roomName}...',
-                                hintStyle: const TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
-                                prefixIcon: const Icon(Icons.search, size: 18, color: Color(0xFF94A3B8)),
-                                border: InputBorder.none,
-                                contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                    Container(
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                      ),
+                      child: TextField(
+                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                        decoration: InputDecoration(
+                          hintText: 'Search items in ${currentRoom.roomName}...',
+                          hintStyle: const TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
+                          prefixIcon: const Icon(Icons.search, size: 18, color: Color(0xFF94A3B8)),
+                          border: InputBorder.none,
+                          contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                        ),
+                        onChanged: (val) => setState(() => _itemSearchQuery = val.trim()),
+                      ),
+                    ),
+                    if (canUpdate) ...[
+                      const SizedBox(height: 8),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: GestureDetector(
+                          onTap: () async {
+                            await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const CreateItemScreen(),
                               ),
-                              onChanged: (val) => setState(() => _itemSearchQuery = val.trim()),
+                            );
+                            if (mounted) setState(() {});
+                          },
+                          child: const Text(
+                            '+ Register New Item',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.black,
+                              decoration: TextDecoration.underline,
                             ),
                           ),
                         ),
-                        if (canUpdate) ...[
-                          const SizedBox(width: 10),
-                          GestureDetector(
-                            onTap: () async {
-                              await Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => const CreateItemScreen(),
-                                ),
-                              );
-                              if (mounted) setState(() {});
-                            },
-                            child: const Padding(
-                              padding: EdgeInsets.symmetric(vertical: 4),
-                              child: Text(
-                                '+ Register Item',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w700,
-                                  color: Colors.black,
-                                  decoration: TextDecoration.underline,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
+                      ),
+                    ],
                     const SizedBox(height: 12),
                   ],
 

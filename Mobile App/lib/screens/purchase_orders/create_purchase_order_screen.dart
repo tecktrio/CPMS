@@ -1457,17 +1457,32 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                       ),
                     ),
                     const SizedBox(width: 4),
-                    ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.black,
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                    InkWell(
+                      onTap: () => _showAddItemModal(),
+                      borderRadius: BorderRadius.circular(4),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.black,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.add, size: 14, color: Colors.white),
+                            SizedBox(width: 4),
+                            Text(
+                              'Add Item',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w800,
+                                color: Colors.white,
+                                letterSpacing: 0.2,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                      onPressed: () => _showAddItemModal(),
-                      icon: const Icon(Icons.add, size: 16),
-                      label: const Text('Add Item', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12)),
                     ),
                   ],
                 ),
