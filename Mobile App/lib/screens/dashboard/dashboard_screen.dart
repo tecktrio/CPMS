@@ -126,7 +126,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       height: 40,
                       decoration: BoxDecoration(
                         color: const Color(0xFFF1F5F9),
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(4),
                       ),
                       child: const Icon(Icons.corporate_fare, color: Colors.black),
                     ),
@@ -174,7 +174,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         height: 40,
                         decoration: BoxDecoration(
                           color: const Color(0xFFF6F7F9),
-                          borderRadius: BorderRadius.circular(10),
+                          borderRadius: BorderRadius.circular(4),
                         ),
                         child: const Icon(Icons.apartment, color: Colors.black),
                       ),
@@ -582,7 +582,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 builder: (_) => const TenantSelectorScreen()),
                           );
                         },
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(4),
                         child: Container(
                           width: 32,
                           height: 32,
@@ -630,7 +630,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       const SizedBox(width: 10),
                       InkWell(
                         onTap: () => _showProfileModal(context),
-                        borderRadius: BorderRadius.circular(22),
+                        borderRadius: BorderRadius.circular(4),
                         child: Stack(
                           clipBehavior: Clip.none,
                           children: [
@@ -804,7 +804,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               // Department Card
               InkWell(
                 onTap: () => _showDepartmentSelector(context, tenant),
-                borderRadius: BorderRadius.circular(18),
+                borderRadius: BorderRadius.circular(4),
                 child: Container(
                   padding: EdgeInsets.symmetric(
                     horizontal: isWide ? 20 : 16,
@@ -812,7 +812,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                   decoration: BoxDecoration(
                     color: const Color(0xFFF6F7F9),
-                    borderRadius: BorderRadius.circular(18),
+                    borderRadius: BorderRadius.circular(4),
                   ),
                   child: Row(
                     children: [
@@ -821,7 +821,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         height: 48,
                         decoration: BoxDecoration(
                           color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(4),
                           border: Border.all(color: const Color(0xFFE5E7EB)),
                         ),
                         child: const Icon(
@@ -906,7 +906,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
                     color: const Color(0xFFF6F7F9),
-                    borderRadius: BorderRadius.circular(18),
+                    borderRadius: BorderRadius.circular(4),
                   ),
                   child: const Center(
                     child: Text(
@@ -1006,7 +1006,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               child: Container(
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(4),
                   border: Border.all(color: const Color(0xFFE5E7EB), width: 1.5),
                 ),
                 child: TextField(
@@ -1237,12 +1237,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final isSelected = _selectedSearchModule == id;
     return InkWell(
       onTap: () => setState(() => _selectedSearchModule = id),
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(4),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
           color: isSelected ? Colors.black : Colors.white,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(4),
           border: Border.all(
             color: isSelected ? Colors.black : const Color(0xFFE5E7EB),
           ),
@@ -1300,19 +1300,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
       margin: const EdgeInsets.only(bottom: 10),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(4),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(4),
             border: Border.all(color: const Color(0xFFE5E7EB)),
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               ClipRRect(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(4),
                 child: resolvedUrl != null
                     ? Image.network(
                         resolvedUrl,
@@ -1324,7 +1324,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           height: 44,
                           decoration: BoxDecoration(
                             color: const Color(0xFFF8FAFC),
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(4),
                             border: Border.all(color: const Color(0xFFE2E8F0)),
                           ),
                           child: Icon(leadingIcon, size: 22, color: Colors.black),
@@ -1335,7 +1335,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         height: 44,
                         decoration: BoxDecoration(
                           color: const Color(0xFFF8FAFC),
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(4),
                           border: Border.all(color: const Color(0xFFE2E8F0)),
                         ),
                         child: Icon(leadingIcon, size: 22, color: Colors.black),
@@ -1380,7 +1380,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                       decoration: BoxDecoration(
                         color: const Color(0xFFF1F5F9),
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
                         badgeText,
@@ -1410,12 +1410,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
           _selectedAlertFilter = id;
         });
       },
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(4),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
           color: isSelected ? Colors.black : const Color(0xFFF1F5F9),
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(4),
         ),
         child: Text(
           label,
@@ -1468,7 +1468,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
                     color: const Color(0xFFFEF3C7),
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(4),
                     border: Border.all(color: const Color(0xFFFDE68A)),
                   ),
                   child: Row(
@@ -1535,7 +1535,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(18),
+                  borderRadius: BorderRadius.circular(4),
                   border: Border.all(color: const Color(0xFFE5E7EB)),
                 ),
                 child: const Column(
@@ -1560,7 +1560,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(18),
+                  borderRadius: BorderRadius.circular(4),
                   border: Border.all(color: const Color(0xFFE5E7EB)),
                 ),
                 child: const Column(
@@ -1586,7 +1586,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   margin: const EdgeInsets.only(bottom: 12),
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(18),
+                    borderRadius: BorderRadius.circular(4),
                     border: Border.all(color: const Color(0xFFE5E7EB)),
                     boxShadow: [
                       BoxShadow(
@@ -1597,7 +1597,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ],
                   ),
                   child: InkWell(
-                    borderRadius: BorderRadius.circular(18),
+                    borderRadius: BorderRadius.circular(4),
                     onTap: () {
                       Navigator.push(
                         context,
@@ -1619,7 +1619,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 height: 44,
                                 decoration: BoxDecoration(
                                   color: const Color(0xFFFFFBEB),
-                                  borderRadius: BorderRadius.circular(12),
+                                  borderRadius: BorderRadius.circular(4),
                                   border: Border.all(color: const Color(0xFFFDE68A)),
                                 ),
                                 child: const Icon(
@@ -1764,11 +1764,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
         fillColor: Colors.white,
         filled: true,
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(4),
           borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(4),
           borderSide: const BorderSide(color: Colors.black, width: 1.5),
         ),
       ),
@@ -1847,7 +1847,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               padding: const EdgeInsets.all(18),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(18),
+                borderRadius: BorderRadius.circular(4),
                 border: Border.all(color: const Color(0xFFE5E7EB)),
                 boxShadow: [
                   BoxShadow(
@@ -1970,7 +1970,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             vertical: 10,
                           ),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
+                            borderRadius: BorderRadius.circular(4),
                           ),
                         ),
                         onPressed: () => _pickAndUploadAvatar(context),
@@ -1994,7 +1994,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             vertical: 10,
                           ),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
+                            borderRadius: BorderRadius.circular(4),
                           ),
                         ),
                         onPressed: () async {
@@ -2066,7 +2066,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               padding: const EdgeInsets.all(18),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(18),
+                borderRadius: BorderRadius.circular(4),
                 border: Border.all(color: const Color(0xFFE5E7EB)),
               ),
               child: Column(
@@ -2094,7 +2094,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(4),
                       border: Border.all(color: const Color(0xFFCBD5E1)),
                     ),
                     child: DropdownButtonHideUnderline(
@@ -2147,7 +2147,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         foregroundColor: Colors.white,
                         elevation: 0,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(24),
+                          borderRadius: BorderRadius.circular(4),
                         ),
                       ),
                       onPressed: _isSavingSettings
@@ -2235,7 +2235,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               padding: const EdgeInsets.all(18),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(18),
+                borderRadius: BorderRadius.circular(4),
                 border: Border.all(color: const Color(0xFFE5E7EB)),
               ),
               child: Column(
@@ -2246,7 +2246,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
                       color: const Color(0xFFF8FAFC),
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(4),
                       border: Border.all(color: const Color(0xFFE2E8F0)),
                     ),
                     child: const Row(
@@ -2305,7 +2305,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
                     decoration: BoxDecoration(
                       color: const Color(0xFFF8FAFC),
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(4),
                       border: Border.all(color: const Color(0xFFE2E8F0)),
                     ),
                     child: Row(
@@ -2357,7 +2357,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
                     decoration: BoxDecoration(
                       color: const Color(0xFFF8FAFC),
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(4),
                       border: Border.all(color: const Color(0xFFE2E8F0)),
                     ),
                     child: Row(
@@ -2406,7 +2406,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   foregroundColor: const Color(0xFFBE123C),
                   elevation: 0,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(24),
+                    borderRadius: BorderRadius.circular(4),
                   ),
                 ),
                 onPressed: () async {
@@ -2477,7 +2477,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }) {
     return InkWell(
       onTap: () => _handleNavTap(index),
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(4),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
         child: Column(
@@ -2488,7 +2488,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                 decoration: BoxDecoration(
                   color: Colors.black,
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(4),
                 ),
                 child: Icon(icon, color: Colors.white, size: 20),
               )
@@ -2539,7 +2539,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       margin: EdgeInsets.only(bottom: isWide ? 0 : 12),
       child: InkWell(
         onTap: mod.onTap,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(4),
         child: Container(
           padding: EdgeInsets.symmetric(
             horizontal: isWide ? 18 : 16,
@@ -2547,7 +2547,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
           decoration: BoxDecoration(
             color: const Color(0xFFF6F7F9),
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(4),
           ),
           child: Row(
             children: [
@@ -2556,7 +2556,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 height: 50,
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(4),
                   border: Border.all(color: const Color(0xFFE5E7EB)),
                 ),
                 child: Icon(
@@ -2590,7 +2590,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                             decoration: BoxDecoration(
                               color: Colors.white,
-                              borderRadius: BorderRadius.circular(10),
+                              borderRadius: BorderRadius.circular(4),
                               border: Border.all(color: const Color(0xFFE5E7EB)),
                             ),
                             child: Text(

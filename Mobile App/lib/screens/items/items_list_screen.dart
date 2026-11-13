@@ -314,9 +314,9 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
           ? FloatingActionButton.extended(
               backgroundColor: Colors.black,
               foregroundColor: Colors.white,
-              elevation: 4,
+              elevation: 0,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(30),
+                borderRadius: BorderRadius.circular(4),
               ),
               icon: const Icon(Icons.add, color: Colors.white, size: 20),
               label: const Text(
@@ -343,7 +343,7 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
       height: 48,
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(4),
         border: Border.all(color: const Color(0xFFE2E8F0)),
       ),
       child: Row(
@@ -397,7 +397,7 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 14),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(4),
           border: Border.all(color: const Color(0xFFE2E8F0)),
         ),
         child: Row(
@@ -426,7 +426,7 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(4),
         border: Border.all(color: const Color(0xFFE2E8F0)),
         boxShadow: const [
           BoxShadow(
@@ -437,7 +437,7 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
         ],
       ),
       child: InkWell(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(4),
         hoverColor: const Color(0xFFF8FAFC),
         onTap: () {
           Navigator.push(
@@ -457,7 +457,7 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
             children: [
               // Thumbnail
               ClipRRect(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(4),
                 child: (item.imageUrl != null && item.imageUrl!.isNotEmpty)
                     ? Image.network(
                         ApiConstants.resolveImageUrl(item.imageUrl)!,
@@ -533,7 +533,7 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
       height: 52,
       decoration: BoxDecoration(
         color: const Color(0xFFF8FAFC),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(4),
         border: Border.all(color: const Color(0xFFE2E8F0)),
       ),
       child: Center(

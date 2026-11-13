@@ -140,7 +140,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
       builder: (ctx) => StatefulBuilder(
         builder: (context, setDlgState) => AlertDialog(
           backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
           title: const Row(
             children: [
               Icon(Icons.business_outlined, size: 22, color: Colors.black),
@@ -176,7 +176,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                       filled: true,
                       fillColor: const Color(0xFFF8FAFC),
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(4),
                         borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                       ),
                       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
@@ -208,7 +208,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                       filled: true,
                       fillColor: const Color(0xFFF8FAFC),
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(4),
                         borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                       ),
                       contentPadding: const EdgeInsets.all(12),
@@ -233,7 +233,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                       filled: true,
                       fillColor: const Color(0xFFF8FAFC),
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(4),
                         borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                       ),
                       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
@@ -252,7 +252,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.black,
                 foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
               ),
               onPressed: isCreating
                   ? null
@@ -362,7 +362,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                       height: 44,
                       decoration: BoxDecoration(
                         color: const Color(0xFFF8FAFC),
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(4),
                         border: Border.all(color: const Color(0xFFE2E8F0)),
                       ),
                       child: Row(
@@ -408,7 +408,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: Colors.black,
                                     foregroundColor: Colors.white,
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
                                   ),
                                   icon: const Icon(Icons.add, size: 16),
                                   label: const Text('Add This Customer'),
@@ -432,7 +432,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                                   padding: const EdgeInsets.all(8),
                                   decoration: BoxDecoration(
                                     color: isSelected ? Colors.black : const Color(0xFFF8FAFC),
-                                    borderRadius: BorderRadius.circular(8),
+                                    borderRadius: BorderRadius.circular(4),
                                   ),
                                   child: Icon(
                                     Icons.business,
@@ -564,7 +564,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                       decoration: BoxDecoration(
                         color: const Color(0xFFF0FDFA),
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(4),
                         border: Border.all(color: const Color(0xFF99F6E4)),
                       ),
                       child: Row(
@@ -574,7 +574,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                             height: 36,
                             decoration: BoxDecoration(
                               color: const Color(0xFF0F766E),
-                              borderRadius: BorderRadius.circular(8),
+                              borderRadius: BorderRadius.circular(4),
                             ),
                             alignment: Alignment.center,
                             child: const Icon(Icons.inventory_2_outlined, color: Colors.white, size: 18),
@@ -611,7 +611,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                       height: 44,
                       decoration: BoxDecoration(
                         color: const Color(0xFFF8FAFC),
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(4),
                         border: Border.all(color: const Color(0xFFE2E8F0)),
                       ),
                       child: Row(
@@ -645,7 +645,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                       constraints: const BoxConstraints(maxHeight: 180),
                       decoration: BoxDecoration(
                         border: Border.all(color: const Color(0xFFE2E8F0)),
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(4),
                       ),
                       child: filteredItems.isEmpty
                           ? const Center(
@@ -706,7 +706,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                                 filled: true,
                                 fillColor: const Color(0xFFF8FAFC),
                                 border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(10),
+                                  borderRadius: BorderRadius.circular(4),
                                   borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                                 ),
                                 contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -739,7 +739,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                                 filled: true,
                                 fillColor: const Color(0xFFF8FAFC),
                                 border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(10),
+                                  borderRadius: BorderRadius.circular(4),
                                   borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                                 ),
                                 contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -760,7 +760,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                     decoration: BoxDecoration(
                       color: const Color(0xFFF8FAFC),
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(4),
                       border: Border.all(color: const Color(0xFFE2E8F0)),
                     ),
                     child: Row(
@@ -789,7 +789,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                         backgroundColor: Colors.black,
                         foregroundColor: Colors.white,
                         elevation: 0,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
                       ),
                       onPressed: () {
                         if (selectedCatalogItem == null) {
@@ -982,7 +982,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                 fillColor: const Color(0xFFF8FAFC),
                 prefixIcon: const Icon(Icons.tag, size: 20, color: Color(0xFF64748B)),
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(4),
                   borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                 ),
                 contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
@@ -1016,12 +1016,12 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                       const SizedBox(height: 6),
                       InkWell(
                         onTap: _selectPoDate,
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(4),
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 13),
                           decoration: BoxDecoration(
                             color: const Color(0xFFF8FAFC),
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(4),
                             border: Border.all(color: const Color(0xFFE2E8F0)),
                           ),
                           child: Row(
@@ -1058,12 +1058,12 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                       const SizedBox(height: 6),
                       InkWell(
                         onTap: _selectShippingDate,
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(4),
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 13),
                           decoration: BoxDecoration(
                             color: const Color(0xFFF8FAFC),
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(4),
                             border: Border.all(color: const Color(0xFFE2E8F0)),
                           ),
                           child: Row(
@@ -1127,14 +1127,14 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
 
             InkWell(
               onTap: _showCustomerPickerModal,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(4),
               child: Container(
                 width: double.infinity,
                 padding:
                     const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
                 decoration: BoxDecoration(
                   color: const Color(0xFFF8FAFC),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(4),
                   border: Border.all(color: const Color(0xFFE2E8F0)),
                 ),
                 child: Row(
@@ -1218,7 +1218,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                     foregroundColor: Colors.white,
                     elevation: 0,
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
                   ),
                   onPressed: () => _showAddItemModal(),
                   icon: const Icon(Icons.add, size: 16),
@@ -1235,7 +1235,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                 padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 20),
                 decoration: BoxDecoration(
                   color: const Color(0xFFF8FAFC),
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(4),
                   border: Border.all(color: const Color(0xFFE2E8F0)),
                 ),
                 child: Column(
@@ -1259,7 +1259,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
               Container(
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(4),
                   border: Border.all(color: const Color(0xFFCBD5E1)),
                 ),
                 clipBehavior: Clip.antiAlias,
@@ -1462,7 +1462,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                 filled: true,
                 fillColor: const Color(0xFFF8FAFC),
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(4),
                   borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                 ),
                 contentPadding: const EdgeInsets.all(12),
@@ -1493,7 +1493,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                 foregroundColor: Colors.white,
                 elevation: 0,
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
+                    borderRadius: BorderRadius.circular(4)),
               ),
               onPressed: _isSaving ? null : _submit,
               child: _isSaving

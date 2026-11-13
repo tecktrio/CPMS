@@ -143,7 +143,7 @@ class _StockBatchesListScreenState extends State<StockBatchesListScreen> {
                             return Card(
                               elevation: 0,
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
+                                borderRadius: BorderRadius.circular(4),
                                 side: BorderSide(
                                   color: isExpired
                                       ? const Color(0xFFFCA5A5)
@@ -169,7 +169,7 @@ class _StockBatchesListScreenState extends State<StockBatchesListScreen> {
                                                         ? Colors.orange
                                                         : const Color(0xFF0F766E))
                                                 .withValues(alpha: 0.1),
-                                            borderRadius: BorderRadius.circular(8),
+                                            borderRadius: BorderRadius.circular(4),
                                           ),
                                           child: Icon(
                                             Icons.qr_code_2,
@@ -211,7 +211,7 @@ class _StockBatchesListScreenState extends State<StockBatchesListScreen> {
                                                 : isNearExpiry
                                                     ? const Color(0xFFFFFBEB)
                                                     : const Color(0xFFF0FDF4),
-                                            borderRadius: BorderRadius.circular(20),
+                                            borderRadius: BorderRadius.circular(4),
                                             border: Border.all(
                                               color: isExpired
                                                   ? const Color(0xFFFECACA)

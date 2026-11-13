@@ -45,11 +45,11 @@ class _PurchaseOrdersListScreenState extends State<PurchaseOrdersListScreen> {
   Color _getStatusBg(String status) {
     switch (status.toUpperCase()) {
       case 'CONFIRMED':
-        return const Color(0xFFEFF6FF);
+        return const Color(0xFFECFDF5);
       case 'IN_PRODUCTION':
         return const Color(0xFFFEF3C7);
       case 'SHIPPED':
-        return const Color(0xFFECFDF5);
+        return const Color(0xFFEFF6FF);
       case 'DRAFT':
       default:
         return const Color(0xFFF1F5F9);
@@ -59,11 +59,11 @@ class _PurchaseOrdersListScreenState extends State<PurchaseOrdersListScreen> {
   Color _getStatusTextColor(String status) {
     switch (status.toUpperCase()) {
       case 'CONFIRMED':
-        return const Color(0xFF1D4ED8);
+        return const Color(0xFF047857);
       case 'IN_PRODUCTION':
         return const Color(0xFFB45309);
       case 'SHIPPED':
-        return const Color(0xFF047857);
+        return const Color(0xFF1D4ED8);
       case 'DRAFT':
       default:
         return const Color(0xFF475569);
@@ -171,7 +171,7 @@ class _PurchaseOrdersListScreenState extends State<PurchaseOrdersListScreen> {
                       ),
               ),
 
-              // Metrics Banner (Total POs & Total Cartons)
+              // Metrics Banner (Total Orders & Total Cartons - Uber Style)
               Padding(
                 padding: EdgeInsets.symmetric(
                   horizontal: isWide ? 24 : 16,
@@ -180,45 +180,50 @@ class _PurchaseOrdersListScreenState extends State<PurchaseOrdersListScreen> {
                   children: [
                     Expanded(
                       child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 12),
+                        padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF8FAFC),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(color: const Color(0xFFE5E5E5)),
                         ),
-                        child: Row(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFEFF6FF),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: const Icon(
-                                Icons.receipt_long,
-                                color: Color(0xFF1D4ED8),
-                                size: 18,
+                            const Text(
+                              'TOTAL ORDERS',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF71717A),
+                                letterSpacing: 0.5,
                               ),
                             ),
-                            const SizedBox(width: 12),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                            const SizedBox(height: 6),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              crossAxisAlignment: CrossAxisAlignment.end,
                               children: [
-                                const Text(
-                                  'TOTAL ORDERS',
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w700,
-                                    color: Color(0xFF64748B),
-                                  ),
-                                ),
                                 Text(
                                   '${allOrders.length}',
                                   style: const TextStyle(
-                                    fontSize: 18,
+                                    fontSize: 28,
                                     fontWeight: FontWeight.w900,
-                                    color: Color(0xFF0F172A),
+                                    color: Colors.black,
+                                    height: 1.0,
+                                  ),
+                                ),
+                                Container(
+                                  width: 36,
+                                  height: 36,
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF8FAFC),
+                                    borderRadius: BorderRadius.circular(2),
+                                    border: Border.all(color: const Color(0xFFF1F5F9)),
+                                  ),
+                                  child: const Icon(
+                                    Icons.description_outlined,
+                                    color: Colors.black87,
+                                    size: 18,
                                   ),
                                 ),
                               ],
@@ -230,45 +235,50 @@ class _PurchaseOrdersListScreenState extends State<PurchaseOrdersListScreen> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 12),
+                        padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF8FAFC),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(color: const Color(0xFFE5E5E5)),
                         ),
-                        child: Row(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFECFDF5),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: const Icon(
-                                Icons.inventory_2_outlined,
-                                color: Color(0xFF0F766E),
-                                size: 18,
+                            const Text(
+                              'TOTAL CARTONS',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF71717A),
+                                letterSpacing: 0.5,
                               ),
                             ),
-                            const SizedBox(width: 12),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                            const SizedBox(height: 6),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              crossAxisAlignment: CrossAxisAlignment.end,
                               children: [
-                                const Text(
-                                  'TOTAL CARTONS',
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w700,
-                                    color: Color(0xFF64748B),
-                                  ),
-                                ),
                                 Text(
                                   '$totalCartonsAll',
                                   style: const TextStyle(
-                                    fontSize: 18,
+                                    fontSize: 28,
                                     fontWeight: FontWeight.w900,
-                                    color: Color(0xFF0F766E),
+                                    color: Colors.black,
+                                    height: 1.0,
+                                  ),
+                                ),
+                                Container(
+                                  width: 36,
+                                  height: 36,
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF8FAFC),
+                                    borderRadius: BorderRadius.circular(2),
+                                    border: Border.all(color: const Color(0xFFF1F5F9)),
+                                  ),
+                                  child: const Icon(
+                                    Icons.inventory_2_outlined,
+                                    color: Colors.black87,
+                                    size: 18,
                                   ),
                                 ),
                               ],
@@ -281,58 +291,88 @@ class _PurchaseOrdersListScreenState extends State<PurchaseOrdersListScreen> {
                 ),
               ),
 
-              const SizedBox(height: 12),
+              // Active Orders Section Header
+              Padding(
+                padding: EdgeInsets.fromLTRB(
+                  isWide ? 24 : 16,
+                  16,
+                  isWide ? 24 : 16,
+                  8,
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: const [
+                    Text(
+                      'ACTIVE ORDERS',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF71717A),
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    Text(
+                      'Sorted by Date',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                        color: Color(0xFF71717A),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
 
               // Orders List / Grid
               Expanded(
                 child: poProvider.isLoading && allOrders.isEmpty
                     ? const Center(
                         child:
-                            CircularProgressIndicator(color: Color(0xFF0F766E)),
+                            CircularProgressIndicator(color: Colors.black),
                       )
                     : RefreshIndicator(
                         onRefresh: _refreshData,
-                        color: const Color(0xFF0F766E),
+                        color: Colors.black,
                         child: filteredOrders.isEmpty
                             ? ListView(
                                 physics: const AlwaysScrollableScrollPhysics(),
                                 children: [
                                   SizedBox(
-                                    height:
-                                        MediaQuery.of(context).size.height * 0.4,
+                                    height: MediaQuery.of(context).size.height * 0.35,
                                     child: Center(
                                       child: Column(
-                                        mainAxisSize: MainAxisSize.min,
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
                                         children: [
                                           Container(
-                                            padding: const EdgeInsets.all(16),
-                                            decoration: const BoxDecoration(
-                                              color: Color(0xFFF1F5F9),
-                                              shape: BoxShape.circle,
+                                            width: 48,
+                                            height: 48,
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFFF4F4F5),
+                                              borderRadius: BorderRadius.circular(4),
                                             ),
                                             child: const Icon(
                                               Icons.receipt_long_outlined,
-                                              size: 40,
+                                              size: 24,
                                               color: Color(0xFF94A3B8),
                                             ),
                                           ),
-                                          const SizedBox(height: 14),
+                                          const SizedBox(height: 12),
                                           Text(
-                                            _searchQuery.isNotEmpty ||
-                                                    _selectedStatus != 'ALL'
-                                                ? 'No matching purchase orders'
-                                                : 'No purchase orders yet',
+                                            _searchQuery.isNotEmpty
+                                                ? 'No purchase orders match "$_searchQuery"'
+                                                : 'No purchase orders found',
                                             style: const TextStyle(
-                                              fontSize: 16,
+                                              fontSize: 14,
                                               fontWeight: FontWeight.w700,
                                               color: Color(0xFF334155),
                                             ),
                                           ),
-                                          const SizedBox(height: 6),
+                                          const SizedBox(height: 4),
                                           const Text(
-                                            'Create your first PO to start tracking customer orders',
+                                            'Tap "+ Create PO" below to register an order.',
                                             style: TextStyle(
-                                              fontSize: 13,
+                                              fontSize: 12,
                                               color: Color(0xFF64748B),
                                             ),
                                           ),
@@ -345,14 +385,15 @@ class _PurchaseOrdersListScreenState extends State<PurchaseOrdersListScreen> {
                             : isWide
                                 ? GridView.builder(
                                     padding: const EdgeInsets.fromLTRB(
-                                        24, 8, 24, 96),
+                                        24, 6, 24, 80),
+                                    physics:
+                                        const AlwaysScrollableScrollPhysics(),
                                     gridDelegate:
-                                        SliverGridDelegateWithFixedCrossAxisCount(
-                                      crossAxisCount:
-                                          screenWidth >= 1050 ? 2 : 1,
-                                      crossAxisSpacing: 16,
-                                      mainAxisSpacing: 16,
-                                      mainAxisExtent: 178,
+                                        const SliverGridDelegateWithMaxCrossAxisExtent(
+                                      maxCrossAxisExtent: 520,
+                                      mainAxisExtent: 175,
+                                      crossAxisSpacing: 14,
+                                      mainAxisSpacing: 14,
                                     ),
                                     itemCount: filteredOrders.length,
                                     itemBuilder: (context, idx) {
@@ -362,10 +403,12 @@ class _PurchaseOrdersListScreenState extends State<PurchaseOrdersListScreen> {
                                   )
                                 : ListView.separated(
                                     padding: const EdgeInsets.fromLTRB(
-                                        16, 8, 16, 96),
+                                        16, 6, 16, 80),
+                                    physics:
+                                        const AlwaysScrollableScrollPhysics(),
                                     itemCount: filteredOrders.length,
                                     separatorBuilder: (_, _) =>
-                                        const SizedBox(height: 12),
+                                        const SizedBox(height: 10),
                                     itemBuilder: (context, idx) {
                                       final po = filteredOrders[idx];
                                       return _buildPoCard(context, po);
@@ -380,8 +423,9 @@ class _PurchaseOrdersListScreenState extends State<PurchaseOrdersListScreen> {
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: Colors.black,
         foregroundColor: Colors.white,
-        elevation: 3,
-        icon: const Icon(Icons.add, size: 20),
+        elevation: 0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+        icon: const Icon(Icons.add, size: 18),
         label: const Text(
           'Create PO',
           style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
@@ -400,17 +444,17 @@ class _PurchaseOrdersListScreenState extends State<PurchaseOrdersListScreen> {
 
   Widget _buildSearchBar() {
     return Container(
-      height: 48,
+      height: 44,
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: const Color(0xFFE5E5E5)),
       ),
       child: Row(
         children: [
           const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 14),
-            child: Icon(Icons.search, color: Color(0xFF94A3B8), size: 20),
+            padding: EdgeInsets.symmetric(horizontal: 12),
+            child: Icon(Icons.search, color: Color(0xFF71717A), size: 18),
           ),
           Expanded(
             child: TextField(
@@ -423,8 +467,8 @@ class _PurchaseOrdersListScreenState extends State<PurchaseOrdersListScreen> {
               decoration: const InputDecoration(
                 hintText: 'Search PO number or customer...',
                 hintStyle: TextStyle(
-                  color: Color(0xFF94A3B8),
-                  fontSize: 14,
+                  color: Color(0xFF71717A),
+                  fontSize: 13,
                   fontWeight: FontWeight.w400,
                 ),
                 border: InputBorder.none,
@@ -434,7 +478,7 @@ class _PurchaseOrdersListScreenState extends State<PurchaseOrdersListScreen> {
           ),
           if (_searchQuery.isNotEmpty)
             IconButton(
-              icon: const Icon(Icons.clear, color: Color(0xFF94A3B8), size: 18),
+              icon: const Icon(Icons.clear, color: Color(0xFF71717A), size: 16),
               onPressed: () {
                 _searchController.clear();
                 setState(() {
@@ -471,19 +515,22 @@ class _PurchaseOrdersListScreenState extends State<PurchaseOrdersListScreen> {
           _selectedStatus = code;
         });
       },
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(2),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? Colors.black : const Color(0xFFF1F5F9),
-          borderRadius: BorderRadius.circular(20),
+          color: isSelected ? Colors.black : Colors.white,
+          borderRadius: BorderRadius.circular(2),
+          border: Border.all(
+            color: isSelected ? Colors.black : const Color(0xFFE5E5E5),
+          ),
         ),
         child: Text(
           label,
           style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: isSelected ? Colors.white : const Color(0xFF475569),
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+            color: isSelected ? Colors.white : Colors.black,
           ),
         ),
       ),
@@ -494,21 +541,14 @@ class _PurchaseOrdersListScreenState extends State<PurchaseOrdersListScreen> {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x04000000),
-            blurRadius: 6,
-            offset: Offset(0, 2),
-          ),
-        ],
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: const Color(0xFFE5E5E5)),
       ),
       child: Material(
         color: Colors.transparent,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(4),
         child: InkWell(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(4),
           hoverColor: const Color(0xFFF8FAFC),
           onTap: () {
             Navigator.push(
@@ -519,7 +559,7 @@ class _PurchaseOrdersListScreenState extends State<PurchaseOrdersListScreen> {
             );
           },
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(14),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -531,62 +571,86 @@ class _PurchaseOrdersListScreenState extends State<PurchaseOrdersListScreen> {
                     Row(
                       children: [
                         Container(
-                          padding: const EdgeInsets.all(7),
+                          width: 28,
+                          height: 28,
                           decoration: BoxDecoration(
-                            color: const Color(0xFFF1F5F9),
-                            borderRadius: BorderRadius.circular(8),
+                            color: const Color(0xFFF4F4F5),
+                            borderRadius: BorderRadius.circular(2),
                           ),
                           child: const Icon(
-                            Icons.receipt_outlined,
+                            Icons.assignment_turned_in_outlined,
                             size: 16,
-                            color: Color(0xFF0F172A),
+                            color: Colors.black,
                           ),
                         ),
                         const SizedBox(width: 8),
-                        Text(
-                          po.poNumber,
-                          style: const TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w800,
-                            color: Color(0xFF0F172A),
+                        RichText(
+                          text: TextSpan(
+                            style: const TextStyle(
+                              fontSize: 15,
+                              color: Colors.black,
+                            ),
+                            children: [
+                              const TextSpan(
+                                text: 'PO # ',
+                                style: TextStyle(
+                                  color: Color(0xFF71717A),
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 13,
+                                ),
+                              ),
+                              TextSpan(
+                                text: po.poNumber,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
                     ),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 4),
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
                       decoration: BoxDecoration(
                         color: _getStatusBg(po.status),
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(2),
                       ),
                       child: Text(
-                        po.status.replaceAll('_', ' '),
+                        po.status.replaceAll('_', ' ').toUpperCase(),
                         style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
                           color: _getStatusTextColor(po.status),
+                          letterSpacing: 0.5,
                         ),
                       ),
                     ),
                   ],
                 ),
 
-                const SizedBox(height: 8),
+                const SizedBox(height: 10),
 
                 // Customer Name
                 Row(
                   children: [
-                    const Icon(Icons.business_outlined,
-                        size: 15, color: Color(0xFF64748B)),
+                    const Icon(
+                      Icons.business_outlined,
+                      size: 15,
+                      color: Color(0xFF71717A),
+                    ),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
                         po.customerName,
                         style: const TextStyle(
                           fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF1E293B),
+                          fontWeight: FontWeight.w800,
+                          color: Colors.black,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -595,42 +659,74 @@ class _PurchaseOrdersListScreenState extends State<PurchaseOrdersListScreen> {
                   ],
                 ),
 
-                const SizedBox(height: 6),
+                const SizedBox(height: 10),
 
-                // Dates info
-                Row(
-                  children: [
-                    const Icon(Icons.calendar_today_outlined,
-                        size: 13, color: Color(0xFF94A3B8)),
-                    const SizedBox(width: 5),
-                    Text(
-                      'PO: ${_dateFormat.format(po.poDate)}',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Color(0xFF64748B),
-                        fontWeight: FontWeight.w500,
+                // Dates info in subtle grey container
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.calendar_today_outlined,
+                        size: 13,
+                        color: Color(0xFF71717A),
                       ),
-                    ),
-                    if (po.expectedShippingDate != null) ...[
-                      const SizedBox(width: 12),
-                      const Icon(Icons.local_shipping_outlined,
-                          size: 14, color: Color(0xFF94A3B8)),
-                      const SizedBox(width: 4),
-                      Text(
-                        'Exp: ${_dateFormat.format(po.expectedShippingDate!)}',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Color(0xFF0F766E),
-                          fontWeight: FontWeight.w600,
+                      const SizedBox(width: 5),
+                      const Text(
+                        'PO: ',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Color(0xFF71717A),
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
+                      Text(
+                        _dateFormat.format(po.poDate),
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.black,
+                        ),
+                      ),
+                      if (po.expectedShippingDate != null) ...[
+                        const SizedBox(width: 14),
+                        const Icon(
+                          Icons.local_shipping_outlined,
+                          size: 14,
+                          color: Color(0xFF71717A),
+                        ),
+                        const SizedBox(width: 4),
+                        const Text(
+                          'Exp: ',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Color(0xFF71717A),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        Text(
+                          _dateFormat.format(po.expectedShippingDate!),
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.black,
+                          ),
+                        ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
 
-                const Divider(height: 16, color: Color(0xFFF1F5F9)),
+                const SizedBox(height: 10),
 
-                // Bottom row: Metrics (Total Items & Total Cartons)
+                // Bottom row: items count & Cartons badge
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -638,24 +734,37 @@ class _PurchaseOrdersListScreenState extends State<PurchaseOrdersListScreen> {
                       '${po.items.length} ${po.items.length == 1 ? 'item' : 'items'} (${po.totalPackets} pkts)',
                       style: const TextStyle(
                         fontSize: 12,
-                        color: Color(0xFF64748B),
+                        color: Color(0xFF71717A),
                         fontWeight: FontWeight.w500,
                       ),
                     ),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFEFF6FF),
-                        borderRadius: BorderRadius.circular(8),
+                        horizontal: 8,
+                        vertical: 3,
                       ),
-                      child: Text(
-                        '${po.totalCartons} Cartons',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w800,
-                          color: Color(0xFF1D4ED8),
-                        ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF4F4F5),
+                        borderRadius: BorderRadius.circular(2),
+                        border: Border.all(color: const Color(0xFFE5E5E5)),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.crop_square_outlined,
+                            size: 13,
+                            color: Colors.black87,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            '${po.totalCartons} Cartons',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.black,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],

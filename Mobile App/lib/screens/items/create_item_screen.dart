@@ -176,23 +176,23 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
       fillColor: Colors.white,
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(4),
         borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
       ),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(4),
         borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(4),
         borderSide: const BorderSide(color: Colors.black, width: 1.5),
       ),
       errorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(4),
         borderSide: const BorderSide(color: Colors.red),
       ),
       focusedErrorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(4),
         borderSide: const BorderSide(color: Colors.red, width: 1.5),
       ),
     );
@@ -263,7 +263,7 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
               Center(
                 child: InkWell(
                   onTap: _pickImage,
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(4),
                   child: CustomPaint(
                     painter: DashedBorderPainter(
                       color: const Color(0xFFCBD5E1),
@@ -277,14 +277,14 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
                       padding: const EdgeInsets.symmetric(vertical: 22, horizontal: 16),
                       decoration: BoxDecoration(
                         color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(4),
                       ),
                       child: _selectedImageBytes != null
                           ? Column(
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 ClipRRect(
-                                  borderRadius: BorderRadius.circular(12),
+                                  borderRadius: BorderRadius.circular(4),
                                   child: Image.memory(
                                     _selectedImageBytes!,
                                     width: 80,
@@ -419,15 +419,15 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
                   fillColor: Colors.white,
                   contentPadding: const EdgeInsets.all(14),
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(4),
                     borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                   ),
                   enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(4),
                     borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                   ),
                   focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(4),
                     borderSide: const BorderSide(color: Colors.black, width: 1.5),
                   ),
                 ),
@@ -491,17 +491,17 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
                               vertical: 14,
                             ),
                             border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(4),
                               borderSide:
                                   const BorderSide(color: Color(0xFFE2E8F0)),
                             ),
                             enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(4),
                               borderSide:
                                   const BorderSide(color: Color(0xFFE2E8F0)),
                             ),
                             focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(4),
                               borderSide: const BorderSide(
                                   color: Colors.black, width: 1.5),
                             ),
@@ -546,17 +546,17 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
                               vertical: 14,
                             ),
                             border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(4),
                               borderSide:
                                   const BorderSide(color: Color(0xFFE2E8F0)),
                             ),
                             enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(4),
                               borderSide:
                                   const BorderSide(color: Color(0xFFE2E8F0)),
                             ),
                             focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(4),
                               borderSide: const BorderSide(
                                   color: Colors.black, width: 1.5),
                             ),
@@ -586,7 +586,7 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
                   color: const Color(0xFFF8FAFC),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(4),
                   border: Border.all(color: const Color(0xFFE2E8F0)),
                 ),
                 child: Row(
@@ -633,7 +633,7 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
               Container(
                 decoration: BoxDecoration(
                   color: const Color(0xFFF8FAFC),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(4),
                   border: Border.all(
                     color: _hasIngredients ? Colors.black : const Color(0xFFE2E8F0),
                     width: _hasIngredients ? 1.5 : 1.0,
@@ -643,7 +643,7 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
                   value: _hasIngredients,
                   activeColor: Colors.black,
                   checkColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
                   controlAffinity: ListTileControlAffinity.leading,
                   title: const Text(
@@ -676,7 +676,7 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius: BorderRadius.circular(4),
                     border: Border.all(color: const Color(0xFFE2E8F0)),
                   ),
                   child: Column(
@@ -698,7 +698,7 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                             decoration: BoxDecoration(
                               color: const Color(0xFFF0FDFA),
-                              borderRadius: BorderRadius.circular(8),
+                              borderRadius: BorderRadius.circular(4),
                               border: Border.all(color: const Color(0xFF99F6E4)),
                             ),
                             child: Text(
@@ -719,7 +719,7 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
                         height: 44,
                         decoration: BoxDecoration(
                           color: const Color(0xFFF8FAFC),
-                          borderRadius: BorderRadius.circular(10),
+                          borderRadius: BorderRadius.circular(4),
                           border: Border.all(color: const Color(0xFFE2E8F0)),
                         ),
                         child: Row(
@@ -899,15 +899,15 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
                                               fillColor: const Color(0xFFF8FAFC),
                                               contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                                               border: OutlineInputBorder(
-                                                borderRadius: BorderRadius.circular(8),
+                                                borderRadius: BorderRadius.circular(4),
                                                 borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                                               ),
                                               enabledBorder: OutlineInputBorder(
-                                                borderRadius: BorderRadius.circular(8),
+                                                borderRadius: BorderRadius.circular(4),
                                                 borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                                               ),
                                               focusedBorder: OutlineInputBorder(
-                                                borderRadius: BorderRadius.circular(8),
+                                                borderRadius: BorderRadius.circular(4),
                                                 borderSide: const BorderSide(color: Colors.black, width: 1.5),
                                               ),
                                             ),
@@ -956,7 +956,7 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
               foregroundColor: Colors.white,
               elevation: 0,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(4),
               ),
             ),
             onPressed: _isSubmitting ? null : _submit,

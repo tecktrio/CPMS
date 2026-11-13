@@ -58,7 +58,7 @@ class _DepartmentsListScreenState extends State<DepartmentsListScreen>
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
         title: const Text(
           'Remove User from Organization',
           style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
@@ -77,7 +77,7 @@ class _DepartmentsListScreenState extends State<DepartmentsListScreen>
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFFDC2626),
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
             ),
             onPressed: () async {
               Navigator.pop(ctx);
@@ -112,7 +112,7 @@ class _DepartmentsListScreenState extends State<DepartmentsListScreen>
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
         title: const Text(
           'Deactivate Department',
           style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
@@ -131,7 +131,7 @@ class _DepartmentsListScreenState extends State<DepartmentsListScreen>
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFFDC2626),
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
             ),
             onPressed: () async {
               Navigator.pop(ctx);
@@ -199,10 +199,10 @@ class _DepartmentsListScreenState extends State<DepartmentsListScreen>
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.black,
             foregroundColor: Colors.white,
-            elevation: 4,
+            elevation: 0,
             shadowColor: Colors.black.withValues(alpha: 0.3),
             padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
           ),
           icon: const Icon(Icons.person_add_outlined, size: 18, color: Colors.white),
           label: const Text(
@@ -227,10 +227,10 @@ class _DepartmentsListScreenState extends State<DepartmentsListScreen>
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.black,
             foregroundColor: Colors.white,
-            elevation: 4,
+            elevation: 0,
             shadowColor: Colors.black.withValues(alpha: 0.3),
             padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
           ),
           icon: const Icon(Icons.add, size: 18, color: Colors.white),
           label: const Text(
@@ -552,7 +552,7 @@ class _DepartmentsListScreenState extends State<DepartmentsListScreen>
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(4),
         border: Border.all(color: const Color(0xFFE2E8F0)),
         boxShadow: const [
           BoxShadow(
@@ -569,13 +569,13 @@ class _DepartmentsListScreenState extends State<DepartmentsListScreen>
           Row(
             children: [
               ClipRRect(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(4),
                 child: Container(
                   width: 44,
                   height: 44,
                   decoration: BoxDecoration(
                     color: Colors.black,
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(4),
                   ),
                   child: resolvedAvatar != null
                       ? Image.network(
@@ -694,7 +694,7 @@ class _DepartmentsListScreenState extends State<DepartmentsListScreen>
                               horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
                             color: const Color(0xFFF1F5F9),
-                            borderRadius: BorderRadius.circular(6),
+                            borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(
                             name,
@@ -724,7 +724,7 @@ class _DepartmentsListScreenState extends State<DepartmentsListScreen>
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(4),
         border: Border.all(color: const Color(0xFFE2E8F0)),
         boxShadow: const [
           BoxShadow(
@@ -745,7 +745,7 @@ class _DepartmentsListScreenState extends State<DepartmentsListScreen>
                 height: 42,
                 decoration: BoxDecoration(
                   color: const Color(0xFFF8FAFC),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(4),
                   border: Border.all(color: const Color(0xFFE2E8F0)),
                 ),
                 child: const Icon(Icons.apartment,
@@ -786,7 +786,7 @@ class _DepartmentsListScreenState extends State<DepartmentsListScreen>
                     const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
                   color: const Color(0xFFF1F5F9),
-                  borderRadius: BorderRadius.circular(6),
+                  borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
                   '${d.permissionIds.length} Perms',
@@ -830,7 +830,7 @@ class _DepartmentsListScreenState extends State<DepartmentsListScreen>
                     const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
                   color: const Color(0xFFF8FAFC),
-                  borderRadius: BorderRadius.circular(6),
+                  borderRadius: BorderRadius.circular(4),
                   border: Border.all(color: const Color(0xFFE2E8F0)),
                 ),
                 child: Text(
@@ -850,7 +850,7 @@ class _DepartmentsListScreenState extends State<DepartmentsListScreen>
                               horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
                             color: const Color(0xFFF1F5F9),
-                            borderRadius: BorderRadius.circular(6),
+                            borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(
                             '+${d.permissionIds.length - 6} more',

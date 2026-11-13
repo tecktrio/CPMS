@@ -25,7 +25,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
         title: const Text(
           'Add New Division',
           style: TextStyle(
@@ -52,15 +52,15 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                 filled: true,
                 fillColor: const Color(0xFFF8FAFC),
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(4),
                   borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                 ),
                 enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(4),
                   borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                 ),
                 focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(4),
                   borderSide: const BorderSide(color: Colors.black, width: 1.5),
                 ),
                 prefixIcon: const Icon(Icons.grid_view_outlined, size: 20),
@@ -80,7 +80,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
               foregroundColor: Colors.white,
               elevation: 0,
               padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
             ),
             onPressed: () async {
               final newDiv = divController.text.trim();
@@ -205,15 +205,15 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                                 filled: true,
                                 fillColor: const Color(0xFFF8FAFC),
                                 border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
+                                  borderRadius: BorderRadius.circular(4),
                                   borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                                 ),
                                 enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
+                                  borderRadius: BorderRadius.circular(4),
                                   borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                                 ),
                                 focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
+                                  borderRadius: BorderRadius.circular(4),
                                   borderSide: const BorderSide(color: Colors.black, width: 1.5),
                                 ),
                               ),
@@ -249,15 +249,15 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                                           filled: true,
                                           fillColor: const Color(0xFFF8FAFC),
                                           border: OutlineInputBorder(
-                                            borderRadius: BorderRadius.circular(12),
+                                            borderRadius: BorderRadius.circular(4),
                                             borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                                           ),
                                           enabledBorder: OutlineInputBorder(
-                                            borderRadius: BorderRadius.circular(12),
+                                            borderRadius: BorderRadius.circular(4),
                                             borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                                           ),
                                           focusedBorder: OutlineInputBorder(
-                                            borderRadius: BorderRadius.circular(12),
+                                            borderRadius: BorderRadius.circular(4),
                                             borderSide: const BorderSide(
                                                 color: Colors.black, width: 1.5),
                                           ),
@@ -292,15 +292,15 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                                           filled: true,
                                           fillColor: const Color(0xFFF8FAFC),
                                           border: OutlineInputBorder(
-                                            borderRadius: BorderRadius.circular(12),
+                                            borderRadius: BorderRadius.circular(4),
                                             borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                                           ),
                                           enabledBorder: OutlineInputBorder(
-                                            borderRadius: BorderRadius.circular(12),
+                                            borderRadius: BorderRadius.circular(4),
                                             borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                                           ),
                                           focusedBorder: OutlineInputBorder(
-                                            borderRadius: BorderRadius.circular(12),
+                                            borderRadius: BorderRadius.circular(4),
                                             borderSide: const BorderSide(
                                                 color: Colors.black, width: 1.5),
                                           ),
@@ -369,12 +369,12 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                                           filled: true,
                                           fillColor: const Color(0xFFF8FAFC),
                                           border: OutlineInputBorder(
-                                            borderRadius: BorderRadius.circular(10),
+                                            borderRadius: BorderRadius.circular(4),
                                             borderSide:
                                                 const BorderSide(color: Color(0xFFE2E8F0)),
                                           ),
                                           enabledBorder: OutlineInputBorder(
-                                            borderRadius: BorderRadius.circular(10),
+                                            borderRadius: BorderRadius.circular(4),
                                             borderSide:
                                                 const BorderSide(color: Color(0xFFE2E8F0)),
                                           ),
@@ -411,7 +411,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                           foregroundColor: Colors.white,
                           elevation: 0,
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(4),
                           ),
                         ),
                         onPressed: () async {
@@ -468,7 +468,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
         title: Text(
           'Delete Store Room: ${room.roomCode}?',
           style: const TextStyle(
@@ -493,7 +493,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
               foregroundColor: Colors.white,
               elevation: 0,
               padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
             ),
             onPressed: () async {
               Navigator.pop(ctx);
@@ -551,7 +551,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
         title: Text(
           'Set Quantity: ${item.itemName}',
           style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 17),
@@ -578,7 +578,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                   filled: true,
                   fillColor: const Color(0xFFF8FAFC),
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(4),
                     borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                   ),
                 ),
@@ -602,7 +602,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
               backgroundColor: Colors.black,
               foregroundColor: Colors.white,
               shape:
-                  RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
             ),
             onPressed: () async {
               if (!formKey.currentState!.validate()) return;
@@ -651,7 +651,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
         builder: (context, setDlgState) {
           return AlertDialog(
             backgroundColor: Colors.white,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
             title: Text(
               'Move "${item.itemName}"',
               style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 17),
@@ -684,15 +684,15 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                       color: Color(0xFF64748B),
                     ),
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(4),
                       borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                     ),
                     enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(4),
                       borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                     ),
                     focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(4),
                       borderSide: const BorderSide(color: Colors.black, width: 1.5),
                     ),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -728,7 +728,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                       filled: true,
                       fillColor: Colors.white,
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(4),
                         borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                       ),
                       prefixIcon: const Icon(Icons.edit_note, size: 20, color: Color(0xFF64748B)),
@@ -746,7 +746,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.black,
                   foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
                 ),
                 onPressed: () async {
                   Navigator.pop(ctx);
@@ -785,7 +785,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
         title: const Text(
           'Remove from Store Room?',
           style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
@@ -804,7 +804,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFFDC2626),
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
             ),
             onPressed: () async {
               Navigator.pop(ctx);
@@ -927,7 +927,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(4),
                 border: Border.all(color: const Color(0xFFE2E8F0)),
               ),
               child: Column(
@@ -942,7 +942,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                         height: 48,
                         decoration: BoxDecoration(
                           color: Colors.black,
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(4),
                         ),
                         alignment: Alignment.center,
                         child: Text(
@@ -1003,7 +1003,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                           color: currentRoom.isActive
                               ? const Color(0xFFECFDF5)
                               : const Color(0xFFFEF2F2),
-                          borderRadius: BorderRadius.circular(20),
+                          borderRadius: BorderRadius.circular(4),
                           border: Border.all(
                             color: currentRoom.isActive
                                 ? const Color(0xFFA7F3D0)
@@ -1066,7 +1066,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
                             color: const Color(0xFFF8FAFC),
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(4),
                             border: Border.all(color: const Color(0xFFF1F5F9)),
                           ),
                           child: Column(
@@ -1122,7 +1122,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
                             color: const Color(0xFFF8FAFC),
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(4),
                             border: Border.all(color: const Color(0xFFF1F5F9)),
                           ),
                           child: Column(
@@ -1183,7 +1183,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(4),
                 border: Border.all(color: const Color(0xFFE2E8F0)),
               ),
               child: Column(
@@ -1200,7 +1200,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                             height: 26,
                             decoration: BoxDecoration(
                               color: const Color(0xFFF1F5F9),
-                              borderRadius: BorderRadius.circular(6),
+                              borderRadius: BorderRadius.circular(4),
                             ),
                             child: const Icon(
                               Icons.storage_outlined,
@@ -1224,7 +1224,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
                           color: const Color(0xFFF1F5F9),
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(
                           '${util.toStringAsFixed(1)}% FULL',
@@ -1267,7 +1267,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
 
                   // Custom Progress Bar with Indicator Dot
                   ClipRRect(
-                    borderRadius: BorderRadius.circular(6),
+                    borderRadius: BorderRadius.circular(4),
                     child: Stack(
                       children: [
                         Container(
@@ -1281,7 +1281,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                             height: 7,
                             decoration: BoxDecoration(
                               color: Colors.black,
-                              borderRadius: BorderRadius.circular(6),
+                              borderRadius: BorderRadius.circular(4),
                             ),
                           ),
                         ),
@@ -1296,7 +1296,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                     decoration: BoxDecoration(
                       color: const Color(0xFFF8FAFC),
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(4),
                       border: Border.all(color: const Color(0xFFF1F5F9)),
                     ),
                     child: Row(
@@ -1337,7 +1337,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(4),
                 border: Border.all(color: const Color(0xFFE2E8F0)),
               ),
               child: Column(
@@ -1354,7 +1354,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                             height: 26,
                             decoration: BoxDecoration(
                               color: const Color(0xFFF1F5F9),
-                              borderRadius: BorderRadius.circular(6),
+                              borderRadius: BorderRadius.circular(4),
                             ),
                             child: const Icon(
                               Icons.grid_view_outlined,
@@ -1378,7 +1378,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
                           color: Colors.black,
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(
                           '${currentRoom.divisions.length} Divisions',
@@ -1410,7 +1410,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                         decoration: BoxDecoration(
                           color: const Color(0xFFF8FAFC),
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(4),
                           border: Border.all(color: const Color(0xFFF1F5F9)),
                         ),
                         child: Row(
@@ -1420,7 +1420,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                               height: 36,
                               decoration: BoxDecoration(
                                 color: const Color(0xFFE2E8F0),
-                                borderRadius: BorderRadius.circular(8),
+                                borderRadius: BorderRadius.circular(4),
                               ),
                               alignment: Alignment.center,
                               child: Text(
@@ -1464,7 +1464,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                               ),
                               decoration: BoxDecoration(
                                 color: const Color(0xFFE2E8F0),
-                                borderRadius: BorderRadius.circular(8),
+                                borderRadius: BorderRadius.circular(4),
                               ),
                               child: Text(
                                 '$itemsInDiv Items',
@@ -1492,13 +1492,13 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                   if (canUpdate)
                     InkWell(
                       onTap: () => _showAddDivisionDialog(currentRoom),
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(4),
                       child: Container(
                         width: double.infinity,
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         decoration: BoxDecoration(
                           color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(4),
                           border: Border.all(
                             color: const Color(0xFFCBD5E1),
                             style: BorderStyle.solid,
@@ -1533,7 +1533,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(4),
                 border: Border.all(color: const Color(0xFFE2E8F0)),
               ),
               child: Column(
@@ -1550,7 +1550,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                             height: 26,
                             decoration: BoxDecoration(
                               color: const Color(0xFFF1F5F9),
-                              borderRadius: BorderRadius.circular(6),
+                              borderRadius: BorderRadius.circular(4),
                             ),
                             child: const Icon(
                               Icons.inventory_2_outlined,
@@ -1573,7 +1573,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                             decoration: BoxDecoration(
                               color: Colors.black,
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(4),
                             ),
                             child: Text(
                               '${roomItems.length}',
@@ -1596,7 +1596,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                             minimumSize: Size.zero,
                             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(20),
+                              borderRadius: BorderRadius.circular(4),
                             ),
                           ),
                           icon: const Icon(Icons.add, size: 14, color: Colors.white),
@@ -1617,7 +1617,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                       height: 40,
                       decoration: BoxDecoration(
                         color: const Color(0xFFF8FAFC),
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(4),
                         border: Border.all(color: const Color(0xFFE2E8F0)),
                       ),
                       child: TextField(
@@ -1642,7 +1642,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                       alignment: Alignment.center,
                       decoration: BoxDecoration(
                         color: const Color(0xFFF8FAFC),
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(4),
                         border: Border.all(color: const Color(0xFFE2E8F0)),
                       ),
                       child: Column(
@@ -1667,7 +1667,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                                 backgroundColor: Colors.black,
                                 foregroundColor: Colors.white,
                                 elevation: 0,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
                                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                               ),
                               icon: const Icon(Icons.search, size: 16),
@@ -1728,7 +1728,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
                           color: const Color(0xFFF8FAFC),
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(4),
                           border: Border.all(color: const Color(0xFFF1F5F9)),
                         ),
                         child: Row(
@@ -1736,13 +1736,13 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                           children: [
                             // Thumbnail
                             ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
+                              borderRadius: BorderRadius.circular(4),
                               child: Container(
                                 width: 44,
                                 height: 44,
                                 decoration: BoxDecoration(
                                   color: Colors.black,
-                                  borderRadius: BorderRadius.circular(8),
+                                  borderRadius: BorderRadius.circular(4),
                                 ),
                                 child: resolvedImg != null
                                     ? Image.network(
@@ -1837,13 +1837,13 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                                             );
                                           }
                                         : null,
-                                    borderRadius: BorderRadius.circular(8),
+                                    borderRadius: BorderRadius.circular(4),
                                     child: Container(
                                       width: 28,
                                       height: 28,
                                       decoration: BoxDecoration(
                                         color: Colors.white,
-                                        borderRadius: BorderRadius.circular(8),
+                                        borderRadius: BorderRadius.circular(4),
                                         border: Border.all(color: const Color(0xFFCBD5E1)),
                                       ),
                                       alignment: Alignment.center,
@@ -1857,12 +1857,12 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                                       sri,
                                       currentRoom,
                                     ),
-                                    borderRadius: BorderRadius.circular(8),
+                                    borderRadius: BorderRadius.circular(4),
                                     child: Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
                                       decoration: BoxDecoration(
                                         color: Colors.black,
-                                        borderRadius: BorderRadius.circular(8),
+                                        borderRadius: BorderRadius.circular(4),
                                       ),
                                       child: Text(
                                         '${sri.quantity.toStringAsFixed(1)} ${item.measurementUnit}',
@@ -1884,13 +1884,13 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                                         quantity: newQty,
                                       );
                                     },
-                                    borderRadius: BorderRadius.circular(8),
+                                    borderRadius: BorderRadius.circular(4),
                                     child: Container(
                                       width: 28,
                                       height: 28,
                                       decoration: BoxDecoration(
                                         color: Colors.white,
-                                        borderRadius: BorderRadius.circular(8),
+                                        borderRadius: BorderRadius.circular(4),
                                         border: Border.all(color: const Color(0xFFCBD5E1)),
                                       ),
                                       alignment: Alignment.center,
@@ -1904,7 +1904,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
                                 decoration: BoxDecoration(
                                   color: Colors.black,
-                                  borderRadius: BorderRadius.circular(8),
+                                  borderRadius: BorderRadius.circular(4),
                                 ),
                                 child: Text(
                                   '${sri.quantity.toStringAsFixed(1)} ${item.measurementUnit}',
@@ -1918,7 +1918,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                             // Actions Menu
                             PopupMenuButton<String>(
                               icon: const Icon(Icons.more_vert, size: 20, color: Color(0xFF64748B)),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
                               onSelected: (val) {
                                 if (val == 'view') {
                                   Navigator.push(
@@ -1990,7 +1990,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                     foregroundColor: Colors.white,
                     elevation: 0,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(4),
                     ),
                   ),
                   icon: const Icon(Icons.edit_outlined, size: 18),
@@ -2015,7 +2015,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                     elevation: 0,
                     side: const BorderSide(color: Color(0xFFFEE2E2)),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(4),
                     ),
                   ),
                   icon: const Icon(Icons.delete_outline, size: 18, color: Color(0xFFEF4444)),
@@ -2203,7 +2203,7 @@ class _AddItemToRoomModalState extends State<_AddItemToRoomModal> {
             height: 44,
             decoration: BoxDecoration(
               color: const Color(0xFFF8FAFC),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(4),
               border: Border.all(color: const Color(0xFFE2E8F0)),
             ),
             child: TextField(
@@ -2295,7 +2295,7 @@ class _AddItemToRoomModalState extends State<_AddItemToRoomModal> {
                       margin: const EdgeInsets.only(bottom: 8),
                       decoration: BoxDecoration(
                         color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(4),
                         border: Border.all(
                           color: isAlreadyInRoom
                               ? const Color(0xFFCBD5E1)
@@ -2305,13 +2305,13 @@ class _AddItemToRoomModalState extends State<_AddItemToRoomModal> {
                       child: ListTile(
                         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                         leading: ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(4),
                           child: Container(
                             width: 44,
                             height: 44,
                             decoration: BoxDecoration(
                               color: Colors.black,
-                              borderRadius: BorderRadius.circular(8),
+                              borderRadius: BorderRadius.circular(4),
                             ),
                             child: resolvedImg != null
                                 ? Image.network(
@@ -2427,7 +2427,7 @@ class _AddItemToRoomModalState extends State<_AddItemToRoomModal> {
                             minimumSize: Size.zero,
                             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
+                              borderRadius: BorderRadius.circular(4),
                             ),
                           ),
                           onPressed: () {
@@ -2504,7 +2504,7 @@ class _AddItemToRoomModalState extends State<_AddItemToRoomModal> {
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: const Color(0xFFF8FAFC),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(4),
               border: Border.all(color: const Color(0xFFE2E8F0)),
             ),
             child: Row(
@@ -2514,7 +2514,7 @@ class _AddItemToRoomModalState extends State<_AddItemToRoomModal> {
                   height: 38,
                   decoration: BoxDecoration(
                     color: Colors.black,
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(4),
                   ),
                   alignment: Alignment.center,
                   child: const Icon(Icons.inventory_2_outlined, color: Colors.white, size: 18),
@@ -2592,15 +2592,15 @@ class _AddItemToRoomModalState extends State<_AddItemToRoomModal> {
                         color: Color(0xFF64748B),
                       ),
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(4),
                         borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                       ),
                       enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(4),
                         borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                       ),
                       focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(4),
                         borderSide: const BorderSide(color: Colors.black, width: 1.5),
                       ),
                       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -2636,15 +2636,15 @@ class _AddItemToRoomModalState extends State<_AddItemToRoomModal> {
                         filled: true,
                         fillColor: Colors.white,
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(4),
                           borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                         ),
                         enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(4),
                           borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                         ),
                         focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(4),
                           borderSide: const BorderSide(color: Colors.black, width: 1.5),
                         ),
                         prefixIcon: const Icon(Icons.edit_note, size: 20, color: Color(0xFF64748B)),
@@ -2678,11 +2678,11 @@ class _AddItemToRoomModalState extends State<_AddItemToRoomModal> {
               fillColor: const Color(0xFFF8FAFC),
               prefixIcon: const Icon(Icons.inventory_2_outlined, size: 20, color: Color(0xFF94A3B8)),
               border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(4),
                 borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
               ),
               enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(4),
                 borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
               ),
             ),
@@ -2699,7 +2699,7 @@ class _AddItemToRoomModalState extends State<_AddItemToRoomModal> {
                 backgroundColor: Colors.black,
                 foregroundColor: Colors.white,
                 elevation: 0,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
               ),
               onPressed: _isAssigning
                   ? null
@@ -2762,12 +2762,12 @@ class _AddItemToRoomModalState extends State<_AddItemToRoomModal> {
     final isSel = _categoryFilter == key;
     return InkWell(
       onTap: () => setState(() => _categoryFilter = key),
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(4),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
           color: isSel ? Colors.black : const Color(0xFFF1F5F9),
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(4),
         ),
         child: Text(
           label,

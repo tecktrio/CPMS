@@ -96,7 +96,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
         title: Text(
           'Delete Item: ${item.sku}?',
           style: const TextStyle(
@@ -132,7 +132,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
               elevation: 0,
               padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(4),
               ),
             ),
             onPressed: () async {
@@ -244,7 +244,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
             Container(
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(4),
                 border: Border.all(color: const Color(0xFFE2E8F0)),
               ),
               child: Column(
@@ -282,9 +282,9 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                             right: 12,
                             child: Material(
                               color: Colors.black.withValues(alpha: 0.65),
-                              borderRadius: BorderRadius.circular(20),
+                              borderRadius: BorderRadius.circular(4),
                               child: InkWell(
-                                borderRadius: BorderRadius.circular(20),
+                                borderRadius: BorderRadius.circular(4),
                                 onTap: _isUploadingImage
                                     ? null
                                     : () =>
@@ -344,7 +344,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                               height: 52,
                               decoration: BoxDecoration(
                                 color: Colors.white,
-                                borderRadius: BorderRadius.circular(14),
+                                borderRadius: BorderRadius.circular(4),
                                 border:
                                     Border.all(color: const Color(0xFFE2E8F0)),
                               ),
@@ -407,7 +407,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                               ),
                               decoration: BoxDecoration(
                                 color: const Color(0xFFF1F5F9),
-                                borderRadius: BorderRadius.circular(8),
+                                borderRadius: BorderRadius.circular(4),
                               ),
                               child: Text(
                                 currentItem.sku,
@@ -429,7 +429,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                               ),
                               decoration: BoxDecoration(
                                 color: const Color(0xFFF1F5F9),
-                                borderRadius: BorderRadius.circular(8),
+                                borderRadius: BorderRadius.circular(4),
                               ),
                               child: Text(
                                 currentItem.itemType
@@ -456,7 +456,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                                 color: currentItem.isActive
                                     ? const Color(0xFFECFDF5)
                                     : const Color(0xFFFEF2F2),
-                                borderRadius: BorderRadius.circular(20),
+                                borderRadius: BorderRadius.circular(4),
                                 border: Border.all(
                                   color: currentItem.isActive
                                       ? const Color(0xFFA7F3D0)
@@ -550,7 +550,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(4),
                 border: Border.all(color: const Color(0xFFE2E8F0)),
               ),
               child: Column(
@@ -563,7 +563,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                         height: 26,
                         decoration: BoxDecoration(
                           color: const Color(0xFFF1F5F9),
-                          borderRadius: BorderRadius.circular(6),
+                          borderRadius: BorderRadius.circular(4),
                         ),
                         child: const Icon(
                           Icons.description_outlined,
@@ -611,7 +611,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(4),
                 border: Border.all(color: const Color(0xFFE2E8F0)),
               ),
               child: Column(
@@ -627,7 +627,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                             height: 26,
                             decoration: BoxDecoration(
                               color: const Color(0xFFF1F5F9),
-                              borderRadius: BorderRadius.circular(6),
+                              borderRadius: BorderRadius.circular(4),
                             ),
                             child: const Icon(
                               Icons.science_outlined,
@@ -652,7 +652,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
                             color: const Color(0xFFF0FDFA),
-                            borderRadius: BorderRadius.circular(10),
+                            borderRadius: BorderRadius.circular(4),
                             border: Border.all(color: const Color(0xFF99F6E4)),
                           ),
                           child: Text(
@@ -673,7 +673,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
                         color: const Color(0xFFF8FAFC),
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(4),
                         border: Border.all(color: const Color(0xFFF1F5F9)),
                       ),
                       child: const Row(
@@ -699,7 +699,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
                         color: const Color(0xFFF8FAFC),
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(4),
                         border: Border.all(color: const Color(0xFFF1F5F9)),
                       ),
                       child: const Text(
@@ -728,7 +728,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                         decoration: BoxDecoration(
                           color: const Color(0xFFFAFAFA),
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(4),
                           border: Border.all(color: const Color(0xFFF1F5F9)),
                         ),
                         child: Row(
@@ -738,7 +738,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                               height: 36,
                               decoration: BoxDecoration(
                                 color: Colors.white,
-                                borderRadius: BorderRadius.circular(8),
+                                borderRadius: BorderRadius.circular(4),
                                 border: Border.all(color: const Color(0xFFE2E8F0)),
                               ),
                               alignment: Alignment.center,
@@ -773,7 +773,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                               decoration: BoxDecoration(
                                 color: Colors.white,
-                                borderRadius: BorderRadius.circular(8),
+                                borderRadius: BorderRadius.circular(4),
                                 border: Border.all(color: const Color(0xFFE2E8F0)),
                               ),
                               child: Text(
@@ -819,7 +819,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                       foregroundColor: Colors.white,
                       elevation: 0,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(4),
                       ),
                     ),
                     onPressed: () async {
@@ -866,7 +866,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                       elevation: 0,
                       side: const BorderSide(color: Color(0xFFFEE2E2)),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(4),
                       ),
                     ),
                     onPressed: () => _confirmDelete(currentItem),
