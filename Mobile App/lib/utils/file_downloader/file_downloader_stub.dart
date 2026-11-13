@@ -8,3 +8,4 @@ Future<void> downloadFileBytes({
 }) async {
   await Printing.sharePdf(bytes: bytes, filename: filename);
 }
+
