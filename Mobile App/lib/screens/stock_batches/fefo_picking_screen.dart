@@ -157,9 +157,18 @@ class _FefoPickingScreenState extends State<FefoPickingScreen> {
           SizedBox(width: 4),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Form(
+      body: RefreshIndicator(
+        color: Colors.black,
+        onRefresh: () async {
+          await Future.wait([
+            inventory.loadItems(),
+            inventory.loadStockBatches(),
+          ]);
+        },
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(20),
+          child: Form(
           key: _formKey,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -392,6 +401,7 @@ class _FefoPickingScreenState extends State<FefoPickingScreen> {
           ),
         ),
       ),
+    ),
     );
   }
 }

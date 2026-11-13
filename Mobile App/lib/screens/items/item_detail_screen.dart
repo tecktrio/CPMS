@@ -381,17 +381,27 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
           child: Divider(height: 1, color: Color(0xFFF1F5F9)),
         ),
       ),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 960),
-          child: SingleChildScrollView(
-            padding: EdgeInsets.symmetric(
-              horizontal: isWide ? 28 : 16,
-              vertical: 20,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+      body: RefreshIndicator(
+        color: Colors.black,
+        onRefresh: () async {
+          await Future.wait([
+            inventory.loadItems(),
+            inventory.loadStoreRooms(),
+            inventory.loadStockBatches(),
+          ]);
+        },
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 960),
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: EdgeInsets.symmetric(
+                horizontal: isWide ? 28 : 16,
+                vertical: 20,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
             // Summary Containers (Total Items & Items Less Than Threshold)
             Row(
               children: [
@@ -1203,6 +1213,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
       ),
     ),
   ),
-);
+),
+    );
   }
 }

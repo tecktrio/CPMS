@@ -225,44 +225,59 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
                 child: RefreshIndicator(
                   color: Colors.black,
                   onRefresh: () async {
-                    await inventory.loadItems();
+                    await Future.wait([
+                      inventory.loadItems(),
+                      inventory.loadStoreRooms(),
+                    ]);
                   },
                   child: inventory.isLoading
                       ? const Center(
                           child: CircularProgressIndicator(color: Colors.black),
                         )
                       : filteredItems.isEmpty
-                          ? Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    Icons.inventory_2_outlined,
-                                    size: 54,
-                                    color: Colors.grey.shade400,
-                                  ),
-                                  const SizedBox(height: 12),
-                                  const Text(
-                                    'No Items Found',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w800,
-                                      color: Colors.black,
+                          ? ListView(
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              children: [
+                                SizedBox(
+                                  height:
+                                      MediaQuery.of(context).size.height * 0.45,
+                                  child: Center(
+                                    child: Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Icon(
+                                          Icons.inventory_2_outlined,
+                                          size: 54,
+                                          color: Colors.grey.shade400,
+                                        ),
+                                        const SizedBox(height: 12),
+                                        const Text(
+                                          'No Items Found',
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w800,
+                                            color: Colors.black,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        const Text(
+                                          'Create item master records to begin managing inventory.',
+                                          style: TextStyle(
+                                            color: Color(0xFF64748B),
+                                            fontSize: 13,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
-                                  const SizedBox(height: 4),
-                                  const Text(
-                                    'Create item master records to begin managing inventory.',
-                                    style: TextStyle(
-                                      color: Color(0xFF64748B),
-                                      fontSize: 13,
-                                    ),
-                                  ),
-                                ],
-                              ),
+                                ),
+                              ],
                             )
                           : isWide
                               ? GridView.builder(
+                                  physics:
+                                      const AlwaysScrollableScrollPhysics(),
                                   padding: const EdgeInsets.fromLTRB(
                                       24, 6, 24, 90),
                                   gridDelegate:
@@ -280,6 +295,8 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
                                   },
                                 )
                               : ListView.builder(
+                                  physics:
+                                      const AlwaysScrollableScrollPhysics(),
                                   padding: const EdgeInsets.fromLTRB(
                                       16, 6, 16, 90),
                                   itemCount: filteredItems.length,

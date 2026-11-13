@@ -772,11 +772,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     // Default: Modules Operations Tab (Tab 2)
     return RefreshIndicator(
+      color: Colors.black,
       onRefresh: _loadInitialData,
       child: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 1080),
           child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
             padding: EdgeInsets.symmetric(
               horizontal: horizontalPadding,
               vertical: isWide ? 12 : 8,
@@ -1085,26 +1087,40 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
             // Search Results List
             Expanded(
-              child: totalResults == 0
-                  ? Padding(
-                      padding: const EdgeInsets.all(32),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
+              child: RefreshIndicator(
+                color: Colors.black,
+                onRefresh: _loadInitialData,
+                child: totalResults == 0
+                    ? ListView(
+                        physics: const AlwaysScrollableScrollPhysics(),
                         children: [
-                          Icon(Icons.search_off, size: 48, color: Colors.grey.shade400),
-                          const SizedBox(height: 12),
-                          Text(
-                            query.isEmpty
-                                ? 'Type a keyword above to search across items, store rooms, departments, and staff.'
-                                : 'No matching results found for "$query".',
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(color: Color(0xFF64748B), fontSize: 14),
+                          SizedBox(
+                            height: MediaQuery.of(context).size.height * 0.45,
+                            child: Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.search_off,
+                                      size: 48, color: Colors.grey.shade400),
+                                  const SizedBox(height: 12),
+                                  Text(
+                                    query.isEmpty
+                                        ? 'Type a keyword above to search across items, store rooms, departments, and staff.'
+                                        : 'No matching results found for "$query".',
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(
+                                        color: Color(0xFF64748B), fontSize: 14),
+                                  ),
+                                ],
+                              ),
+                            ),
                           ),
                         ],
-                      ),
-                    )
-                  : ListView(
-                      padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: 10),
+                      )
+                    : ListView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: EdgeInsets.symmetric(
+                            horizontal: horizontalPadding, vertical: 10),
                       children: [
                         // SECTION: ITEMS & PRODUCTS
                         if (showItems && matchingItems.isNotEmpty) ...[
@@ -1224,6 +1240,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         ],
                       ],
                     ),
+              ),
             ),
           ],
         ),
@@ -1447,12 +1464,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
       displayedItems = alertItems;
     }
 
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 680),
-        child: ListView(
-          padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: 16),
-          children: [
+    return RefreshIndicator(
+      color: Colors.black,
+      onRefresh: _loadInitialData,
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 680),
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: 16),
+            children: [
             // Header Row: Alerts + [ • 2 Critical ]
             Row(
               children: [
@@ -1752,6 +1773,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ],
         ),
       ),
+    ),
     );
   }
 
@@ -1852,12 +1874,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final userAvatarUrl = ApiConstants.resolveImageUrl(user?.avatarUrl);
     final tenantDisplayName = (activeTenant?.companyName ?? 'trends').toLowerCase();
 
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 680),
-        child: ListView(
-          padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: 16),
-          children: [
+    return RefreshIndicator(
+      color: Colors.black,
+      onRefresh: _loadInitialData,
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 680),
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: 16),
+            children: [
             // Page Header
             const Text(
               'Settings',
@@ -2607,6 +2633,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ],
         ),
       ),
+    ),
     );
   }
 

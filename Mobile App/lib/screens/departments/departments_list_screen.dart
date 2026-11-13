@@ -339,34 +339,44 @@ class _DepartmentsListScreenState extends State<DepartmentsListScreen>
               // Tab 1: Users List
               // -------------------------------------------------------------------
               RefreshIndicator(
+                color: Colors.black,
                 onRefresh: _loadData,
                 child: deptProvider.tenantUsers.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.people_outline,
-                                size: 64, color: Colors.grey.shade300),
-                            const SizedBox(height: 14),
-                            const Text(
-                              'No users registered yet',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w800,
-                                color: Colors.black,
+                    ? ListView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        children: [
+                          SizedBox(
+                            height: MediaQuery.of(context).size.height * 0.45,
+                            child: Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.people_outline,
+                                      size: 64, color: Colors.grey.shade300),
+                                  const SizedBox(height: 14),
+                                  const Text(
+                                    'No users registered yet',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w800,
+                                      color: Colors.black,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  const Text(
+                                    'Add staff members to grant department access.',
+                                    style: TextStyle(
+                                        fontSize: 13, color: Color(0xFF64748B)),
+                                  ),
+                                ],
                               ),
                             ),
-                            const SizedBox(height: 6),
-                            const Text(
-                              'Add staff members to grant department access.',
-                              style: TextStyle(
-                                  fontSize: 13, color: Color(0xFF64748B)),
-                            ),
-                          ],
-                        ),
+                          ),
+                        ],
                       )
                     : isWide
                         ? GridView.builder(
+                            physics: const AlwaysScrollableScrollPhysics(),
                             padding: const EdgeInsets.fromLTRB(24, 18, 24, 96),
                             gridDelegate:
                                 SliverGridDelegateWithFixedCrossAxisCount(
@@ -387,6 +397,7 @@ class _DepartmentsListScreenState extends State<DepartmentsListScreen>
                             },
                           )
                         : ListView.builder(
+                            physics: const AlwaysScrollableScrollPhysics(),
                             padding: const EdgeInsets.fromLTRB(16, 14, 16, 90),
                             itemCount: deptProvider.tenantUsers.length + 1,
                             itemBuilder: (context, index) {
@@ -423,34 +434,44 @@ class _DepartmentsListScreenState extends State<DepartmentsListScreen>
               // Tab 2: Departments List
               // -------------------------------------------------------------------
               RefreshIndicator(
+                color: Colors.black,
                 onRefresh: _loadData,
                 child: tenant.tenantDepartments.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.apartment,
-                                size: 64, color: Colors.grey.shade300),
-                            const SizedBox(height: 14),
-                            const Text(
-                              'No departments configured yet',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w800,
-                                color: Colors.black,
+                    ? ListView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        children: [
+                          SizedBox(
+                            height: MediaQuery.of(context).size.height * 0.45,
+                            child: Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.apartment,
+                                      size: 64, color: Colors.grey.shade300),
+                                  const SizedBox(height: 14),
+                                  const Text(
+                                    'No departments configured yet',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w800,
+                                      color: Colors.black,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  const Text(
+                                    'Create departments to organize operational permissions.',
+                                    style: TextStyle(
+                                        fontSize: 13, color: Color(0xFF64748B)),
+                                  ),
+                                ],
                               ),
                             ),
-                            const SizedBox(height: 6),
-                            const Text(
-                              'Create departments to organize operational permissions.',
-                              style: TextStyle(
-                                  fontSize: 13, color: Color(0xFF64748B)),
-                            ),
-                          ],
-                        ),
+                          ),
+                        ],
                       )
                     : isWide
                         ? GridView.builder(
+                            physics: const AlwaysScrollableScrollPhysics(),
                             padding: const EdgeInsets.fromLTRB(24, 18, 24, 96),
                             gridDelegate:
                                 SliverGridDelegateWithFixedCrossAxisCount(
@@ -470,6 +491,7 @@ class _DepartmentsListScreenState extends State<DepartmentsListScreen>
                             },
                           )
                         : ListView.builder(
+                            physics: const AlwaysScrollableScrollPhysics(),
                             padding: const EdgeInsets.fromLTRB(16, 14, 16, 90),
                             itemCount:
                                 tenant.tenantDepartments.length + 1,

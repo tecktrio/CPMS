@@ -305,6 +305,7 @@ class _StoreRoomsListScreenState extends State<StoreRoomsListScreen> {
                       )
                     : isWide
                         ? GridView.builder(
+                            physics: const AlwaysScrollableScrollPhysics(),
                             padding: const EdgeInsets.fromLTRB(24, 20, 24, 96),
                             gridDelegate:
                                 SliverGridDelegateWithFixedCrossAxisCount(
@@ -321,6 +322,7 @@ class _StoreRoomsListScreenState extends State<StoreRoomsListScreen> {
                             },
                           )
                         : ListView.builder(
+                            physics: const AlwaysScrollableScrollPhysics(),
                             padding: const EdgeInsets.fromLTRB(16, 14, 16, 90),
                             itemCount: inventory.storeRooms.length + 1,
                             itemBuilder: (context, index) {

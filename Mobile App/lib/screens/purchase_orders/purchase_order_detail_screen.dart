@@ -347,10 +347,19 @@ class _PurchaseOrderDetailScreenState extends State<PurchaseOrderDetailScreen> {
           ),
           title: const Text('Purchase Order', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w800)),
         ),
-        body: const Center(
-          child: Text(
-            'Purchase Order not found',
-            style: TextStyle(color: Color(0xFF64748B), fontSize: 15),
+        body: RefreshIndicator(
+          color: Colors.black,
+          onRefresh: () async {
+            await poProvider.loadPurchaseOrders();
+          },
+          child: const Center(
+            child: SingleChildScrollView(
+              physics: AlwaysScrollableScrollPhysics(),
+              child: Text(
+                'Purchase Order not found',
+                style: TextStyle(color: Color(0xFF64748B), fontSize: 15),
+              ),
+            ),
           ),
         ),
       );
@@ -427,17 +436,23 @@ class _PurchaseOrderDetailScreenState extends State<PurchaseOrderDetailScreen> {
           ),
         ],
       ),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1050),
-          child: SingleChildScrollView(
-            padding: EdgeInsets.symmetric(
-              horizontal: isWide ? 24 : 16,
-              vertical: 16,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
+      body: RefreshIndicator(
+        color: Colors.black,
+        onRefresh: () async {
+          await poProvider.loadPurchaseOrders();
+        },
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1050),
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: EdgeInsets.symmetric(
+                horizontal: isWide ? 24 : 16,
+                vertical: 16,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
                 // Top PO Card - Uber Style
                 Container(
                   padding: const EdgeInsets.all(16),
@@ -1094,6 +1109,7 @@ class _PurchaseOrderDetailScreenState extends State<PurchaseOrderDetailScreen> {
           ),
         ),
       ),
+    ),
     );
   }
 

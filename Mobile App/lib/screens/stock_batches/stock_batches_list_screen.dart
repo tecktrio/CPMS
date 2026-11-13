@@ -109,29 +109,42 @@ class _StockBatchesListScreenState extends State<StockBatchesListScreen> {
 
           Expanded(
             child: RefreshIndicator(
+              color: Colors.black,
               onRefresh: () async {
-                await inventory.loadStockBatches();
-                await inventory.loadExpiringSoon(7);
+                await Future.wait([
+                  inventory.loadStockBatches(),
+                  inventory.loadExpiringSoon(7),
+                  inventory.loadItems(),
+                ]);
               },
               child: inventory.isLoading
-                  ? const Center(child: CircularProgressIndicator())
+                  ? const Center(child: CircularProgressIndicator(color: Colors.black))
                   : batches.isEmpty
-                      ? Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.inventory_2_outlined, size: 64, color: Colors.grey.shade400),
-                              const SizedBox(height: 12),
-                              Text(
-                                _searchQuery.isNotEmpty
-                                    ? 'No batches match your query'
-                                    : 'No inventory batches on rack',
-                                style: TextStyle(color: Colors.grey.shade600, fontSize: 16),
+                      ? ListView(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          children: [
+                            SizedBox(
+                              height: MediaQuery.of(context).size.height * 0.45,
+                              child: Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.inventory_2_outlined, size: 64, color: Colors.grey.shade400),
+                                    const SizedBox(height: 12),
+                                    Text(
+                                      _searchQuery.isNotEmpty
+                                          ? 'No batches match your query'
+                                          : 'No inventory batches on rack',
+                                      style: TextStyle(color: Colors.grey.shade600, fontSize: 16),
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ],
-                          ),
+                            ),
+                          ],
                         )
                       : ListView.separated(
+                          physics: const AlwaysScrollableScrollPhysics(),
                           padding: const EdgeInsets.all(16),
                           itemCount: batches.length,
                           separatorBuilder: (_, _) => const SizedBox(height: 10),

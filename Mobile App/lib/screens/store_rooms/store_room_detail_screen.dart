@@ -912,17 +912,26 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
           child: Divider(height: 1, color: Color(0xFFF1F5F9)),
         ),
       ),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1050),
-          child: SingleChildScrollView(
-            padding: EdgeInsets.symmetric(
-              horizontal: isWide ? 28 : 16,
-              vertical: 20,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+      body: RefreshIndicator(
+        color: Colors.black,
+        onRefresh: () async {
+          await Future.wait([
+            inventory.loadStoreRooms(),
+            inventory.loadItems(),
+          ]);
+        },
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1050),
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: EdgeInsets.symmetric(
+                horizontal: isWide ? 28 : 16,
+                vertical: 20,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
             // Summary Metric (Store Room Items Only - Uber Style)
             Row(
               children: [
@@ -2222,7 +2231,8 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
       ),
     ),
   ),
-);
+),
+    );
   }
 }
 
