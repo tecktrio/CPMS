@@ -495,6 +495,14 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
     final cartonCtrl = TextEditingController(
       text: editItem != null ? editItem.cartons.toString() : '20',
     );
+    final qtyPerPacketCtrl = TextEditingController(
+      text: editItem != null
+          ? (editItem.quantityPerPacket.truncateToDouble() ==
+                  editItem.quantityPerPacket
+              ? editItem.quantityPerPacket.toInt().toString()
+              : editItem.quantityPerPacket.toString())
+          : '1',
+    );
 
     String itemSearchQuery = '';
     final searchCtrl = TextEditingController();
@@ -517,7 +525,12 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
 
           final int ppc = int.tryParse(packetCtrl.text.trim()) ?? 0;
           final int cartons = int.tryParse(cartonCtrl.text.trim()) ?? 0;
+          final double qpp =
+              double.tryParse(qtyPerPacketCtrl.text.trim()) ?? 1.0;
           final int previewTotalPackets = ppc * cartons;
+          final double previewTotalQty = previewTotalPackets * qpp;
+          final unitStr =
+              selectedCatalogItem?.measurementUnit.toUpperCase() ?? '';
 
           return Padding(
             padding: EdgeInsets.only(
@@ -757,7 +770,61 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
 
                   const SizedBox(height: 14),
 
-                  // Calculated Packets Banner
+                  // 3. Quantity per packet (Weight / Unit / Pack size)
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'QUANTITY PER PACKET *',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFF64748B),
+                            ),
+                          ),
+                          if (unitStr.isNotEmpty)
+                            Text(
+                              'Base Unit: $unitStr',
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF0F766E),
+                              ),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      TextFormField(
+                        controller: qtyPerPacketCtrl,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+                        decoration: InputDecoration(
+                          hintText: '1.0',
+                          suffixText: unitStr.isNotEmpty ? unitStr : null,
+                          suffixStyle: const TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 13,
+                            color: Color(0xFF64748B),
+                          ),
+                          filled: true,
+                          fillColor: const Color(0xFFF8FAFC),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(4),
+                            borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        ),
+                        onChanged: (_) => setModalState(() {}),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 14),
+
+                  // Calculated Packets & Quantity Banner
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -769,13 +836,33 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text(
-                          'TOTAL CALCULATED PACKETS:',
-                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF64748B)),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'TOTAL PACKETS:',
+                              style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFF64748B)),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              '$previewTotalPackets Packets',
+                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Colors.black),
+                            ),
+                          ],
                         ),
-                        Text(
-                          '$previewTotalPackets Packets',
-                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Colors.black),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            const Text(
+                              'TOTAL QUANTITY:',
+                              style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFF64748B)),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              '${previewTotalQty.toStringAsFixed(previewTotalQty.truncateToDouble() == previewTotalQty ? 0 : 2)} $unitStr',
+                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Colors.black),
+                            ),
+                          ],
                         ),
                       ],
                     ),
@@ -804,6 +891,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
 
                         final p = int.tryParse(packetCtrl.text.trim()) ?? 0;
                         final c = int.tryParse(cartonCtrl.text.trim()) ?? 0;
+                        final qpp = double.tryParse(qtyPerPacketCtrl.text.trim()) ?? 1.0;
                         if (p <= 0 || c <= 0) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(content: Text('Please enter valid quantities for packets and cartons')),
@@ -817,6 +905,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                           sku: selectedCatalogItem!.sku,
                           packetPerCarton: p,
                           cartons: c,
+                          quantityPerPacket: qpp > 0 ? qpp : 1.0,
                           unit: selectedCatalogItem!.measurementUnit,
                         );
 
@@ -1387,7 +1476,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                                     ),
                                     const SizedBox(height: 1),
                                     Text(
-                                      '${item.sku} • ${item.totalPackets} pkts',
+                                      '${item.sku} • ${item.quantityPerPacket.toStringAsFixed(item.quantityPerPacket.truncateToDouble() == item.quantityPerPacket ? 0 : 2)} ${item.unit}/pkt • ${item.totalPackets} pkts',
                                       style: const TextStyle(fontSize: 10, color: Color(0xFF64748B)),
                                     ),
                                   ],

@@ -44,6 +44,12 @@ export class PurchaseOrderItemDto {
   @IsOptional()
   total_packets?: number;
 
+  @ApiPropertyOptional({ example: 1, description: 'Quantity or weight per packet' })
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  quantity_per_packet?: number;
+
   @ApiPropertyOptional({ example: 'PIECE' })
   @IsString()
   @IsOptional()

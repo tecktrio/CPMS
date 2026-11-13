@@ -47,6 +47,7 @@ class PurchaseOrderItemModel {
   final int packetPerCarton;
   final int cartons;
   final int totalPackets;
+  final double quantityPerPacket;
   final String unit;
 
   PurchaseOrderItemModel({
@@ -56,8 +57,11 @@ class PurchaseOrderItemModel {
     required this.packetPerCarton,
     required this.cartons,
     int? totalPackets,
+    this.quantityPerPacket = 1.0,
     this.unit = '',
   }) : totalPackets = totalPackets ?? (packetPerCarton * cartons);
+
+  double get totalQuantity => totalPackets * quantityPerPacket;
 
   Map<String, dynamic> toJson() => {
         'item_id': itemId,
@@ -66,6 +70,7 @@ class PurchaseOrderItemModel {
         'packet_per_carton': packetPerCarton,
         'cartons': cartons,
         'total_packets': totalPackets,
+        'quantity_per_packet': quantityPerPacket,
         'unit': unit,
       };
 
@@ -73,6 +78,7 @@ class PurchaseOrderItemModel {
     final perCarton = (json['packet_per_carton'] as num?)?.toInt() ?? 0;
     final cartons = (json['cartons'] as num?)?.toInt() ?? 0;
     final total = (json['total_packets'] as num?)?.toInt() ?? (perCarton * cartons);
+    final qtyPerPacket = (json['quantity_per_packet'] as num?)?.toDouble() ?? 1.0;
 
     return PurchaseOrderItemModel(
       itemId: json['item_id'] ?? '',
@@ -81,6 +87,7 @@ class PurchaseOrderItemModel {
       packetPerCarton: perCarton,
       cartons: cartons,
       totalPackets: total,
+      quantityPerPacket: qtyPerPacket,
       unit: json['unit'] ?? '',
     );
   }

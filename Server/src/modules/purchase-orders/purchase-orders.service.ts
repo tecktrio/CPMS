@@ -139,6 +139,10 @@ export class PurchaseOrdersService {
         it.total_packets !== undefined
           ? Number(it.total_packets)
           : perCarton * cartons;
+      const qtyPerPacket =
+        it.quantity_per_packet !== undefined && Number(it.quantity_per_packet) >= 0
+          ? Number(it.quantity_per_packet)
+          : 1;
 
       return {
         item_id: it.item_id,
@@ -147,6 +151,7 @@ export class PurchaseOrdersService {
         packet_per_carton: perCarton,
         cartons: cartons,
         total_packets: totalPackets,
+        quantity_per_packet: qtyPerPacket,
         unit: it.unit || '',
       };
     });
@@ -255,6 +260,10 @@ export class PurchaseOrdersService {
           it.total_packets !== undefined
             ? Number(it.total_packets)
             : perCarton * cartons;
+        const qtyPerPacket =
+          it.quantity_per_packet !== undefined && Number(it.quantity_per_packet) >= 0
+            ? Number(it.quantity_per_packet)
+            : 1;
 
         return {
           item_id: it.item_id,
@@ -263,6 +272,7 @@ export class PurchaseOrdersService {
           packet_per_carton: perCarton,
           cartons: cartons,
           total_packets: totalPackets,
+          quantity_per_packet: qtyPerPacket,
           unit: it.unit || '',
         };
       });

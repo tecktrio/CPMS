@@ -840,10 +840,33 @@ class _PurchaseOrderDetailScreenState extends State<PurchaseOrderDetailScreen> {
                                 color: const Color(0xFFF8FAFC),
                                 borderRadius: BorderRadius.circular(2),
                               ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              child: Wrap(
+                                alignment: WrapAlignment.spaceBetween,
+                                spacing: 12,
+                                runSpacing: 6,
                                 children: [
                                   Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Text(
+                                        'Qty / Pkt: ',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Color(0xFF71717A),
+                                        ),
+                                      ),
+                                      Text(
+                                        '${item.quantityPerPacket.toStringAsFixed(item.quantityPerPacket.truncateToDouble() == item.quantityPerPacket ? 0 : 2)} ${item.unit}',
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w800,
+                                          color: Colors.black,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
                                     children: [
                                       const Text(
                                         'Packets / Ctn: ',
@@ -863,6 +886,7 @@ class _PurchaseOrderDetailScreenState extends State<PurchaseOrderDetailScreen> {
                                     ],
                                   ),
                                   Row(
+                                    mainAxisSize: MainAxisSize.min,
                                     children: [
                                       const Text(
                                         'Cartons: ',
@@ -882,6 +906,7 @@ class _PurchaseOrderDetailScreenState extends State<PurchaseOrderDetailScreen> {
                                     ],
                                   ),
                                   Row(
+                                    mainAxisSize: MainAxisSize.min,
                                     children: [
                                       const Text(
                                         'Total: ',
@@ -891,10 +916,10 @@ class _PurchaseOrderDetailScreenState extends State<PurchaseOrderDetailScreen> {
                                         ),
                                       ),
                                       Text(
-                                        '${item.totalPackets} pkts',
+                                        '${item.totalPackets} pkts (${item.totalQuantity.toStringAsFixed(item.totalQuantity.truncateToDouble() == item.totalQuantity ? 0 : 2)} ${item.unit})',
                                         style: const TextStyle(
                                           fontSize: 12,
-                                          fontWeight: FontWeight.w800,
+                                          fontWeight: FontWeight.w900,
                                           color: Colors.black,
                                         ),
                                       ),

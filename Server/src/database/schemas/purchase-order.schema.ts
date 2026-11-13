@@ -33,6 +33,9 @@ export class PurchaseOrderItem {
   @Prop({ type: Number, required: true, min: 0, default: 0 })
   total_packets: number;
 
+  @Prop({ type: Number, default: 1, min: 0 })
+  quantity_per_packet: number;
+
   @Prop({ type: String, default: '' })
   unit: string;
 }
