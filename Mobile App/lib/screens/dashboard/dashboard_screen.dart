@@ -12,7 +12,7 @@ import '../items/item_detail_screen.dart';
 import '../items/items_list_screen.dart';
 import '../purchase_orders/purchase_orders_list_screen.dart';
 import '../store_rooms/store_rooms_list_screen.dart';
-import '../stock_batches/inward_batch_screen.dart';
+import '../store_rooms/store_room_detail_screen.dart';
 import '../tenant/tenant_selector_screen.dart';
 import '../../utils/app_update_helper.dart';
 import '../../widgets/sync_status_indicator.dart';
@@ -1731,7 +1731,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           ),
                           const SizedBox(height: 12),
 
-                          // Direct Link to Fixing Page (Inward Stock)
+                          // Direct Link to Fixing Page (Store Room Details)
                           SizedBox(
                             width: double.infinity,
                             height: 38,
@@ -1745,18 +1745,44 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 ),
                               ),
                               onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => InwardBatchScreen(
-                                      initialItemId: item.itemId,
-                                    ),
-                                  ),
+                                StoreRoomModel? targetRoom;
+                                final containing = inventory.storeRooms.where(
+                                  (r) => r.items.any((it) => it.itemId == item.itemId),
                                 );
+                                if (containing.isNotEmpty) {
+                                  targetRoom = containing.first;
+                                } else if (item.storeRoomId != null &&
+                                    item.storeRoomId!.isNotEmpty) {
+                                  final match = inventory.storeRooms.where(
+                                    (r) => r.storeRoomId == item.storeRoomId,
+                                  );
+                                  if (match.isNotEmpty) targetRoom = match.first;
+                                } else if (inventory.storeRooms.isNotEmpty) {
+                                  targetRoom = inventory.storeRooms.first;
+                                }
+
+                                if (targetRoom != null) {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => StoreRoomDetailScreen(
+                                        room: targetRoom!,
+                                      ),
+                                    ),
+                                  );
+                                } else {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) =>
+                                          const StoreRoomsListScreen(),
+                                    ),
+                                  );
+                                }
                               },
-                              icon: const Icon(Icons.build_outlined, size: 14),
+                              icon: const Icon(Icons.meeting_room_outlined, size: 14),
                               label: const Text(
-                                'Fix Alert (Inward Stock)',
+                                'Fix Alert (Store Room)',
                                 style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w800,

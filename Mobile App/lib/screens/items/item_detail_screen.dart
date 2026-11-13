@@ -6,7 +6,8 @@ import '../../core/constants/api_constants.dart';
 import '../../core/constants/permissions.dart';
 import '../../providers/inventory_provider.dart';
 import '../../providers/tenant_provider.dart';
-import '../stock_batches/inward_batch_screen.dart';
+import '../store_rooms/store_room_detail_screen.dart';
+import '../store_rooms/store_rooms_list_screen.dart';
 import 'edit_item_screen.dart';
 
 class ItemDetailScreen extends StatefulWidget {
@@ -162,152 +163,6 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
           ),
         ],
       ),
-    );
-  }
-
-  void _showFixAlertModal(BuildContext context, ItemModel currentItem) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(8)),
-      ),
-      builder: (ctx) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 36,
-                    height: 4,
-                    margin: const EdgeInsets.only(bottom: 16),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFCBD5E1),
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                ),
-                Row(
-                  children: [
-                    Container(
-                      width: 32,
-                      height: 32,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFEE2E2),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: const Icon(
-                        Icons.warning_amber_rounded,
-                        color: Color(0xFFDC2626),
-                        size: 18,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Fix Low Stock: ${currentItem.itemName}',
-                            style: const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w800,
-                              color: Colors.black,
-                            ),
-                          ),
-                          Text(
-                            'Shortfall: ${currentItem.reorderShortfallQuantity.toStringAsFixed(currentItem.reorderShortfallQuantity.truncateToDouble() == currentItem.reorderShortfallQuantity ? 0 : 2)} ${currentItem.measurementUnit.toUpperCase()}',
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: Color(0xFF64748B),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                const Divider(height: 1, color: Color(0xFFF1F5F9)),
-                const SizedBox(height: 8),
-
-                // Option 1: Inward Stock
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF8FAFC),
-                      borderRadius: BorderRadius.circular(4),
-                      border: Border.all(color: const Color(0xFFE2E8F0)),
-                    ),
-                    child: const Icon(Icons.add_business_outlined, color: Colors.black, size: 20),
-                  ),
-                  title: const Text(
-                    'Inward Stock Batch (Recommended)',
-                    style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
-                  ),
-                  subtitle: const Text(
-                    'Receive and assign a new stock batch to store rooms',
-                    style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
-                  ),
-                  trailing: const Icon(Icons.arrow_forward_ios, size: 14, color: Color(0xFF94A3B8)),
-                  onTap: () {
-                    Navigator.pop(ctx);
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => InwardBatchScreen(initialItemId: currentItem.itemId),
-                      ),
-                    );
-                  },
-                ),
-
-                const Divider(height: 1, color: Color(0xFFF1F5F9)),
-
-                // Option 2: Adjust Reorder Threshold
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF8FAFC),
-                      borderRadius: BorderRadius.circular(4),
-                      border: Border.all(color: const Color(0xFFE2E8F0)),
-                    ),
-                    child: const Icon(Icons.tune_outlined, color: Colors.black, size: 20),
-                  ),
-                  title: const Text(
-                    'Adjust Reorder Threshold',
-                    style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
-                  ),
-                  subtitle: const Text(
-                    'Modify threshold quantity in item configuration',
-                    style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
-                  ),
-                  trailing: const Icon(Icons.arrow_forward_ios, size: 14, color: Color(0xFF94A3B8)),
-                  onTap: () {
-                    Navigator.pop(ctx);
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => EditItemScreen(item: currentItem),
-                      ),
-                    );
-                  },
-                ),
-                const SizedBox(height: 8),
-              ],
-            ),
-          ),
-        );
-      },
     );
   }
 
@@ -824,10 +679,43 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                                       borderRadius: BorderRadius.circular(4),
                                     ),
                                   ),
-                                  onPressed: () => _showFixAlertModal(context, currentItem),
-                                  icon: const Icon(Icons.build_outlined, size: 14),
+                                  onPressed: () {
+                                    final inv = context.read<InventoryProvider>();
+                                    StoreRoomModel? targetRoom;
+                                    final containing = inv.storeRooms.where(
+                                      (r) => r.items.any((it) => it.itemId == currentItem.itemId),
+                                    );
+                                    if (containing.isNotEmpty) {
+                                      targetRoom = containing.first;
+                                    } else if (currentItem.storeRoomId != null &&
+                                        currentItem.storeRoomId!.isNotEmpty) {
+                                      final match = inv.storeRooms.where(
+                                        (r) => r.storeRoomId == currentItem.storeRoomId,
+                                      );
+                                      if (match.isNotEmpty) targetRoom = match.first;
+                                    } else if (inv.storeRooms.isNotEmpty) {
+                                      targetRoom = inv.storeRooms.first;
+                                    }
+
+                                    if (targetRoom != null) {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => StoreRoomDetailScreen(room: targetRoom!),
+                                        ),
+                                      );
+                                    } else {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => const StoreRoomsListScreen(),
+                                        ),
+                                      );
+                                    }
+                                  },
+                                  icon: const Icon(Icons.meeting_room_outlined, size: 14),
                                   label: const Text(
-                                    'Fix Alert',
+                                    'Fix in Store Room',
                                     style: TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.w800,
