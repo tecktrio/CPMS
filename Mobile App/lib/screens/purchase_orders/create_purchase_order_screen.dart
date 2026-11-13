@@ -522,7 +522,8 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
             final q = itemSearchQuery.toLowerCase();
             return q.isEmpty ||
                 i.itemName.toLowerCase().contains(q) ||
-                i.sku.toLowerCase().contains(q);
+                i.sku.toLowerCase().contains(q) ||
+                i.specification.toLowerCase().contains(q);
           }).toList();
 
           final int ppc = int.tryParse(packetCtrl.text.trim()) ?? 0;
@@ -646,8 +647,8 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
-                                  '${selectedCatalogItem!.sku} • ${selectedCatalogItem!.measurementUnit.toUpperCase()}',
-                                  style: const TextStyle(fontSize: 11, color: Color(0xFF0F766E), fontWeight: FontWeight.w600),
+                                  '${selectedCatalogItem!.sku} • ${selectedCatalogItem!.specification}',
+                                  style: const TextStyle(fontSize: 11, color: Color(0xFF0F766E), fontWeight: FontWeight.w700),
                                 ),
                               ],
                             ),
@@ -757,16 +758,46 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                                 final it = filteredItems[idx];
                                 return ListTile(
                                   dense: true,
-                                  title: Text(
-                                    it.itemName,
-                                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+                                  title: Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          it.itemName,
+                                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFF0FDF4),
+                                          borderRadius: BorderRadius.circular(4),
+                                          border: Border.all(color: const Color(0xFFBBF7D0)),
+                                        ),
+                                        child: Text(
+                                          it.specification,
+                                          style: const TextStyle(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w800,
+                                            color: Color(0xFF15803D),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                   subtitle: Text(
                                     '${it.sku} • ${it.itemType.replaceAll('_', ' ')}',
                                     style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
                                   ),
                                   onTap: () {
-                                    setModalState(() => selectedCatalogItem = it);
+                                    setModalState(() {
+                                      selectedCatalogItem = it;
+                                      if (editItem == null && it.quantity > 0) {
+                                        qtyPerPacketCtrl.text = it.quantity.truncateToDouble() == it.quantity
+                                            ? it.quantity.toInt().toString()
+                                            : it.quantity.toString();
+                                      }
+                                    });
                                   },
                                 );
                               },
@@ -1630,8 +1661,8 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                                     const SizedBox(height: 1),
                                     Text(
                                       item.sku.isNotEmpty
-                                          ? '${item.sku} • ${item.totalPackets} pkts'
-                                          : '${item.totalPackets} pkts',
+                                          ? '${item.sku} • ${PurchaseOrderExportService.formatQtyPerPacketShort(item.quantityPerPacket, item.unit)} • ${item.totalPackets} pkts'
+                                          : '${PurchaseOrderExportService.formatQtyPerPacketShort(item.quantityPerPacket, item.unit)} • ${item.totalPackets} pkts',
                                       style: const TextStyle(fontSize: 10, color: Color(0xFF64748B)),
                                     ),
                                   ],

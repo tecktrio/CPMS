@@ -158,7 +158,7 @@ class _InwardBatchScreenState extends State<InwardBatchScreen> {
                 items: inventory.items
                     .map((item) => DropdownMenuItem(
                           value: item.itemId,
-                          child: Text('${item.sku} — ${item.itemName}'),
+                          child: Text('${item.sku} — ${item.itemName} (${item.specification})'),
                         ))
                     .toList(),
                 onChanged: (val) => setState(() => _selectedItemId = val),

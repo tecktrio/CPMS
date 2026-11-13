@@ -269,6 +269,13 @@ class ItemModel {
     );
   }
 
+  String get specification {
+    final qtyStr = quantity.toStringAsFixed(quantity.truncateToDouble() == quantity ? 0 : 2);
+    return '$qtyStr ${measurementUnit.toUpperCase()}';
+  }
+
+  String get displayNameWithSpec => '$itemName ($specification)';
+
   Map<String, dynamic> toJson() => {
         'item_id': itemId,
         'tenant_id': tenantId,

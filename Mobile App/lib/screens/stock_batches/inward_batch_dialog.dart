@@ -177,7 +177,7 @@ class _InwardBatchDialogState extends State<InwardBatchDialog> {
                     return DropdownMenuItem(
                       value: item.itemId,
                       child: Text(
-                        '${item.sku} - ${item.itemName}',
+                        '${item.sku} - ${item.itemName} (${item.specification})',
                         style: const TextStyle(fontSize: 13),
                       ),
                     );

@@ -220,7 +220,7 @@ class _FefoDeductDialogState extends State<FefoDeductDialog> {
                     return DropdownMenuItem(
                       value: item.itemId,
                       child: Text(
-                        '${item.sku} - ${item.itemName} (${item.totalAvailableStock} ${item.measurementUnit} available)',
+                        '${item.sku} - ${item.itemName} (${item.specification}) • ${item.totalAvailableStock} ${item.measurementUnit} available',
                         style: const TextStyle(fontSize: 13),
                       ),
                     );

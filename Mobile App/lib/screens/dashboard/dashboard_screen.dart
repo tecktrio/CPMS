@@ -1147,7 +1147,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             return _buildSearchResultCard(
                               leadingIcon: Icons.view_in_ar_outlined,
                               imageUrl: item.imageUrl,
-                              title: item.itemName,
+                              title: '${item.itemName} (${item.specification})',
                               subtitleLine1: item.itemType.replaceAll('_', ' '),
                               subtitleLine2: '${room.roomName} • $divInfo',
                               badgeText: '${item.totalAvailableStock.toStringAsFixed(1)} ${item.measurementUnit}',
@@ -1656,13 +1656,36 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(
-                                      item.itemName,
-                                      style: const TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w800,
-                                        color: Colors.black,
-                                      ),
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            item.itemName,
+                                            style: const TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w800,
+                                              color: Colors.black,
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFFF1F5F9),
+                                            borderRadius: BorderRadius.circular(4),
+                                            border: Border.all(color: const Color(0xFFE2E8F0)),
+                                          ),
+                                          child: Text(
+                                            item.specification,
+                                            style: const TextStyle(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w800,
+                                              color: Color(0xFF0F766E),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                     const SizedBox(height: 4),
                                     RichText(

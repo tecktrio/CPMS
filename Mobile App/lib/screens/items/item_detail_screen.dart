@@ -459,6 +459,29 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                                 ),
                               ),
                             ),
+                            const SizedBox(width: 8),
+
+                            // Specification Badge
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF0FDF4),
+                                borderRadius: BorderRadius.circular(4),
+                                border: Border.all(color: const Color(0xFFBBF7D0)),
+                              ),
+                              child: Text(
+                                currentItem.specification,
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w800,
+                                  color: Color(0xFF15803D),
+                                  letterSpacing: 0.3,
+                                ),
+                              ),
+                            ),
 
                             const Spacer(),
 

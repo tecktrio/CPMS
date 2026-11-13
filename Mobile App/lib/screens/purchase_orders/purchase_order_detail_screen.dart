@@ -883,8 +883,8 @@ class _PurchaseOrderDetailScreenState extends State<PurchaseOrderDetailScreen> {
                                         const SizedBox(height: 1),
                                         Text(
                                           item.sku.isNotEmpty
-                                              ? '${item.sku} • ${item.totalPackets} pkts (${item.totalQuantity.toStringAsFixed(item.totalQuantity.truncateToDouble() == item.totalQuantity ? 0 : 2)} ${item.unit})'
-                                              : '${item.totalPackets} pkts (${item.totalQuantity.toStringAsFixed(item.totalQuantity.truncateToDouble() == item.totalQuantity ? 0 : 2)} ${item.unit})',
+                                              ? '${item.sku} • ${PurchaseOrderExportService.formatQtyPerPacketShort(item.quantityPerPacket, item.unit)} • ${item.totalPackets} pkts (${item.totalQuantity.toStringAsFixed(item.totalQuantity.truncateToDouble() == item.totalQuantity ? 0 : 2)} ${item.unit})'
+                                              : '${PurchaseOrderExportService.formatQtyPerPacketShort(item.quantityPerPacket, item.unit)} • ${item.totalPackets} pkts (${item.totalQuantity.toStringAsFixed(item.totalQuantity.truncateToDouble() == item.totalQuantity ? 0 : 2)} ${item.unit})',
                                           style: const TextStyle(fontSize: 10, color: Color(0xFF64748B)),
                                         ),
                                       ],

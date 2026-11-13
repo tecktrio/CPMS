@@ -209,7 +209,7 @@ class _FefoPickingScreenState extends State<FefoPickingScreen> {
                 items: inventory.items
                     .map((item) => DropdownMenuItem(
                           value: item.itemId,
-                          child: Text('${item.sku} — ${item.itemName} (${item.totalAvailableStock} in stock)'),
+                          child: Text('${item.sku} — ${item.itemName} (${item.specification}) • ${item.totalAvailableStock} in stock'),
                         ))
                     .toList(),
                 onChanged: (val) {

@@ -1861,6 +1861,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                       );
                       return item.itemName.toLowerCase().contains(q) ||
                           item.sku.toLowerCase().contains(q) ||
+                          item.specification.toLowerCase().contains(q) ||
                           sri.division.toLowerCase().contains(q);
                     }).map((sri) {
                       final item = inventory.items.firstWhere(
@@ -1965,6 +1966,23 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                                                 ),
                                               ),
                                             ),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFFF0FDF4),
+                                              borderRadius: BorderRadius.circular(2),
+                                              border: Border.all(color: const Color(0xFFBBF7D0)),
+                                            ),
+                                            child: Text(
+                                              item.specification,
+                                              style: const TextStyle(
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.w800,
+                                                color: Color(0xFF15803D),
+                                                letterSpacing: 0.3,
+                                              ),
+                                            ),
+                                          ),
                                           Container(
                                             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                             decoration: BoxDecoration(
@@ -2340,7 +2358,8 @@ class _AddItemToRoomModalState extends State<_AddItemToRoomModal> {
         final q = _searchQuery.toLowerCase();
         final matchName = item.itemName.toLowerCase().contains(q);
         final matchSku = item.sku.toLowerCase().contains(q);
-        if (!matchName && !matchSku) return false;
+        final matchSpec = item.specification.toLowerCase().contains(q);
+        if (!matchName && !matchSku && !matchSpec) return false;
       }
       return true;
     }).toList();
@@ -2628,6 +2647,22 @@ class _AddItemToRoomModalState extends State<_AddItemToRoomModal> {
                                     fontSize: 10,
                                     fontWeight: FontWeight.w800,
                                     color: Color(0xFF475569),
+                                  ),
+                                ),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFF0FDF4),
+                                  borderRadius: BorderRadius.circular(4),
+                                  border: Border.all(color: const Color(0xFFBBF7D0)),
+                                ),
+                                child: Text(
+                                  item.specification,
+                                  style: const TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w800,
+                                    color: Color(0xFF15803D),
                                   ),
                                 ),
                               ),
