@@ -13,6 +13,7 @@ import '../items/items_list_screen.dart';
 import '../purchase_orders/purchase_orders_list_screen.dart';
 import '../store_rooms/store_rooms_list_screen.dart';
 import '../tenant/tenant_selector_screen.dart';
+import '../../utils/app_update_helper.dart';
 import '../../widgets/sync_status_indicator.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -2396,6 +2397,114 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
             const SizedBox(height: 24),
 
+            // APP & UPDATES Section
+            Row(
+              children: const [
+                Icon(Icons.system_update_alt_outlined, size: 14, color: Color(0xFF64748B)),
+                SizedBox(width: 6),
+                Text(
+                  'APP & UPDATES',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.8,
+                    color: Color(0xFF64748B),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+
+            // App Updates Card
+            Container(
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(4),
+                border: Border.all(color: const Color(0xFFE5E7EB)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF1F5F9),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: const Icon(
+                          Icons.smartphone_outlined,
+                          size: 20,
+                          color: Colors.black,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'CPMS Mobile',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w800,
+                                color: Color(0xFF0F172A),
+                              ),
+                            ),
+                            Text(
+                              'Installed Version: v${AppUpdateHelper.appVersion} (Build ${AppUpdateHelper.buildNumber})',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Color(0xFF64748B),
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  const Text(
+                    'Stay up to date with the latest features, security patches, and performance improvements.',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF64748B),
+                      height: 1.4,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 44,
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.black,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                      onPressed: () => AppUpdateHelper.openStore(context: context),
+                      icon: const Icon(Icons.open_in_new, size: 16),
+                      label: const Text(
+                        'Check for Updates in Store',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+
             // Log Out All Sessions Button
             SizedBox(
               width: double.infinity,
@@ -2438,7 +2547,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               child: Column(
                 children: [
                   Text(
-                    '${tenantDisplayName.toUpperCase()} MOBILE V1.0.1 (BUILD 9)',
+                    '${tenantDisplayName.toUpperCase()} MOBILE V${AppUpdateHelper.appVersion} (BUILD ${AppUpdateHelper.buildNumber})',
                     style: const TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w800,

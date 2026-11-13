@@ -6,6 +6,7 @@ import '../providers/auth_provider.dart';
 import '../providers/tenant_provider.dart';
 import '../providers/inventory_provider.dart';
 import '../screens/tenant/tenant_selector_screen.dart';
+import '../utils/app_update_helper.dart';
 
 class UserProfileAvatar extends StatelessWidget {
   const UserProfileAvatar({super.key});
@@ -315,6 +316,52 @@ class UserProfileAvatar extends StatelessWidget {
                       );
                     },
                   ),
+                ),
+
+                const Divider(color: Color(0xFFF1F5F9)),
+
+                // Check for Updates
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.system_update_alt_outlined, color: Color(0xFF0F766E)),
+                  title: const Text(
+                    'Check for Updates',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF0F172A),
+                    ),
+                  ),
+                  subtitle: const Text(
+                    'Version ${AppUpdateHelper.appVersion} (${AppUpdateHelper.buildNumber}) • Google Play / App Store',
+                    style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                  ),
+                  trailing: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF1F5F9),
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'Store',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.black,
+                          ),
+                        ),
+                        SizedBox(width: 4),
+                        Icon(Icons.open_in_new, size: 12, color: Colors.black),
+                      ],
+                    ),
+                  ),
+                  onTap: () {
+                    AppUpdateHelper.openStore(context: context);
+                  },
                 ),
 
                 const Divider(color: Color(0xFFF1F5F9)),
