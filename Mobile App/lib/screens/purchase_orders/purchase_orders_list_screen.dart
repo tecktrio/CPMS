@@ -88,8 +88,9 @@ class _PurchaseOrdersListScreenState extends State<PurchaseOrdersListScreen> {
       return matchesSearch && matchesStatus;
     }).toList();
 
-    final totalCartonsAll =
-        allOrders.fold<int>(0, (sum, po) => sum + po.totalCartons);
+    final inProductionCount = allOrders
+        .where((po) => po.status.toUpperCase() == 'IN_PRODUCTION')
+        .length;
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -179,111 +180,139 @@ class _PurchaseOrdersListScreenState extends State<PurchaseOrdersListScreen> {
                 child: Row(
                   children: [
                     Expanded(
-                      child: Container(
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(4),
-                          border: Border.all(color: const Color(0xFFE5E5E5)),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'TOTAL ORDERS',
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w700,
-                                color: Color(0xFF71717A),
-                                letterSpacing: 0.5,
+                      child: InkWell(
+                        onTap: () {
+                          setState(() {
+                            _selectedStatus = 'ALL';
+                          });
+                        },
+                        borderRadius: BorderRadius.circular(4),
+                        child: Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(4),
+                            border: Border.all(
+                              color: _selectedStatus == 'ALL'
+                                  ? Colors.black
+                                  : const Color(0xFFE5E5E5),
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'TOTAL ORDERS',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF71717A),
+                                  letterSpacing: 0.5,
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 6),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                Text(
-                                  '${allOrders.length}',
-                                  style: const TextStyle(
-                                    fontSize: 28,
-                                    fontWeight: FontWeight.w900,
-                                    color: Colors.black,
-                                    height: 1.0,
+                              const SizedBox(height: 6),
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Text(
+                                    '${allOrders.length}',
+                                    style: const TextStyle(
+                                      fontSize: 28,
+                                      fontWeight: FontWeight.w900,
+                                      color: Colors.black,
+                                      height: 1.0,
+                                    ),
                                   ),
-                                ),
-                                Container(
-                                  width: 36,
-                                  height: 36,
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFF8FAFC),
-                                    borderRadius: BorderRadius.circular(2),
-                                    border: Border.all(color: const Color(0xFFF1F5F9)),
+                                  Container(
+                                    width: 36,
+                                    height: 36,
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFF8FAFC),
+                                      borderRadius: BorderRadius.circular(2),
+                                      border: Border.all(
+                                          color: const Color(0xFFF1F5F9)),
+                                    ),
+                                    child: const Icon(
+                                      Icons.description_outlined,
+                                      color: Colors.black87,
+                                      size: 18,
+                                    ),
                                   ),
-                                  child: const Icon(
-                                    Icons.description_outlined,
-                                    color: Colors.black87,
-                                    size: 18,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
-                      child: Container(
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(4),
-                          border: Border.all(color: const Color(0xFFE5E5E5)),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'TOTAL CARTONS',
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w700,
-                                color: Color(0xFF71717A),
-                                letterSpacing: 0.5,
+                      child: InkWell(
+                        onTap: () {
+                          setState(() {
+                            _selectedStatus = 'IN_PRODUCTION';
+                          });
+                        },
+                        borderRadius: BorderRadius.circular(4),
+                        child: Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(4),
+                            border: Border.all(
+                              color: _selectedStatus == 'IN_PRODUCTION'
+                                  ? Colors.black
+                                  : const Color(0xFFE5E5E5),
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'IN PRODUCTION',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF71717A),
+                                  letterSpacing: 0.5,
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 6),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                Text(
-                                  '$totalCartonsAll',
-                                  style: const TextStyle(
-                                    fontSize: 28,
-                                    fontWeight: FontWeight.w900,
-                                    color: Colors.black,
-                                    height: 1.0,
+                              const SizedBox(height: 6),
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Text(
+                                    '$inProductionCount',
+                                    style: const TextStyle(
+                                      fontSize: 28,
+                                      fontWeight: FontWeight.w900,
+                                      color: Colors.black,
+                                      height: 1.0,
+                                    ),
                                   ),
-                                ),
-                                Container(
-                                  width: 36,
-                                  height: 36,
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFF8FAFC),
-                                    borderRadius: BorderRadius.circular(2),
-                                    border: Border.all(color: const Color(0xFFF1F5F9)),
+                                  Container(
+                                    width: 36,
+                                    height: 36,
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFF8FAFC),
+                                      borderRadius: BorderRadius.circular(2),
+                                      border: Border.all(
+                                          color: const Color(0xFFF1F5F9)),
+                                    ),
+                                    child: const Icon(
+                                      Icons.precision_manufacturing_outlined,
+                                      color: Colors.black87,
+                                      size: 18,
+                                    ),
                                   ),
-                                  child: const Icon(
-                                    Icons.inventory_2_outlined,
-                                    color: Colors.black87,
-                                    size: 18,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
