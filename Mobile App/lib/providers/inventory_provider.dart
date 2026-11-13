@@ -190,6 +190,7 @@ class ItemModel {
   final String measurementUnit;
   final double quantity;
   final double reorderThresholdQuantity;
+  final double minimumStockCount;
   final double totalAvailableStock;
   final bool isBelowReorderThreshold;
   final double reorderShortfallQuantity;
@@ -211,6 +212,7 @@ class ItemModel {
     required this.measurementUnit,
     this.quantity = 1.0,
     required this.reorderThresholdQuantity,
+    double? minimumStockCount,
     required this.totalAvailableStock,
     required this.isBelowReorderThreshold,
     required this.reorderShortfallQuantity,
@@ -222,7 +224,7 @@ class ItemModel {
     this.description = '',
     this.hasIngredients = false,
     this.ingredients = const [],
-  });
+  }) : minimumStockCount = minimumStockCount ?? reorderThresholdQuantity;
 
   ItemModel copyWith({
     String? itemId,
@@ -233,6 +235,7 @@ class ItemModel {
     String? measurementUnit,
     double? quantity,
     double? reorderThresholdQuantity,
+    double? minimumStockCount,
     double? totalAvailableStock,
     bool? isBelowReorderThreshold,
     double? reorderShortfallQuantity,
@@ -247,10 +250,13 @@ class ItemModel {
     bool clearStoreRoom = false,
   }) {
     final newStock = totalAvailableStock ?? this.totalAvailableStock;
-    final newThreshold =
-        reorderThresholdQuantity ?? this.reorderThresholdQuantity;
-    final below = newStock <= newThreshold;
-    final shortfall = below ? (newThreshold - newStock) : 0.0;
+    final newThreshold = reorderThresholdQuantity ?? this.reorderThresholdQuantity;
+    final newMinimumStock = minimumStockCount ??
+        (reorderThresholdQuantity == null
+            ? this.minimumStockCount
+            : reorderThresholdQuantity);
+    final below = newStock < newMinimumStock;
+    final shortfall = below ? (newMinimumStock - newStock) : 0.0;
 
     return ItemModel(
       itemId: itemId ?? this.itemId,
@@ -261,6 +267,7 @@ class ItemModel {
       measurementUnit: measurementUnit ?? this.measurementUnit,
       quantity: quantity ?? this.quantity,
       reorderThresholdQuantity: newThreshold,
+      minimumStockCount: newMinimumStock,
       totalAvailableStock: newStock,
       isBelowReorderThreshold: isBelowReorderThreshold ?? below,
       reorderShortfallQuantity: reorderShortfallQuantity ?? shortfall,
@@ -291,6 +298,7 @@ class ItemModel {
         'measurement_unit': measurementUnit,
         'quantity': quantity,
         'reorder_threshold_quantity': reorderThresholdQuantity,
+        'minimum_stock_count': minimumStockCount,
         'total_available_stock': totalAvailableStock,
         'is_below_reorder_threshold': isBelowReorderThreshold,
         'reorder_shortfall_quantity': reorderShortfallQuantity,
@@ -315,6 +323,10 @@ class ItemModel {
         (json['current_stock_quantity'] as num?)?.toDouble() ??
         (json['stock_quantity'] as num?)?.toDouble() ??
         0.0;
+    final minimumStock =
+        (json['minimum_stock_count'] as num?)?.toDouble() ??
+        (json['reorder_threshold_quantity'] as num?)?.toDouble() ??
+        0.0;
 
     List<ItemIngredientModel> parsedIngredients = [];
     if (json['ingredients'] is List) {
@@ -333,8 +345,9 @@ class ItemModel {
       quantity: (json['quantity'] as num?)?.toDouble() ?? 1.0,
       reorderThresholdQuantity:
           (json['reorder_threshold_quantity'] as num?)?.toDouble() ?? 0.0,
+      minimumStockCount: minimumStock,
       totalAvailableStock: stock,
-      isBelowReorderThreshold: json['is_below_reorder_threshold'] == true,
+      isBelowReorderThreshold: stock < minimumStock,
       reorderShortfallQuantity:
           (json['reorder_shortfall_quantity'] as num?)?.toDouble() ?? 0.0,
       storeRoomId: sId,
@@ -783,7 +796,7 @@ class InventoryProvider extends ChangeNotifier {
       quantity: quantity,
       reorderThresholdQuantity: reorderThreshold,
       totalAvailableStock: 0.0,
-      isBelowReorderThreshold: 0.0 <= reorderThreshold,
+      isBelowReorderThreshold: 0.0 < reorderThreshold,
       reorderShortfallQuantity: reorderThreshold,
       imageUrl: imageUrl,
       isActive: true,

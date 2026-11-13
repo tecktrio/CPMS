@@ -2175,7 +2175,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                                     const SizedBox(height: 2),
                                     Text(
                                       sri.minCount > 0
-                                          ? '${sri.minCount.toStringAsFixed(sri.minCount.truncateToDouble() == sri.minCount ? 0 : 2)} ${item.measurementUnit}'
+                                          ? sri.minCount.toStringAsFixed(sri.minCount.truncateToDouble() == sri.minCount ? 0 : 2)
                                           : 'Not set',
                                       style: const TextStyle(
                                         fontSize: 11,

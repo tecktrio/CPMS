@@ -112,19 +112,28 @@ export class ItemsService {
           return roomSum + itemEntries.reduce((s, it) => s + (it.quantity || 0), 0);
         }, 0);
 
+        const configuredMinimumStock = rooms.reduce((minimumSum, r) => {
+          const itemEntries = (r.items || []).filter((it) => it.item_id === item.item_id);
+          return minimumSum + itemEntries.reduce((s, it) => s + (it.min_count || 0), 0);
+        }, 0);
+
         const totalStock = roomStock > 0 ? roomStock : batchStock;
+        const minimumStock = configuredMinimumStock > 0
+          ? configuredMinimumStock
+          : item.reorder_threshold_quantity;
 
         const isBelowThreshold =
-          totalStock <= item.reorder_threshold_quantity;
+          totalStock < minimumStock;
 
         const shortfall = isBelowThreshold
-          ? Math.max(0, item.reorder_threshold_quantity - totalStock)
+          ? Math.max(0, minimumStock - totalStock)
           : 0;
 
         return {
           ...item.toObject(),
           total_available_stock: totalStock,
           current_stock_quantity: totalStock,
+          minimum_stock_count: minimumStock,
           active_batches_count: batches.length,
           is_below_reorder_threshold: isBelowThreshold,
           reorder_shortfall_quantity: shortfall,
@@ -175,18 +184,27 @@ export class ItemsService {
       return roomSum + itemEntries.reduce((s, it) => s + (it.quantity || 0), 0);
     }, 0);
 
+    const configuredMinimumStock = rooms.reduce((minimumSum, r) => {
+      const itemEntries = (r.items || []).filter((it) => it.item_id === itemId);
+      return minimumSum + itemEntries.reduce((s, it) => s + (it.min_count || 0), 0);
+    }, 0);
+
     const totalAvailableStock = roomStock > 0 ? roomStock : totalBatchStock;
+    const minimumStock = configuredMinimumStock > 0
+      ? configuredMinimumStock
+      : item.reorder_threshold_quantity;
 
     const isBelowThreshold =
-      totalAvailableStock <= item.reorder_threshold_quantity;
+      totalAvailableStock < minimumStock;
 
     return {
       ...item.toObject(),
       total_available_stock: totalAvailableStock,
       current_stock_quantity: totalAvailableStock,
+      minimum_stock_count: minimumStock,
       is_below_reorder_threshold: isBelowThreshold,
       reorder_shortfall_quantity: isBelowThreshold
-        ? item.reorder_threshold_quantity - totalAvailableStock
+        ? minimumStock - totalAvailableStock
         : 0,
       batches,
       store_rooms: rooms.map((r) => ({

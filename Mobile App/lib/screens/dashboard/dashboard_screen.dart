@@ -1707,7 +1707,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                           const TextSpan(text: '  •  Stock: '),
                                           TextSpan(
                                             text:
-                                                '${item.totalAvailableStock.toStringAsFixed(0)} ${item.measurementUnit}',
+                                                item.totalAvailableStock.toStringAsFixed(0),
                                             style: const TextStyle(
                                               fontWeight: FontWeight.w800,
                                               color: Colors.black,
@@ -1736,7 +1736,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
                               Text(
-                                'Min: ${item.reorderThresholdQuantity.toStringAsFixed(0)} ${item.measurementUnit}',
+                                'Min: ${item.minimumStockCount.toStringAsFixed(0)}',
                                 style: const TextStyle(
                                   fontSize: 12,
                                   color: Color(0xFF64748B),
@@ -1744,7 +1744,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 ),
                               ),
                               Text(
-                                'Shortfall: ${item.reorderShortfallQuantity.toStringAsFixed(0)} ${item.measurementUnit}',
+                                'Shortfall: ${item.reorderShortfallQuantity.toStringAsFixed(0)}',
                                 style: const TextStyle(
                                   fontSize: 12,
                                   color: Color(0xFFDC2626),
