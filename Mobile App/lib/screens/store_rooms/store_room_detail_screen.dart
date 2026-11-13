@@ -555,7 +555,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
         backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
         title: Text(
-          'Set Quantity: ${item.itemName}',
+          'Set Count: ${item.itemName}',
           style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 17),
         ),
         content: Form(
@@ -571,7 +571,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
               if (item.quantity > 1) ...[
                 const SizedBox(height: 4),
                 Text(
-                  'Each unit = ${item.quantity.toStringAsFixed(item.quantity.truncateToDouble() == item.quantity ? 0 : 2)} ${item.measurementUnit}',
+                  'Each item = ${item.quantity.toStringAsFixed(item.quantity.truncateToDouble() == item.quantity ? 0 : 2)} ${item.measurementUnit}',
                   style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
                 ),
               ],
@@ -583,9 +583,9 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                 style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
                 decoration: InputDecoration(
                   labelText: item.quantity > 1
-                      ? 'Number of "${item.itemName}" units *'
-                      : 'Quantity (${item.measurementUnit}) *',
-                  suffixText: item.quantity > 1 ? 'units' : item.measurementUnit,
+                      ? 'Count of "${item.itemName}" *'
+                      : 'Count *',
+                  suffixText: null,
                   filled: true,
                   fillColor: const Color(0xFFF8FAFC),
                   border: OutlineInputBorder(
@@ -595,7 +595,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                 ),
                 onChanged: (_) => setDlgState(() {}),
                 validator: (val) {
-                  if (val == null || val.trim().isEmpty) return 'Enter quantity';
+                  if (val == null || val.trim().isEmpty) return 'Enter count';
                   final n = double.tryParse(val.trim());
                   if (n == null || n < 0) return 'Enter valid non-negative number';
                   return null;
@@ -641,7 +641,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                 quantity: qty,
               );
             },
-            child: const Text('Save Quantity',
+            child: const Text('Save Count',
                 style: TextStyle(fontWeight: FontWeight.w700)),
           ),
         ],
@@ -2077,7 +2077,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     const Text(
-                                      'ROOM QUANTITY',
+                                      'COUNT',
                                       style: TextStyle(
                                         fontSize: 11,
                                         fontWeight: FontWeight.w800,
@@ -2141,7 +2141,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                                             borderRadius: BorderRadius.circular(4),
                                           ),
                                           child: Text(
-                                            '${sri.quantity.toStringAsFixed(sri.quantity.truncateToDouble() == sri.quantity ? 0 : 1)} units',
+                                            sri.quantity.toStringAsFixed(sri.quantity.truncateToDouble() == sri.quantity ? 0 : 1),
                                             style: const TextStyle(
                                               fontSize: 12,
                                               fontWeight: FontWeight.w800,
@@ -2183,7 +2183,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                                       borderRadius: BorderRadius.circular(4),
                                     ),
                                     child: Text(
-                                      '${sri.quantity.toStringAsFixed(sri.quantity.truncateToDouble() == sri.quantity ? 0 : 1)} units',
+                                      sri.quantity.toStringAsFixed(sri.quantity.truncateToDouble() == sri.quantity ? 0 : 1),
                                       style: const TextStyle(
                                         fontSize: 12,
                                         fontWeight: FontWeight.w800,
@@ -2935,7 +2935,7 @@ class _AddItemToRoomModalState extends State<_AddItemToRoomModal> {
           const SizedBox(height: 18),
 
           Text(
-            'HOW MANY "${item.itemName.toUpperCase()}"?',
+            'COUNT',
             style: const TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w800,
@@ -2946,8 +2946,8 @@ class _AddItemToRoomModalState extends State<_AddItemToRoomModal> {
           const SizedBox(height: 4),
           Text(
             item.quantity > 1
-                ? 'Each unit = ${item.quantity.toStringAsFixed(item.quantity.truncateToDouble() == item.quantity ? 0 : 2)} ${item.measurementUnit}'
-                : 'Enter the number of units stored in this room',
+                ? 'Each item = ${item.quantity.toStringAsFixed(item.quantity.truncateToDouble() == item.quantity ? 0 : 2)} ${item.measurementUnit}'
+                : 'Enter item count stored in this room',
             style: const TextStyle(fontSize: 11, color: Color(0xFF94A3B8)),
           ),
           const SizedBox(height: 8),
@@ -2960,8 +2960,8 @@ class _AddItemToRoomModalState extends State<_AddItemToRoomModal> {
               filled: true,
               fillColor: const Color(0xFFF8FAFC),
               prefixIcon: const Icon(Icons.inventory_2_outlined, size: 20, color: Color(0xFF94A3B8)),
-              suffixText: 'units',
-              suffixStyle: const TextStyle(fontSize: 12, color: Color(0xFF64748B), fontWeight: FontWeight.w600),
+              suffixText: null,
+              suffixStyle: null,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(4),
                 borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
