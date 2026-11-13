@@ -1843,246 +1843,292 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                           : 'General Section';
 
                       return Container(
-                        margin: const EdgeInsets.only(bottom: 10),
-                        padding: const EdgeInsets.all(12),
+                        margin: const EdgeInsets.only(bottom: 12),
+                        padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF8FAFC),
+                          color: Colors.white,
                           borderRadius: BorderRadius.circular(4),
-                          border: Border.all(color: const Color(0xFFF1F5F9)),
+                          border: Border.all(color: const Color(0xFFE5E5E5)),
                         ),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // Thumbnail
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(4),
-                              child: Container(
-                                width: 44,
-                                height: 44,
-                                decoration: BoxDecoration(
-                                  color: Colors.black,
+                            // Top Row: Item Picture + Title + SKU & Division badges + Popup Menu
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Thumbnail
+                                ClipRRect(
                                   borderRadius: BorderRadius.circular(4),
-                                ),
-                                child: resolvedImg != null
-                                    ? Image.network(
-                                        resolvedImg,
-                                        width: 44,
-                                        height: 44,
-                                        fit: BoxFit.cover,
-                                        errorBuilder: (context, error, stackTrace) => const Icon(
-                                          Icons.inventory_2_outlined,
-                                          color: Colors.white,
-                                          size: 20,
-                                        ),
-                                      )
-                                    : const Icon(
-                                        Icons.inventory_2_outlined,
-                                        color: Colors.white,
-                                        size: 20,
-                                      ),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            // Details
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    item.itemName,
-                                    style: const TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w800,
+                                  child: Container(
+                                    width: 52,
+                                    height: 52,
+                                    decoration: BoxDecoration(
                                       color: Colors.black,
+                                      borderRadius: BorderRadius.circular(4),
                                     ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
+                                    child: resolvedImg != null
+                                        ? Image.network(
+                                            resolvedImg,
+                                            width: 52,
+                                            height: 52,
+                                            fit: BoxFit.cover,
+                                            errorBuilder: (context, error, stackTrace) => const Icon(
+                                              Icons.inventory_2_outlined,
+                                              color: Colors.white,
+                                              size: 22,
+                                            ),
+                                          )
+                                        : const Icon(
+                                            Icons.inventory_2_outlined,
+                                            color: Colors.white,
+                                            size: 22,
+                                          ),
                                   ),
-                                  const SizedBox(height: 3),
-                                  Wrap(
-                                    spacing: 6,
-                                    runSpacing: 4,
+                                ),
+                                const SizedBox(width: 12),
+                                // Details: Title, SKU, Division, Description
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFFE2E8F0),
-                                          borderRadius: BorderRadius.circular(4),
-                                        ),
-                                        child: Text(
-                                          item.sku,
-                                          style: const TextStyle(
-                                            fontSize: 10,
-                                            fontWeight: FontWeight.w800,
-                                            color: Color(0xFF334155),
-                                          ),
+                                      Text(
+                                        item.itemName,
+                                        style: const TextStyle(
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w800,
+                                          color: Colors.black,
                                         ),
                                       ),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFFE0E7FF),
-                                          borderRadius: BorderRadius.circular(4),
-                                        ),
-                                        child: Text(
-                                          divText,
+                                      const SizedBox(height: 5),
+                                      Wrap(
+                                        spacing: 6,
+                                        runSpacing: 4,
+                                        crossAxisAlignment: WrapCrossAlignment.center,
+                                        children: [
+                                          if (item.sku.isNotEmpty)
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                              decoration: BoxDecoration(
+                                                color: const Color(0xFFF1F5F9),
+                                                borderRadius: BorderRadius.circular(2),
+                                              ),
+                                              child: Text(
+                                                item.sku,
+                                                style: const TextStyle(
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.w800,
+                                                  color: Color(0xFF334155),
+                                                  letterSpacing: 0.3,
+                                                ),
+                                              ),
+                                            ),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFFEEF2FF),
+                                              borderRadius: BorderRadius.circular(2),
+                                            ),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                const Icon(Icons.meeting_room_outlined, size: 11, color: Color(0xFF4338CA)),
+                                                const SizedBox(width: 3),
+                                                Text(
+                                                  divText,
+                                                  style: const TextStyle(
+                                                    fontSize: 11,
+                                                    fontWeight: FontWeight.w700,
+                                                    color: Color(0xFF4338CA),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      if (item.description.isNotEmpty) ...[
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          item.description,
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
                                           style: const TextStyle(
-                                            fontSize: 10,
-                                            fontWeight: FontWeight.w700,
-                                            color: Color(0xFF3730A3),
+                                            fontSize: 12,
+                                            color: Color(0xFF64748B),
                                           ),
                                         ),
-                                      ),
+                                      ],
                                     ],
                                   ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            // Quantity Controls in Store Room
-                            if (canUpdate)
-                              Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  InkWell(
-                                    onTap: sri.quantity > 0
-                                        ? () {
-                                            final newQty = (sri.quantity - 1.0)
-                                                .clamp(0.0, 99999999.0);
-                                            inventory.updateStoreRoomItemQuantity(
-                                              storeRoomId: currentRoom.storeRoomId,
-                                              itemId: item.itemId,
-                                              quantity: newQty,
-                                            );
-                                          }
-                                        : null,
-                                    borderRadius: BorderRadius.circular(4),
-                                    child: Container(
-                                      width: 28,
-                                      height: 28,
-                                      decoration: BoxDecoration(
-                                        color: Colors.white,
-                                        borderRadius: BorderRadius.circular(4),
-                                        border: Border.all(color: const Color(0xFFCBD5E1)),
+                                ),
+                                const SizedBox(width: 6),
+                                // Actions Menu
+                                PopupMenuButton<String>(
+                                  icon: const Icon(Icons.more_vert, size: 20, color: Color(0xFF71717A)),
+                                  padding: EdgeInsets.zero,
+                                  constraints: const BoxConstraints(),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                                  onSelected: (val) {
+                                    if (val == 'view') {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => ItemDetailScreen(item: item),
+                                        ),
+                                      );
+                                    } else if (val == 'move') {
+                                      _showMoveDivisionDialog(item, currentRoom);
+                                    } else if (val == 'remove') {
+                                      _confirmRemoveItemFromRoom(item, currentRoom);
+                                    }
+                                  },
+                                  itemBuilder: (ctx) => [
+                                    const PopupMenuItem(
+                                      value: 'view',
+                                      child: Row(
+                                        children: [
+                                          Icon(Icons.visibility_outlined, size: 18),
+                                          SizedBox(width: 8),
+                                          Text('View Item Details', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                                        ],
                                       ),
-                                      alignment: Alignment.center,
-                                      child: const Icon(Icons.remove, size: 14, color: Colors.black),
                                     ),
-                                  ),
-                                  const SizedBox(width: 5),
-                                  InkWell(
-                                    onTap: () => _showEditItemQuantityDialog(
-                                      item,
-                                      sri,
-                                      currentRoom,
-                                    ),
-                                    borderRadius: BorderRadius.circular(4),
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-                                      decoration: BoxDecoration(
-                                        color: Colors.black,
-                                        borderRadius: BorderRadius.circular(4),
-                                      ),
-                                      child: Text(
-                                        '${sri.quantity.toStringAsFixed(1)} ${item.measurementUnit}',
-                                        style: const TextStyle(
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w800,
-                                          color: Colors.white,
+                                    if (canUpdate && currentRoom.divisions.length > 1)
+                                      const PopupMenuItem(
+                                        value: 'move',
+                                        child: Row(
+                                          children: [
+                                            Icon(Icons.swap_horiz, size: 18),
+                                            SizedBox(width: 8),
+                                            Text('Change Division', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                                          ],
                                         ),
                                       ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 5),
-                                  InkWell(
-                                    onTap: () {
-                                      final newQty = sri.quantity + 1.0;
-                                      inventory.updateStoreRoomItemQuantity(
-                                        storeRoomId: currentRoom.storeRoomId,
-                                        itemId: item.itemId,
-                                        quantity: newQty,
-                                      );
-                                    },
-                                    borderRadius: BorderRadius.circular(4),
-                                    child: Container(
-                                      width: 28,
-                                      height: 28,
-                                      decoration: BoxDecoration(
-                                        color: Colors.white,
-                                        borderRadius: BorderRadius.circular(4),
-                                        border: Border.all(color: const Color(0xFFCBD5E1)),
+                                    if (canUpdate)
+                                      const PopupMenuItem(
+                                        value: 'remove',
+                                        child: Row(
+                                          children: [
+                                            Icon(Icons.delete_outline, size: 18, color: Color(0xFFDC2626)),
+                                            SizedBox(width: 8),
+                                            Text('Remove from Room', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFFDC2626))),
+                                          ],
+                                        ),
                                       ),
-                                      alignment: Alignment.center,
-                                      child: const Icon(Icons.add, size: 14, color: Colors.black),
-                                    ),
-                                  ),
-                                ],
-                              )
-                            else
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-                                decoration: BoxDecoration(
-                                  color: Colors.black,
-                                  borderRadius: BorderRadius.circular(4),
+                                  ],
                                 ),
-                                child: Text(
-                                  '${sri.quantity.toStringAsFixed(1)} ${item.measurementUnit}',
-                                  style: const TextStyle(
+                              ],
+                            ),
+
+                            const SizedBox(height: 12),
+                            const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                            const SizedBox(height: 10),
+
+                            // Bottom Row: Quantity Stepper & Label below picture, title & description
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text(
+                                  'ROOM QUANTITY',
+                                  style: TextStyle(
                                     fontSize: 11,
                                     fontWeight: FontWeight.w800,
-                                    color: Colors.white,
+                                    color: Color(0xFF71717A),
+                                    letterSpacing: 0.5,
                                   ),
                                 ),
-                              ),
-                            // Actions Menu
-                            PopupMenuButton<String>(
-                              icon: const Icon(Icons.more_vert, size: 20, color: Color(0xFF64748B)),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-                              onSelected: (val) {
-                                if (val == 'view') {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => ItemDetailScreen(item: item),
-                                    ),
-                                  );
-                                } else if (val == 'move') {
-                                  _showMoveDivisionDialog(item, currentRoom);
-                                } else if (val == 'remove') {
-                                  _confirmRemoveItemFromRoom(item, currentRoom);
-                                }
-                              },
-                              itemBuilder: (ctx) => [
-                                const PopupMenuItem(
-                                  value: 'view',
-                                  child: Row(
-                                    children: [
-                                      Icon(Icons.visibility_outlined, size: 18),
-                                      SizedBox(width: 8),
-                                      Text('View Item Details', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                                    ],
-                                  ),
-                                ),
-                                if (canUpdate && currentRoom.divisions.length > 1)
-                                  const PopupMenuItem(
-                                    value: 'move',
-                                    child: Row(
-                                      children: [
-                                        Icon(Icons.swap_horiz, size: 18),
-                                        SizedBox(width: 8),
-                                        Text('Change Division', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                                      ],
-                                    ),
-                                  ),
                                 if (canUpdate)
-                                  const PopupMenuItem(
-                                    value: 'remove',
-                                    child: Row(
-                                      children: [
-                                        Icon(Icons.delete_outline, size: 18, color: Color(0xFFDC2626)),
-                                        SizedBox(width: 8),
-                                        Text('Remove from Room', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFFDC2626))),
-                                      ],
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      InkWell(
+                                        onTap: sri.quantity > 0
+                                            ? () {
+                                                final newQty = (sri.quantity - 1.0).clamp(0.0, 99999999.0);
+                                                inventory.updateStoreRoomItemQuantity(
+                                                  storeRoomId: currentRoom.storeRoomId,
+                                                  itemId: item.itemId,
+                                                  quantity: newQty,
+                                                );
+                                              }
+                                            : null,
+                                        borderRadius: BorderRadius.circular(4),
+                                        child: Container(
+                                          width: 32,
+                                          height: 32,
+                                          decoration: BoxDecoration(
+                                            color: Colors.white,
+                                            borderRadius: BorderRadius.circular(4),
+                                            border: Border.all(color: const Color(0xFFCBD5E1)),
+                                          ),
+                                          alignment: Alignment.center,
+                                          child: const Icon(Icons.remove, size: 16, color: Colors.black),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      InkWell(
+                                        onTap: () => _showEditItemQuantityDialog(
+                                          item,
+                                          sri,
+                                          currentRoom,
+                                        ),
+                                        borderRadius: BorderRadius.circular(4),
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                                          decoration: BoxDecoration(
+                                            color: Colors.black,
+                                            borderRadius: BorderRadius.circular(4),
+                                          ),
+                                          child: Text(
+                                            '${sri.quantity.toStringAsFixed(sri.quantity.truncateToDouble() == sri.quantity ? 0 : 1)} ${item.measurementUnit}',
+                                            style: const TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w800,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      InkWell(
+                                        onTap: () {
+                                          final newQty = sri.quantity + 1.0;
+                                          inventory.updateStoreRoomItemQuantity(
+                                            storeRoomId: currentRoom.storeRoomId,
+                                            itemId: item.itemId,
+                                            quantity: newQty,
+                                          );
+                                        },
+                                        borderRadius: BorderRadius.circular(4),
+                                        child: Container(
+                                          width: 32,
+                                          height: 32,
+                                          decoration: BoxDecoration(
+                                            color: Colors.white,
+                                            borderRadius: BorderRadius.circular(4),
+                                            border: Border.all(color: const Color(0xFFCBD5E1)),
+                                          ),
+                                          alignment: Alignment.center,
+                                          child: const Icon(Icons.add, size: 16, color: Colors.black),
+                                        ),
+                                      ),
+                                    ],
+                                  )
+                                else
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                                    decoration: BoxDecoration(
+                                      color: Colors.black,
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: Text(
+                                      '${sri.quantity.toStringAsFixed(sri.quantity.truncateToDouble() == sri.quantity ? 0 : 1)} ${item.measurementUnit}',
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w800,
+                                        color: Colors.white,
+                                      ),
                                     ),
                                   ),
                               ],
