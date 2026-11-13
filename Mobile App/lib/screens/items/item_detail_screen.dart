@@ -325,10 +325,6 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
     );
 
     final allItems = inventory.items;
-    final belowThresholdCount = allItems.where((i) =>
-        i.isBelowReorderThreshold ||
-        (i.reorderThresholdQuantity > 0 &&
-            i.totalAvailableStock <= i.reorderThresholdQuantity)).length;
     final currentItemIsLow = currentItem.isBelowReorderThreshold ||
         (currentItem.reorderThresholdQuantity > 0 &&
             currentItem.totalAvailableStock <= currentItem.reorderThresholdQuantity);
@@ -451,75 +447,6 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                           ],
                         ),
                       ],
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(4),
-                    onTap: () => _showFixAlertModal(context, currentItem),
-                    child: Container(
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(4),
-                        border: Border.all(color: const Color(0xFFE5E5E5)),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'LESS THAN THRESHOLD',
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w700,
-                              color: Color(0xFF71717A),
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              Text(
-                                '$belowThresholdCount',
-                                style: TextStyle(
-                                  fontSize: 26,
-                                  fontWeight: FontWeight.w900,
-                                  color: belowThresholdCount > 0
-                                      ? const Color(0xFFDC2626)
-                                      : Colors.black,
-                                  height: 1.0,
-                                ),
-                              ),
-                              Container(
-                                width: 36,
-                                height: 36,
-                                decoration: BoxDecoration(
-                                  color: belowThresholdCount > 0
-                                      ? const Color(0xFFFEF2F2)
-                                      : const Color(0xFFF8FAFC),
-                                  borderRadius: BorderRadius.circular(2),
-                                  border: Border.all(
-                                    color: belowThresholdCount > 0
-                                        ? const Color(0xFFFECACA)
-                                        : const Color(0xFFF1F5F9),
-                                  ),
-                                ),
-                                child: Icon(
-                                  Icons.warning_amber_rounded,
-                                  color: belowThresholdCount > 0
-                                      ? const Color(0xFFDC2626)
-                                      : Colors.black87,
-                                  size: 18,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
                     ),
                   ),
                 ),

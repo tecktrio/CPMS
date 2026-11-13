@@ -20,7 +20,6 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   String _selectedCategory = 'ALL';
-  bool _filterBelowThreshold = false;
 
   @override
   void initState() {
@@ -36,84 +35,6 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
     super.dispose();
   }
 
-  void _showCategoryPicker(BuildContext context) {
-    final categories = [
-      {'code': 'ALL', 'label': 'All Materials'},
-      {'code': 'RAW_MATERIAL', 'label': 'Raw Materials'},
-      {'code': 'FINISHED_GOOD', 'label': 'Finished Goods'},
-      {'code': 'PACKAGING', 'label': 'Packaging'},
-      {'code': 'SPARE_PARTS', 'label': 'Spare Parts & Tools'},
-    ];
-
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (ctx) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                margin: const EdgeInsets.only(top: 12, bottom: 8),
-                width: 36,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFCBD5E1),
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'Select Material Category',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.black,
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.close, size: 20),
-                      onPressed: () => Navigator.pop(ctx),
-                    ),
-                  ],
-                ),
-              ),
-              const Divider(height: 1, color: Color(0xFFF1F5F9)),
-              ...categories.map((cat) {
-                final isSelected = _selectedCategory == cat['code'];
-                return ListTile(
-                  leading: const Icon(Icons.category_outlined, color: Colors.black),
-                  title: Text(
-                    cat['label']!,
-                    style: TextStyle(
-                      fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-                      fontSize: 15,
-                    ),
-                  ),
-                  trailing: isSelected
-                      ? const Icon(Icons.check_circle, color: Colors.black)
-                      : null,
-                  onTap: () {
-                    setState(() => _selectedCategory = cat['code']!);
-                    Navigator.pop(ctx);
-                  },
-                );
-              }),
-              const SizedBox(height: 12),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final inventory = context.watch<InventoryProvider>();
@@ -127,10 +48,6 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
     final isWide = screenWidth >= 700;
 
     final allItems = inventory.items;
-    final lowStockItems = allItems.where((item) =>
-        item.isBelowReorderThreshold ||
-        (item.reorderThresholdQuantity > 0 &&
-            item.totalAvailableStock <= item.reorderThresholdQuantity)).toList();
 
     final filteredItems = allItems.where((item) {
       final matchesSearch = item.itemName
@@ -139,11 +56,7 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
           item.sku.toLowerCase().contains(_searchQuery.toLowerCase());
       final matchesCat =
           _selectedCategory == 'ALL' || item.itemType == _selectedCategory;
-      final matchesThreshold = !_filterBelowThreshold ||
-          item.isBelowReorderThreshold ||
-          (item.reorderThresholdQuantity > 0 &&
-              item.totalAvailableStock <= item.reorderThresholdQuantity);
-      return matchesSearch && matchesCat && matchesThreshold;
+      return matchesSearch && matchesCat;
     }).toList();
 
     String pageTitle = 'Items & Materials';
@@ -155,17 +68,6 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
       } else {
         pageTitle = 'Manage Items';
       }
-    }
-
-    String categoryLabel = 'All Materials';
-    if (_selectedCategory == 'RAW_MATERIAL') {
-      categoryLabel = 'Raw Materials';
-    } else if (_selectedCategory == 'FINISHED_GOOD') {
-      categoryLabel = 'Finished Goods';
-    } else if (_selectedCategory == 'PACKAGING') {
-      categoryLabel = 'Packaging';
-    } else if (_selectedCategory == 'SPARE_PARTS') {
-      categoryLabel = 'Spare Parts & Tools';
     }
 
     return Scaffold(
@@ -210,7 +112,7 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
           constraints: const BoxConstraints(maxWidth: 1100),
           child: Column(
             children: [
-              // Search & Filter Bar (Adaptive Layout)
+              // Search & Filter Controls (Uber Style)
               Padding(
                 padding: EdgeInsets.fromLTRB(
                   isWide ? 24 : 16,
@@ -222,26 +124,33 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
                     ? Row(
                         children: [
                           Expanded(
-                            flex: 3,
+                            flex: 5,
                             child: _buildSearchBar(),
                           ),
-                          const SizedBox(width: 14),
+                          const SizedBox(width: 16),
                           Expanded(
-                            flex: 2,
-                            child: _buildCategoryPickerTrigger(categoryLabel),
+                            flex: 6,
+                            child: SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              child: _buildCategoryChipsRow(),
+                            ),
                           ),
                         ],
                       )
                     : Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           _buildSearchBar(),
-                          const SizedBox(height: 8),
-                          _buildCategoryPickerTrigger(categoryLabel),
+                          const SizedBox(height: 10),
+                          SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: _buildCategoryChipsRow(),
+                          ),
                         ],
                       ),
               ),
 
-              // Summary Metrics Row
+              // Summary Metric (Total Items Only - Uber Style)
               Padding(
                 padding: EdgeInsets.fromLTRB(
                   isWide ? 24 : 16,
@@ -251,152 +160,59 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
                 ),
                 child: Row(
                   children: [
-                    // Card 1: Total Items
                     Expanded(
-                      child: InkWell(
-                        onTap: () {
-                          if (_filterBelowThreshold) {
-                            setState(() => _filterBelowThreshold = false);
-                          }
-                        },
-                        borderRadius: BorderRadius.circular(4),
-                        child: Container(
-                          padding: const EdgeInsets.all(14),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(4),
-                            border: Border.all(
-                              color: !_filterBelowThreshold
-                                  ? Colors.black
-                                  : const Color(0xFFE5E5E5),
-                              width: !_filterBelowThreshold ? 1.5 : 1.0,
-                            ),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'TOTAL ITEMS',
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w700,
-                                  color: Color(0xFF71717A),
-                                  letterSpacing: 0.5,
-                                ),
-                              ),
-                              const SizedBox(height: 6),
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                crossAxisAlignment: CrossAxisAlignment.end,
-                                children: [
-                                  Text(
-                                    '${allItems.length}',
-                                    style: const TextStyle(
-                                      fontSize: 26,
-                                      fontWeight: FontWeight.w900,
-                                      color: Colors.black,
-                                      height: 1.0,
-                                    ),
-                                  ),
-                                  Container(
-                                    width: 36,
-                                    height: 36,
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFF8FAFC),
-                                      borderRadius: BorderRadius.circular(2),
-                                      border: Border.all(
-                                          color: const Color(0xFFF1F5F9)),
-                                    ),
-                                    child: const Icon(
-                                      Icons.inventory_2_outlined,
-                                      color: Colors.black87,
-                                      size: 18,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
+                      child: Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(color: const Color(0xFFE5E5E5)),
                         ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    // Card 2: Items Less Than Threshold
-                    Expanded(
-                      child: InkWell(
-                        onTap: () {
-                          setState(() => _filterBelowThreshold =
-                              !_filterBelowThreshold);
-                        },
-                        borderRadius: BorderRadius.circular(4),
-                        child: Container(
-                          padding: const EdgeInsets.all(14),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(4),
-                            border: Border.all(
-                              color: _filterBelowThreshold
-                                  ? Colors.black
-                                  : const Color(0xFFE5E5E5),
-                              width: _filterBelowThreshold ? 1.5 : 1.0,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'TOTAL ITEMS',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF71717A),
+                                letterSpacing: 0.5,
+                              ),
                             ),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'LESS THAN THRESHOLD',
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w700,
-                                  color: Color(0xFF71717A),
-                                  letterSpacing: 0.5,
+                            const SizedBox(height: 6),
+                            Row(
+                              mainAxisAlignment:
+                                  MainAxisAlignment.spaceBetween,
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text(
+                                  '${allItems.length}',
+                                  style: const TextStyle(
+                                    fontSize: 26,
+                                    fontWeight: FontWeight.w900,
+                                    color: Colors.black,
+                                    height: 1.0,
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(height: 6),
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                crossAxisAlignment: CrossAxisAlignment.end,
-                                children: [
-                                  Text(
-                                    '${lowStockItems.length}',
-                                    style: TextStyle(
-                                      fontSize: 26,
-                                      fontWeight: FontWeight.w900,
-                                      color: lowStockItems.isNotEmpty
-                                          ? const Color(0xFFDC2626)
-                                          : Colors.black,
-                                      height: 1.0,
-                                    ),
+                                Container(
+                                  width: 36,
+                                  height: 36,
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF8FAFC),
+                                    borderRadius: BorderRadius.circular(2),
+                                    border: Border.all(
+                                        color: const Color(0xFFF1F5F9)),
                                   ),
-                                  Container(
-                                    width: 36,
-                                    height: 36,
-                                    decoration: BoxDecoration(
-                                      color: lowStockItems.isNotEmpty
-                                          ? const Color(0xFFFEF2F2)
-                                          : const Color(0xFFF8FAFC),
-                                      borderRadius: BorderRadius.circular(2),
-                                      border: Border.all(
-                                        color: lowStockItems.isNotEmpty
-                                            ? const Color(0xFFFECACA)
-                                            : const Color(0xFFF1F5F9),
-                                      ),
-                                    ),
-                                    child: Icon(
-                                      Icons.warning_amber_rounded,
-                                      color: lowStockItems.isNotEmpty
-                                          ? const Color(0xFFDC2626)
-                                          : Colors.black87,
-                                      size: 18,
-                                    ),
+                                  child: const Icon(
+                                    Icons.inventory_2_outlined,
+                                    color: Colors.black87,
+                                    size: 18,
                                   ),
-                                ],
-                              ),
-                            ],
-                          ),
+                                ),
+                              ],
+                            ),
+                          ],
                         ),
                       ),
                     ),
@@ -512,31 +328,31 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
 
   Widget _buildSearchBar() {
     return Container(
-      height: 48,
+      height: 44,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: const Color(0xFFF8FAFC),
         borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: const Color(0xFFE5E5E5)),
       ),
       child: Row(
         children: [
           const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 14),
-            child: Icon(Icons.search, size: 20, color: Color(0xFF64748B)),
+            padding: EdgeInsets.symmetric(horizontal: 12),
+            child: Icon(Icons.search, color: Color(0xFF71717A), size: 18),
           ),
           Expanded(
             child: TextField(
               controller: _searchController,
               style: const TextStyle(
-                fontSize: 15,
+                fontSize: 14,
                 fontWeight: FontWeight.w500,
                 color: Colors.black,
               ),
               decoration: const InputDecoration(
                 hintText: 'Search SKU or item title...',
                 hintStyle: TextStyle(
-                  fontSize: 15,
-                  color: Color(0xFF94A3B8),
+                  color: Color(0xFF71717A),
+                  fontSize: 13,
                   fontWeight: FontWeight.w400,
                 ),
                 border: InputBorder.none,
@@ -544,13 +360,13 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
                 contentPadding: EdgeInsets.zero,
               ),
               onChanged: (val) {
-                setState(() => _searchQuery = val);
+                setState(() => _searchQuery = val.trim());
               },
             ),
           ),
           if (_searchQuery.isNotEmpty)
             IconButton(
-              icon: const Icon(Icons.cancel, size: 18, color: Color(0xFF94A3B8)),
+              icon: const Icon(Icons.clear, color: Color(0xFF71717A), size: 16),
               onPressed: () {
                 _searchController.clear();
                 setState(() => _searchQuery = '');
@@ -561,36 +377,50 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
     );
   }
 
-  Widget _buildCategoryPickerTrigger(String categoryLabel) {
-    return GestureDetector(
-      onTap: () => _showCategoryPicker(context),
-      child: Container(
-        height: 48,
-        padding: const EdgeInsets.symmetric(horizontal: 14),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(4),
-          border: Border.all(color: const Color(0xFFE2E8F0)),
-        ),
-        child: Row(
-          children: [
-            const Icon(Icons.grid_view_outlined, size: 20, color: Colors.black),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                categoryLabel,
-                style: const TextStyle(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 15,
-                  color: Colors.black,
+  Widget _buildCategoryChipsRow() {
+    final categories = [
+      {'code': 'ALL', 'label': 'All Materials'},
+      {'code': 'RAW_MATERIAL', 'label': 'Raw Materials'},
+      {'code': 'FINISHED_GOOD', 'label': 'Finished Goods'},
+      {'code': 'PACKAGING', 'label': 'Packaging'},
+      {'code': 'SPARE_PARTS', 'label': 'Spare Parts'},
+    ];
+
+    return Row(
+      children: categories.map((cat) {
+        final code = cat['code']!;
+        final label = cat['label']!;
+        final isSelected = _selectedCategory == code;
+        return Padding(
+          padding: const EdgeInsets.only(right: 8),
+          child: InkWell(
+            onTap: () {
+              setState(() {
+                _selectedCategory = code;
+              });
+            },
+            borderRadius: BorderRadius.circular(2),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                color: isSelected ? Colors.black : Colors.white,
+                borderRadius: BorderRadius.circular(2),
+                border: Border.all(
+                  color: isSelected ? Colors.black : const Color(0xFFE5E5E5),
                 ),
-                overflow: TextOverflow.ellipsis,
+              ),
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                  color: isSelected ? Colors.white : Colors.black,
+                ),
               ),
             ),
-            const Icon(Icons.swap_horiz, size: 20, color: Color(0xFF64748B)),
-          ],
-        ),
-      ),
+          ),
+        );
+      }).toList(),
     );
   }
 
