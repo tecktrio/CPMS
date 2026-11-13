@@ -37,6 +37,12 @@ export class UpdateItemDto {
   @IsOptional()
   measurement_unit?: MeasurementUnit;
 
+  @ApiPropertyOptional({ example: 100 })
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  quantity?: number;
+
   @ApiPropertyOptional({ example: 300 })
   @IsNumber()
   @Min(0)

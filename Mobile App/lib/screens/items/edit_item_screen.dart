@@ -18,6 +18,7 @@ class EditItemScreen extends StatefulWidget {
 class _EditItemScreenState extends State<EditItemScreen> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _nameController;
+  late final TextEditingController _quantityController;
   late final TextEditingController _descriptionController;
   final TextEditingController _ingredientSearchController = TextEditingController();
 
@@ -55,6 +56,10 @@ class _EditItemScreenState extends State<EditItemScreen> {
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.item.itemName);
+    final q = widget.item.quantity;
+    _quantityController = TextEditingController(
+      text: q.toStringAsFixed(q.truncateToDouble() == q ? 0 : 2),
+    );
     _descriptionController = TextEditingController(text: widget.item.description);
     _hasIngredients = widget.item.hasIngredients;
     _selectedIngredientIds = widget.item.ingredients.map((i) => i.itemId).toList();
@@ -90,6 +95,7 @@ class _EditItemScreenState extends State<EditItemScreen> {
   @override
   void dispose() {
     _nameController.dispose();
+    _quantityController.dispose();
     _descriptionController.dispose();
     _ingredientSearchController.dispose();
     for (final c in _qtyControllers.values) {
@@ -169,6 +175,7 @@ class _EditItemScreenState extends State<EditItemScreen> {
         itemName: _nameController.text.trim(),
         itemType: _selectedItemType,
         measurementUnit: _selectedUnit,
+        quantity: double.tryParse(_quantityController.text.trim()) ?? 1.0,
         reorderThreshold: widget.item.reorderThresholdQuantity,
         description: _descriptionController.text.trim(),
         hasIngredients: _hasIngredients,
@@ -645,59 +652,111 @@ class _EditItemScreenState extends State<EditItemScreen> {
 
               const SizedBox(height: 18),
 
-              // Item Type & Unit Row
+              // Item Type
+              _buildFieldLabel('ITEM TYPE *'),
+              DropdownButtonFormField<String>(
+                initialValue: _selectedItemType,
+                icon: const Icon(
+                  Icons.keyboard_arrow_down,
+                  color: Color(0xFF64748B),
+                ),
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.black,
+                ),
+                decoration: InputDecoration(
+                  filled: true,
+                  fillColor: Colors.white,
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 14,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(4),
+                    borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(4),
+                    borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(4),
+                    borderSide: const BorderSide(color: Colors.black, width: 1.5),
+                  ),
+                ),
+                items: _itemTypes
+                    .map((type) => DropdownMenuItem(
+                          value: type['value'],
+                          child: Text(type['label']!),
+                        ))
+                    .toList(),
+                onChanged: (val) {
+                  if (val != null) {
+                    setState(() => _selectedItemType = val);
+                  }
+                },
+              ),
+
+              const SizedBox(height: 18),
+
+              // Quantity & Unit Row
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(
+                    flex: 1,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _buildFieldLabel('ITEM TYPE *'),
-                        DropdownButtonFormField<String>(
-                          initialValue: _selectedItemType,
-                          icon: const Icon(
-                            Icons.keyboard_arrow_down,
-                            color: Color(0xFF64748B),
-                          ),
+                        _buildFieldLabel('QUANTITY *'),
+                        TextFormField(
+                          controller: _quantityController,
+                          keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true),
                           style: const TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
                             color: Colors.black,
                           ),
                           decoration: InputDecoration(
+                            hintText: '100',
                             filled: true,
                             fillColor: Colors.white,
                             contentPadding: const EdgeInsets.symmetric(
                               horizontal: 14,
                               vertical: 14,
                             ),
+                            prefixIcon: const Icon(
+                              Icons.scale_outlined,
+                              size: 20,
+                              color: Color(0xFF94A3B8),
+                            ),
                             border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(4),
                               borderSide:
                                   const BorderSide(color: Color(0xFFE2E8F0)),
                             ),
                             enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(4),
                               borderSide:
                                   const BorderSide(color: Color(0xFFE2E8F0)),
                             ),
                             focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(4),
                               borderSide: const BorderSide(
                                   color: Colors.black, width: 1.5),
                             ),
                           ),
-                          items: _itemTypes
-                              .map((type) => DropdownMenuItem(
-                                    value: type['value'],
-                                    child: Text(type['label']!),
-                                  ))
-                              .toList(),
-                          onChanged: (val) {
-                            if (val != null) {
-                              setState(() => _selectedItemType = val);
+                          validator: (val) {
+                            if (val == null || val.trim().isEmpty) {
+                              return 'Quantity required';
                             }
+                            final n = double.tryParse(val.trim());
+                            if (n == null || n <= 0) {
+                              return 'Must be > 0';
+                            }
+                            return null;
                           },
                         ),
                       ],
@@ -705,6 +764,7 @@ class _EditItemScreenState extends State<EditItemScreen> {
                   ),
                   const SizedBox(width: 14),
                   Expanded(
+                    flex: 1,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -728,17 +788,17 @@ class _EditItemScreenState extends State<EditItemScreen> {
                               vertical: 14,
                             ),
                             border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(4),
                               borderSide:
                                   const BorderSide(color: Color(0xFFE2E8F0)),
                             ),
                             enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(4),
                               borderSide:
                                   const BorderSide(color: Color(0xFFE2E8F0)),
                             ),
                             focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(4),
                               borderSide: const BorderSide(
                                   color: Colors.black, width: 1.5),
                             ),

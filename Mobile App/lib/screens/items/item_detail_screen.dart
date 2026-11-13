@@ -725,7 +725,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
 
                         const SizedBox(height: 6),
 
-                        // Measurement Unit
+                        // Measurement Unit & Quantity Specification
                         RichText(
                           text: TextSpan(
                             style: const TextStyle(
@@ -735,13 +735,14 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                             ),
                             children: [
                               const TextSpan(
-                                text: 'MEASUREMENT UNIT: ',
+                                text: 'SPECIFICATION: ',
                                 style: TextStyle(
                                   fontWeight: FontWeight.w700,
                                 ),
                               ),
                               TextSpan(
-                                text: currentItem.measurementUnit.toUpperCase(),
+                                text:
+                                    '${currentItem.quantity.toStringAsFixed(currentItem.quantity.truncateToDouble() == currentItem.quantity ? 0 : 2)} ${currentItem.measurementUnit.toUpperCase()}',
                                 style: const TextStyle(
                                   fontWeight: FontWeight.w900,
                                   color: Colors.black,

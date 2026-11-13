@@ -13,6 +13,7 @@ class _CreateItemDialogState extends State<CreateItemDialog> {
   final _formKey = GlobalKey<FormState>();
   final _skuController = TextEditingController();
   final _nameController = TextEditingController();
+  final _quantityController = TextEditingController(text: '1');
   final _reorderThresholdController = TextEditingController(text: '50');
   final _locationCodeController = TextEditingController(text: 'LOC-A1');
 
@@ -32,8 +33,9 @@ class _CreateItemDialogState extends State<CreateItemDialog> {
     'GRAM',
     'LITRE',
     'MILLILITRE',
+    'PIECE',
     'UNIT',
-    'CARTON',
+    'CARTOON_BOX',
   ];
 
   @override
@@ -49,6 +51,7 @@ class _CreateItemDialogState extends State<CreateItemDialog> {
   void dispose() {
     _skuController.dispose();
     _nameController.dispose();
+    _quantityController.dispose();
     _reorderThresholdController.dispose();
     _locationCodeController.dispose();
     super.dispose();
@@ -62,6 +65,7 @@ class _CreateItemDialogState extends State<CreateItemDialog> {
       itemName: _nameController.text.trim(),
       itemType: _selectedItemType,
       measurementUnit: _selectedUnit,
+      quantity: double.tryParse(_quantityController.text.trim()) ?? 1.0,
       reorderThreshold: double.tryParse(_reorderThresholdController.text) ?? 0,
     );
 
@@ -158,24 +162,42 @@ class _CreateItemDialogState extends State<CreateItemDialog> {
                 ),
                 const SizedBox(height: 14),
 
-                // Item Type & Unit
+                // Item Type
+                DropdownButtonFormField<String>(
+                  initialValue: _selectedItemType,
+                  decoration: const InputDecoration(
+                    labelText: 'Item Category',
+                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  ),
+                  items: _itemTypes.map((type) {
+                    return DropdownMenuItem(
+                      value: type,
+                      child: Text(type.replaceAll('_', ' '), style: const TextStyle(fontSize: 13)),
+                    );
+                  }).toList(),
+                  onChanged: (val) {
+                    if (val != null) setState(() => _selectedItemType = val);
+                  },
+                ),
+                const SizedBox(height: 14),
+
+                // Quantity & Unit
                 Row(
                   children: [
                     Expanded(
-                      child: DropdownButtonFormField<String>(
-                        initialValue: _selectedItemType,
+                      child: TextFormField(
+                        controller: _quantityController,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
                         decoration: const InputDecoration(
-                          labelText: 'Item Category',
+                          labelText: 'Quantity',
+                          hintText: 'e.g. 100',
                           contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                         ),
-                        items: _itemTypes.map((type) {
-                          return DropdownMenuItem(
-                            value: type,
-                            child: Text(type.replaceAll('_', ' '), style: const TextStyle(fontSize: 13)),
-                          );
-                        }).toList(),
-                        onChanged: (val) {
-                          if (val != null) setState(() => _selectedItemType = val);
+                        validator: (val) {
+                          if (val == null || double.tryParse(val.trim()) == null || (double.tryParse(val.trim()) ?? 0) <= 0) {
+                            return 'Valid quantity > 0';
+                          }
+                          return null;
                         },
                       ),
                     ),

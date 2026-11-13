@@ -10,8 +10,13 @@ export enum ItemType {
 
 export enum MeasurementUnit {
   KILOGRAM = 'KILOGRAM',
+  GRAM = 'GRAM',
   LITER = 'LITER',
+  LITRE = 'LITRE',
+  MILLILITER = 'MILLILITER',
+  MILLILITRE = 'MILLILITRE',
   PIECE = 'PIECE',
+  UNIT = 'UNIT',
   CARTOON_BOX = 'CARTOON_BOX',
 }
 
@@ -54,6 +59,9 @@ export class Item {
     required: true,
   })
   measurement_unit: MeasurementUnit;
+
+  @Prop({ type: Number, default: 1, min: 0 })
+  quantity: number;
 
   @Prop({ type: Number, required: false, min: 0, default: 0 })
   reorder_threshold_quantity: number;

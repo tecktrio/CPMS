@@ -491,7 +491,7 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '${item.sku} • ${item.itemType.replaceAll('_', ' ').toUpperCase()} • ${item.measurementUnit.toUpperCase()}',
+                      '${item.sku} • ${item.itemType.replaceAll('_', ' ').toUpperCase()} • ${item.quantity.toStringAsFixed(item.quantity.truncateToDouble() == item.quantity ? 0 : 2)} ${item.measurementUnit.toUpperCase()}',
                       style: const TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,

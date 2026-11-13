@@ -182,6 +182,7 @@ class ItemModel {
   final String itemName;
   final String itemType;
   final String measurementUnit;
+  final double quantity;
   final double reorderThresholdQuantity;
   final double totalAvailableStock;
   final bool isBelowReorderThreshold;
@@ -202,6 +203,7 @@ class ItemModel {
     required this.itemName,
     required this.itemType,
     required this.measurementUnit,
+    this.quantity = 1.0,
     required this.reorderThresholdQuantity,
     required this.totalAvailableStock,
     required this.isBelowReorderThreshold,
@@ -223,6 +225,7 @@ class ItemModel {
     String? itemName,
     String? itemType,
     String? measurementUnit,
+    double? quantity,
     double? reorderThresholdQuantity,
     double? totalAvailableStock,
     bool? isBelowReorderThreshold,
@@ -250,6 +253,7 @@ class ItemModel {
       itemName: itemName ?? this.itemName,
       itemType: itemType ?? this.itemType,
       measurementUnit: measurementUnit ?? this.measurementUnit,
+      quantity: quantity ?? this.quantity,
       reorderThresholdQuantity: newThreshold,
       totalAvailableStock: newStock,
       isBelowReorderThreshold: isBelowReorderThreshold ?? below,
@@ -272,6 +276,7 @@ class ItemModel {
         'item_name': itemName,
         'item_type': itemType,
         'measurement_unit': measurementUnit,
+        'quantity': quantity,
         'reorder_threshold_quantity': reorderThresholdQuantity,
         'total_available_stock': totalAvailableStock,
         'is_below_reorder_threshold': isBelowReorderThreshold,
@@ -312,6 +317,7 @@ class ItemModel {
       itemName: json['item_name'] ?? '',
       itemType: json['item_type'] ?? 'RAW_MATERIAL',
       measurementUnit: json['measurement_unit'] ?? 'KILOGRAM',
+      quantity: (json['quantity'] as num?)?.toDouble() ?? 1.0,
       reorderThresholdQuantity:
           (json['reorder_threshold_quantity'] as num?)?.toDouble() ?? 0.0,
       totalAvailableStock: stock,
@@ -742,6 +748,7 @@ class InventoryProvider extends ChangeNotifier {
     required String itemName,
     required String itemType,
     required String measurementUnit,
+    double quantity = 1.0,
     double reorderThreshold = 0.0,
     String? imageUrl,
     String? description,
@@ -760,6 +767,7 @@ class InventoryProvider extends ChangeNotifier {
       itemName: cleanName,
       itemType: itemType,
       measurementUnit: measurementUnit,
+      quantity: quantity,
       reorderThresholdQuantity: reorderThreshold,
       totalAvailableStock: 0.0,
       isBelowReorderThreshold: 0.0 <= reorderThreshold,
@@ -781,6 +789,7 @@ class InventoryProvider extends ChangeNotifier {
       'item_name': cleanName,
       'item_type': itemType,
       'measurement_unit': measurementUnit,
+      'quantity': quantity,
       'reorder_threshold_quantity': reorderThreshold,
     };
 
@@ -810,6 +819,7 @@ class InventoryProvider extends ChangeNotifier {
     String? itemName,
     String? itemType,
     String? measurementUnit,
+    double? quantity,
     double? reorderThreshold,
     String? imageUrl,
     String? description,
@@ -824,6 +834,7 @@ class InventoryProvider extends ChangeNotifier {
         itemName: itemName?.trim(),
         itemType: itemType,
         measurementUnit: measurementUnit,
+        quantity: quantity,
         reorderThresholdQuantity: reorderThreshold,
         imageUrl: imageUrl,
         description: description,
@@ -839,6 +850,7 @@ class InventoryProvider extends ChangeNotifier {
     if (itemName != null && itemName.isNotEmpty) body['item_name'] = itemName.trim();
     if (itemType != null) body['item_type'] = itemType;
     if (measurementUnit != null) body['measurement_unit'] = measurementUnit;
+    if (quantity != null) body['quantity'] = quantity;
     if (reorderThreshold != null) body['reorder_threshold_quantity'] = reorderThreshold;
     if (description != null) body['description'] = description;
     if (hasIngredients != null) body['has_ingredients'] = hasIngredients;

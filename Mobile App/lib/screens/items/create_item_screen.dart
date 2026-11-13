@@ -16,6 +16,7 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
   final _formKey = GlobalKey<FormState>();
   final _skuController = TextEditingController();
   final _nameController = TextEditingController();
+  final _quantityController = TextEditingController(text: '1');
   final _descriptionController = TextEditingController();
   final _ingredientSearchController = TextEditingController();
 
@@ -51,6 +52,7 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
   void dispose() {
     _skuController.dispose();
     _nameController.dispose();
+    _quantityController.dispose();
     _descriptionController.dispose();
     _ingredientSearchController.dispose();
     for (final c in _qtyControllers.values) {
@@ -116,6 +118,7 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
       itemName: _nameController.text.trim(),
       itemType: _selectedItemType,
       measurementUnit: _selectedUnit,
+      quantity: double.tryParse(_quantityController.text.trim()) ?? 1.0,
       reorderThreshold: 0.0,
       description: _descriptionController.text.trim(),
       hasIngredients: _hasIngredients,
@@ -463,59 +466,90 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
 
               const SizedBox(height: 18),
 
-              // Item Type & Unit Row
+              // Item Type
+              _buildFieldLabel('ITEM TYPE *'),
+              DropdownButtonFormField<String>(
+                initialValue: _selectedItemType,
+                icon: const Icon(
+                  Icons.keyboard_arrow_down,
+                  color: Color(0xFF64748B),
+                ),
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.black,
+                ),
+                decoration: InputDecoration(
+                  filled: true,
+                  fillColor: Colors.white,
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 14,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(4),
+                    borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(4),
+                    borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(4),
+                    borderSide: const BorderSide(color: Colors.black, width: 1.5),
+                  ),
+                ),
+                items: _itemTypes
+                    .map((type) => DropdownMenuItem(
+                          value: type,
+                          child: Text(type.replaceAll('_', ' ')),
+                        ))
+                    .toList(),
+                onChanged: (val) {
+                  if (val != null) {
+                    setState(() => _selectedItemType = val);
+                  }
+                },
+              ),
+
+              const SizedBox(height: 18),
+
+              // Quantity & Unit Row
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(
+                    flex: 1,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _buildFieldLabel('ITEM TYPE *'),
-                        DropdownButtonFormField<String>(
-                          initialValue: _selectedItemType,
-                          icon: const Icon(
-                            Icons.keyboard_arrow_down,
-                            color: Color(0xFF64748B),
-                          ),
+                        _buildFieldLabel('QUANTITY *'),
+                        TextFormField(
+                          controller: _quantityController,
+                          keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true),
                           style: const TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
                             color: Colors.black,
                           ),
-                          decoration: InputDecoration(
-                            filled: true,
-                            fillColor: Colors.white,
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 14,
-                              vertical: 14,
-                            ),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(4),
-                              borderSide:
-                                  const BorderSide(color: Color(0xFFE2E8F0)),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(4),
-                              borderSide:
-                                  const BorderSide(color: Color(0xFFE2E8F0)),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(4),
-                              borderSide: const BorderSide(
-                                  color: Colors.black, width: 1.5),
+                          decoration: _buildInputDecoration(
+                            hintText: '100',
+                            prefixIcon: const Icon(
+                              Icons.scale_outlined,
+                              size: 20,
+                              color: Color(0xFF94A3B8),
                             ),
                           ),
-                          items: _itemTypes
-                              .map((type) => DropdownMenuItem(
-                                    value: type,
-                                    child: Text(type.replaceAll('_', ' ')),
-                                  ))
-                              .toList(),
-                          onChanged: (val) {
-                            if (val != null) {
-                              setState(() => _selectedItemType = val);
+                          validator: (val) {
+                            if (val == null || val.trim().isEmpty) {
+                              return 'Quantity required';
                             }
+                            final n = double.tryParse(val.trim());
+                            if (n == null || n <= 0) {
+                              return 'Must be > 0';
+                            }
+                            return null;
                           },
                         ),
                       ],
@@ -523,6 +557,7 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
                   ),
                   const SizedBox(width: 14),
                   Expanded(
+                    flex: 1,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [

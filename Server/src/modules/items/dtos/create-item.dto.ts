@@ -50,6 +50,15 @@ export class CreateItemDto {
   measurement_unit: MeasurementUnit;
 
   @ApiPropertyOptional({
+    example: 100,
+    description: 'Quantity / pack specification',
+  })
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  quantity?: number;
+
+  @ApiPropertyOptional({
     example: 250,
     description: 'Stock threshold triggering reorder shortfall alerts',
   })

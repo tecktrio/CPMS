@@ -69,6 +69,7 @@ export class ItemsService {
       item_name: dto.item_name.trim(),
       item_type: dto.item_type,
       measurement_unit: dto.measurement_unit,
+      quantity: dto.quantity ?? 1,
       reorder_threshold_quantity: dto.reorder_threshold_quantity ?? 0,
       description: dto.description || '',
       has_ingredients: dto.has_ingredients ?? false,
@@ -226,6 +227,7 @@ export class ItemsService {
     if (dto.item_type !== undefined) item.item_type = dto.item_type;
     if (dto.measurement_unit !== undefined)
       item.measurement_unit = dto.measurement_unit;
+    if (dto.quantity !== undefined) item.quantity = dto.quantity;
     if (dto.reorder_threshold_quantity !== undefined)
       item.reorder_threshold_quantity = dto.reorder_threshold_quantity;
     if (dto.image_url !== undefined && dto.image_url !== item.image_url) {
