@@ -258,6 +258,37 @@ class TenantProvider extends ChangeNotifier {
     }
   }
 
+  Future<bool> deleteTenant(String tenantId) async {
+    _setLoading(true);
+    _errorMessage = null;
+
+    try {
+      await apiClient.delete(ApiConstants.tenantById(tenantId));
+
+      // If the deleted tenant was the active tenant, clear active state
+      if (_activeTenant?.tenantId == tenantId) {
+        clear();
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.remove('cpms_active_tenant');
+        await prefs.remove('cims_active_tenant');
+      }
+
+      _setLoading(false);
+      notifyListeners();
+      return true;
+    } on ApiException catch (e) {
+      _errorMessage = e.message;
+      _setLoading(false);
+      notifyListeners();
+      return false;
+    } catch (e) {
+      _errorMessage = e.toString();
+      _setLoading(false);
+      notifyListeners();
+      return false;
+    }
+  }
+
   void _setLoading(bool val) {
     _isLoading = val;
     notifyListeners();

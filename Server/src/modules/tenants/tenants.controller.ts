@@ -245,4 +245,29 @@ export class TenantsController {
       departmentId,
     );
   }
+
+  @Delete(':id')
+  @ApiOperation({
+    summary: 'Delete tenant organization',
+    description:
+      'Permanently deletes the tenant organization and wipes all connected items, store rooms, batches, purchase orders, departments, and memberships. Only the Tenant Admin can perform this action.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Tenant organization and connected data permanently deleted',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden: Only Tenant Admin can delete organization',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Tenant organization not found',
+  })
+  async deleteTenant(
+    @CurrentUser('user_id') userId: string,
+    @Param('id') tenantId: string,
+  ) {
+    return this.tenantsService.deleteTenant(userId, tenantId);
+  }
 }

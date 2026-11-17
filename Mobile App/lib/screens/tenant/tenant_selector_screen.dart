@@ -129,6 +129,204 @@ class _TenantSelectorScreenState extends State<TenantSelectorScreen> {
     );
   }
 
+  void _showDeleteOrganizationDialog(
+    TenantOption t,
+    TenantProvider tenantProvider,
+    AuthProvider authProvider,
+  ) {
+    final confirmController = TextEditingController();
+    bool isDeleting = false;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogCtx) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            final isConfirmed = confirmController.text.trim().toLowerCase() ==
+                t.companyName.trim().toLowerCase();
+
+            return AlertDialog(
+              backgroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              title: Row(
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFEE2E2),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: const Icon(
+                      Icons.warning_amber_rounded,
+                      color: Color(0xFFDC2626),
+                      size: 22,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Text(
+                      'Delete Organization',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w900,
+                        fontSize: 17,
+                        color: Colors.black,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFEF2F2),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: const Color(0xFFFECACA)),
+                      ),
+                      child: const Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '⚠️ CRITICAL WARNING',
+                            style: TextStyle(
+                              color: Color(0xFFB91C1C),
+                              fontWeight: FontWeight.w800,
+                              fontSize: 12,
+                            ),
+                          ),
+                          SizedBox(height: 4),
+                          Text(
+                            'This action is irreversible. Deleting this organization will permanently wipe all items, store rooms, stock batches, purchase orders, departments, and user assignments related to it.',
+                            style: TextStyle(
+                              color: Color(0xFF991B1B),
+                              fontSize: 12,
+                              height: 1.35,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    RichText(
+                      text: TextSpan(
+                        style: const TextStyle(fontSize: 13, color: Color(0xFF334155)),
+                        children: [
+                          const TextSpan(text: 'To confirm, type '),
+                          TextSpan(
+                            text: t.companyName,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w800,
+                              color: Colors.black,
+                            ),
+                          ),
+                          const TextSpan(text: ' below:'),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: confirmController,
+                      autofocus: true,
+                      enabled: !isDeleting,
+                      onChanged: (_) => setDialogState(() {}),
+                      decoration: InputDecoration(
+                        hintText: t.companyName,
+                        hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 13),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(6),
+                          borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(6),
+                          borderSide: const BorderSide(color: Color(0xFFDC2626), width: 1.5),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: isDeleting ? null : () => Navigator.pop(dialogCtx),
+                  child: const Text('Cancel', style: TextStyle(color: Color(0xFF64748B))),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFDC2626),
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  ),
+                  onPressed: (!isConfirmed || isDeleting)
+                      ? null
+                      : () async {
+                          setDialogState(() => isDeleting = true);
+                          final success = await tenantProvider.deleteTenant(t.tenantId);
+                          if (!dialogCtx.mounted) return;
+                          Navigator.pop(dialogCtx);
+
+                          if (success) {
+                            // Refresh available tenants in AuthProvider
+                            final updatedList = authProvider.availableTenants
+                                .where((item) => item.tenantId != t.tenantId)
+                                .toList();
+                            authProvider.updateAvailableTenants(updatedList);
+
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Organization "${t.companyName}" deleted successfully.'),
+                                backgroundColor: const Color(0xFF0F766E),
+                              ),
+                            );
+
+                            // If there are other tenants available, auto-select the first one
+                            if (updatedList.isNotEmpty) {
+                              await tenantProvider.selectTenant(updatedList.first);
+                              if (!context.mounted) return;
+                              Navigator.pushReplacement(
+                                context,
+                                MaterialPageRoute(builder: (_) => const DashboardScreen()),
+                              );
+                            } else {
+                              // If no tenants left, stay on selector screen to show "Register New Organization"
+                              setState(() {});
+                            }
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(tenantProvider.errorMessage ?? 'Failed to delete organization'),
+                                backgroundColor: const Color(0xFFDC2626),
+                              ),
+                            );
+                          }
+                        },
+                  child: isDeleting
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        )
+                      : const Text(
+                          'Delete Forever',
+                          style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
+                        ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final authProvider = context.watch<AuthProvider>();
@@ -297,9 +495,21 @@ class _TenantSelectorScreenState extends State<TenantSelectorScreen> {
                             ),
                           ),
                         ),
-                        trailing: isCurrentTenant
-                            ? const Icon(Icons.check_circle, color: Colors.black, size: 22)
-                            : const Icon(Icons.chevron_right, color: Color(0xFF94A3B8)),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (isAdmin)
+                              IconButton(
+                                icon: const Icon(Icons.delete_outline, color: Color(0xFF94A3B8), size: 20),
+                                tooltip: 'Delete Organization',
+                                onPressed: () => _showDeleteOrganizationDialog(t, tenantProvider, authProvider),
+                              ),
+                            if (isCurrentTenant)
+                              const Icon(Icons.check_circle, color: Colors.black, size: 22)
+                            else
+                              const Icon(Icons.chevron_right, color: Color(0xFF94A3B8)),
+                          ],
+                        ),
                         onTap: () => _handleTenantSelect(t, tenantProvider),
                       ),
                     );

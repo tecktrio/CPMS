@@ -18,6 +18,31 @@ import {
   UserDocument,
   UserAccountStatus,
 } from '../../database/schemas/user.schema';
+import { Item, ItemDocument } from '../../database/schemas/item.schema';
+import {
+  StoreRoom,
+  StoreRoomDocument,
+} from '../../database/schemas/store-room.schema';
+import {
+  StockBatch,
+  StockBatchDocument,
+} from '../../database/schemas/stock-batch.schema';
+import {
+  PurchaseOrder,
+  PurchaseOrderDocument,
+} from '../../database/schemas/purchase-order.schema';
+import {
+  Department,
+  DepartmentDocument,
+} from '../../database/schemas/department.schema';
+import {
+  Customer,
+  CustomerDocument,
+} from '../../database/schemas/customer.schema';
+import {
+  OtpRecord,
+  OtpRecordDocument,
+} from '../../database/schemas/otp-record.schema';
 import { CreateTenantDto } from './dtos/create-tenant.dto';
 import { InviteUserDto } from './dtos/invite-user.dto';
 import { AddUserDto } from './dtos/add-user.dto';
@@ -33,6 +58,20 @@ export class TenantsService {
     private readonly membershipModel: Model<TenantMembershipDocument>,
     @InjectModel(User.name)
     private readonly userModel: Model<UserDocument>,
+    @InjectModel(Item.name)
+    private readonly itemModel: Model<ItemDocument>,
+    @InjectModel(StoreRoom.name)
+    private readonly storeRoomModel: Model<StoreRoomDocument>,
+    @InjectModel(StockBatch.name)
+    private readonly stockBatchModel: Model<StockBatchDocument>,
+    @InjectModel(PurchaseOrder.name)
+    private readonly purchaseOrderModel: Model<PurchaseOrderDocument>,
+    @InjectModel(Department.name)
+    private readonly departmentModel: Model<DepartmentDocument>,
+    @InjectModel(Customer.name)
+    private readonly customerModel: Model<CustomerDocument>,
+    @InjectModel(OtpRecord.name)
+    private readonly otpRecordModel: Model<OtpRecordDocument>,
     private readonly departmentsService: DepartmentsService,
   ) {}
 
@@ -542,6 +581,41 @@ export class TenantsService {
     return {
       message: `User removed from department "${departmentId}" successfully`,
       membership,
+    };
+  }
+
+  /**
+   * Permanently deletes a tenant organization and all its connected records.
+   * Only the tenant's admin user can execute this.
+   */
+  async deleteTenant(userId: string, tenantId: string) {
+    const tenant = await this.tenantModel.findOne({ tenant_id: tenantId });
+    if (!tenant) {
+      throw new NotFoundException('Organization not found');
+    }
+
+    if (tenant.admin_user_id !== userId) {
+      throw new ForbiddenException(
+        'Only the Tenant Admin can delete this organization',
+      );
+    }
+
+    // 1. Delete all resources scoped by tenant_id
+    await Promise.all([
+      this.itemModel.deleteMany({ tenant_id: tenantId }),
+      this.storeRoomModel.deleteMany({ tenant_id: tenantId }),
+      this.stockBatchModel.deleteMany({ tenant_id: tenantId }),
+      this.purchaseOrderModel.deleteMany({ tenant_id: tenantId }),
+      this.departmentModel.deleteMany({ tenant_id: tenantId }),
+      this.customerModel.deleteMany({ tenant_id: tenantId }),
+      this.membershipModel.deleteMany({ tenant_id: tenantId }),
+      this.tenantModel.deleteOne({ tenant_id: tenantId }),
+    ]);
+
+    return {
+      success: true,
+      message: `Organization "${tenant.company_name}" and all connected data have been permanently deleted`,
+      tenant_id: tenantId,
     };
   }
 }
