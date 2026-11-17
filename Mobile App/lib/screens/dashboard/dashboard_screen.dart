@@ -2662,30 +2662,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                 ),
 
-              // Centered content: Clean SVG-style symbol + Title + Subtitle
+              // Centered content: Clean symbol + Title + Subtitle
               Center(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    // SVG-style symbol in subtle accent background container
-                    Container(
-                      width: 52,
-                      height: 52,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFF1F5F9), // Soft slate background
-                        shape: BoxShape.circle,
-                      ),
-                      child: Center(
-                        child: Icon(
-                          mod.icon,
-                          size: 26,
-                          color: const Color(0xFF0F172A), // Dark slate icon symbol
-                        ),
-                      ),
+                    Icon(
+                      mod.icon,
+                      size: 38,
+                      color: Colors.black,
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 10),
                     Text(
                       mod.title,
                       maxLines: 1,
