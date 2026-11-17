@@ -40,6 +40,7 @@ class TenantProvider extends ChangeNotifier {
   final ApiClient apiClient;
 
   TenantOption? _activeTenant;
+  String? _selectedDepartmentName;
   List<DepartmentModel> _tenantDepartments = [];
   final Set<String> _userPermissions = {};
   bool _isLoading = false;
@@ -48,6 +49,7 @@ class TenantProvider extends ChangeNotifier {
   TenantProvider({required this.apiClient});
 
   TenantOption? get activeTenant => _activeTenant;
+  String? get selectedDepartmentName => _selectedDepartmentName;
   List<DepartmentModel> get tenantDepartments => _tenantDepartments;
   Set<String> get userPermissions => _userPermissions;
   bool get isLoading => _isLoading;
@@ -99,8 +101,14 @@ class TenantProvider extends ChangeNotifier {
     return _userPermissions.any((p) => p.startsWith(prefix));
   }
 
-  Future<void> selectTenant(TenantOption tenant) async {
+  void setSelectedDepartment(String? deptName) {
+    _selectedDepartmentName = deptName;
+    notifyListeners();
+  }
+
+  Future<void> selectTenant(TenantOption tenant, {String? initialDepartmentName}) async {
     _activeTenant = tenant;
+    _selectedDepartmentName = initialDepartmentName;
     apiClient.setActiveTenantId(tenant.tenantId);
 
     final prefs = await SharedPreferences.getInstance();
@@ -129,6 +137,7 @@ class TenantProvider extends ChangeNotifier {
 
   void clear() {
     _activeTenant = null;
+    _selectedDepartmentName = null;
     _tenantDepartments = [];
     _userPermissions.clear();
     apiClient.setActiveTenantId(null);

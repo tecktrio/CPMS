@@ -76,146 +76,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     ]);
   }
 
-  void _showDepartmentSelector(BuildContext context, TenantProvider tenant) {
-    final depts = tenant.tenantDepartments;
-    final isAdmin = tenant.isTenantAdmin;
-
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (ctx) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    margin: const EdgeInsets.only(bottom: 16),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFCBD5E1),
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                ),
-                const Text(
-                  'Switch Department',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                    color: Colors.black,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                const Text(
-                  'Select an operational department to scope modules and records',
-                  style: TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
-                ),
-                const SizedBox(height: 16),
-
-                if (isAdmin)
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF1F5F9),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: const Icon(Icons.corporate_fare, color: Colors.black),
-                    ),
-                    title: const Text(
-                      'All Departments (Organization-Wide)',
-                      style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
-                    ),
-                    subtitle: const Text('Full tenant administrative access',
-                        style: TextStyle(fontSize: 12, color: Color(0xFF64748B))),
-                    trailing: (_selectedDepartmentName == null ||
-                            _selectedDepartmentName == 'All Departments')
-                        ? const Icon(Icons.check_circle, color: Colors.black)
-                        : null,
-                    onTap: () {
-                      setState(() {
-                        _selectedDepartmentName = 'All Departments';
-                      });
-                      Navigator.pop(ctx);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Switched to Organization-Wide context'),
-                          duration: Duration(seconds: 2),
-                        ),
-                      );
-                    },
-                  ),
-
-                if (depts.isEmpty && !isAdmin)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 20),
-                    child: Center(
-                      child: Text(
-                        'No other departments assigned to your account.',
-                        style: TextStyle(color: Color(0xFF64748B)),
-                      ),
-                    ),
-                  )
-                else
-                  ...depts.map((d) {
-                    final isSelected = _selectedDepartmentName == d.departmentName;
-                    return ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading: Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF6F7F9),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: const Icon(Icons.apartment, color: Colors.black),
-                      ),
-                      title: Text(
-                        d.departmentName,
-                        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
-                      ),
-                      subtitle: Text(
-                        d.description.isNotEmpty ? d.description : 'Operational Unit',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
-                      ),
-                      trailing: isSelected
-                          ? const Icon(Icons.check_circle, color: Colors.black)
-                          : null,
-                      onTap: () {
-                        setState(() {
-                          _selectedDepartmentName = d.departmentName;
-                        });
-                        Navigator.pop(ctx);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Switched to ${d.departmentName}'),
-                            duration: const Duration(seconds: 2),
-                          ),
-                        );
-                      },
-                    );
-                  }),
-                const SizedBox(height: 10),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
   Future<void> _pickAndUploadAvatar(BuildContext context) async {
     try {
       final picker = ImagePicker();
@@ -445,7 +305,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     // Resolve displayed department name
     String resolvedDeptName = 'Operations & Logistics';
-    if (_selectedDepartmentName != null &&
+    if (tenant.selectedDepartmentName != null &&
+        tenant.selectedDepartmentName!.isNotEmpty) {
+      resolvedDeptName = tenant.selectedDepartmentName!;
+    } else if (_selectedDepartmentName != null &&
         _selectedDepartmentName!.isNotEmpty) {
       resolvedDeptName = _selectedDepartmentName!;
     } else if (!isAdmin && activeTenant != null && activeTenant.departmentIds.length == 1) {
@@ -805,9 +668,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
               const SizedBox(height: 16),
 
-              // Department Card
+              // Department Card (Tapping opens the Organization & Department Switcher)
               InkWell(
-                onTap: () => _showDepartmentSelector(context, tenant),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const TenantSelectorScreen(),
+                    ),
+                  );
+                },
                 borderRadius: BorderRadius.circular(4),
                 child: Container(
                   padding: EdgeInsets.symmetric(
@@ -851,8 +721,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             const SizedBox(height: 2),
                             Text(
                               isWide
-                                  ? 'Switch Department across organizations to re-scope modules'
-                                  : 'Switch Department',
+                                  ? 'Switch Organization & Department'
+                                  : 'Switch Organization & Department',
                               style: const TextStyle(
                                 fontSize: 13,
                                 color: Color(0xFF6B7280),
