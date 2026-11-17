@@ -252,9 +252,7 @@ class ItemModel {
     final newStock = totalAvailableStock ?? this.totalAvailableStock;
     final newThreshold = reorderThresholdQuantity ?? this.reorderThresholdQuantity;
     final newMinimumStock = minimumStockCount ??
-        (reorderThresholdQuantity == null
-            ? this.minimumStockCount
-            : reorderThresholdQuantity);
+        (reorderThresholdQuantity ?? this.minimumStockCount);
     final below = newStock < newMinimumStock;
     final shortfall = below ? (newMinimumStock - newStock) : 0.0;
 

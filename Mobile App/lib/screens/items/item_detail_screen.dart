@@ -6,8 +6,6 @@ import '../../core/constants/api_constants.dart';
 import '../../core/constants/permissions.dart';
 import '../../providers/inventory_provider.dart';
 import '../../providers/tenant_provider.dart';
-import '../store_rooms/store_room_detail_screen.dart';
-import '../store_rooms/store_rooms_list_screen.dart';
 import 'edit_item_screen.dart';
 
 class ItemDetailScreen extends StatefulWidget {
