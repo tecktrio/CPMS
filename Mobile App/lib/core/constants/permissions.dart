@@ -11,12 +11,6 @@ class AppPermissions {
   static const String storeroomUpdate = 'permission.storeroom.update';
   static const String storeroomDelete = 'permission.storeroom.delete';
 
-  // Stock Batches & FEFO Picking
-  static const String batchCreate = 'permission.batch.create';
-  static const String batchRead = 'permission.batch.read';
-  static const String batchUpdate = 'permission.batch.update';
-  static const String batchDeduct = 'permission.batch.deduct';
-
   // Departments & RBAC
   static const String departmentCreate = 'permission.department.create';
   static const String departmentRead = 'permission.department.read';

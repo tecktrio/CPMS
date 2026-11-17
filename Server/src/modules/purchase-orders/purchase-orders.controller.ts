@@ -26,6 +26,11 @@ import {
 } from './dtos/purchase-order.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { TenantGuard } from '../../common/guards/tenant.guard';
+import { PermissionsGuard } from '../../common/guards/permissions.guard';
+import {
+  RequirePermissions,
+  RequireAnyPermissions,
+} from '../../common/decorators/require-permissions.decorator';
 import { CurrentTenant } from '../../common/decorators/current-tenant.decorator';
 
 @ApiTags('Purchase Orders & Customers')
@@ -36,7 +41,7 @@ import { CurrentTenant } from '../../common/decorators/current-tenant.decorator'
   required: true,
 })
 @Controller()
-@UseGuards(JwtAuthGuard, TenantGuard)
+@UseGuards(JwtAuthGuard, TenantGuard, PermissionsGuard)
 export class PurchaseOrdersController {
   constructor(
     private readonly poService: PurchaseOrdersService,
@@ -45,6 +50,7 @@ export class PurchaseOrdersController {
   // ===================== CUSTOMERS =====================
 
   @Post('customers')
+  @RequireAnyPermissions('permission.po.create', 'permission.po.update')
   @ApiOperation({ summary: 'Create new customer' })
   @ApiResponse({ status: 201, description: 'Customer created' })
   async createCustomer(
@@ -55,6 +61,12 @@ export class PurchaseOrdersController {
   }
 
   @Get('customers')
+  @RequireAnyPermissions(
+    'permission.po.read',
+    'permission.po.create',
+    'permission.po.update',
+    'permission.po.delete',
+  )
   @ApiOperation({ summary: 'List all active customers' })
   @ApiResponse({ status: 200, description: 'List of customers' })
   async findAllCustomers(@CurrentTenant() tenantId: string) {
@@ -62,6 +74,12 @@ export class PurchaseOrdersController {
   }
 
   @Get('customers/:id')
+  @RequireAnyPermissions(
+    'permission.po.read',
+    'permission.po.create',
+    'permission.po.update',
+    'permission.po.delete',
+  )
   @ApiOperation({ summary: 'Get customer details' })
   @ApiResponse({ status: 200, description: 'Customer details' })
   async findOneCustomer(
@@ -72,6 +90,7 @@ export class PurchaseOrdersController {
   }
 
   @Put('customers/:id')
+  @RequirePermissions('permission.po.update')
   @ApiOperation({ summary: 'Update customer' })
   @ApiResponse({ status: 200, description: 'Customer updated' })
   async updateCustomer(
@@ -83,6 +102,7 @@ export class PurchaseOrdersController {
   }
 
   @Delete('customers/:id')
+  @RequirePermissions('permission.po.delete')
   @ApiOperation({ summary: 'Delete customer' })
   @ApiResponse({ status: 200, description: 'Customer deleted' })
   async deleteCustomer(
@@ -95,6 +115,7 @@ export class PurchaseOrdersController {
   // ===================== PURCHASE ORDERS =====================
 
   @Post('purchase-orders')
+  @RequirePermissions('permission.po.create')
   @ApiOperation({ summary: 'Create new purchase order' })
   @ApiResponse({ status: 201, description: 'Purchase order created' })
   async createPO(
@@ -105,6 +126,12 @@ export class PurchaseOrdersController {
   }
 
   @Get('purchase-orders')
+  @RequireAnyPermissions(
+    'permission.po.read',
+    'permission.po.create',
+    'permission.po.update',
+    'permission.po.delete',
+  )
   @ApiOperation({ summary: 'List all purchase orders' })
   @ApiResponse({ status: 200, description: 'List of purchase orders' })
   async findAllPOs(@CurrentTenant() tenantId: string) {
@@ -112,6 +139,12 @@ export class PurchaseOrdersController {
   }
 
   @Get('purchase-orders/:id')
+  @RequireAnyPermissions(
+    'permission.po.read',
+    'permission.po.create',
+    'permission.po.update',
+    'permission.po.delete',
+  )
   @ApiOperation({ summary: 'Get purchase order details' })
   @ApiResponse({ status: 200, description: 'Purchase order details' })
   async findOnePO(
@@ -122,6 +155,7 @@ export class PurchaseOrdersController {
   }
 
   @Put('purchase-orders/:id')
+  @RequirePermissions('permission.po.update')
   @ApiOperation({ summary: 'Update purchase order' })
   @ApiResponse({ status: 200, description: 'Purchase order updated' })
   async updatePO(
@@ -133,6 +167,7 @@ export class PurchaseOrdersController {
   }
 
   @Delete('purchase-orders/:id')
+  @RequirePermissions('permission.po.delete')
   @ApiOperation({ summary: 'Delete purchase order' })
   @ApiResponse({ status: 200, description: 'Purchase order deleted' })
   async removePO(

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import '../../core/constants/permissions.dart';
 import '../../providers/purchase_order_provider.dart';
+import '../../providers/tenant_provider.dart';
 import '../../services/purchase_order_export_service.dart';
 import '../../widgets/user_profile_avatar.dart';
 import 'create_purchase_order_screen.dart';
@@ -366,6 +368,10 @@ class _PurchaseOrderDetailScreenState extends State<PurchaseOrderDetailScreen> {
     }
 
     final po = poList[poIndex];
+    final tenant = context.watch<TenantProvider>();
+    final isAdmin = tenant.isTenantAdmin;
+    final canUpdatePo = isAdmin || tenant.hasPermission(AppPermissions.poUpdate);
+    final canDeletePo = isAdmin || tenant.hasPermission(AppPermissions.poDelete);
     final screenWidth = MediaQuery.of(context).size.width;
     final isWide = screenWidth >= 700;
 
@@ -412,23 +418,25 @@ class _PurchaseOrderDetailScreenState extends State<PurchaseOrderDetailScreen> {
               );
             },
           ),
-          IconButton(
-            icon: const Icon(Icons.edit_outlined, color: Colors.black, size: 20),
-            tooltip: 'Edit PO',
-            onPressed: () async {
-              await Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => CreatePurchaseOrderScreen(existingPo: po),
-                ),
-              );
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.delete_outline, color: Color(0xFFEF4444), size: 20),
-            tooltip: 'Delete PO',
-            onPressed: () => _handleDelete(po),
-          ),
+          if (canUpdatePo)
+            IconButton(
+              icon: const Icon(Icons.edit_outlined, color: Colors.black, size: 20),
+              tooltip: 'Edit PO',
+              onPressed: () async {
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => CreatePurchaseOrderScreen(existingPo: po),
+                  ),
+                );
+              },
+            ),
+          if (canDeletePo)
+            IconButton(
+              icon: const Icon(Icons.delete_outline, color: Color(0xFFEF4444), size: 20),
+              tooltip: 'Delete PO',
+              onPressed: () => _handleDelete(po),
+            ),
           const SizedBox(width: 4),
           const Padding(
             padding: EdgeInsets.only(right: 12),
@@ -986,105 +994,109 @@ class _PurchaseOrderDetailScreenState extends State<PurchaseOrderDetailScreen> {
                   ),
                 ),
 
-                const SizedBox(height: 12),
+                if (canUpdatePo) ...[
+                  const SizedBox(height: 12),
 
-                // Edit Action Button - Clean Outline
-                SizedBox(
-                  height: 44,
-                  child: OutlinedButton(
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.black,
-                      side: const BorderSide(color: Color(0xFFD4D4D8)),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(4),
+                  // Edit Action Button - Clean Outline
+                  SizedBox(
+                    height: 44,
+                    child: OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.black,
+                        side: const BorderSide(color: Color(0xFFD4D4D8)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                      onPressed: () async {
+                        await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => CreatePurchaseOrderScreen(existingPo: po),
+                          ),
+                        );
+                      },
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.edit_outlined, size: 16),
+                          SizedBox(width: 8),
+                          Text(
+                            'Edit Purchase Order',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    onPressed: () async {
-                      await Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => CreatePurchaseOrderScreen(existingPo: po),
-                        ),
-                      );
-                    },
-                    child: const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.edit_outlined, size: 16),
-                        SizedBox(width: 8),
-                        Text(
-                          'Edit Purchase Order',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ],
-                    ),
                   ),
-                ),
 
-                const SizedBox(height: 12),
+                  const SizedBox(height: 12),
 
-                // Change Status Button - Clean Outline
-                SizedBox(
-                  height: 44,
-                  child: OutlinedButton(
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.black,
-                      side: const BorderSide(color: Color(0xFFD4D4D8)),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(4),
+                  // Change Status Button - Clean Outline
+                  SizedBox(
+                    height: 44,
+                    child: OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.black,
+                        side: const BorderSide(color: Color(0xFFD4D4D8)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                      onPressed: () => _showStatusChangeModal(po),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.sync_alt, size: 16),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Change Status (${po.status.replaceAll('_', ' ').toUpperCase()})',
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    onPressed: () => _showStatusChangeModal(po),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.sync_alt, size: 16),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Change Status (${po.status.replaceAll('_', ' ').toUpperCase()})',
-                          style: const TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ],
-                    ),
                   ),
-                ),
+                ],
 
-                const SizedBox(height: 12),
+                if (canDeletePo) ...[
+                  const SizedBox(height: 12),
 
-                // Secondary Delete Button - Clean Outline
-                SizedBox(
-                  height: 44,
-                  child: OutlinedButton(
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: const Color(0xFFDC2626),
-                      side: const BorderSide(color: Color(0xFFFCA5A5)),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(4),
+                  // Secondary Delete Button - Clean Outline
+                  SizedBox(
+                    height: 44,
+                    child: OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFFDC2626),
+                        side: const BorderSide(color: Color(0xFFFCA5A5)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                      onPressed: () => _handleDelete(po),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.delete_outline, size: 16),
+                          SizedBox(width: 8),
+                          Text(
+                            'Delete Order',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    onPressed: () => _handleDelete(po),
-                    child: const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.delete_outline, size: 16),
-                        SizedBox(width: 8),
-                        Text(
-                          'Delete Order',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ],
-                    ),
                   ),
-                ),
+                ],
 
                 const SizedBox(height: 32),
               ],

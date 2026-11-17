@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import '../../core/constants/permissions.dart';
 import '../../providers/purchase_order_provider.dart';
+import '../../providers/tenant_provider.dart';
 import '../../widgets/user_profile_avatar.dart';
 import 'create_purchase_order_screen.dart';
 import 'purchase_order_detail_screen.dart';
@@ -81,6 +83,9 @@ class _PurchaseOrdersListScreenState extends State<PurchaseOrdersListScreen> {
   @override
   Widget build(BuildContext context) {
     final poProvider = context.watch<PurchaseOrderProvider>();
+    final tenant = context.watch<TenantProvider>();
+    final isAdmin = tenant.isTenantAdmin;
+    final canCreatePo = isAdmin || tenant.hasPermission(AppPermissions.poCreate);
     final allOrders = poProvider.purchaseOrders;
 
     final screenWidth = MediaQuery.of(context).size.width;
@@ -457,25 +462,27 @@ class _PurchaseOrdersListScreenState extends State<PurchaseOrdersListScreen> {
           ),
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: Colors.black,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-        icon: const Icon(Icons.add, size: 18),
-        label: const Text(
-          'Create PO',
-          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
-        ),
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => const CreatePurchaseOrderScreen(),
-            ),
-          );
-        },
-      ),
+      floatingActionButton: canCreatePo
+          ? FloatingActionButton.extended(
+              backgroundColor: Colors.black,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+              icon: const Icon(Icons.add, size: 18),
+              label: const Text(
+                'Create PO',
+                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+              ),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const CreatePurchaseOrderScreen(),
+                  ),
+                );
+              },
+            )
+          : null,
     );
   }
 

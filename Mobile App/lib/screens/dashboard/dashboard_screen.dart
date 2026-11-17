@@ -342,6 +342,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final hasStoreRoomAccess = isAdmin || tenant.hasAnyPermissionInModule('storeroom');
     final hasDeptAccess = isAdmin || tenant.hasAnyPermissionInModule('department');
     final hasUserAccess = isAdmin || tenant.hasAnyPermissionInModule('user');
+    final hasPoAccess = isAdmin || tenant.hasAnyPermissionInModule('po');
 
     final departmentsBadgeCount = tenant.tenantDepartments.isNotEmpty
         ? tenant.tenantDepartments.length
@@ -379,7 +380,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         title: 'Purchase Orders',
         subtitle: 'Orders & Shipment Planning',
         icon: Icons.receipt_long_outlined,
-        isPermitted: true,
+        isPermitted: hasPoAccess,
         onTap: () {
           Navigator.push(
             context,

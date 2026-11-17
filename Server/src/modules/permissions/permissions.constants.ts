@@ -64,40 +64,10 @@ export const SYSTEM_PERMISSIONS: SystemPermissionDefinition[] = [
     module: 'StoreRooms',
     action: 'DELETE',
     display_name: 'Deactivate Store Rooms',
-    description: 'Allows deactivating cold store rooms with zero active stock batches.',
+    description: 'Allows deactivating cold store rooms with zero active stock.',
   },
 
-  // 3. Stock Batches & FEFO Allocations
-  {
-    permission_id: 'permission.batch.create',
-    module: 'StockBatches',
-    action: 'CREATE',
-    display_name: 'Inward Batch Receipt',
-    description: 'Allows receiving and stocking new raw material batches into designated cold rooms.',
-  },
-  {
-    permission_id: 'permission.batch.read',
-    module: 'StockBatches',
-    action: 'READ',
-    display_name: 'View Stock Batches',
-    description: 'Allows inspecting active batches, lot numbers, expiry dates, and shelf-life statuses.',
-  },
-  {
-    permission_id: 'permission.batch.update',
-    module: 'StockBatches',
-    action: 'UPDATE',
-    display_name: 'Update Stock Batches',
-    description: 'Allows updating batch storage locations, lot status, and QC inspection notes.',
-  },
-  {
-    permission_id: 'permission.batch.deduct',
-    module: 'StockBatches',
-    action: 'ALLOCATE',
-    display_name: 'Deduct / Allocate Batches (FEFO)',
-    description: 'Allows requesting FEFO suggestions and confirming batch stock deductions for production.',
-  },
-
-  // 4. Departments & RBAC
+  // 3. Departments & RBAC
   {
     permission_id: 'permission.department.create',
     module: 'Departments',
