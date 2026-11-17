@@ -271,9 +271,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
                   ),
                   onTap: () async {
+                    final navigator = Navigator.of(context);
                     Navigator.pop(ctx);
-                    await auth.signOut();
                     tenant.clear();
+                    context.read<InventoryProvider>().clear();
+                    await auth.signOut();
+                    if (!mounted) return;
+                    navigator.pushNamedAndRemoveUntil(
+                      '/signin',
+                      (route) => false,
+                    );
                   },
                 ),
               ],
@@ -400,10 +407,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final allowedModules = modules.where((m) => m.isPermitted).toList();
     final hasAlerts = inventory.items.any((i) => i.isBelowReorderThreshold);
 
-    final tenantDisplayName = (activeTenant?.companyName ?? 'trends').toLowerCase();
+    final tenantDisplayName = activeTenant != null && activeTenant.companyName.isNotEmpty
+        ? activeTenant.companyName.toLowerCase()
+        : 'organization';
     final userName = user != null && user.fullName.isNotEmpty
         ? user.fullName
-        : 'Sarah Jenkins';
+        : 'Authenticated User';
     final userRoleSubtitle = isAdmin
         ? 'Org Admin'
         : (deptCount == 1 ? resolvedDeptName : '$deptCount Depts');
@@ -1700,10 +1709,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     final userName = user != null && user.fullName.isNotEmpty
         ? user.fullName
-        : 'Sarah Jenkins';
+        : 'Authenticated User';
     final userInitial = userName.isNotEmpty ? userName[0].toUpperCase() : 'U';
     final userAvatarUrl = ApiConstants.resolveImageUrl(user?.avatarUrl);
-    final tenantDisplayName = (activeTenant?.companyName ?? 'trends').toLowerCase();
+    final tenantDisplayName = activeTenant != null && activeTenant.companyName.isNotEmpty
+        ? activeTenant.companyName.toLowerCase()
+        : 'organization';
 
     return RefreshIndicator(
       color: Colors.black,
@@ -1967,17 +1978,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildSettingsFieldLabel('First Name'),
-                  _buildSettingsTextField(_firstNameController, 'Sarah'),
+                  _buildSettingsTextField(_firstNameController, 'First Name'),
                   const SizedBox(height: 14),
 
                   _buildSettingsFieldLabel('Last Name'),
-                  _buildSettingsTextField(_lastNameController, 'Jenkins'),
+                  _buildSettingsTextField(_lastNameController, 'Last Name'),
                   const SizedBox(height: 14),
 
                   _buildSettingsFieldLabel('Mobile Number'),
                   _buildSettingsTextField(
                     _phoneController,
-                    '+1 (555) 234-8901',
+                    '+1 000 000 0000',
                     keyboardType: TextInputType.phone,
                   ),
                   const SizedBox(height: 14),
@@ -2206,7 +2217,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       children: [
                         Expanded(
                           child: Text(
-                            user?.emailAddress ?? 'sarah.jenkins@trendslogistics.corp',
+                            user?.emailAddress ?? '',
                             style: const TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
@@ -2412,9 +2423,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                 ),
                 onPressed: () async {
-                  await auth.signOut();
                   tenant.clear();
                   inventory.clear();
+                  await auth.signOut();
                   if (mounted) {
                     Navigator.pushNamedAndRemoveUntil(
                       context,

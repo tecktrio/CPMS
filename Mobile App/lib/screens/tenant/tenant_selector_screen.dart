@@ -350,9 +350,10 @@ class _TenantSelectorScreenState extends State<TenantSelectorScreen> {
             tooltip: 'Sign Out',
             icon: const Icon(Icons.logout, color: Color(0xFFDC2626)),
             onPressed: () async {
+              tenantProvider.clear();
               await authProvider.signOut();
               if (!context.mounted) return;
-              Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
+              Navigator.pushNamedAndRemoveUntil(context, '/signin', (route) => false);
             },
           ),
         ],
