@@ -29,12 +29,7 @@ class AppPermissions {
   static const String userUpdate = 'permission.user.update';
   static const String userDelete = 'permission.user.delete';
 
-  // BOM & Purchase Orders (Phase 2)
-  static const String bomCreate = 'permission.bom.create';
-  static const String bomRead = 'permission.bom.read';
-  static const String bomUpdate = 'permission.bom.update';
-  static const String bomDelete = 'permission.bom.delete';
-
+  // Purchase Orders (Phase 2)
   static const String poCreate = 'permission.po.create';
   static const String poRead = 'permission.po.read';
   static const String poUpdate = 'permission.po.update';

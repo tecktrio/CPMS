@@ -30,6 +30,14 @@ export class PermissionsService implements OnModuleInit {
    */
   async seedPermissions(): Promise<void> {
     try {
+      // Remove deprecated permissions (e.g. BOM module)
+      await this.permissionModel.deleteMany({
+        $or: [
+          { module: 'BOMFormulas' },
+          { permission_id: { $regex: '^permission\\.bom\\.' } },
+        ],
+      });
+
       for (const perm of SYSTEM_PERMISSIONS) {
         await this.permissionModel.updateOne(
           { permission_id: perm.permission_id },

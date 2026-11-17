@@ -157,37 +157,7 @@ export const SYSTEM_PERMISSIONS: SystemPermissionDefinition[] = [
     description: 'Allows removing members from the tenant organization or specific departments.',
   },
 
-  // 6. BOM Formulas (Phase 2)
-  {
-    permission_id: 'permission.bom.create',
-    module: 'BOMFormulas',
-    action: 'CREATE',
-    display_name: 'Create BOM Formulas',
-    description: 'Allows creating Bill of Materials formulations with component ratios.',
-  },
-  {
-    permission_id: 'permission.bom.read',
-    module: 'BOMFormulas',
-    action: 'READ',
-    display_name: 'View BOM Formulas',
-    description: 'Allows viewing recipe and formulation structures.',
-  },
-  {
-    permission_id: 'permission.bom.update',
-    module: 'BOMFormulas',
-    action: 'UPDATE',
-    display_name: 'Update BOM Formulas',
-    description: 'Allows adjusting formulation ingredients and versioning.',
-  },
-  {
-    permission_id: 'permission.bom.delete',
-    module: 'BOMFormulas',
-    action: 'DELETE',
-    display_name: 'Delete BOM Formulas',
-    description: 'Allows archiving old recipe formulas.',
-  },
-
-  // 7. Purchase Orders (Phase 2)
+  // 6. Purchase Orders (Phase 2)
   {
     permission_id: 'permission.po.create',
     module: 'PurchaseOrders',
