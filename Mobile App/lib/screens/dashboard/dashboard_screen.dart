@@ -887,7 +887,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               Text(
                 'Manage Operations',
                 style: TextStyle(
-                  fontSize: isWide ? 26 : 22,
+                  fontSize: isWide ? 26 : 20,
                   fontWeight: FontWeight.w900,
                   color: Colors.black,
                   letterSpacing: -0.5,
@@ -897,20 +897,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
               const Text(
                 'Select a module to view records, manage assets, and configure workflows.',
                 style: TextStyle(
-                  fontSize: 14,
+                  fontSize: 13,
                   color: Color(0xFF6B7280),
                   height: 1.35,
                 ),
               ),
-              const SizedBox(height: 18),
+              const SizedBox(height: 16),
 
-              // Module Cards (Responsive Grid on Tablets/Web, List on Mobile)
+              // Module Cards (Clean, Modern 2 Cards per Row Grid)
               if (allowedModules.isEmpty)
                 Container(
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
                     color: const Color(0xFFF6F7F9),
-                    borderRadius: BorderRadius.circular(4),
+                    borderRadius: BorderRadius.circular(8),
                   ),
                   child: const Center(
                     child: Text(
@@ -920,23 +920,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
                   ),
                 )
-              else if (isWide)
+              else
                 GridView.builder(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 16,
-                    mainAxisSpacing: 16,
-                    childAspectRatio: 3.2,
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: isWide ? 4 : 2,
+                    crossAxisSpacing: 12,
+                    mainAxisSpacing: 12,
+                    childAspectRatio: isWide ? 1.05 : 0.98,
                   ),
                   itemCount: allowedModules.length,
                   itemBuilder: (context, index) {
-                    return _buildOperationCard(allowedModules[index], isWide: true);
+                    return _buildOperationCard(allowedModules[index], isWide: isWide);
                   },
-                )
-              else
-                ...allowedModules.map((mod) => _buildOperationCard(mod, isWide: false)),
+                ),
 
               const SizedBox(height: 24),
             ],
@@ -2757,102 +2755,98 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildOperationCard(_DashboardModuleItem mod, {required bool isWide}) {
-    return Container(
-      margin: EdgeInsets.only(bottom: isWide ? 0 : 12),
+    return Material(
+      color: Colors.transparent,
       child: InkWell(
         onTap: mod.onTap,
-        borderRadius: BorderRadius.circular(4),
+        borderRadius: BorderRadius.circular(8),
         child: Container(
-          padding: EdgeInsets.symmetric(
-            horizontal: isWide ? 18 : 16,
-            vertical: isWide ? 16 : 14,
-          ),
+          padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: const Color(0xFFF6F7F9),
-            borderRadius: BorderRadius.circular(4),
+            color: const Color(0xFFF8FAFC),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: const Color(0xFFE2E8F0)),
           ),
-          child: Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Container(
-                width: 50,
-                height: 50,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(4),
-                  border: Border.all(color: const Color(0xFFE5E7EB)),
-                ),
-                child: Icon(
-                  mod.icon,
-                  size: 24,
-                  color: Colors.black,
-                ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Row(
-                      children: [
-                        Flexible(
-                          child: Text(
-                            mod.title,
-                            style: TextStyle(
-                              fontSize: isWide ? 16 : 15,
-                              fontWeight: FontWeight.w800,
-                              color: Colors.black,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        if (mod.badgeText != null) ...[
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(4),
-                              border: Border.all(color: const Color(0xFFE5E7EB)),
-                            ),
-                            child: Text(
-                              mod.badgeText!,
-                              style: const TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                                color: Color(0xFF334155),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ],
+              // Top row: Icon box + Optional Badge or subtle arrow
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: Colors.black,
+                      borderRadius: BorderRadius.circular(6),
                     ),
-                    const SizedBox(height: 3),
-                    Text(
-                      mod.subtitle,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: Color(0xFF6B7280),
-                        fontWeight: FontWeight.w500,
+                    child: Icon(
+                      mod.icon,
+                      size: 22,
+                      color: Colors.white,
+                    ),
+                  ),
+                  if (mod.badgeText != null)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(color: const Color(0xFFCBD5E1)),
                       ),
-                      overflow: TextOverflow.ellipsis,
+                      child: Text(
+                        mod.badgeText!,
+                        style: const TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF334155),
+                        ),
+                      ),
+                    )
+                  else
+                    const Padding(
+                      padding: EdgeInsets.only(top: 4, right: 2),
+                      child: Icon(
+                        Icons.arrow_forward_rounded,
+                        size: 16,
+                        color: Color(0xFF94A3B8),
+                      ),
                     ),
-                  ],
-                ),
+                ],
               ),
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: const Color(0xFFE5E7EB)),
-                ),
-                child: const Icon(
-                  Icons.chevron_right,
-                  size: 20,
-                  color: Colors.black,
-                ),
+
+              // Bottom details: Title + Subtitle
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    mod.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.black,
+                      letterSpacing: -0.2,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    mod.subtitle,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: Color(0xFF64748B),
+                      fontWeight: FontWeight.w500,
+                      height: 1.25,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
