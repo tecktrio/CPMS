@@ -429,16 +429,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   child: Row(
                     children: [
                       // Tenant Brand & Switcher
-                      Text(
-                        tenantDisplayName,
-                        style: const TextStyle(
-                          fontSize: 26,
-                          fontWeight: FontWeight.w900,
-                          color: Colors.black,
-                          letterSpacing: -0.7,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
                       InkWell(
                         onTap: () {
                           Navigator.push(
@@ -448,18 +438,47 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           );
                         },
                         borderRadius: BorderRadius.circular(4),
-                        child: Container(
-                          width: 32,
-                          height: 32,
-                          decoration: const BoxDecoration(
-                            color: Color(0xFFF1F3F5),
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.swap_horiz,
-                            size: 18,
-                            color: Color(0xFF495057),
-                          ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      tenantDisplayName,
+                                      style: const TextStyle(
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.w900,
+                                        color: Colors.black,
+                                        letterSpacing: -0.7,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    const Icon(
+                                      Icons.keyboard_arrow_down_rounded,
+                                      size: 20,
+                                      color: Color(0xFF64748B),
+                                    ),
+                                  ],
+                                ),
+                                if (resolvedDeptName.isNotEmpty) ...[
+                                  const SizedBox(height: 1),
+                                  Text(
+                                    resolvedDeptName,
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xFF64748B),
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ],
                         ),
                       ),
                       const Spacer(),
@@ -633,7 +652,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       );
     }
 
-    // Default: Modules Operations Tab (Tab 2)
+     // Default: Modules Operations Tab (Tab 2)
     return RefreshIndicator(
       color: Colors.black,
       onRefresh: _loadInitialData,
@@ -647,112 +666,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
               vertical: isWide ? 12 : 8,
             ),
             children: [
-              // Department Section Header
-              Text(
-                isWide ? 'Department' : 'DEPARTMENT',
-                style: TextStyle(
-                  fontSize: isWide ? 26 : 12,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: isWide ? -0.5 : 0.8,
-                  color: Colors.black,
-                ),
-              ),
-              const SizedBox(height: 4),
-              const Text(
-                'Select or switch department to re-scope operational modules',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Color(0xFF6B7280),
-                  height: 1.3,
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              // Department Card (Tapping opens the Organization & Department Switcher)
-              InkWell(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const TenantSelectorScreen(),
-                    ),
-                  );
-                },
-                borderRadius: BorderRadius.circular(4),
-                child: Container(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: isWide ? 20 : 16,
-                    vertical: isWide ? 18 : 14,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF6F7F9),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 48,
-                        height: 48,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(4),
-                          border: Border.all(color: const Color(0xFFE5E7EB)),
-                        ),
-                        child: const Icon(
-                          Icons.apartment,
-                          size: 22,
-                          color: Colors.black,
-                        ),
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              resolvedDeptName,
-                              style: TextStyle(
-                                fontSize: isWide ? 17 : 16,
-                                fontWeight: FontWeight.w800,
-                                color: Colors.black,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              isWide
-                                  ? 'Switch Organization & Department'
-                                  : 'Switch Organization & Department',
-                              style: const TextStyle(
-                                fontSize: 13,
-                                color: Color(0xFF6B7280),
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Container(
-                        width: 36,
-                        height: 36,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                          border: Border.all(color: const Color(0xFFE5E7EB)),
-                        ),
-                        child: const Icon(
-                          Icons.swap_horiz,
-                          size: 18,
-                          color: Colors.black,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              SizedBox(height: isWide ? 36 : 28),
-
               // Manage Operations Section Header
               Text(
                 'Manage Operations',
