@@ -376,7 +376,7 @@ class _StoreRoomsListScreenState extends State<StoreRoomsListScreen> {
                                   screenWidth >= 1050 ? 3 : 2,
                               crossAxisSpacing: 16,
                               mainAxisSpacing: 16,
-                              mainAxisExtent: 154,
+                              mainAxisExtent: 130,
                             ),
                             itemCount: inventory.storeRooms.length,
                             itemBuilder: (context, index) {
@@ -422,28 +422,28 @@ class _StoreRoomsListScreenState extends State<StoreRoomsListScreen> {
   }
 
   Widget _buildRoomCard(BuildContext context, StoreRoomModel room) {
-    final util = room.capacityUtilizationPercentage;
     final uniqueItemCount =
         room.items.map((it) => it.itemId).where((id) => id.isNotEmpty).toSet().length;
+    final isAmbient = room.temperature == null;
 
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(4),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: const Color(0xFFE2E8F0)),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x04000000),
-            blurRadius: 6,
+            color: Color(0x06000000),
+            blurRadius: 8,
             offset: Offset(0, 2),
           ),
         ],
       ),
       child: Material(
         color: Colors.transparent,
-        borderRadius: BorderRadius.circular(4),
+        borderRadius: BorderRadius.circular(8),
         child: InkWell(
-          borderRadius: BorderRadius.circular(4),
+          borderRadius: BorderRadius.circular(8),
           hoverColor: const Color(0xFFF8FAFC),
           onTap: () {
             Navigator.push(
@@ -454,142 +454,163 @@ class _StoreRoomsListScreenState extends State<StoreRoomsListScreen> {
             );
           },
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                // Top Row: Code Badge, Name, Chevron
+                // Top Row: Code Badge, Name, Status/Chevron
                 Row(
                   children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 5,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF8FAFC),
-                        borderRadius: BorderRadius.circular(4),
-                        border: Border.all(
-                          color: const Color(0xFFE2E8F0),
-                        ),
-                      ),
-                      child: Text(
-                        room.roomCode,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w900,
-                          color: Colors.black,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        room.roomName,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w900,
-                          color: Colors.black,
-                          letterSpacing: -0.3,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    const Icon(
-                      Icons.chevron_right,
-                      size: 20,
-                      color: Color(0xFF94A3B8),
-                    ),
-                  ],
-                ),
-
-                // Row 2: Capacity & Utilization Pill
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        const Text(
-                          'Capacity:  ',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: Color(0xFF64748B),
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        Text(
-                          '${room.totalCapacityUnits.toStringAsFixed(1)} Units',
-                          style: const TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w800,
-                            color: Colors.black,
-                          ),
-                        ),
-                      ],
-                    ),
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 8,
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF1F5F9),
+                        color: Colors.black,
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
-                        '${util.toStringAsFixed(1)}% FULL',
+                        room.roomCode,
                         style: const TextStyle(
                           fontSize: 11,
-                          fontWeight: FontWeight.w800,
-                          color: Color(0xFF334155),
+                          fontWeight: FontWeight.w900,
+                          color: Colors.white,
+                          letterSpacing: 0.5,
                         ),
                       ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        room.roomName,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.black,
+                          letterSpacing: -0.3,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: isAmbient
+                            ? const Color(0xFFF1F5F9)
+                            : const Color(0xFFECFDF5),
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(
+                          color: isAmbient
+                              ? const Color(0xFFE2E8F0)
+                              : const Color(0xFFA7F3D0),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            isAmbient
+                                ? Icons.thermostat_outlined
+                                : Icons.ac_unit,
+                            size: 13,
+                            color: isAmbient
+                                ? const Color(0xFF64748B)
+                                : const Color(0xFF059669),
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            isAmbient
+                                ? 'Ambient'
+                                : '${room.temperature!.toStringAsFixed(1)}°C',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: isAmbient
+                                  ? const Color(0xFF475569)
+                                  : const Color(0xFF047857),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    const Icon(
+                      Icons.chevron_right,
+                      size: 18,
+                      color: Color(0xFF94A3B8),
                     ),
                   ],
                 ),
 
-                const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                const SizedBox(height: 12),
 
-                // Row 3: Divisions & Distinct Individual Items Count
+                // Bottom Row: Divisions Count & Distinct Individual Items Count Pills
                 Row(
                   children: [
-                    const Icon(
-                      Icons.grid_view_outlined,
-                      size: 15,
-                      color: Color(0xFF64748B),
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      '${room.divisions.length} Divisions',
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.black87,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
                     Container(
-                      width: 4,
-                      height: 4,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFCBD5E1),
-                        shape: BoxShape.circle,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.grid_view_outlined,
+                            size: 14,
+                            color: Color(0xFF64748B),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            '${room.divisions.length} Divisions',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF334155),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(width: 16),
-                    const Icon(
-                      Icons.inventory_2_outlined,
-                      size: 15,
-                      color: Color(0xFF64748B),
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      '$uniqueItemCount ${uniqueItemCount == 1 ? "Item" : "Items"}',
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.black87,
+                    const SizedBox(width: 10),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.inventory_2_outlined,
+                            size: 14,
+                            color: Color(0xFF64748B),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            '$uniqueItemCount ${uniqueItemCount == 1 ? "Item" : "Items"}',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF334155),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],

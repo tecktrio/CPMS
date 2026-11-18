@@ -961,10 +961,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           _buildSearchSectionHeader('STORE ROOMS'),
                           ...matchingRooms.map((room) {
                             final divCount = room.divisions.length;
+                            final uniqueItemCount = room.items
+                                .map((it) => it.itemId)
+                                .where((id) => id.isNotEmpty)
+                                .toSet()
+                                .length;
                             return _buildSearchResultCard(
                               leadingIcon: Icons.inbox_outlined,
                               title: '${room.roomName} (${room.roomCode})',
-                              subtitleLine1: 'Capacity: ${room.capacityUtilizationPercentage.toStringAsFixed(0)}% • $divCount Sections active',
+                              subtitleLine1: '$divCount Sections active • $uniqueItemCount ${uniqueItemCount == 1 ? "Item" : "Items"}',
                               subtitleLine2: room.temperature != null ? 'Temp: ${room.temperature}°C' : 'Standard Store Room',
                               badgeText: room.temperature != null ? '${room.temperature}°C' : 'Active',
                               onTap: () {

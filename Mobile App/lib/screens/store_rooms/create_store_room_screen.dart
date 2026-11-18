@@ -15,7 +15,6 @@ class _CreateStoreRoomScreenState extends State<CreateStoreRoomScreen> {
   final _roomCodeController = TextEditingController();
   final _nameController = TextEditingController();
   final _tempController = TextEditingController();
-  final _capacityController = TextEditingController(text: '1000');
   final _divisionCountController = TextEditingController(text: '2');
 
   final List<TextEditingController> _divisionControllers = [
@@ -30,7 +29,6 @@ class _CreateStoreRoomScreenState extends State<CreateStoreRoomScreen> {
     _roomCodeController.dispose();
     _nameController.dispose();
     _tempController.dispose();
-    _capacityController.dispose();
     _divisionCountController.dispose();
     for (final c in _divisionControllers) {
       c.dispose();
@@ -86,8 +84,6 @@ class _CreateStoreRoomScreenState extends State<CreateStoreRoomScreen> {
       roomCode: _roomCodeController.text.trim().toUpperCase(),
       roomName: _nameController.text.trim(),
       temperature: temp,
-      totalCapacityUnits:
-          double.tryParse(_capacityController.text.trim()) ?? 1000,
       divisions: divisions,
     );
 
@@ -372,95 +368,50 @@ class _CreateStoreRoomScreenState extends State<CreateStoreRoomScreen> {
 
                   const SizedBox(height: 18),
 
-                  // Temperature & Capacity Row
-                  Row(
+                  // Temperature (Optional)
+                  Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Temperature (Optional)
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _buildFieldLabel('TEMPERATURE (°C) (OPTIONAL)'),
-                            TextFormField(
-                              controller: _tempController,
-                              keyboardType:
-                                  const TextInputType.numberWithOptions(
-                                signed: true,
-                                decimal: true,
-                              ),
-                              style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.black,
-                              ),
-                              decoration: _buildInputDecoration(
-                                hintText: 'e.g. -18.0 (blank for ambient)',
-                                prefixIcon: const Icon(
-                                  Icons.thermostat_outlined,
-                                  size: 20,
-                                  color: Color(0xFF94A3B8),
-                                ),
-                              ),
-                              validator: (val) {
-                                if (val != null &&
-                                    val.trim().isNotEmpty &&
-                                    double.tryParse(val.trim()) == null) {
-                                  return 'Enter a valid number';
-                                }
-                                return null;
-                              },
-                              onChanged: (_) => setState(() {}),
-                            ),
-                            const SizedBox(height: 8),
-                            Wrap(
-                              spacing: 6,
-                              runSpacing: 6,
-                              children: [
-                                _buildTempPresetChip('Frozen (-18°C)', '-18.0'),
-                                _buildTempPresetChip('Chilled (4°C)', '4.0'),
-                                _buildTempPresetChip('Ambient', ''),
-                              ],
-                            ),
-                          ],
+                      _buildFieldLabel('TEMPERATURE (°C) (OPTIONAL)'),
+                      TextFormField(
+                        controller: _tempController,
+                        keyboardType:
+                            const TextInputType.numberWithOptions(
+                          signed: true,
+                          decimal: true,
                         ),
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black,
+                        ),
+                        decoration: _buildInputDecoration(
+                          hintText: 'e.g. -18.0 (blank for ambient)',
+                          prefixIcon: const Icon(
+                            Icons.thermostat_outlined,
+                            size: 20,
+                            color: Color(0xFF94A3B8),
+                          ),
+                        ),
+                        validator: (val) {
+                          if (val != null &&
+                              val.trim().isNotEmpty &&
+                              double.tryParse(val.trim()) == null) {
+                            return 'Enter a valid number';
+                          }
+                          return null;
+                        },
+                        onChanged: (_) => setState(() {}),
                       ),
-                      const SizedBox(width: 14),
-                      // Capacity
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _buildFieldLabel('TOTAL CAPACITY (KG / UNITS) *'),
-                            TextFormField(
-                              controller: _capacityController,
-                              keyboardType:
-                                  const TextInputType.numberWithOptions(
-                                decimal: true,
-                              ),
-                              style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.black,
-                              ),
-                              decoration: _buildInputDecoration(
-                                hintText: '1000',
-                                prefixIcon: const Icon(
-                                  Icons.scale_outlined,
-                                  size: 20,
-                                  color: Color(0xFF94A3B8),
-                                ),
-                              ),
-                              validator: (val) {
-                                if (val == null ||
-                                    double.tryParse(val.trim()) == null) {
-                                  return 'Enter valid capacity';
-                                }
-                                return null;
-                              },
-                            ),
-                          ],
-                        ),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
+                        children: [
+                          _buildTempPresetChip('Frozen (-18°C)', '-18.0'),
+                          _buildTempPresetChip('Chilled (4°C)', '4.0'),
+                          _buildTempPresetChip('Ambient', ''),
+                        ],
                       ),
                     ],
                   ),

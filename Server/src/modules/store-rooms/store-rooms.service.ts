@@ -46,7 +46,7 @@ export class StoreRoomsService {
       room_code: dto.room_code.trim().toUpperCase(),
       room_name: dto.room_name.trim(),
       temperature: dto.temperature ?? null,
-      total_capacity_units: dto.total_capacity_units,
+      total_capacity_units: dto.total_capacity_units ?? 0,
       divisions: dto.divisions || [],
       is_active: dto.is_active ?? true,
     });

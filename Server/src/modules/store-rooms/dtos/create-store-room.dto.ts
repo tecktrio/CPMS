@@ -31,13 +31,13 @@ export class CreateStoreRoomDto {
   @IsOptional()
   temperature?: number;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     example: 1000,
     description: 'Maximum storage capacity in units (e.g. cartons/pallets/kg)',
   })
   @IsNumber()
-  @Min(1)
-  total_capacity_units: number;
+  @IsOptional()
+  total_capacity_units?: number;
 
   @ApiPropertyOptional({
     example: ['Section A', 'Section B', 'Rack 1'],

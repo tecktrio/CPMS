@@ -14,14 +14,12 @@ class _CreateStoreRoomDialogState extends State<CreateStoreRoomDialog> {
   final _codeController = TextEditingController();
   final _nameController = TextEditingController();
   final _tempController = TextEditingController(text: '-18.0');
-  final _capacityController = TextEditingController(text: '100.0');
 
   @override
   void dispose() {
     _codeController.dispose();
     _nameController.dispose();
     _tempController.dispose();
-    _capacityController.dispose();
     super.dispose();
   }
 
@@ -30,13 +28,11 @@ class _CreateStoreRoomDialogState extends State<CreateStoreRoomDialog> {
 
     final inventory = context.read<InventoryProvider>();
     final temp = double.tryParse(_tempController.text) ?? -18.0;
-    final capacity = double.tryParse(_capacityController.text) ?? 100.0;
 
     final success = await inventory.createStoreRoom(
       roomCode: _codeController.text,
       roomName: _nameController.text,
       temperature: temp,
-      totalCapacityUnits: capacity,
     );
 
     if (!mounted) return;
@@ -112,23 +108,6 @@ class _CreateStoreRoomDialogState extends State<CreateStoreRoomDialog> {
                 validator: (val) {
                   if (val == null || double.tryParse(val) == null) {
                     return 'Enter valid temperature';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _capacityController,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                decoration: const InputDecoration(
-                  labelText: 'Maximum Capacity (Units)',
-                  hintText: '100.0',
-                  prefixIcon: Icon(Icons.storage, size: 20),
-                ),
-                validator: (val) {
-                  final parsed = double.tryParse(val ?? '');
-                  if (parsed == null || parsed <= 0) {
-                    return 'Enter valid capacity > 0';
                   }
                   return null;
                 },

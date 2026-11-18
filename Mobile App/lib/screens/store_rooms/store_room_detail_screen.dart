@@ -94,7 +94,6 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                 storeRoomId: room.storeRoomId,
                 roomName: room.roomName,
                 temperature: room.temperature,
-                totalCapacityUnits: room.totalCapacityUnits,
                 divisions: updatedDivs,
               );
 
@@ -120,9 +119,6 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
     final nameCtrl = TextEditingController(text: room.roomName);
     final tempCtrl = TextEditingController(
       text: room.temperature != null ? room.temperature.toString() : '',
-    );
-    final capacityCtrl = TextEditingController(
-      text: room.totalCapacityUnits.toStringAsFixed(0),
     );
     final List<TextEditingController> divisionCtrls =
         room.divisions.map((d) => TextEditingController(text: d)).toList();
@@ -222,101 +218,41 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                                   v == null || v.trim().isEmpty ? 'Room name is required' : null,
                             ),
                             const SizedBox(height: 14),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      const Text(
-                                        'TEMPERATURE (°C)',
-                                        style: TextStyle(
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w800,
-                                          color: Color(0xFF64748B),
-                                          letterSpacing: 0.5,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 6),
-                                      TextFormField(
-                                        controller: tempCtrl,
-                                        keyboardType: const TextInputType.numberWithOptions(
-                                          signed: true,
-                                          decimal: true,
-                                        ),
-                                        style: const TextStyle(fontWeight: FontWeight.w700),
-                                        decoration: InputDecoration(
-                                          hintText: '-18.0',
-                                          filled: true,
-                                          fillColor: const Color(0xFFF8FAFC),
-                                          border: OutlineInputBorder(
-                                            borderRadius: BorderRadius.circular(4),
-                                            borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                                          ),
-                                          enabledBorder: OutlineInputBorder(
-                                            borderRadius: BorderRadius.circular(4),
-                                            borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                                          ),
-                                          focusedBorder: OutlineInputBorder(
-                                            borderRadius: BorderRadius.circular(4),
-                                            borderSide: const BorderSide(
-                                                color: Colors.black, width: 1.5),
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
+                            const Text(
+                              'TEMPERATURE (°C) (OPTIONAL)',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w800,
+                                color: Color(0xFF64748B),
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            TextFormField(
+                              controller: tempCtrl,
+                              keyboardType: const TextInputType.numberWithOptions(
+                                signed: true,
+                                decimal: true,
+                              ),
+                              style: const TextStyle(fontWeight: FontWeight.w700),
+                              decoration: InputDecoration(
+                                hintText: '-18.0 (blank for ambient)',
+                                filled: true,
+                                fillColor: const Color(0xFFF8FAFC),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(4),
+                                  borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                                 ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      const Text(
-                                        'CAPACITY (UNITS) *',
-                                        style: TextStyle(
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w800,
-                                          color: Color(0xFF64748B),
-                                          letterSpacing: 0.5,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 6),
-                                      TextFormField(
-                                        controller: capacityCtrl,
-                                        keyboardType: const TextInputType.numberWithOptions(
-                                          decimal: true,
-                                        ),
-                                        style: const TextStyle(fontWeight: FontWeight.w700),
-                                        decoration: InputDecoration(
-                                          hintText: '100',
-                                          filled: true,
-                                          fillColor: const Color(0xFFF8FAFC),
-                                          border: OutlineInputBorder(
-                                            borderRadius: BorderRadius.circular(4),
-                                            borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                                          ),
-                                          enabledBorder: OutlineInputBorder(
-                                            borderRadius: BorderRadius.circular(4),
-                                            borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                                          ),
-                                          focusedBorder: OutlineInputBorder(
-                                            borderRadius: BorderRadius.circular(4),
-                                            borderSide: const BorderSide(
-                                                color: Colors.black, width: 1.5),
-                                          ),
-                                        ),
-                                        validator: (v) {
-                                          if (v == null || double.tryParse(v.trim()) == null) {
-                                            return 'Enter valid capacity';
-                                          }
-                                          return null;
-                                        },
-                                      ),
-                                    ],
-                                  ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(4),
+                                  borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                                 ),
-                              ],
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(4),
+                                  borderSide: const BorderSide(
+                                      color: Colors.black, width: 1.5),
+                                ),
+                              ),
                             ),
                             const SizedBox(height: 18),
                             Row(
@@ -432,7 +368,6 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                             storeRoomId: room.storeRoomId,
                             roomName: nameCtrl.text.trim(),
                             temperature: temp,
-                            totalCapacityUnits: double.parse(capacityCtrl.text.trim()),
                             divisions: divisions,
                           );
 
@@ -928,7 +863,6 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
       orElse: () => widget.room,
     );
 
-    final util = currentRoom.capacityUtilizationPercentage;
     final isAmbient = currentRoom.temperature == null;
     final tempStr =
         !isAmbient ? '${currentRoom.temperature!.toStringAsFixed(1)} °C' : 'Ambient';
@@ -1334,161 +1268,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
 
             const SizedBox(height: 14),
 
-            // 2. Capacity & Volume Card
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(4),
-                border: Border.all(color: const Color(0xFFE2E8F0)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Section Header
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            width: 26,
-                            height: 26,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF1F5F9),
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: const Icon(
-                              Icons.storage_outlined,
-                              size: 15,
-                              color: Color(0xFF334155),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          const Text(
-                            'CAPACITY & VOLUME',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w800,
-                              color: Colors.black,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                        ],
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF1F5F9),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          '${util.toStringAsFixed(1)}% FULL',
-                          style: const TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w800,
-                            color: Color(0xFF334155),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 14),
-
-                  // Allocation Numbers
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        '${currentRoom.currentOccupancyUnits.toStringAsFixed(1)} Units Allocated',
-                        style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w900,
-                          color: Colors.black,
-                        ),
-                      ),
-                      Text(
-                        'Max ${currentRoom.totalCapacityUnits.toStringAsFixed(1)} Units',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF64748B),
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 10),
-
-                  // Custom Progress Bar with Indicator Dot
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(4),
-                    child: Stack(
-                      children: [
-                        Container(
-                          height: 7,
-                          width: double.infinity,
-                          color: const Color(0xFFE2E8F0),
-                        ),
-                        FractionallySizedBox(
-                          widthFactor: (util / 100).clamp(0.02, 1.0),
-                          child: Container(
-                            height: 7,
-                            decoration: BoxDecoration(
-                              color: Colors.black,
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 14),
-
-                  // Status Callout
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF8FAFC),
-                      borderRadius: BorderRadius.circular(4),
-                      border: Border.all(color: const Color(0xFFF1F5F9)),
-                    ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Icon(
-                          Icons.check_circle,
-                          color: Color(0xFF16A34A),
-                          size: 16,
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            util == 0.0
-                                ? 'Complete volume available. Ready for immediate pallet intake.'
-                                : (util < 80.0
-                                    ? 'Healthy operational volume with immediate intake bandwidth.'
-                                    : 'Nearing storage threshold. Plan batch reallocation.'),
-                            style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
-                              color: Color(0xFF475569),
-                              height: 1.3,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 14),
-
-            // 3. Configured Divisions Card
+            // 2. Configured Divisions Card
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -1555,9 +1335,6 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                     ...List.generate(currentRoom.divisions.length, (idx) {
                       final divName = currentRoom.divisions[idx];
                       final itemsInDiv = roomItems.where((i) => i.division == divName).length;
-                      final perDivCapacity = (currentRoom.totalCapacityUnits /
-                              currentRoom.divisions.length)
-                          .toStringAsFixed(1);
                       final tag = 'S${idx + 1}';
                       final subLabel = idx == 0 ? 'Upper Deck' : 'Floor Staging';
 
@@ -1603,7 +1380,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
-                                    '$subLabel • $perDivCapacity Units Allocated',
+                                    '$subLabel • $itemsInDiv items allocated',
                                     style: const TextStyle(
                                       fontSize: 11,
                                       fontWeight: FontWeight.w500,

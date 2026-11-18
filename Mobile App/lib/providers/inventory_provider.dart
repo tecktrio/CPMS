@@ -67,10 +67,10 @@ class StoreRoomModel {
     required this.roomCode,
     required this.roomName,
     this.temperature,
-    required this.totalCapacityUnits,
-    required this.currentOccupancyUnits,
-    required this.capacityUtilizationPercentage,
-    required this.activeBatchesCount,
+    this.totalCapacityUnits = 0.0,
+    this.currentOccupancyUnits = 0.0,
+    this.capacityUtilizationPercentage = 0.0,
+    this.activeBatchesCount = 0,
     this.divisions = const [],
     this.items = const [],
     required this.isActive,
@@ -580,7 +580,7 @@ class InventoryProvider extends ChangeNotifier {
     required String roomCode,
     required String roomName,
     double? temperature,
-    required double totalCapacityUnits,
+    double totalCapacityUnits = 0.0,
     List<String>? divisions,
   }) async {
     // 1. Instant optimistic local creation
@@ -607,8 +607,8 @@ class InventoryProvider extends ChangeNotifier {
     final body = <String, dynamic>{
       'room_code': roomCode.trim().toUpperCase(),
       'room_name': roomName.trim(),
-      'total_capacity_units': totalCapacityUnits,
     };
+    if (totalCapacityUnits > 0) body['total_capacity_units'] = totalCapacityUnits;
     if (temperature != null) body['temperature'] = temperature;
     if (divisions != null && divisions.isNotEmpty) body['divisions'] = divisions;
 

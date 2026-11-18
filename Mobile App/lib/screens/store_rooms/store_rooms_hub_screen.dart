@@ -78,10 +78,10 @@ class StoreRoomsHubScreen extends StatelessWidget {
           if (canRead)
             _buildPermissionPageCard(
               context: context,
-              title: 'Monitor Cold Rooms & Capacity',
-              description: 'View live capacity utilization gauges, temperature thresholds, and alerts.',
+              title: 'Store Rooms Directory',
+              description: 'View active store rooms, configured divisions, and stored items.',
               permissionId: AppPermissions.storeroomRead,
-              icon: Icons.speed_outlined,
+              icon: Icons.meeting_room_outlined,
               color: const Color(0xFF0F766E),
               onTap: () {
                 Navigator.push(
