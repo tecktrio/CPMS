@@ -50,34 +50,56 @@ class SyncStatusIndicator extends StatelessWidget {
             ),
           );
         } else if (status == SyncStatus.offline && syncManager.pendingCount > 0) {
-          return Tooltip(
-            message: '${syncManager.pendingCount} change(s) saved locally. Syncs when online.',
-            child: Container(
-              margin: const EdgeInsets.symmetric(horizontal: 6),
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFFFBEB),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFFDE68A)),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(
-                    Icons.cloud_queue,
-                    size: 13,
-                    color: Color(0xFFD97706),
+          return InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    'Retrying ${syncManager.pendingCount} pending synchronization item(s)...',
                   ),
-                  const SizedBox(width: 4),
-                  Text(
-                    'Offline (${syncManager.pendingCount})',
-                    style: const TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
+                  duration: const Duration(seconds: 2),
+                  action: SnackBarAction(
+                    label: 'Clear Queue',
+                    textColor: Colors.amberAccent,
+                    onPressed: () {
+                      syncManager.clearQueue();
+                    },
+                  ),
+                ),
+              );
+              syncManager.processQueue();
+            },
+            child: Tooltip(
+              message:
+                  '${syncManager.pendingCount} change(s) saved locally. Tap to retry sync or clear.',
+              child: Container(
+                margin: const EdgeInsets.symmetric(horizontal: 6),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFFBEB),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFFDE68A)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.cloud_queue,
+                      size: 13,
                       color: Color(0xFFD97706),
                     ),
-                  ),
-                ],
+                    const SizedBox(width: 4),
+                    Text(
+                      'Offline (${syncManager.pendingCount})',
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFFD97706),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           );

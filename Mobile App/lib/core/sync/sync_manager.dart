@@ -84,6 +84,12 @@ class SyncManager {
   static const String _kItemsCacheKey = 'cpms_cache_items_v1';
   static const String _kStoreRoomsCacheKey = 'cpms_cache_store_rooms_v1';
 
+  void clearQueue() {
+    _queue.clear();
+    _persistQueue();
+    _syncStatusController.add(SyncStatus.idle);
+  }
+
   void initialize({required ApiClient apiClient}) {
     _apiClient = apiClient;
     _loadQueue();
@@ -209,13 +215,26 @@ class SyncManager {
           successfullyProcessed.add(op);
         } else {
           op.retryCount++;
-          if (op.retryCount > 8) {
-            // Drop unrecoverable operation after 8 retries to prevent blocking
+          if (op.retryCount >= 3) {
+            // Drop unrecoverable operation after 3 retries to prevent blocking the queue
             successfullyProcessed.add(op);
           }
         }
       } catch (e) {
-        // Network / connectivity issue, pause queue processing
+        if (e is ApiException) {
+          // If server responded with a client/semantic error (e.g., 400 Bad Request, 404 Not Found, 409 Conflict),
+          // retrying endlessly will never succeed and will permanently trap the user in 'Offline' status.
+          // Drop or limit retries for 4xx status codes.
+          if (e.statusCode != null && e.statusCode! >= 400 && e.statusCode! < 500) {
+            op.retryCount++;
+            if (op.retryCount >= 2) {
+              successfullyProcessed.add(op);
+              continue;
+            }
+          }
+        }
+
+        // Network / connectivity issue, pause queue processing for this cycle
         _syncStatusController.add(SyncStatus.offline);
         break;
       }
