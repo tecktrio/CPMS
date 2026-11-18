@@ -129,7 +129,7 @@ class _StoreRoomsListScreenState extends State<StoreRoomsListScreen> {
           constraints: const BoxConstraints(maxWidth: 1100),
           child: Column(
             children: [
-              // Summary Metrics Row (Total Store Rooms & Active Rooms)
+              // Summary Metrics Row (Total Store Rooms, Active Rooms, Unique Items)
               Padding(
                 padding: EdgeInsets.fromLTRB(
                   isWide ? 24 : 16,
@@ -141,7 +141,7 @@ class _StoreRoomsListScreenState extends State<StoreRoomsListScreen> {
                   children: [
                     Expanded(
                       child: Container(
-                        padding: const EdgeInsets.all(14),
+                        padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(4),
@@ -151,13 +151,15 @@ class _StoreRoomsListScreenState extends State<StoreRoomsListScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const Text(
-                              'TOTAL STORE ROOMS',
+                              'TOTAL ROOMS',
                               style: TextStyle(
                                 fontSize: 10,
                                 fontWeight: FontWeight.w700,
                                 color: Color(0xFF71717A),
                                 letterSpacing: 0.5,
                               ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                             const SizedBox(height: 6),
                             Row(
@@ -168,15 +170,15 @@ class _StoreRoomsListScreenState extends State<StoreRoomsListScreen> {
                                 Text(
                                   '${inventory.storeRooms.length}',
                                   style: const TextStyle(
-                                    fontSize: 26,
+                                    fontSize: 22,
                                     fontWeight: FontWeight.w900,
                                     color: Colors.black,
                                     height: 1.0,
                                   ),
                                 ),
                                 Container(
-                                  width: 36,
-                                  height: 36,
+                                  width: 32,
+                                  height: 32,
                                   decoration: BoxDecoration(
                                     color: const Color(0xFFF8FAFC),
                                     borderRadius: BorderRadius.circular(2),
@@ -186,7 +188,7 @@ class _StoreRoomsListScreenState extends State<StoreRoomsListScreen> {
                                   child: const Icon(
                                     Icons.warehouse_outlined,
                                     color: Colors.black87,
-                                    size: 18,
+                                    size: 16,
                                   ),
                                 ),
                               ],
@@ -195,10 +197,10 @@ class _StoreRoomsListScreenState extends State<StoreRoomsListScreen> {
                         ),
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 8),
                     Expanded(
                       child: Container(
-                        padding: const EdgeInsets.all(14),
+                        padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(4),
@@ -215,6 +217,8 @@ class _StoreRoomsListScreenState extends State<StoreRoomsListScreen> {
                                 color: Color(0xFF71717A),
                                 letterSpacing: 0.5,
                               ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                             const SizedBox(height: 6),
                             Row(
@@ -225,15 +229,15 @@ class _StoreRoomsListScreenState extends State<StoreRoomsListScreen> {
                                 Text(
                                   '${inventory.storeRooms.where((r) => r.isActive).length}',
                                   style: const TextStyle(
-                                    fontSize: 26,
+                                    fontSize: 22,
                                     fontWeight: FontWeight.w900,
                                     color: Colors.black,
                                     height: 1.0,
                                   ),
                                 ),
                                 Container(
-                                  width: 36,
-                                  height: 36,
+                                  width: 32,
+                                  height: 32,
                                   decoration: BoxDecoration(
                                     color: const Color(0xFFF8FAFC),
                                     borderRadius: BorderRadius.circular(2),
@@ -243,7 +247,66 @@ class _StoreRoomsListScreenState extends State<StoreRoomsListScreen> {
                                   child: const Icon(
                                     Icons.meeting_room_outlined,
                                     color: Colors.black87,
-                                    size: 18,
+                                    size: 16,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(color: const Color(0xFFE5E5E5)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'STORED ITEMS',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF71717A),
+                                letterSpacing: 0.5,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 6),
+                            Row(
+                              mainAxisAlignment:
+                                  MainAxisAlignment.spaceBetween,
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text(
+                                  '${inventory.storeRooms.expand((r) => r.items.map((it) => it.itemId)).where((id) => id.isNotEmpty).toSet().length}',
+                                  style: const TextStyle(
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.w900,
+                                    color: Colors.black,
+                                    height: 1.0,
+                                  ),
+                                ),
+                                Container(
+                                  width: 32,
+                                  height: 32,
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF8FAFC),
+                                    borderRadius: BorderRadius.circular(2),
+                                    border: Border.all(
+                                        color: const Color(0xFFF1F5F9)),
+                                  ),
+                                  child: const Icon(
+                                    Icons.inventory_2_outlined,
+                                    color: Colors.black87,
+                                    size: 16,
                                   ),
                                 ),
                               ],
@@ -360,6 +423,8 @@ class _StoreRoomsListScreenState extends State<StoreRoomsListScreen> {
 
   Widget _buildRoomCard(BuildContext context, StoreRoomModel room) {
     final util = room.capacityUtilizationPercentage;
+    final uniqueItemCount =
+        room.items.map((it) => it.itemId).where((id) => id.isNotEmpty).toSet().length;
 
     return Container(
       decoration: BoxDecoration(
@@ -486,7 +551,7 @@ class _StoreRoomsListScreenState extends State<StoreRoomsListScreen> {
 
                 const Divider(height: 1, color: Color(0xFFF1F5F9)),
 
-                // Row 3: Divisions Count
+                // Row 3: Divisions & Distinct Individual Items Count
                 Row(
                   children: [
                     const Icon(
@@ -494,13 +559,37 @@ class _StoreRoomsListScreenState extends State<StoreRoomsListScreen> {
                       size: 15,
                       color: Color(0xFF64748B),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 6),
                     Text(
                       '${room.divisions.length} Divisions',
                       style: const TextStyle(
                         fontSize: 13,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.black,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Container(
+                      width: 4,
+                      height: 4,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFCBD5E1),
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    const Icon(
+                      Icons.inventory_2_outlined,
+                      size: 15,
+                      color: Color(0xFF64748B),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      '$uniqueItemCount ${uniqueItemCount == 1 ? "Item" : "Items"}',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.black87,
                       ),
                     ),
                   ],
