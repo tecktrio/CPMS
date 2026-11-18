@@ -52,6 +52,7 @@ class StoreRoomModel {
   final String tenantId;
   final String roomCode;
   final String roomName;
+  final String description;
   final double? temperature;
   final double totalCapacityUnits;
   final double currentOccupancyUnits;
@@ -66,6 +67,7 @@ class StoreRoomModel {
     required this.tenantId,
     required this.roomCode,
     required this.roomName,
+    this.description = '',
     this.temperature,
     this.totalCapacityUnits = 0.0,
     this.currentOccupancyUnits = 0.0,
@@ -81,6 +83,7 @@ class StoreRoomModel {
     String? tenantId,
     String? roomCode,
     String? roomName,
+    String? description,
     double? temperature,
     double? totalCapacityUnits,
     double? currentOccupancyUnits,
@@ -95,6 +98,7 @@ class StoreRoomModel {
       tenantId: tenantId ?? this.tenantId,
       roomCode: roomCode ?? this.roomCode,
       roomName: roomName ?? this.roomName,
+      description: description ?? this.description,
       temperature: temperature ?? this.temperature,
       totalCapacityUnits: totalCapacityUnits ?? this.totalCapacityUnits,
       currentOccupancyUnits: currentOccupancyUnits ?? this.currentOccupancyUnits,
@@ -112,6 +116,7 @@ class StoreRoomModel {
         'tenant_id': tenantId,
         'room_code': roomCode,
         'room_name': roomName,
+        'description': description,
         'temperature': temperature,
         'total_capacity_units': totalCapacityUnits,
         'current_occupancy_units': currentOccupancyUnits,
@@ -128,6 +133,7 @@ class StoreRoomModel {
       tenantId: json['tenant_id'] ?? '',
       roomCode: json['room_code'] ?? '',
       roomName: json['room_name'] ?? '',
+      description: json['description']?.toString() ?? '',
       temperature: (json['temperature'] as num?)?.toDouble(),
       totalCapacityUnits: (json['total_capacity_units'] as num?)?.toDouble() ?? 0.0,
       currentOccupancyUnits:
@@ -579,6 +585,7 @@ class InventoryProvider extends ChangeNotifier {
   Future<bool> createStoreRoom({
     required String roomCode,
     required String roomName,
+    String? description,
     double? temperature,
     double totalCapacityUnits = 0.0,
     List<String>? divisions,
@@ -590,6 +597,7 @@ class InventoryProvider extends ChangeNotifier {
       tenantId: apiClient.activeTenantId ?? '',
       roomCode: roomCode.trim().toUpperCase(),
       roomName: roomName.trim(),
+      description: description?.trim() ?? '',
       temperature: temperature,
       totalCapacityUnits: totalCapacityUnits,
       currentOccupancyUnits: 0.0,
@@ -608,6 +616,9 @@ class InventoryProvider extends ChangeNotifier {
       'room_code': roomCode.trim().toUpperCase(),
       'room_name': roomName.trim(),
     };
+    if (description != null && description.trim().isNotEmpty) {
+      body['description'] = description.trim();
+    }
     if (totalCapacityUnits > 0) body['total_capacity_units'] = totalCapacityUnits;
     if (temperature != null) body['temperature'] = temperature;
     if (divisions != null && divisions.isNotEmpty) body['divisions'] = divisions;
@@ -627,6 +638,7 @@ class InventoryProvider extends ChangeNotifier {
     required String storeRoomId,
     String? roomCode,
     String? roomName,
+    String? description,
     double? temperature,
     double? totalCapacityUnits,
     List<String>? divisions,
@@ -638,6 +650,7 @@ class InventoryProvider extends ChangeNotifier {
       _storeRooms[index] = existing.copyWith(
         roomCode: roomCode?.trim().toUpperCase(),
         roomName: roomName?.trim(),
+        description: description?.trim(),
         temperature: temperature,
         totalCapacityUnits: totalCapacityUnits,
         divisions: divisions,
@@ -653,6 +666,9 @@ class InventoryProvider extends ChangeNotifier {
     }
     if (roomName != null && roomName.isNotEmpty) {
       body['room_name'] = roomName.trim();
+    }
+    if (description != null) {
+      body['description'] = description.trim();
     }
     if (temperature != null) body['temperature'] = temperature;
     if (totalCapacityUnits != null) {

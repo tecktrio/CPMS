@@ -44,6 +44,9 @@ export class StoreRoom {
   @Prop({ type: String, required: true, trim: true })
   room_name: string;
 
+  @Prop({ type: String, default: '', trim: true })
+  description?: string;
+
   @Prop({ type: Number, required: false, default: null })
   temperature?: number; // in Celsius (optional, e.g. -18.0)
 

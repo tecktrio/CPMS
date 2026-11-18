@@ -424,7 +424,7 @@ class _StoreRoomsListScreenState extends State<StoreRoomsListScreen> {
   Widget _buildRoomCard(BuildContext context, StoreRoomModel room) {
     final uniqueItemCount =
         room.items.map((it) => it.itemId).where((id) => id.isNotEmpty).toSet().length;
-    final isAmbient = room.temperature == null;
+    final hasDesc = room.description.trim().isNotEmpty;
 
     return Container(
       decoration: BoxDecoration(
@@ -459,34 +459,10 @@ class _StoreRoomsListScreenState extends State<StoreRoomsListScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                // Top Row: Name, Status/Chevron
+                // Top: Name + Chevron
                 Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    if (room.roomCode.trim().isNotEmpty &&
-                        room.roomCode.trim().toLowerCase() !=
-                            room.roomName.trim().toLowerCase()) ...[
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF1F5F9),
-                          borderRadius: BorderRadius.circular(4),
-                          border: Border.all(color: const Color(0xFFE2E8F0)),
-                        ),
-                        child: Text(
-                          room.roomCode,
-                          style: const TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFF475569),
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                    ],
                     Expanded(
                       child: Text(
                         room.roomName,
@@ -499,58 +475,30 @@ class _StoreRoomsListScreenState extends State<StoreRoomsListScreen> {
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 3,
-                      ),
-                      decoration: BoxDecoration(
-                        color: isAmbient
-                            ? const Color(0xFFF1F5F9)
-                            : const Color(0xFFECFDF5),
-                        borderRadius: BorderRadius.circular(4),
-                        border: Border.all(
-                          color: isAmbient
-                              ? const Color(0xFFE2E8F0)
-                              : const Color(0xFFA7F3D0),
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            isAmbient
-                                ? Icons.thermostat_outlined
-                                : Icons.ac_unit,
-                            size: 13,
-                            color: isAmbient
-                                ? const Color(0xFF64748B)
-                                : const Color(0xFF059669),
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            isAmbient
-                                ? 'Ambient'
-                                : '${room.temperature!.toStringAsFixed(1)}°C',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              color: isAmbient
-                                  ? const Color(0xFF475569)
-                                  : const Color(0xFF047857),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 6),
+                    const SizedBox(width: 8),
                     const Icon(
                       Icons.chevron_right,
-                      size: 18,
+                      size: 20,
                       color: Color(0xFF94A3B8),
                     ),
                   ],
                 ),
+
+                // Middle: Description (if available)
+                if (hasDesc) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    room.description,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w400,
+                      color: Color(0xFF64748B),
+                      height: 1.3,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
 
                 const SizedBox(height: 12),
 

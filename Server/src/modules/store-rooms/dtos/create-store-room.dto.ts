@@ -24,6 +24,14 @@ export class CreateStoreRoomDto {
   room_name: string;
 
   @ApiPropertyOptional({
+    example: 'Primary dry storage area next to loading bay 2',
+    description: 'Optional description of the store room',
+  })
+  @IsString()
+  @IsOptional()
+  description?: string;
+
+  @ApiPropertyOptional({
     example: -18.5,
     description: 'Operating temperature in degrees Celsius (optional)',
   })

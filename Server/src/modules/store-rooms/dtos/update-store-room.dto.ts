@@ -46,6 +46,11 @@ export class UpdateStoreRoomDto {
   @IsOptional()
   room_name?: string;
 
+  @ApiPropertyOptional({ example: 'Primary storage facility for packaging materials' })
+  @IsString()
+  @IsOptional()
+  description?: string;
+
   @ApiPropertyOptional({ example: -22.0 })
   @IsNumber()
   @IsOptional()
