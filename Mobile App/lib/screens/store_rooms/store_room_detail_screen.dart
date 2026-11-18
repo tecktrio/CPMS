@@ -117,6 +117,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
 
   void _showEditRoomBottomSheet(StoreRoomModel room) {
     final nameCtrl = TextEditingController(text: room.roomName);
+    final descCtrl = TextEditingController(text: room.description);
     final tempCtrl = TextEditingController(
       text: room.temperature != null ? room.temperature.toString() : '',
     );
@@ -216,6 +217,39 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                               ),
                               validator: (v) =>
                                   v == null || v.trim().isEmpty ? 'Room name is required' : null,
+                            ),
+                            const SizedBox(height: 14),
+                            const Text(
+                              'DESCRIPTION (OPTIONAL)',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w800,
+                                color: Color(0xFF64748B),
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            TextFormField(
+                              controller: descCtrl,
+                              maxLines: 2,
+                              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                              decoration: InputDecoration(
+                                hintText: 'e.g. Storage for raw ingredients',
+                                filled: true,
+                                fillColor: const Color(0xFFF8FAFC),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(4),
+                                  borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(4),
+                                  borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(4),
+                                  borderSide: const BorderSide(color: Colors.black, width: 1.5),
+                                ),
+                              ),
                             ),
                             const SizedBox(height: 14),
                             const Text(
@@ -367,6 +401,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                           final ok = await inventory.updateStoreRoom(
                             storeRoomId: room.storeRoomId,
                             roomName: nameCtrl.text.trim(),
+                            description: descCtrl.text.trim(),
                             temperature: temp,
                             divisions: divisions,
                           );

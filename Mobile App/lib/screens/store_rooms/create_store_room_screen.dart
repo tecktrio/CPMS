@@ -14,6 +14,7 @@ class _CreateStoreRoomScreenState extends State<CreateStoreRoomScreen> {
   final _formKey = GlobalKey<FormState>();
   final _roomCodeController = TextEditingController();
   final _nameController = TextEditingController();
+  final _descriptionController = TextEditingController();
   final _tempController = TextEditingController();
   final _divisionCountController = TextEditingController(text: '2');
 
@@ -28,6 +29,7 @@ class _CreateStoreRoomScreenState extends State<CreateStoreRoomScreen> {
   void dispose() {
     _roomCodeController.dispose();
     _nameController.dispose();
+    _descriptionController.dispose();
     _tempController.dispose();
     _divisionCountController.dispose();
     for (final c in _divisionControllers) {
@@ -83,6 +85,7 @@ class _CreateStoreRoomScreenState extends State<CreateStoreRoomScreen> {
     final success = await inventory.createStoreRoom(
       roomCode: _roomCodeController.text.trim().toUpperCase(),
       roomName: _nameController.text.trim(),
+      description: _descriptionController.text.trim(),
       temperature: temp,
       divisions: divisions,
     );
@@ -336,6 +339,28 @@ class _CreateStoreRoomScreenState extends State<CreateStoreRoomScreen> {
                       }
                       return null;
                     },
+                  ),
+
+                  const SizedBox(height: 18),
+
+                  // Description (Optional)
+                  _buildFieldLabel('DESCRIPTION (OPTIONAL)'),
+                  TextFormField(
+                    controller: _descriptionController,
+                    maxLines: 2,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black,
+                    ),
+                    decoration: _buildInputDecoration(
+                      hintText: 'e.g. Primary storage room near delivery bay 1',
+                      prefixIcon: const Icon(
+                        Icons.notes_outlined,
+                        size: 20,
+                        color: Color(0xFF94A3B8),
+                      ),
+                    ),
                   ),
 
                   const SizedBox(height: 18),

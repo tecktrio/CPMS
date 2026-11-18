@@ -13,12 +13,14 @@ class _CreateStoreRoomDialogState extends State<CreateStoreRoomDialog> {
   final _formKey = GlobalKey<FormState>();
   final _codeController = TextEditingController();
   final _nameController = TextEditingController();
+  final _descController = TextEditingController();
   final _tempController = TextEditingController(text: '-18.0');
 
   @override
   void dispose() {
     _codeController.dispose();
     _nameController.dispose();
+    _descController.dispose();
     _tempController.dispose();
     super.dispose();
   }
@@ -32,6 +34,7 @@ class _CreateStoreRoomDialogState extends State<CreateStoreRoomDialog> {
     final success = await inventory.createStoreRoom(
       roomCode: _codeController.text,
       roomName: _nameController.text,
+      description: _descController.text.trim(),
       temperature: temp,
     );
 
@@ -95,6 +98,15 @@ class _CreateStoreRoomDialogState extends State<CreateStoreRoomDialog> {
                   }
                   return null;
                 },
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _descController,
+                decoration: const InputDecoration(
+                  labelText: 'Description (Optional)',
+                  hintText: 'e.g. Storage for packaging materials',
+                  prefixIcon: Icon(Icons.notes_outlined, size: 20),
+                ),
               ),
               const SizedBox(height: 12),
               TextFormField(
