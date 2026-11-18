@@ -257,7 +257,7 @@ class UserProfileAvatar extends StatelessWidget {
                                     decoration: BoxDecoration(
                                       color: isAdmin
                                           ? const Color(0xFF0F766E).withValues(alpha: 0.1)
-                                          : const Color(0xFF0284C7).withValues(alpha: 0.1),
+                                          : const Color(0xFF16A34A).withValues(alpha: 0.1),
                                       borderRadius: BorderRadius.circular(6),
                                     ),
                                     child: Text(
@@ -267,7 +267,7 @@ class UserProfileAvatar extends StatelessWidget {
                                       style: TextStyle(
                                         fontSize: 11,
                                         fontWeight: FontWeight.w700,
-                                        color: isAdmin ? const Color(0xFF0F766E) : const Color(0xFF0284C7),
+                                        color: isAdmin ? const Color(0xFF0F766E) : const Color(0xFF16A34A),
                                       ),
                                     ),
                                   ),

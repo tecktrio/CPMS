@@ -3,9 +3,10 @@ import 'package:flutter/material.dart';
 class AppTheme {
   static const Color primaryTeal = Color(0xFF0F766E);
   static const Color primaryLight = Color(0xFF14B8A6);
-  static const Color accentCyan = Color(0xFF0284C7);
+  static const Color accentGreen = Color(0xFF16A34A);
+  static const Color accentCyan = Color(0xFF16A34A); // Kept for backwards compatibility
   static const Color coldBlue = Color(0xFF0284C7);
-  static const Color coldSurface = Color(0xFFF0F9FF);
+  static const Color coldSurface = Color(0xFFF0FDF4);
   static const Color alertAmber = Color(0xFFD97706);
   static const Color dangerRed = Color(0xFFDC2626);
   static const Color successGreen = Color(0xFF16A34A);
@@ -16,7 +17,7 @@ class AppTheme {
       colorScheme: ColorScheme.fromSeed(
         seedColor: primaryTeal,
         primary: primaryTeal,
-        secondary: accentCyan,
+        secondary: accentGreen,
         surface: const Color(0xFFF8FAFC),
         error: dangerRed,
       ),
