@@ -784,7 +784,7 @@ class InventoryProvider extends ChangeNotifier {
   }
 
   Future<bool> createItem({
-    required String sku,
+    String? sku,
     required String itemName,
     required String itemType,
     required String measurementUnit,
@@ -795,8 +795,10 @@ class InventoryProvider extends ChangeNotifier {
     bool? hasIngredients,
     List<ItemIngredientModel>? ingredients,
   }) async {
-    final cleanSku = sku.trim().toUpperCase();
     final cleanName = itemName.trim();
+    final cleanSku = (sku != null && sku.trim().isNotEmpty)
+        ? sku.trim().toUpperCase()
+        : 'ITEM-${DateTime.now().millisecondsSinceEpoch}';
     final tempId = 'item_${DateTime.now().millisecondsSinceEpoch}';
 
     // 1. INSTANT OPTIMISTIC INSERTION

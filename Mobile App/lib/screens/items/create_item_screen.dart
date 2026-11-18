@@ -15,7 +15,6 @@ class CreateItemScreen extends StatefulWidget {
 
 class _CreateItemScreenState extends State<CreateItemScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _skuController = TextEditingController();
   final _nameController = TextEditingController();
   final _quantityController = TextEditingController(text: '1');
   final _descriptionController = TextEditingController();
@@ -51,7 +50,6 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
 
   @override
   void dispose() {
-    _skuController.dispose();
     _nameController.dispose();
     _quantityController.dispose();
     _descriptionController.dispose();
@@ -115,7 +113,6 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
     }).toList();
 
     final success = await inventory.createItem(
-      sku: _skuController.text.trim().toUpperCase(),
       itemName: _nameController.text.trim(),
       itemType: _selectedItemType,
       measurementUnit: _selectedUnit,
@@ -134,7 +131,7 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
       await showSuccessScreen(
         context,
         title: 'Item added',
-        message: 'Item SKU ${_skuController.text.toUpperCase()} was added successfully.',
+        message: 'Item "${_nameController.text.trim()}" was added successfully.',
         returnLabel: 'Return to items',
       );
       if (!mounted) return;
@@ -165,7 +162,7 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
   }
 
   InputDecoration _buildInputDecoration({
-    required String hintText,
+    String? hintText,
     required Widget prefixIcon,
   }) {
     return InputDecoration(
@@ -386,7 +383,6 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
                   color: Colors.black,
                 ),
                 decoration: _buildInputDecoration(
-                  hintText: 'e.g. Frozen Beef Tenderloin',
                   prefixIcon: const Icon(
                     Icons.local_offer_outlined,
                     size: 20,
@@ -414,11 +410,6 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
                   color: Colors.black,
                 ),
                 decoration: InputDecoration(
-                  hintText: 'Enter item description or recipe notes...',
-                  hintStyle: const TextStyle(
-                    color: Color(0xFF94A3B8),
-                    fontSize: 14,
-                  ),
                   filled: true,
                   fillColor: Colors.white,
                   contentPadding: const EdgeInsets.all(14),
@@ -435,34 +426,6 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
                     borderSide: const BorderSide(color: Colors.black, width: 1.5),
                   ),
                 ),
-              ),
-
-              const SizedBox(height: 18),
-
-              // Product SKU
-              _buildFieldLabel('PRODUCT SKU *'),
-              TextFormField(
-                controller: _skuController,
-                textCapitalization: TextCapitalization.characters,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black,
-                ),
-                decoration: _buildInputDecoration(
-                  hintText: 'SKU-8829-KL',
-                  prefixIcon: const Icon(
-                    Icons.qr_code_2_outlined,
-                    size: 20,
-                    color: Color(0xFF94A3B8),
-                  ),
-                ),
-                validator: (val) {
-                  if (val == null || val.trim().isEmpty) {
-                    return 'SKU is required';
-                  }
-                  return null;
-                },
               ),
 
               const SizedBox(height: 18),
@@ -503,7 +466,9 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
                 items: _itemTypes
                     .map((type) => DropdownMenuItem(
                           value: type,
-                          child: Text(type.replaceAll('_', ' ')),
+                          child: Text(type == 'PACKAGING'
+                              ? 'PACKING MATERIALS'
+                              : type.replaceAll('_', ' ')),
                         ))
                     .toList(),
                 onChanged: (val) {
@@ -535,7 +500,6 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
                             color: Colors.black,
                           ),
                           decoration: _buildInputDecoration(
-                            hintText: '100',
                             prefixIcon: const Icon(
                               Icons.scale_outlined,
                               size: 20,
@@ -769,8 +733,6 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
                                 controller: _ingredientSearchController,
                                 style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
                                 decoration: const InputDecoration(
-                                  hintText: 'Search raw materials by title or SKU...',
-                                  hintStyle: TextStyle(fontSize: 13, color: Color(0xFF94A3B8)),
                                   border: InputBorder.none,
                                   isDense: true,
                                   contentPadding: EdgeInsets.zero,
@@ -922,8 +884,6 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
                                             ),
                                             decoration: InputDecoration(
                                               isDense: true,
-                                              hintText: 'Qty',
-                                              hintStyle: const TextStyle(fontSize: 11, color: Color(0xFF94A3B8)),
                                               suffixText: raw.measurementUnit.length > 3
                                                   ? raw.measurementUnit.substring(0, 2).toUpperCase()
                                                   : raw.measurementUnit.toUpperCase(),

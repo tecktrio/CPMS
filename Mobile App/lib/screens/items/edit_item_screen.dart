@@ -39,8 +39,7 @@ class _EditItemScreenState extends State<EditItemScreen> {
   final List<Map<String, String>> _itemTypes = [
     {'value': 'RAW_MATERIAL', 'label': 'RAW MATERIAL'},
     {'value': 'FINISHED_GOOD', 'label': 'FINISHED GOOD'},
-    {'value': 'PACKAGING', 'label': 'PACKAGING'},
-    {'value': 'SPARE_PARTS', 'label': 'SPARE PARTS'},
+    {'value': 'PACKAGING', 'label': 'PACKING MATERIALS'},
   ];
 
   final List<Map<String, String>> _units = [
@@ -294,7 +293,7 @@ class _EditItemScreenState extends State<EditItemScreen> {
   }
 
   InputDecoration _buildInputDecoration({
-    required String hintText,
+    String? hintText,
     required Widget prefixIcon,
   }) {
     return InputDecoration(
@@ -526,7 +525,6 @@ class _EditItemScreenState extends State<EditItemScreen> {
                   color: Colors.black,
                 ),
                 decoration: _buildInputDecoration(
-                  hintText: 'e.g. Frozen Beef Tenderloin',
                   prefixIcon: const Icon(
                     Icons.local_offer_outlined,
                     size: 20,
@@ -554,11 +552,6 @@ class _EditItemScreenState extends State<EditItemScreen> {
                   color: Colors.black,
                 ),
                 decoration: InputDecoration(
-                  hintText: 'Enter item description or recipe notes...',
-                  hintStyle: const TextStyle(
-                    color: Color(0xFF94A3B8),
-                    fontSize: 14,
-                  ),
                   filled: true,
                   fillColor: Colors.white,
                   contentPadding: const EdgeInsets.all(14),
@@ -574,81 +567,6 @@ class _EditItemScreenState extends State<EditItemScreen> {
                     borderRadius: BorderRadius.circular(12),
                     borderSide: const BorderSide(color: Colors.black, width: 1.5),
                   ),
-                ),
-              ),
-
-              const SizedBox(height: 18),
-
-              // Product SKU (Locked format)
-              _buildFieldLabel(
-                'PRODUCT SKU *',
-                trailing: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF1F5F9),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: const Text(
-                    'LOCKED FORMAT',
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w800,
-                      color: Color(0xFF64748B),
-                    ),
-                  ),
-                ),
-              ),
-              Container(
-                height: 48,
-                padding: const EdgeInsets.symmetric(horizontal: 14),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF8FAFC),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(
-                      Icons.qr_code_2_outlined,
-                      size: 20,
-                      color: Color(0xFF64748B),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        widget.item.sku,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.black,
-                        ),
-                      ),
-                    ),
-                    const Icon(
-                      Icons.qr_code_scanner_outlined,
-                      size: 20,
-                      color: Color(0xFF64748B),
-                    ),
-                    const SizedBox(width: 10),
-                    GestureDetector(
-                      onTap: () {
-                        Clipboard.setData(ClipboardData(text: widget.item.sku));
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                                'SKU "${widget.item.sku}" copied to clipboard!'),
-                            duration: const Duration(seconds: 1),
-                          ),
-                        );
-                      },
-                      child: const Icon(
-                        Icons.copy_outlined,
-                        size: 18,
-                        color: Color(0xFF64748B),
-                      ),
-                    ),
-                  ],
                 ),
               ),
 
@@ -722,7 +640,6 @@ class _EditItemScreenState extends State<EditItemScreen> {
                             color: Colors.black,
                           ),
                           decoration: InputDecoration(
-                            hintText: '100',
                             filled: true,
                             fillColor: Colors.white,
                             contentPadding: const EdgeInsets.symmetric(
@@ -929,8 +846,6 @@ class _EditItemScreenState extends State<EditItemScreen> {
                                 controller: _ingredientSearchController,
                                 style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
                                 decoration: const InputDecoration(
-                                  hintText: 'Search raw materials by title or SKU...',
-                                  hintStyle: TextStyle(fontSize: 13, color: Color(0xFF94A3B8)),
                                   border: InputBorder.none,
                                   isDense: true,
                                   contentPadding: EdgeInsets.zero,
@@ -1083,8 +998,6 @@ class _EditItemScreenState extends State<EditItemScreen> {
                                             ),
                                             decoration: InputDecoration(
                                               isDense: true,
-                                              hintText: 'Qty',
-                                              hintStyle: const TextStyle(fontSize: 11, color: Color(0xFF94A3B8)),
                                               suffixText: raw.measurementUnit.length > 3
                                                   ? raw.measurementUnit.substring(0, 2).toUpperCase()
                                                   : raw.measurementUnit.toUpperCase(),

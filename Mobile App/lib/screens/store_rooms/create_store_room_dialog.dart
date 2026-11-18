@@ -74,7 +74,6 @@ class _CreateStoreRoomDialogState extends State<CreateStoreRoomDialog> {
                 textCapitalization: TextCapitalization.characters,
                 decoration: const InputDecoration(
                   labelText: 'Room Code',
-                  hintText: 'e.g. CR-01',
                   prefixIcon: Icon(Icons.qr_code, size: 20),
                 ),
                 validator: (val) {
@@ -89,7 +88,6 @@ class _CreateStoreRoomDialogState extends State<CreateStoreRoomDialog> {
                 controller: _nameController,
                 decoration: const InputDecoration(
                   labelText: 'Room Name',
-                  hintText: 'e.g. Blast Freezer Room',
                   prefixIcon: Icon(Icons.label_outline, size: 20),
                 ),
                 validator: (val) {
@@ -104,7 +102,6 @@ class _CreateStoreRoomDialogState extends State<CreateStoreRoomDialog> {
                 controller: _descController,
                 decoration: const InputDecoration(
                   labelText: 'Description (Optional)',
-                  hintText: 'e.g. Storage for packaging materials',
                   prefixIcon: Icon(Icons.notes_outlined, size: 20),
                 ),
               ),
@@ -114,7 +111,6 @@ class _CreateStoreRoomDialogState extends State<CreateStoreRoomDialog> {
                 keyboardType: const TextInputType.numberWithOptions(signed: true, decimal: true),
                 decoration: const InputDecoration(
                   labelText: 'Target Temperature (°C)',
-                  hintText: '-18.0',
                   prefixIcon: Icon(Icons.thermostat, size: 20),
                 ),
                 validator: (val) {

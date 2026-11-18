@@ -409,28 +409,6 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                         // Badges Row
                         Row(
                           children: [
-                            // SKU Badge
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 6,
-                              ),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFF1F5F9),
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: Text(
-                                currentItem.sku,
-                                style: const TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w800,
-                                  color: Color(0xFF475569),
-                                  letterSpacing: 0.3,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-
                             // Item Type Badge
                             Container(
                               padding: const EdgeInsets.symmetric(

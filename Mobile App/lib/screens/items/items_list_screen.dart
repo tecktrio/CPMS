@@ -400,8 +400,7 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
       {'code': 'ALL', 'label': 'All Materials'},
       {'code': 'RAW_MATERIAL', 'label': 'Raw Materials'},
       {'code': 'FINISHED_GOOD', 'label': 'Finished Goods'},
-      {'code': 'PACKAGING', 'label': 'Packaging'},
-      {'code': 'SPARE_PARTS', 'label': 'Spare Parts'},
+      {'code': 'PACKAGING', 'label': 'Packing Materials'},
     ];
 
     return Row(
@@ -532,7 +531,7 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '${item.sku} • ${item.itemType.replaceAll('_', ' ').toUpperCase()} • ${item.quantity.toStringAsFixed(item.quantity.truncateToDouble() == item.quantity ? 0 : 2)} ${item.measurementUnit.toUpperCase()}',
+                      '${item.itemType == 'PACKAGING' ? 'PACKING MATERIALS' : item.itemType.replaceAll('_', ' ').toUpperCase()} • ${item.quantity.toStringAsFixed(item.quantity.truncateToDouble() == item.quantity ? 0 : 2)} ${item.measurementUnit.toUpperCase()}',
                       style: const TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,

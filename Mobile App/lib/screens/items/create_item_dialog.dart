@@ -12,7 +12,6 @@ class CreateItemDialog extends StatefulWidget {
 
 class _CreateItemDialogState extends State<CreateItemDialog> {
   final _formKey = GlobalKey<FormState>();
-  final _skuController = TextEditingController();
   final _nameController = TextEditingController();
   final _quantityController = TextEditingController(text: '1');
   final _reorderThresholdController = TextEditingController(text: '50');
@@ -50,7 +49,6 @@ class _CreateItemDialogState extends State<CreateItemDialog> {
 
   @override
   void dispose() {
-    _skuController.dispose();
     _nameController.dispose();
     _quantityController.dispose();
     _reorderThresholdController.dispose();
@@ -62,7 +60,6 @@ class _CreateItemDialogState extends State<CreateItemDialog> {
     if (!_formKey.currentState!.validate()) return;
     final inventory = context.read<InventoryProvider>();
     final success = await inventory.createItem(
-      sku: _skuController.text.trim().toUpperCase(),
       itemName: _nameController.text.trim(),
       itemType: _selectedItemType,
       measurementUnit: _selectedUnit,
@@ -77,7 +74,7 @@ class _CreateItemDialogState extends State<CreateItemDialog> {
       await showSuccessScreen(
         context,
         title: 'Item added',
-        message: 'Item SKU ${_skuController.text.toUpperCase()} was added successfully.',
+        message: 'Item "${_nameController.text.trim()}" was added successfully.',
         returnLabel: 'Return to items',
       );
       if (!mounted) return;
@@ -121,7 +118,7 @@ class _CreateItemDialogState extends State<CreateItemDialog> {
                     const SizedBox(width: 14),
                     const Expanded(
                       child: Text(
-                        'Register New Item SKU',
+                        'Register New Item',
                         style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                       ),
                     ),
@@ -129,30 +126,11 @@ class _CreateItemDialogState extends State<CreateItemDialog> {
                 ),
                 const SizedBox(height: 20),
 
-                // SKU Code
-                TextFormField(
-                  controller: _skuController,
-                  textCapitalization: TextCapitalization.characters,
-                  decoration: const InputDecoration(
-                    labelText: 'SKU Identifier *',
-                    hintText: 'e.g. MILK-RAW-001',
-                    prefixIcon: Icon(Icons.qr_code, size: 20),
-                  ),
-                  validator: (val) {
-                    if (val == null || val.trim().isEmpty) {
-                      return 'SKU is required';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 14),
-
                 // Item Name
                 TextFormField(
                   controller: _nameController,
                   decoration: const InputDecoration(
                     labelText: 'Item Name / Description *',
-                    hintText: 'e.g. Pasteurized Fresh Whole Milk',
                     prefixIcon: Icon(Icons.label_outline, size: 20),
                   ),
                   validator: (val) {
@@ -174,7 +152,12 @@ class _CreateItemDialogState extends State<CreateItemDialog> {
                   items: _itemTypes.map((type) {
                     return DropdownMenuItem(
                       value: type,
-                      child: Text(type.replaceAll('_', ' '), style: const TextStyle(fontSize: 13)),
+                      child: Text(
+                        type == 'PACKAGING'
+                            ? 'PACKING MATERIALS'
+                            : type.replaceAll('_', ' '),
+                        style: const TextStyle(fontSize: 13),
+                      ),
                     );
                   }).toList(),
                   onChanged: (val) {
@@ -192,7 +175,6 @@ class _CreateItemDialogState extends State<CreateItemDialog> {
                         keyboardType: const TextInputType.numberWithOptions(decimal: true),
                         decoration: const InputDecoration(
                           labelText: 'Quantity',
-                          hintText: 'e.g. 100',
                           contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                         ),
                         validator: (val) {
@@ -232,7 +214,6 @@ class _CreateItemDialogState extends State<CreateItemDialog> {
                   keyboardType: TextInputType.number,
                   decoration: const InputDecoration(
                     labelText: 'Reorder Threshold Alert Quantity',
-                    hintText: 'e.g. 50',
                     prefixIcon: Icon(Icons.notifications_active_outlined, size: 20),
                   ),
                   validator: (val) {
@@ -273,7 +254,6 @@ class _CreateItemDialogState extends State<CreateItemDialog> {
                   controller: _locationCodeController,
                   decoration: const InputDecoration(
                     labelText: 'Rack / Shelf Bin Code',
-                    hintText: 'e.g. RACK-A-SHELF-01',
                     prefixIcon: Icon(Icons.grid_view_outlined, size: 20),
                   ),
                 ),

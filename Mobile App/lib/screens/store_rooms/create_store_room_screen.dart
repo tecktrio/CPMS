@@ -131,7 +131,7 @@ class _CreateStoreRoomScreenState extends State<CreateStoreRoomScreen> {
   }
 
   InputDecoration _buildInputDecoration({
-    required String hintText,
+    String? hintText,
     required Widget prefixIcon,
     Widget? suffixIcon,
   }) {
@@ -326,7 +326,6 @@ class _CreateStoreRoomScreenState extends State<CreateStoreRoomScreen> {
                       color: Colors.black,
                     ),
                     decoration: _buildInputDecoration(
-                      hintText: 'e.g. Main Cold Store or Dry Store Room 1',
                       prefixIcon: const Icon(
                         Icons.meeting_room_outlined,
                         size: 20,
@@ -354,7 +353,6 @@ class _CreateStoreRoomScreenState extends State<CreateStoreRoomScreen> {
                       color: Colors.black,
                     ),
                     decoration: _buildInputDecoration(
-                      hintText: 'e.g. Primary storage room near delivery bay 1',
                       prefixIcon: const Icon(
                         Icons.notes_outlined,
                         size: 20,
@@ -376,7 +374,6 @@ class _CreateStoreRoomScreenState extends State<CreateStoreRoomScreen> {
                       color: Colors.black,
                     ),
                     decoration: _buildInputDecoration(
-                      hintText: 'e.g. SR-01 or COLD-01',
                       prefixIcon: const Icon(
                         Icons.tag,
                         size: 20,
@@ -411,7 +408,6 @@ class _CreateStoreRoomScreenState extends State<CreateStoreRoomScreen> {
                           color: Colors.black,
                         ),
                         decoration: _buildInputDecoration(
-                          hintText: 'e.g. -18.0 (blank for ambient)',
                           prefixIcon: const Icon(
                             Icons.thermostat_outlined,
                             size: 20,
@@ -638,7 +634,6 @@ class _CreateStoreRoomScreenState extends State<CreateStoreRoomScreen> {
                                 color: Colors.black,
                               ),
                               decoration: _buildInputDecoration(
-                                hintText: 'e.g. Rack A, Shelf 1, Zone B',
                                 prefixIcon: const Icon(
                                   Icons.grid_view_outlined,
                                   size: 18,

@@ -49,7 +49,6 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
               autofocus: true,
               style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
               decoration: InputDecoration(
-                hintText: 'e.g. Section 3 (Freezer Shelf)',
                 filled: true,
                 fillColor: const Color(0xFFF8FAFC),
                 border: OutlineInputBorder(
@@ -199,7 +198,6 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                               controller: nameCtrl,
                               style: const TextStyle(fontWeight: FontWeight.w700),
                               decoration: InputDecoration(
-                                hintText: 'e.g. Trends Cold Room',
                                 filled: true,
                                 fillColor: const Color(0xFFF8FAFC),
                                 border: OutlineInputBorder(
@@ -234,7 +232,6 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                               maxLines: 2,
                               style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
                               decoration: InputDecoration(
-                                hintText: 'e.g. Storage for raw ingredients',
                                 filled: true,
                                 fillColor: const Color(0xFFF8FAFC),
                                 border: OutlineInputBorder(
@@ -270,7 +267,6 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                               ),
                               style: const TextStyle(fontWeight: FontWeight.w700),
                               decoration: InputDecoration(
-                                hintText: '-18.0 (blank for ambient)',
                                 filled: true,
                                 fillColor: const Color(0xFFF8FAFC),
                                 border: OutlineInputBorder(
@@ -335,7 +331,6 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                                         style: const TextStyle(
                                             fontWeight: FontWeight.w600, fontSize: 13),
                                         decoration: InputDecoration(
-                                          hintText: 'Section ${i + 1}',
                                           isDense: true,
                                           filled: true,
                                           fillColor: const Color(0xFFF8FAFC),
@@ -778,7 +773,6 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                     autofocus: true,
                     style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
                     decoration: InputDecoration(
-                      hintText: 'Enter new division name',
                       filled: true,
                       fillColor: Colors.white,
                       border: OutlineInputBorder(
@@ -2394,7 +2388,7 @@ class _AddItemToRoomModalState extends State<_AddItemToRoomModal> {
               const SizedBox(width: 6),
               _buildFilterChip('FINISHED_GOOD', 'Finished Goods'),
               const SizedBox(width: 6),
-              _buildFilterChip('PACKAGING', 'Packaging'),
+              _buildFilterChip('PACKAGING', 'Packing Materials'),
             ],
           ),
         ),
@@ -2822,7 +2816,6 @@ class _AddItemToRoomModalState extends State<_AddItemToRoomModal> {
                       autofocus: true,
                       style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
                       decoration: InputDecoration(
-                        hintText: 'Enter new division name (e.g. Section 1)',
                         filled: true,
                         fillColor: Colors.white,
                         border: OutlineInputBorder(
@@ -2870,7 +2863,6 @@ class _AddItemToRoomModalState extends State<_AddItemToRoomModal> {
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
             decoration: InputDecoration(
-              hintText: '0',
               filled: true,
               fillColor: const Color(0xFFF8FAFC),
               prefixIcon: const Icon(Icons.inventory_2_outlined, size: 20, color: Color(0xFF94A3B8)),
