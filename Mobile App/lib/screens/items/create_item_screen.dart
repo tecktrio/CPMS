@@ -44,8 +44,6 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
     'LITRE',
     'MILLILITRE',
     'PIECE',
-    'UNIT',
-    'CARTOON_BOX',
   ];
 
   @override

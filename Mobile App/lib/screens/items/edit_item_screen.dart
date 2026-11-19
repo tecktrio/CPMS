@@ -48,8 +48,6 @@ class _EditItemScreenState extends State<EditItemScreen> {
     {'value': 'LITRE', 'label': 'LITRE (L)', 'abbr': 'L'},
     {'value': 'MILLILITRE', 'label': 'MILLILITRE (ML)', 'abbr': 'ML'},
     {'value': 'PIECE', 'label': 'PIECE (PC)', 'abbr': 'PC'},
-    {'value': 'UNIT', 'label': 'UNIT', 'abbr': 'UNIT'},
-    {'value': 'CARTOON_BOX', 'label': 'CARTON (BOX)', 'abbr': 'BOX'},
   ];
 
   @override

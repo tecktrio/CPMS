@@ -34,8 +34,6 @@ class _CreateItemDialogState extends State<CreateItemDialog> {
     'LITRE',
     'MILLILITRE',
     'PIECE',
-    'UNIT',
-    'CARTOON_BOX',
   ];
 
   @override
