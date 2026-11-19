@@ -847,7 +847,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                         ),
                       );
                       if (updated == true) {
-                        inv.loadItems();
+                        inv.loadItems(silent: true);
                       }
                     },
                     child: const Row(

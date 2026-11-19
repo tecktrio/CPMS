@@ -887,7 +887,7 @@ class InventoryProvider extends ChangeNotifier {
       notifyListeners();
     }
 
-    // 2. ENQUEUE FOR BACKGROUND LIVE SYNC
+    // 2. PREPARE PAYLOAD
     final body = <String, dynamic>{};
     if (itemName != null && itemName.isNotEmpty) body['item_name'] = itemName.trim();
     if (itemType != null) body['item_type'] = itemType;
@@ -903,15 +903,31 @@ class InventoryProvider extends ChangeNotifier {
       body['image_url'] = imageUrl.isEmpty ? null : imageUrl;
     }
 
-    syncManager.enqueue(SyncOperation(
-      id: 'op_${DateTime.now().microsecondsSinceEpoch}',
-      type: SyncOperationType.updateItem,
-      targetId: itemId,
-      payload: body,
-      createdAt: DateTime.now(),
-    ));
-
-    return true;
+    // 3. TRY DIRECT LIVE API CALL FIRST, FALL BACK TO SYNC QUEUE IF OFFLINE
+    try {
+      final res = await apiClient.put('${ApiConstants.items}/$itemId', body: body);
+      if (res is Map<String, dynamic>) {
+        final updatedItem = ItemModel.fromJson(res);
+        final idx = _items.indexWhere((i) => i.itemId == itemId);
+        if (idx != -1) {
+          _items[idx] = updatedItem;
+        }
+        _persistItemsLocally();
+        _recalculateItemStock(itemId);
+        notifyListeners();
+      }
+      return true;
+    } catch (_) {
+      // Offline fallback: enqueue for background sync
+      syncManager.enqueue(SyncOperation(
+        id: 'op_${DateTime.now().microsecondsSinceEpoch}',
+        type: SyncOperationType.updateItem,
+        targetId: itemId,
+        payload: body,
+        createdAt: DateTime.now(),
+      ));
+      return true;
+    }
   }
 
   void _recalculateItemStock(String itemId) {
