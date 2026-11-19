@@ -9,6 +9,10 @@ import { Model } from 'mongoose';
 import { v4 as uuidv4 } from 'uuid';
 import { Item, ItemDocument } from '../../database/schemas/item.schema';
 import {
+  ItemCategory,
+  ItemCategoryDocument,
+} from '../../database/schemas/item-category.schema';
+import {
   StoreRoom,
   StoreRoomDocument,
 } from '../../database/schemas/store-room.schema';
@@ -19,6 +23,10 @@ import {
 } from '../../database/schemas/stock-batch.schema';
 import { CreateItemDto } from './dtos/create-item.dto';
 import { UpdateItemDto } from './dtos/update-item.dto';
+import {
+  CreateItemCategoryDto,
+  UpdateItemCategoryDto,
+} from './dtos/item-category.dto';
 import { StorageService } from '../storage/storage.service';
 
 function normalizeIngredients(ingredients?: any[]): Array<{ item_id: string; quantity: number; unit?: string }> {
@@ -40,6 +48,8 @@ export class ItemsService {
   constructor(
     @InjectModel(Item.name)
     private readonly itemModel: Model<ItemDocument>,
+    @InjectModel(ItemCategory.name)
+    private readonly itemCategoryModel: Model<ItemCategoryDocument>,
     @InjectModel(StoreRoom.name)
     private readonly storeRoomModel: Model<StoreRoomDocument>,
     @InjectModel(StockBatch.name)
@@ -310,6 +320,162 @@ export class ItemsService {
     item.image_url = imageUrl;
     await item.save();
     return item;
+  }
+
+  // --- ITEM CATEGORIES MANAGEMENT ---
+
+  private async ensureDefaultCategories(tenantId: string): Promise<void> {
+    const defaultPresets = [
+      { code: 'RAW_MATERIAL', label: 'Raw Materials', is_preset: true },
+      { code: 'FINISHED_GOOD', label: 'Finished Goods', is_preset: true },
+      { code: 'PACKAGING', label: 'Packing Materials', is_preset: true },
+    ];
+
+    for (const preset of defaultPresets) {
+      const exists = await this.itemCategoryModel.findOne({
+        tenant_id: tenantId,
+        code: preset.code,
+      });
+      if (!exists) {
+        await this.itemCategoryModel.create({
+          tenant_id: tenantId,
+          code: preset.code,
+          label: preset.label,
+          is_preset: preset.is_preset,
+          is_active: true,
+        });
+      }
+    }
+  }
+
+  async getCategories(tenantId: string) {
+    await this.ensureDefaultCategories(tenantId);
+    return this.itemCategoryModel
+      .find({ tenant_id: tenantId, is_active: true })
+      .sort({ is_preset: -1, created_at: 1 });
+  }
+
+  async createCategory(tenantId: string, dto: CreateItemCategoryDto) {
+    const cleanCode = dto.code.trim().toUpperCase().replace(/\s+/g, '_');
+    const cleanLabel = dto.label.trim();
+
+    if (!cleanCode || !cleanLabel) {
+      throw new BadRequestException('Category code and label are required');
+    }
+
+    const existing = await this.itemCategoryModel.findOne({
+      tenant_id: tenantId,
+      code: cleanCode,
+    });
+    if (existing) {
+      if (!existing.is_active) {
+        existing.is_active = true;
+        existing.label = cleanLabel;
+        await existing.save();
+        return existing;
+      }
+      throw new ConflictException(`Category code "${cleanCode}" already exists`);
+    }
+
+    return this.itemCategoryModel.create({
+      tenant_id: tenantId,
+      code: cleanCode,
+      label: cleanLabel,
+      is_preset: false,
+      is_active: true,
+    });
+  }
+
+  async updateCategory(
+    tenantId: string,
+    code: string,
+    dto: UpdateItemCategoryDto,
+  ) {
+    const cleanCode = code.trim().toUpperCase();
+    const category = await this.itemCategoryModel.findOne({
+      tenant_id: tenantId,
+      code: cleanCode,
+      is_active: true,
+    });
+
+    if (!category) {
+      throw new NotFoundException('Category not found');
+    }
+
+    if (dto.label && dto.label.trim()) {
+      category.label = dto.label.trim();
+      await category.save();
+    }
+
+    return category;
+  }
+
+  async checkCategoryItemsCount(tenantId: string, code: string) {
+    const cleanCode = code.trim().toUpperCase();
+    const count = await this.itemModel.countDocuments({
+      tenant_id: tenantId,
+      item_type: cleanCode,
+    });
+    return {
+      code: cleanCode,
+      count,
+    };
+  }
+
+  async deleteCategory(tenantId: string, code: string) {
+    const cleanCode = code.trim().toUpperCase();
+    const category = await this.itemCategoryModel.findOne({
+      tenant_id: tenantId,
+      code: cleanCode,
+      is_active: true,
+    });
+
+    if (!category) {
+      throw new NotFoundException('Category not found');
+    }
+
+    // Find all items in this category
+    const itemsToDelete = await this.itemModel.find({
+      tenant_id: tenantId,
+      item_type: cleanCode,
+    });
+
+    const itemIds = itemsToDelete.map((it) => it.item_id);
+
+    // Delete associated batches and storage room slots
+    if (itemIds.length > 0) {
+      await this.batchModel.deleteMany({
+        tenant_id: tenantId,
+        item_id: { $in: itemIds },
+      });
+
+      // Delete images if any
+      for (const item of itemsToDelete) {
+        if (item.image_url) {
+          try {
+            await this.storageService.deleteFile(item.image_url);
+          } catch (_) {}
+        }
+      }
+
+      // Delete the items
+      await this.itemModel.deleteMany({
+        tenant_id: tenantId,
+        item_id: { $in: itemIds },
+      });
+    }
+
+    // Delete or mark inactive category
+    await this.itemCategoryModel.deleteOne({
+      tenant_id: tenantId,
+      code: cleanCode,
+    });
+
+    return {
+      message: `Category "${category.label}" and ${itemIds.length} item(s) deleted successfully`,
+      deleted_items_count: itemIds.length,
+      category_code: cleanCode,
+    };
   }
 }
 

@@ -61,6 +61,10 @@ class ApiConstants {
   // Inventory & Store Rooms
   static const String storeRooms = '/store-rooms';
   static const String items = '/items';
+  static const String itemCategories = '/items/categories/all';
+  static const String itemCategoryBase = '/items/categories';
+  static String itemCategoryItemsCount(String code) => '/items/categories/$code/items-count';
+  static String itemCategoryDetail(String code) => '/items/categories/$code';
   static const String stockBatches = '/stock-batches';
   static const String expiringSoonBatches = '/stock-batches/expiring-soon';
   static const String suggestFefo = '/stock-batches/suggest-fefo';

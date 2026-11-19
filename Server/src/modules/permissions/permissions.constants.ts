@@ -36,6 +36,13 @@ export const SYSTEM_PERMISSIONS: SystemPermissionDefinition[] = [
     display_name: 'Deactivate Items',
     description: 'Allows deactivating or archiving item SKUs.',
   },
+  {
+    permission_id: 'permission.item_category.manage',
+    module: 'Items',
+    action: 'UPDATE',
+    display_name: 'Manage Item Categories',
+    description: 'Allows creating, updating, and deleting item categories for the tenant.',
+  },
 
   // 2. Cold Store Rooms
   {

@@ -3,9 +3,12 @@ import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../../core/constants/api_constants.dart';
+import '../../core/constants/permissions.dart';
 import '../../providers/inventory_provider.dart';
+import '../../providers/tenant_provider.dart';
 import '../../widgets/user_profile_avatar.dart';
 import '../../widgets/success_screen.dart';
+import 'manage_item_categories_modal.dart';
 
 class EditItemScreen extends StatefulWidget {
   final ItemModel item;
@@ -22,6 +25,18 @@ class _EditItemScreenState extends State<EditItemScreen> {
   late final TextEditingController _quantityController;
   late final TextEditingController _descriptionController;
   final TextEditingController _ingredientSearchController = TextEditingController();
+  late final TextEditingController _customPackageMaterialController;
+
+  static const List<String> _packageMaterialOptions = [
+    'Duplex',
+    'Rider',
+    'Pouches with rider',
+    'Pouches',
+    'Bucket',
+    'Tub',
+    'Custom',
+  ];
+  late String _selectedPackageMaterial;
 
   late bool _hasIngredients;
   late List<String> _selectedIngredientIds;
@@ -88,6 +103,26 @@ class _EditItemScreenState extends State<EditItemScreen> {
         'abbr': _selectedUnit,
       });
     }
+    // Normalizing package material
+    final matchedPreset = _packageMaterialOptions
+        .where((opt) => opt != 'Custom')
+        .firstWhere(
+          (opt) => opt.toLowerCase() == widget.item.itemName.trim().toLowerCase(),
+          orElse: () => '',
+        );
+
+    if (matchedPreset.isNotEmpty) {
+      _selectedPackageMaterial = matchedPreset;
+      _customPackageMaterialController = TextEditingController();
+    } else {
+      _selectedPackageMaterial = 'Custom';
+      _customPackageMaterialController =
+          TextEditingController(text: widget.item.itemName);
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<InventoryProvider>().loadItemCategories(silent: true);
+    });
   }
 
   @override
@@ -96,6 +131,7 @@ class _EditItemScreenState extends State<EditItemScreen> {
     _quantityController.dispose();
     _descriptionController.dispose();
     _ingredientSearchController.dispose();
+    _customPackageMaterialController.dispose();
     for (final c in _qtyControllers.values) {
       c.dispose();
     }
@@ -168,9 +204,18 @@ class _EditItemScreenState extends State<EditItemScreen> {
         );
       }).toList();
 
+      String finalItemName = _nameController.text.trim();
+      if (_selectedItemType == 'PACKAGING') {
+        if (_selectedPackageMaterial == 'Custom') {
+          finalItemName = _customPackageMaterialController.text.trim();
+        } else {
+          finalItemName = _selectedPackageMaterial;
+        }
+      }
+
       final ok = await inventory.updateItem(
         itemId: widget.item.itemId,
-        itemName: _nameController.text.trim(),
+        itemName: finalItemName,
         itemType: _selectedItemType,
         measurementUnit: _selectedUnit,
         quantity: double.tryParse(_quantityController.text.trim()) ?? 1.0,
@@ -513,29 +558,104 @@ class _EditItemScreenState extends State<EditItemScreen> {
 
               const SizedBox(height: 24),
 
-              // Item Name
-              _buildFieldLabel('ITEM NAME *'),
-              TextFormField(
-                controller: _nameController,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.black,
-                ),
-                decoration: _buildInputDecoration(
-                  prefixIcon: const Icon(
-                    Icons.local_offer_outlined,
-                    size: 20,
-                    color: Color(0xFF94A3B8),
+              // Item Name / Package Material
+              if (_selectedItemType == 'PACKAGING') ...[
+                _buildFieldLabel('PACKAGE MATERIAL *'),
+                DropdownButtonFormField<String>(
+                  initialValue: _selectedPackageMaterial,
+                  icon: const Icon(
+                    Icons.keyboard_arrow_down,
+                    color: Color(0xFF64748B),
                   ),
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.black,
+                  ),
+                  decoration: InputDecoration(
+                    filled: true,
+                    fillColor: Colors.white,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 14,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(4),
+                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(4),
+                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(4),
+                      borderSide: const BorderSide(color: Colors.black, width: 1.5),
+                    ),
+                  ),
+                  items: _packageMaterialOptions
+                      .map((opt) => DropdownMenuItem(
+                            value: opt,
+                            child: Text(opt),
+                          ))
+                      .toList(),
+                  onChanged: (val) {
+                    if (val != null) {
+                      setState(() => _selectedPackageMaterial = val);
+                    }
+                  },
                 ),
-                validator: (val) {
-                  if (val == null || val.trim().isEmpty) {
-                    return 'Item name is required';
-                  }
-                  return null;
-                },
-              ),
+                if (_selectedPackageMaterial == 'Custom') ...[
+                  const SizedBox(height: 14),
+                  _buildFieldLabel('CUSTOM PACKAGE MATERIAL *'),
+                  TextFormField(
+                    controller: _customPackageMaterialController,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.black,
+                    ),
+                    decoration: _buildInputDecoration(
+                      prefixIcon: const Icon(
+                        Icons.edit_note_outlined,
+                        size: 20,
+                        color: Color(0xFF94A3B8),
+                      ),
+                    ),
+                    validator: (val) {
+                      if (_selectedItemType == 'PACKAGING' &&
+                          _selectedPackageMaterial == 'Custom' &&
+                          (val == null || val.trim().isEmpty)) {
+                        return 'Package material name is required';
+                      }
+                      return null;
+                    },
+                  ),
+                ],
+              ] else ...[
+                _buildFieldLabel('ITEM NAME *'),
+                TextFormField(
+                  controller: _nameController,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.black,
+                  ),
+                  decoration: _buildInputDecoration(
+                    prefixIcon: const Icon(
+                      Icons.local_offer_outlined,
+                      size: 20,
+                      color: Color(0xFF94A3B8),
+                    ),
+                  ),
+                  validator: (val) {
+                    if (_selectedItemType != 'PACKAGING' &&
+                        (val == null || val.trim().isEmpty)) {
+                      return 'Item name is required';
+                    }
+                    return null;
+                  },
+                ),
+              ],
 
               const SizedBox(height: 18),
 
@@ -570,49 +690,107 @@ class _EditItemScreenState extends State<EditItemScreen> {
 
               const SizedBox(height: 18),
 
-              // Item Type
-              _buildFieldLabel('ITEM TYPE *'),
-              DropdownButtonFormField<String>(
-                initialValue: _selectedItemType,
-                icon: const Icon(
-                  Icons.keyboard_arrow_down,
-                  color: Color(0xFF64748B),
-                ),
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.black,
-                ),
-                decoration: InputDecoration(
-                  filled: true,
-                  fillColor: Colors.white,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 14,
+              // Item Type / Category
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  _buildFieldLabel('ITEM TYPE / CATEGORY *'),
+                  Consumer<TenantProvider>(
+                    builder: (context, tenant, _) {
+                      final canManage = tenant.isTenantAdmin ||
+                          tenant.hasPermission(AppPermissions.itemCategoryManage);
+                      if (!canManage) return const SizedBox.shrink();
+                      return InkWell(
+                        onTap: () => ManageItemCategoriesModal.show(context),
+                        borderRadius: BorderRadius.circular(4),
+                        child: const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.settings_outlined,
+                                size: 14,
+                                color: Color(0xFF0F766E),
+                              ),
+                              SizedBox(width: 4),
+                              Text(
+                                'Manage Categories',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF0F766E),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
                   ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(4),
-                    borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(4),
-                    borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(4),
-                    borderSide: const BorderSide(color: Colors.black, width: 1.5),
-                  ),
-                ),
-                items: _itemTypes
-                    .map((type) => DropdownMenuItem(
-                          value: type['value'],
-                          child: Text(type['label']!),
-                        ))
-                    .toList(),
-                onChanged: (val) {
-                  if (val != null) {
-                    setState(() => _selectedItemType = val);
+                ],
+              ),
+              Consumer<InventoryProvider>(
+                builder: (context, inventory, _) {
+                  final categoryOptions = <Map<String, String>>[];
+                  if (inventory.itemCategories.isNotEmpty) {
+                    for (final c in inventory.itemCategories) {
+                      categoryOptions.add({'value': c.code, 'label': c.label});
+                    }
+                  } else {
+                    categoryOptions.addAll(_itemTypes);
                   }
+
+                  // If current item type isn't in categories list, preserve it
+                  if (!categoryOptions.any((c) => c['value'] == _selectedItemType)) {
+                    categoryOptions.insert(0, {
+                      'value': _selectedItemType,
+                      'label': _selectedItemType.replaceAll('_', ' ').toUpperCase(),
+                    });
+                  }
+
+                  return DropdownButtonFormField<String>(
+                    initialValue: _selectedItemType,
+                    icon: const Icon(
+                      Icons.keyboard_arrow_down,
+                      color: Color(0xFF64748B),
+                    ),
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.black,
+                    ),
+                    decoration: InputDecoration(
+                      filled: true,
+                      fillColor: Colors.white,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 14,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(4),
+                        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(4),
+                        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(4),
+                        borderSide: const BorderSide(color: Colors.black, width: 1.5),
+                      ),
+                    ),
+                    items: categoryOptions
+                        .map((type) => DropdownMenuItem(
+                              value: type['value'],
+                              child: Text(type['label']!),
+                            ))
+                        .toList(),
+                    onChanged: (val) {
+                      if (val != null) {
+                        setState(() => _selectedItemType = val);
+                      }
+                    },
+                  );
                 },
               ),
 

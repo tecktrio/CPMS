@@ -48,10 +48,9 @@ export class Item {
 
   @Prop({
     type: String,
-    enum: Object.values(ItemType),
     required: true,
   })
-  item_type: ItemType;
+  item_type: string;
 
   @Prop({
     type: String,

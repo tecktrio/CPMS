@@ -32,13 +32,12 @@ export class CreateItemDto {
   item_name: string;
 
   @ApiProperty({
-    enum: ItemType,
-    example: ItemType.RAW_MATERIAL,
-    description: 'Item classification',
+    example: 'RAW_MATERIAL',
+    description: 'Item classification / category code',
   })
-  @IsEnum(ItemType)
+  @IsString()
   @IsNotEmpty()
-  item_type: ItemType;
+  item_type: string;
 
   @ApiProperty({
     enum: MeasurementUnit,

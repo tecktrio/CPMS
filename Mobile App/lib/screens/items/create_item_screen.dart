@@ -2,9 +2,12 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
+import '../../core/constants/permissions.dart';
 import '../../providers/inventory_provider.dart';
+import '../../providers/tenant_provider.dart';
 import '../../widgets/user_profile_avatar.dart';
 import '../../widgets/success_screen.dart';
+import 'manage_item_categories_modal.dart';
 
 class CreateItemScreen extends StatefulWidget {
   const CreateItemScreen({super.key});
@@ -19,6 +22,18 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
   final _quantityController = TextEditingController(text: '1');
   final _descriptionController = TextEditingController();
   final _ingredientSearchController = TextEditingController();
+  final _customPackageMaterialController = TextEditingController();
+
+  static const List<String> _packageMaterialOptions = [
+    'Duplex',
+    'Rider',
+    'Pouches with rider',
+    'Pouches',
+    'Bucket',
+    'Tub',
+    'Custom',
+  ];
+  String _selectedPackageMaterial = _packageMaterialOptions.first;
 
   bool _hasIngredients = false;
   final List<String> _selectedIngredientIds = [];
@@ -32,12 +47,6 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
   XFile? _selectedImage;
   Uint8List? _selectedImageBytes;
 
-  final List<String> _itemTypes = [
-    'RAW_MATERIAL',
-    'FINISHED_GOOD',
-    'PACKAGING',
-  ];
-
   final List<String> _units = [
     'KILOGRAM',
     'GRAM',
@@ -47,11 +56,20 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<InventoryProvider>().loadItemCategories(silent: true);
+    });
+  }
+
+  @override
   void dispose() {
     _nameController.dispose();
     _quantityController.dispose();
     _descriptionController.dispose();
     _ingredientSearchController.dispose();
+    _customPackageMaterialController.dispose();
     for (final c in _qtyControllers.values) {
       c.dispose();
     }
@@ -110,8 +128,17 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
       );
     }).toList();
 
+    String finalItemName = _nameController.text.trim();
+    if (_selectedItemType == 'PACKAGING') {
+      if (_selectedPackageMaterial == 'Custom') {
+        finalItemName = _customPackageMaterialController.text.trim();
+      } else {
+        finalItemName = _selectedPackageMaterial;
+      }
+    }
+
     final success = await inventory.createItem(
-      itemName: _nameController.text.trim(),
+      itemName: finalItemName,
       itemType: _selectedItemType,
       measurementUnit: _selectedUnit,
       quantity: double.tryParse(_quantityController.text.trim()) ?? 1.0,
@@ -129,7 +156,7 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
       await showSuccessScreen(
         context,
         title: 'Item added',
-        message: 'Item "${_nameController.text.trim()}" was added successfully.',
+        message: 'Item "$finalItemName" was added successfully.',
         returnLabel: 'Return to items',
       );
       if (!mounted) return;
@@ -371,29 +398,104 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
 
               const SizedBox(height: 24),
 
-              // Item Name
-              _buildFieldLabel('ITEM NAME *'),
-              TextFormField(
-                controller: _nameController,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black,
-                ),
-                decoration: _buildInputDecoration(
-                  prefixIcon: const Icon(
-                    Icons.local_offer_outlined,
-                    size: 20,
-                    color: Color(0xFF94A3B8),
+              // Item Name / Package Material
+              if (_selectedItemType == 'PACKAGING') ...[
+                _buildFieldLabel('PACKAGE MATERIAL *'),
+                DropdownButtonFormField<String>(
+                  initialValue: _selectedPackageMaterial,
+                  icon: const Icon(
+                    Icons.keyboard_arrow_down,
+                    color: Color(0xFF64748B),
                   ),
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.black,
+                  ),
+                  decoration: InputDecoration(
+                    filled: true,
+                    fillColor: Colors.white,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 14,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(4),
+                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(4),
+                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(4),
+                      borderSide: const BorderSide(color: Colors.black, width: 1.5),
+                    ),
+                  ),
+                  items: _packageMaterialOptions
+                      .map((opt) => DropdownMenuItem(
+                            value: opt,
+                            child: Text(opt),
+                          ))
+                      .toList(),
+                  onChanged: (val) {
+                    if (val != null) {
+                      setState(() => _selectedPackageMaterial = val);
+                    }
+                  },
                 ),
-                validator: (val) {
-                  if (val == null || val.trim().isEmpty) {
-                    return 'Item name is required';
-                  }
-                  return null;
-                },
-              ),
+                if (_selectedPackageMaterial == 'Custom') ...[
+                  const SizedBox(height: 14),
+                  _buildFieldLabel('CUSTOM PACKAGE MATERIAL *'),
+                  TextFormField(
+                    controller: _customPackageMaterialController,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black,
+                    ),
+                    decoration: _buildInputDecoration(
+                      prefixIcon: const Icon(
+                        Icons.edit_note_outlined,
+                        size: 20,
+                        color: Color(0xFF94A3B8),
+                      ),
+                    ),
+                    validator: (val) {
+                      if (_selectedItemType == 'PACKAGING' &&
+                          _selectedPackageMaterial == 'Custom' &&
+                          (val == null || val.trim().isEmpty)) {
+                        return 'Package material name is required';
+                      }
+                      return null;
+                    },
+                  ),
+                ],
+              ] else ...[
+                _buildFieldLabel('ITEM NAME *'),
+                TextFormField(
+                  controller: _nameController,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black,
+                  ),
+                  decoration: _buildInputDecoration(
+                    prefixIcon: const Icon(
+                      Icons.local_offer_outlined,
+                      size: 20,
+                      color: Color(0xFF94A3B8),
+                    ),
+                  ),
+                  validator: (val) {
+                    if (_selectedItemType != 'PACKAGING' &&
+                        (val == null || val.trim().isEmpty)) {
+                      return 'Item name is required';
+                    }
+                    return null;
+                  },
+                ),
+              ],
 
               const SizedBox(height: 18),
 
@@ -428,51 +530,108 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
 
               const SizedBox(height: 18),
 
-              // Item Type
-              _buildFieldLabel('ITEM TYPE *'),
-              DropdownButtonFormField<String>(
-                initialValue: _selectedItemType,
-                icon: const Icon(
-                  Icons.keyboard_arrow_down,
-                  color: Color(0xFF64748B),
-                ),
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.black,
-                ),
-                decoration: InputDecoration(
-                  filled: true,
-                  fillColor: Colors.white,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 14,
+              // Item Type / Category
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  _buildFieldLabel('ITEM TYPE / CATEGORY *'),
+                  Consumer<TenantProvider>(
+                    builder: (context, tenant, _) {
+                      final canManage = tenant.isTenantAdmin ||
+                          tenant.hasPermission(AppPermissions.itemCategoryManage);
+                      if (!canManage) return const SizedBox.shrink();
+                      return InkWell(
+                        onTap: () => ManageItemCategoriesModal.show(context),
+                        borderRadius: BorderRadius.circular(4),
+                        child: const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.settings_outlined,
+                                size: 14,
+                                color: Color(0xFF0F766E),
+                              ),
+                              SizedBox(width: 4),
+                              Text(
+                                'Manage Categories',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF0F766E),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
                   ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(4),
-                    borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(4),
-                    borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(4),
-                    borderSide: const BorderSide(color: Colors.black, width: 1.5),
-                  ),
-                ),
-                items: _itemTypes
-                    .map((type) => DropdownMenuItem(
-                          value: type,
-                          child: Text(type == 'PACKAGING'
-                              ? 'PACKING MATERIALS'
-                              : type.replaceAll('_', ' ')),
-                        ))
-                    .toList(),
-                onChanged: (val) {
-                  if (val != null) {
-                    setState(() => _selectedItemType = val);
+                ],
+              ),
+              Consumer<InventoryProvider>(
+                builder: (context, inventory, _) {
+                  final categoryOptions = <Map<String, String>>[];
+                  if (inventory.itemCategories.isNotEmpty) {
+                    for (final c in inventory.itemCategories) {
+                      categoryOptions.add({'code': c.code, 'label': c.label});
+                    }
+                  } else {
+                    categoryOptions.addAll([
+                      {'code': 'RAW_MATERIAL', 'label': 'Raw Materials'},
+                      {'code': 'FINISHED_GOOD', 'label': 'Finished Goods'},
+                      {'code': 'PACKAGING', 'label': 'Packing Materials'},
+                    ]);
                   }
+
+                  // Ensure current selection exists in options
+                  if (!categoryOptions.any((c) => c['code'] == _selectedItemType)) {
+                    _selectedItemType = categoryOptions.first['code']!;
+                  }
+
+                  return DropdownButtonFormField<String>(
+                    initialValue: _selectedItemType,
+                    icon: const Icon(
+                      Icons.keyboard_arrow_down,
+                      color: Color(0xFF64748B),
+                    ),
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.black,
+                    ),
+                    decoration: InputDecoration(
+                      filled: true,
+                      fillColor: Colors.white,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 14,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(4),
+                        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(4),
+                        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(4),
+                        borderSide: const BorderSide(color: Colors.black, width: 1.5),
+                      ),
+                    ),
+                    items: categoryOptions
+                        .map((type) => DropdownMenuItem(
+                              value: type['code']!,
+                              child: Text(type['label']!),
+                            ))
+                        .toList(),
+                    onChanged: (val) {
+                      if (val != null) {
+                        setState(() => _selectedItemType = val);
+                      }
+                    },
+                  );
                 },
               ),
 

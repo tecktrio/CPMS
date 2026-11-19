@@ -7,6 +7,7 @@ import '../../providers/tenant_provider.dart';
 import '../../widgets/user_profile_avatar.dart';
 import 'create_item_screen.dart';
 import 'item_detail_screen.dart';
+import 'manage_item_categories_modal.dart';
 
 class ItemsListScreen extends StatefulWidget {
   final bool manageMode;
@@ -26,6 +27,7 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<InventoryProvider>().loadItems();
+      context.read<InventoryProvider>().loadItemCategories(silent: true);
     });
   }
 
@@ -405,48 +407,101 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
   }
 
   Widget _buildCategoryChipsRow() {
-    final categories = [
+    final inventory = context.watch<InventoryProvider>();
+    final tenant = context.watch<TenantProvider>();
+    final canManage = tenant.isTenantAdmin ||
+        tenant.hasPermission(AppPermissions.itemCategoryManage);
+
+    final categories = <Map<String, String>>[
       {'code': 'ALL', 'label': 'All Materials'},
-      {'code': 'RAW_MATERIAL', 'label': 'Raw Materials'},
-      {'code': 'FINISHED_GOOD', 'label': 'Finished Goods'},
-      {'code': 'PACKAGING', 'label': 'Packing Materials'},
     ];
 
+    if (inventory.itemCategories.isNotEmpty) {
+      for (final c in inventory.itemCategories) {
+        categories.add({'code': c.code, 'label': c.label});
+      }
+    } else {
+      categories.addAll([
+        {'code': 'RAW_MATERIAL', 'label': 'Raw Materials'},
+        {'code': 'FINISHED_GOOD', 'label': 'Finished Goods'},
+        {'code': 'PACKAGING', 'label': 'Packing Materials'},
+      ]);
+    }
+
     return Row(
-      children: categories.map((cat) {
-        final code = cat['code']!;
-        final label = cat['label']!;
-        final isSelected = _selectedCategory == code;
-        return Padding(
-          padding: const EdgeInsets.only(right: 8),
-          child: InkWell(
-            onTap: () {
-              setState(() {
-                _selectedCategory = code;
-              });
-            },
-            borderRadius: BorderRadius.circular(2),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-              decoration: BoxDecoration(
-                color: isSelected ? Colors.black : Colors.white,
-                borderRadius: BorderRadius.circular(2),
-                border: Border.all(
-                  color: isSelected ? Colors.black : const Color(0xFFE5E5E5),
+      children: [
+        ...categories.map((cat) {
+          final code = cat['code']!;
+          final label = cat['label']!;
+          final isSelected = _selectedCategory == code;
+          return Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: InkWell(
+              onTap: () {
+                setState(() {
+                  _selectedCategory = code;
+                });
+              },
+              borderRadius: BorderRadius.circular(2),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                decoration: BoxDecoration(
+                  color: isSelected ? Colors.black : Colors.white,
+                  borderRadius: BorderRadius.circular(2),
+                  border: Border.all(
+                    color: isSelected ? Colors.black : const Color(0xFFE5E5E5),
+                  ),
+                ),
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                    color: isSelected ? Colors.white : Colors.black,
+                  ),
                 ),
               ),
-              child: Text(
-                label,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-                  color: isSelected ? Colors.white : Colors.black,
+            ),
+          );
+        }),
+        if (canManage)
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: InkWell(
+              onTap: () => ManageItemCategoriesModal.show(context),
+              borderRadius: BorderRadius.circular(2),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF0FDFA),
+                  borderRadius: BorderRadius.circular(2),
+                  border: Border.all(
+                    color: const Color(0xFF99F6E4),
+                  ),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.settings_outlined,
+                      size: 14,
+                      color: Color(0xFF0F766E),
+                    ),
+                    SizedBox(width: 4),
+                    Text(
+                      'Manage Categories',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF0F766E),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
           ),
-        );
-      }).toList(),
+      ],
     );
   }
 

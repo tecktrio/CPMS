@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../core/constants/permissions.dart';
 import '../../providers/inventory_provider.dart';
+import '../../providers/tenant_provider.dart';
 import '../../widgets/success_screen.dart';
+import 'manage_item_categories_modal.dart';
 
 class CreateItemDialog extends StatefulWidget {
   const CreateItemDialog({super.key});
@@ -16,17 +19,23 @@ class _CreateItemDialogState extends State<CreateItemDialog> {
   final _quantityController = TextEditingController(text: '1');
   final _reorderThresholdController = TextEditingController(text: '50');
   final _locationCodeController = TextEditingController(text: 'LOC-A1');
+  final _customPackageMaterialController = TextEditingController();
+
+  static const List<String> _packageMaterialOptions = [
+    'Duplex',
+    'Rider',
+    'Pouches with rider',
+    'Pouches',
+    'Bucket',
+    'Tub',
+    'Custom',
+  ];
+  String _selectedPackageMaterial = _packageMaterialOptions.first;
 
   String _selectedItemType = 'RAW_MATERIAL';
   String _selectedUnit = 'KILOGRAM';
   String? _selectedStoreRoomId;
   bool _isSubmitting = false;
-
-  final List<String> _itemTypes = [
-    'RAW_MATERIAL',
-    'FINISHED_GOOD',
-    'PACKAGING',
-  ];
 
   final List<String> _units = [
     'KILOGRAM',
@@ -43,6 +52,9 @@ class _CreateItemDialogState extends State<CreateItemDialog> {
     if (inventory.storeRooms.isNotEmpty) {
       _selectedStoreRoomId = inventory.storeRooms.first.storeRoomId;
     }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<InventoryProvider>().loadItemCategories(silent: true);
+    });
   }
 
   @override
@@ -51,14 +63,25 @@ class _CreateItemDialogState extends State<CreateItemDialog> {
     _quantityController.dispose();
     _reorderThresholdController.dispose();
     _locationCodeController.dispose();
+    _customPackageMaterialController.dispose();
     super.dispose();
   }
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     final inventory = context.read<InventoryProvider>();
+
+    String finalItemName = _nameController.text.trim();
+    if (_selectedItemType == 'PACKAGING') {
+      if (_selectedPackageMaterial == 'Custom') {
+        finalItemName = _customPackageMaterialController.text.trim();
+      } else {
+        finalItemName = _selectedPackageMaterial;
+      }
+    }
+
     final success = await inventory.createItem(
-      itemName: _nameController.text.trim(),
+      itemName: finalItemName,
       itemType: _selectedItemType,
       measurementUnit: _selectedUnit,
       quantity: double.tryParse(_quantityController.text.trim()) ?? 1.0,
@@ -72,7 +95,7 @@ class _CreateItemDialogState extends State<CreateItemDialog> {
       await showSuccessScreen(
         context,
         title: 'Item added',
-        message: 'Item "${_nameController.text.trim()}" was added successfully.',
+        message: 'Item "$finalItemName" was added successfully.',
         returnLabel: 'Return to items',
       );
       if (!mounted) return;
@@ -124,42 +147,135 @@ class _CreateItemDialogState extends State<CreateItemDialog> {
                 ),
                 const SizedBox(height: 20),
 
-                // Item Name
-                TextFormField(
-                  controller: _nameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Item Name / Description *',
-                    prefixIcon: Icon(Icons.label_outline, size: 20),
+                // Item Name / Package Material
+                if (_selectedItemType == 'PACKAGING') ...[
+                  DropdownButtonFormField<String>(
+                    initialValue: _selectedPackageMaterial,
+                    decoration: const InputDecoration(
+                      labelText: 'Package Material *',
+                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                    ),
+                    items: _packageMaterialOptions.map((opt) {
+                      return DropdownMenuItem(
+                        value: opt,
+                        child: Text(opt, style: const TextStyle(fontSize: 13)),
+                      );
+                    }).toList(),
+                    onChanged: (val) {
+                      if (val != null) {
+                        setState(() => _selectedPackageMaterial = val);
+                      }
+                    },
                   ),
-                  validator: (val) {
-                    if (val == null || val.trim().isEmpty) {
-                      return 'Item name is required';
-                    }
-                    return null;
-                  },
-                ),
+                  if (_selectedPackageMaterial == 'Custom') ...[
+                    const SizedBox(height: 14),
+                    TextFormField(
+                      controller: _customPackageMaterialController,
+                      decoration: const InputDecoration(
+                        labelText: 'Custom Package Material *',
+                        prefixIcon: Icon(Icons.edit_note, size: 20),
+                      ),
+                      validator: (val) {
+                        if (_selectedItemType == 'PACKAGING' &&
+                            _selectedPackageMaterial == 'Custom' &&
+                            (val == null || val.trim().isEmpty)) {
+                          return 'Package material name is required';
+                        }
+                        return null;
+                      },
+                    ),
+                  ],
+                ] else ...[
+                  TextFormField(
+                    controller: _nameController,
+                    decoration: const InputDecoration(
+                      labelText: 'Item Name / Description *',
+                      prefixIcon: Icon(Icons.label_outline, size: 20),
+                    ),
+                    validator: (val) {
+                      if (_selectedItemType != 'PACKAGING' &&
+                          (val == null || val.trim().isEmpty)) {
+                        return 'Item name is required';
+                      }
+                      return null;
+                    },
+                  ),
+                ],
                 const SizedBox(height: 14),
 
-                // Item Type
-                DropdownButtonFormField<String>(
-                  initialValue: _selectedItemType,
-                  decoration: const InputDecoration(
-                    labelText: 'Item Category',
-                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                  ),
-                  items: _itemTypes.map((type) {
-                    return DropdownMenuItem(
-                      value: type,
-                      child: Text(
-                        type == 'PACKAGING'
-                            ? 'PACKING MATERIALS'
-                            : type.replaceAll('_', ' '),
-                        style: const TextStyle(fontSize: 13),
+                // Item Type / Category
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Category',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF64748B),
                       ),
+                    ),
+                    Consumer<TenantProvider>(
+                      builder: (context, tenant, _) {
+                        final canManage = tenant.isTenantAdmin ||
+                            tenant.hasPermission(AppPermissions.itemCategoryManage);
+                        if (!canManage) return const SizedBox.shrink();
+                        return InkWell(
+                          onTap: () => ManageItemCategoriesModal.show(context),
+                          child: const Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                            child: Text(
+                              'Manage Categories',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF0F766E),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Consumer<InventoryProvider>(
+                  builder: (context, inventory, _) {
+                    final categoryOptions = <Map<String, String>>[];
+                    if (inventory.itemCategories.isNotEmpty) {
+                      for (final c in inventory.itemCategories) {
+                        categoryOptions.add({'code': c.code, 'label': c.label});
+                      }
+                    } else {
+                      categoryOptions.addAll([
+                        {'code': 'RAW_MATERIAL', 'label': 'Raw Materials'},
+                        {'code': 'FINISHED_GOOD', 'label': 'Finished Goods'},
+                        {'code': 'PACKAGING', 'label': 'Packing Materials'},
+                      ]);
+                    }
+
+                    if (!categoryOptions.any((c) => c['code'] == _selectedItemType)) {
+                      _selectedItemType = categoryOptions.first['code']!;
+                    }
+
+                    return DropdownButtonFormField<String>(
+                      initialValue: _selectedItemType,
+                      decoration: const InputDecoration(
+                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                      ),
+                      items: categoryOptions.map((type) {
+                        return DropdownMenuItem(
+                          value: type['code']!,
+                          child: Text(
+                            type['label']!,
+                            style: const TextStyle(fontSize: 13),
+                          ),
+                        );
+                      }).toList(),
+                      onChanged: (val) {
+                        if (val != null) setState(() => _selectedItemType = val);
+                      },
                     );
-                  }).toList(),
-                  onChanged: (val) {
-                    if (val != null) setState(() => _selectedItemType = val);
                   },
                 ),
                 const SizedBox(height: 14),

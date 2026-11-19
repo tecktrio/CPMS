@@ -500,12 +500,47 @@ class FefoAllocationResult {
   }
 }
 
+class ItemCategoryModel {
+  final String categoryId;
+  final String code;
+  final String label;
+  final bool isPreset;
+  final bool isActive;
+
+  ItemCategoryModel({
+    required this.categoryId,
+    required this.code,
+    required this.label,
+    this.isPreset = false,
+    this.isActive = true,
+  });
+
+  factory ItemCategoryModel.fromJson(Map<String, dynamic> json) {
+    return ItemCategoryModel(
+      categoryId: json['category_id']?.toString() ?? '',
+      code: json['code']?.toString() ?? '',
+      label: json['label']?.toString() ?? '',
+      isPreset: json['is_preset'] == true,
+      isActive: json['is_active'] != false,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'category_id': categoryId,
+        'code': code,
+        'label': label,
+        'is_preset': isPreset,
+        'is_active': isActive,
+      };
+}
+
 class InventoryProvider extends ChangeNotifier {
   final ApiClient apiClient;
   final SyncManager syncManager = SyncManager();
 
   List<StoreRoomModel> _storeRooms = [];
   List<ItemModel> _items = [];
+  List<ItemCategoryModel> _itemCategories = [];
   List<StockBatchModel> _stockBatches = [];
   List<StockBatchModel> _expiringSoonBatches = [];
 
@@ -520,6 +555,7 @@ class InventoryProvider extends ChangeNotifier {
 
   List<StoreRoomModel> get storeRooms => _storeRooms;
   List<ItemModel> get items => _items;
+  List<ItemCategoryModel> get itemCategories => _itemCategories;
   List<StockBatchModel> get stockBatches => _stockBatches;
   List<StockBatchModel> get expiringSoonBatches => _expiringSoonBatches;
   bool get isLoading => _isLoading;
@@ -528,6 +564,7 @@ class InventoryProvider extends ChangeNotifier {
   void clear() {
     _storeRooms = [];
     _items = [];
+    _itemCategories = [];
     _stockBatches = [];
     _expiringSoonBatches = [];
     _errorMessage = null;
@@ -948,6 +985,104 @@ class InventoryProvider extends ChangeNotifier {
       final existing = _items[itemIdx];
       _items[itemIdx] = existing.copyWith(totalAvailableStock: totalStock);
       _persistItemsLocally();
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Item Categories Management
+  // ---------------------------------------------------------------------------
+
+  Future<void> loadItemCategories({bool silent = false}) async {
+    try {
+      final res = await apiClient.get(ApiConstants.itemCategories);
+      if (res is List) {
+        _itemCategories =
+            res.map((item) => ItemCategoryModel.fromJson(item)).toList();
+        notifyListeners();
+      }
+    } catch (e) {
+      _errorMessage = e.toString();
+    }
+  }
+
+  Future<bool> createItemCategory({
+    required String code,
+    required String label,
+  }) async {
+    try {
+      final res = await apiClient.post(
+        ApiConstants.itemCategoryBase,
+        body: {
+          'code': code.trim().toUpperCase(),
+          'label': label.trim(),
+        },
+      );
+      if (res is Map<String, dynamic>) {
+        final newCat = ItemCategoryModel.fromJson(res);
+        _itemCategories.removeWhere((c) => c.code == newCat.code);
+        _itemCategories.add(newCat);
+        notifyListeners();
+        return true;
+      }
+      return false;
+    } catch (e) {
+      _errorMessage = e.toString();
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> updateItemCategory({
+    required String code,
+    required String label,
+  }) async {
+    try {
+      final res = await apiClient.put(
+        ApiConstants.itemCategoryDetail(code),
+        body: {
+          'label': label.trim(),
+        },
+      );
+      if (res is Map<String, dynamic>) {
+        final updatedCat = ItemCategoryModel.fromJson(res);
+        final idx = _itemCategories.indexWhere((c) => c.code == code);
+        if (idx != -1) {
+          _itemCategories[idx] = updatedCat;
+        }
+        notifyListeners();
+        return true;
+      }
+      return false;
+    } catch (e) {
+      _errorMessage = e.toString();
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<int> checkCategoryItemsCount(String code) async {
+    try {
+      final res = await apiClient.get(ApiConstants.itemCategoryItemsCount(code));
+      if (res is Map<String, dynamic> && res['count'] != null) {
+        return (res['count'] as num).toInt();
+      }
+    } catch (_) {}
+    return _items.where((i) => i.itemType == code).length;
+  }
+
+  Future<bool> deleteItemCategory(String code) async {
+    try {
+      await apiClient.delete(ApiConstants.itemCategoryDetail(code));
+      // Remove local items belonging to this category
+      _items.removeWhere((i) => i.itemType == code);
+      _itemCategories.removeWhere((c) => c.code == code);
+      _persistItemsLocally();
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _errorMessage = e.toString();
+      notifyListeners();
+      return false;
     }
   }
 

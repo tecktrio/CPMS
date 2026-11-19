@@ -23,6 +23,10 @@ import { ItemsService } from './items.service';
 import { StorageService } from '../storage/storage.service';
 import { CreateItemDto } from './dtos/create-item.dto';
 import { UpdateItemDto } from './dtos/update-item.dto';
+import {
+  CreateItemCategoryDto,
+  UpdateItemCategoryDto,
+} from './dtos/item-category.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { TenantGuard } from '../../common/guards/tenant.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
@@ -155,5 +159,67 @@ export class ItemsController {
     @Param('id') itemId: string,
   ) {
     return this.itemsService.remove(tenantId, itemId);
+  }
+
+  // --- ITEM CATEGORIES ENDPOINTS ---
+
+  @Get('categories/all')
+  @RequireAnyPermissions(
+    'permission.item.read',
+    'permission.item.create',
+    'permission.item.update',
+    'permission.item_category.manage',
+  )
+  @ApiOperation({ summary: 'List all item categories for tenant' })
+  @ApiResponse({ status: 200, description: 'List of item categories' })
+  async getCategories(@CurrentTenant() tenantId: string) {
+    return this.itemsService.getCategories(tenantId);
+  }
+
+  @Post('categories')
+  @RequirePermissions('permission.item_category.manage')
+  @ApiOperation({ summary: 'Create a new item category' })
+  @ApiResponse({ status: 201, description: 'Item category created' })
+  async createCategory(
+    @CurrentTenant() tenantId: string,
+    @Body() dto: CreateItemCategoryDto,
+  ) {
+    return this.itemsService.createCategory(tenantId, dto);
+  }
+
+  @Put('categories/:code')
+  @RequirePermissions('permission.item_category.manage')
+  @ApiOperation({ summary: 'Update an existing item category' })
+  @ApiResponse({ status: 200, description: 'Item category updated' })
+  async updateCategory(
+    @CurrentTenant() tenantId: string,
+    @Param('code') code: string,
+    @Body() dto: UpdateItemCategoryDto,
+  ) {
+    return this.itemsService.updateCategory(tenantId, code, dto);
+  }
+
+  @Get('categories/:code/items-count')
+  @RequirePermissions('permission.item_category.manage')
+  @ApiOperation({ summary: 'Get count of items in category before deletion' })
+  @ApiResponse({ status: 200, description: 'Items count for category' })
+  async getCategoryItemsCount(
+    @CurrentTenant() tenantId: string,
+    @Param('code') code: string,
+  ) {
+    return this.itemsService.checkCategoryItemsCount(tenantId, code);
+  }
+
+  @Delete('categories/:code')
+  @RequirePermissions('permission.item_category.manage')
+  @ApiOperation({
+    summary: 'Delete category and all associated items cascade',
+  })
+  @ApiResponse({ status: 200, description: 'Category and items deleted' })
+  async deleteCategory(
+    @CurrentTenant() tenantId: string,
+    @Param('code') code: string,
+  ) {
+    return this.itemsService.deleteCategory(tenantId, code);
   }
 }

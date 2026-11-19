@@ -9,6 +9,10 @@ import {
 } from './schemas/tenant-membership.schema';
 import { StoreRoom, StoreRoomSchema } from './schemas/store-room.schema';
 import { Item, ItemSchema } from './schemas/item.schema';
+import {
+  ItemCategory,
+  ItemCategorySchema,
+} from './schemas/item-category.schema';
 import { StockBatch, StockBatchSchema } from './schemas/stock-batch.schema';
 import { OtpRecord, OtpRecordSchema } from './schemas/otp-record.schema';
 import { Department, DepartmentSchema } from './schemas/department.schema';
@@ -34,6 +38,7 @@ import {
       { name: TenantMembership.name, schema: TenantMembershipSchema },
       { name: StoreRoom.name, schema: StoreRoomSchema },
       { name: Item.name, schema: ItemSchema },
+      { name: ItemCategory.name, schema: ItemCategorySchema },
       { name: StockBatch.name, schema: StockBatchSchema },
       { name: OtpRecord.name, schema: OtpRecordSchema },
       { name: Department.name, schema: DepartmentSchema },

@@ -24,10 +24,10 @@ export class UpdateItemDto {
   @IsOptional()
   item_name?: string;
 
-  @ApiPropertyOptional({ enum: ItemType, example: ItemType.RAW_MATERIAL })
-  @IsEnum(ItemType)
+  @ApiPropertyOptional({ example: 'RAW_MATERIAL' })
+  @IsString()
   @IsOptional()
-  item_type?: ItemType;
+  item_type?: string;
 
   @ApiPropertyOptional({
     enum: MeasurementUnit,

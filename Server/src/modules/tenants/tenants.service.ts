@@ -217,6 +217,7 @@ export class TenantsService {
         'permission.item.create',
         'permission.item.update',
         'permission.item.delete',
+        'permission.item_category.manage',
         'permission.storeroom.read',
         'permission.storeroom.create',
         'permission.storeroom.update',
