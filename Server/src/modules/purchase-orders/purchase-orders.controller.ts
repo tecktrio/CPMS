@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Put,
+  Patch,
   Delete,
   Param,
   Body,
@@ -164,6 +165,42 @@ export class PurchaseOrdersController {
     @Body() dto: UpdatePurchaseOrderDto,
   ) {
     return this.poService.updatePurchaseOrder(tenantId, poId, dto);
+  }
+
+  @Patch('purchase-orders/:poId/items/:itemId/packing')
+  @RequirePermissions('permission.packing.update')
+  @ApiOperation({ summary: 'Update packed cartons for a PO line item (Packer role)' })
+  async updateItemPacking(
+    @CurrentTenant() tenantId: string,
+    @Param('poId') poId: string,
+    @Param('itemId') itemId: string,
+    @Body('packed_cartons') packedCartons: number,
+  ) {
+    return this.poService.updateItemPacking(
+      tenantId,
+      poId,
+      itemId,
+      Number(packedCartons) || 0,
+    );
+  }
+
+  @Patch('purchase-orders/:poId/items/:itemId/shipping')
+  @RequirePermissions('permission.export.update')
+  @ApiOperation({ summary: 'Update shipped cartons and status for a PO line item (Export role)' })
+  async updateItemShipping(
+    @CurrentTenant() tenantId: string,
+    @Param('poId') poId: string,
+    @Param('itemId') itemId: string,
+    @Body('shipped_cartons') shippedCartons: number,
+    @Body('item_status') itemStatus?: string,
+  ) {
+    return this.poService.updateItemShipping(
+      tenantId,
+      poId,
+      itemId,
+      Number(shippedCartons) || 0,
+      itemStatus,
+    );
   }
 
   @Delete('purchase-orders/:id')

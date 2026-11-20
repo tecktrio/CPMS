@@ -107,69 +107,6 @@ class _DepartmentsListScreenState extends State<DepartmentsListScreen>
     );
   }
 
-  void _confirmDeleteDepartment(DepartmentModel dept) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-        title: const Text(
-          'Deactivate Department',
-          style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
-        ),
-        content: Text(
-          'Are you sure you want to deactivate "${dept.departmentName}"? Users assigned to this department will lose its associated permissions.',
-          style: const TextStyle(fontSize: 14, color: Color(0xFF64748B), height: 1.4),
-        ),
-        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel', style: TextStyle(color: Color(0xFF64748B))),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFDC2626),
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-            ),
-            onPressed: () async {
-              Navigator.pop(ctx);
-              final messenger = ScaffoldMessenger.of(context);
-              final deptProvider = context.read<DepartmentProvider>();
-              final tenantProvider = context.read<TenantProvider>();
-              final success =
-                  await deptProvider.deleteDepartment(dept.departmentId);
-              if (!mounted) return;
-              if (success) {
-                await tenantProvider.loadTenantDepartments();
-                messenger.showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      'Department "${dept.departmentName}" deactivated successfully.',
-                    ),
-                    backgroundColor: const Color(0xFF0F766E),
-                  ),
-                );
-              } else {
-                messenger.showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      deptProvider.errorMessage ??
-                          'Failed to deactivate department.',
-                    ),
-                    backgroundColor: Colors.red,
-                  ),
-                );
-              }
-            },
-            child: const Text('Deactivate', style: TextStyle(fontWeight: FontWeight.w700)),
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final tenant = context.watch<TenantProvider>();
@@ -811,7 +748,7 @@ class _DepartmentsListScreenState extends State<DepartmentsListScreen>
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
-                  '${d.permissionIds.length} Perms',
+                  '${d.permissionIds.length} Permissions',
                   style: const TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w800,
@@ -819,34 +756,30 @@ class _DepartmentsListScreenState extends State<DepartmentsListScreen>
                   ),
                 ),
               ),
-              if (canUpdateDept)
-                IconButton(
-                  icon: const Icon(Icons.edit_outlined, size: 20),
-                  tooltip: 'Edit Department & Permissions',
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => EditDepartmentScreen(
-                          existingDepartment: d,
-                        ),
-                      ),
-                    ).then((_) => _loadData());
-                  },
+              const SizedBox(width: 8),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF0FDF4),
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(color: const Color(0xFFBBF7D0)),
                 ),
-              if (canDeleteDept)
-                IconButton(
-                  icon: const Icon(Icons.delete_outline,
-                      size: 20, color: Color(0xFFDC2626)),
-                  tooltip: 'Deactivate Department',
-                  onPressed: () => _confirmDeleteDepartment(d),
+                child: const Text(
+                  'PRESET',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF15803D),
+                  ),
                 ),
+              ),
             ],
           ),
           Wrap(
             spacing: 6,
             runSpacing: 6,
-            children: d.permissionIds.take(6).map((permId) {
+            children: d.permissionIds.take(8).map((permId) {
               return Container(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 8, vertical: 3),

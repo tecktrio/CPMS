@@ -74,7 +74,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
             onPressed: () => Navigator.pop(ctx),
             child: const Text('Cancel', style: TextStyle(color: Color(0xFF64748B))),
           ),
-          ElevatedButton(
+            ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.black,
               foregroundColor: Colors.white,
@@ -108,6 +108,269 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
               }
             },
             child: const Text('Add Division', style: TextStyle(fontWeight: FontWeight.w700)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showEditDivisionDialog(StoreRoomModel room, int index) {
+    if (index < 0 || index >= room.divisions.length) return;
+    final currentDivName = room.divisions[index];
+    final divController = TextEditingController(text: currentDivName);
+    final roomItems = room.items;
+    final itemsInDiv = roomItems.where((i) => i.division == currentDivName).length;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+        title: const Row(
+          children: [
+            Icon(Icons.edit_outlined, size: 20, color: Colors.black),
+            SizedBox(width: 8),
+            Text(
+              'Edit Division',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                color: Colors.black,
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Update the name of this division. All assigned items will be updated automatically.',
+              style: TextStyle(fontSize: 13, color: Color(0xFF64748B)),
+            ),
+            const SizedBox(height: 14),
+            TextFormField(
+              controller: divController,
+              autofocus: true,
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+              decoration: InputDecoration(
+                filled: true,
+                fillColor: const Color(0xFFF8FAFC),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(4),
+                  borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(4),
+                  borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(4),
+                  borderSide: const BorderSide(color: Colors.black, width: 1.5),
+                ),
+                prefixIcon: const Icon(Icons.grid_view_outlined, size: 20),
+              ),
+            ),
+            if (itemsInDiv > 0) ...[
+              const SizedBox(height: 10),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEFF6FF),
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(color: const Color(0xFFBFDBFE)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.info_outline, size: 16, color: Color(0xFF2563EB)),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        '$itemsInDiv allocated items will be safely moved to the updated division.',
+                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF1E40AF)),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
+        ),
+        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        actions: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              TextButton.icon(
+                style: TextButton.styleFrom(
+                  foregroundColor: const Color(0xFFDC2626),
+                ),
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  _confirmDeleteDivision(room, index);
+                },
+                icon: const Icon(Icons.delete_outline, size: 18),
+                label: const Text('Delete', style: TextStyle(fontWeight: FontWeight.w700)),
+              ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    child: const Text('Cancel', style: TextStyle(color: Color(0xFF64748B))),
+                  ),
+                  const SizedBox(width: 8),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.black,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                    ),
+                    onPressed: () async {
+                      final updatedName = divController.text.trim();
+                      if (updatedName.isEmpty || updatedName == currentDivName) {
+                        Navigator.pop(ctx);
+                        return;
+                      }
+                      Navigator.pop(ctx);
+
+                      final inventory = context.read<InventoryProvider>();
+                      final updatedDivs = List<String>.from(room.divisions);
+                      updatedDivs[index] = updatedName;
+
+                      final ok = await inventory.updateStoreRoom(
+                        storeRoomId: room.storeRoomId,
+                        roomName: room.roomName,
+                        temperature: room.temperature,
+                        divisions: updatedDivs,
+                      );
+
+                      // Ensure item assignments sync if name changed
+                      for (final it in room.items) {
+                        if (it.division == currentDivName) {
+                          await inventory.updateStoreRoomItemDivision(
+                            storeRoomId: room.storeRoomId,
+                            itemId: it.itemId,
+                            division: updatedName,
+                          );
+                        }
+                      }
+
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(ok
+                                ? 'Division updated to "$updatedName"'
+                                : (inventory.errorMessage ?? 'Failed to update division')),
+                            backgroundColor: ok ? const Color(0xFF0F766E) : Colors.red.shade700,
+                          ),
+                        );
+                      }
+                    },
+                    child: const Text('Save Changes', style: TextStyle(fontWeight: FontWeight.w700)),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmDeleteDivision(StoreRoomModel room, int index) {
+    if (index < 0 || index >= room.divisions.length) return;
+    final divToDelete = room.divisions[index];
+    final itemsInDiv = room.items.where((i) => i.division == divToDelete).length;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, size: 22, color: Color(0xFFDC2626)),
+            SizedBox(width: 8),
+            Text(
+              'Delete Division',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Are you sure you want to delete division "$divToDelete"?',
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 8),
+            if (itemsInDiv > 0)
+              Text(
+                'Warning: $itemsInDiv items are currently allocated to this division. They will be reassigned to the default section.',
+                style: const TextStyle(fontSize: 12, color: Color(0xFFDC2626), fontWeight: FontWeight.w600),
+              )
+            else
+              const Text(
+                'This division will be permanently removed from this store room.',
+                style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+              ),
+          ],
+        ),
+        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel', style: TextStyle(color: Color(0xFF64748B))),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFDC2626),
+              foregroundColor: Colors.white,
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+            ),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              final inventory = context.read<InventoryProvider>();
+              final updatedDivs = List<String>.from(room.divisions)..removeAt(index);
+              final fallbackDiv = updatedDivs.isNotEmpty ? updatedDivs[0] : 'Default Section';
+
+              final ok = await inventory.updateStoreRoom(
+                storeRoomId: room.storeRoomId,
+                roomName: room.roomName,
+                temperature: room.temperature,
+                divisions: updatedDivs,
+              );
+
+              // Reassign any orphaned items
+              for (final it in room.items) {
+                if (it.division == divToDelete) {
+                  await inventory.updateStoreRoomItemDivision(
+                    storeRoomId: room.storeRoomId,
+                    itemId: it.itemId,
+                    division: fallbackDiv,
+                  );
+                }
+              }
+
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(ok
+                        ? 'Division "$divToDelete" removed'
+                        : (inventory.errorMessage ?? 'Failed to delete division')),
+                    backgroundColor: ok ? Colors.black : Colors.red.shade700,
+                  ),
+                );
+              }
+            },
+            child: const Text('Delete Division', style: TextStyle(fontWeight: FontWeight.w700)),
           ),
         ],
       ),
@@ -1367,83 +1630,100 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                       final tag = 'S${idx + 1}';
                       final subLabel = idx == 0 ? 'Upper Deck' : 'Floor Staging';
 
-                      return Container(
-                        margin: const EdgeInsets.only(bottom: 10),
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF8FAFC),
-                          borderRadius: BorderRadius.circular(4),
-                          border: Border.all(color: const Color(0xFFF1F5F9)),
-                        ),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 36,
-                              height: 36,
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFE2E8F0),
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              alignment: Alignment.center,
-                              child: Text(
-                                tag,
-                                style: const TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w900,
-                                  color: Colors.black,
+                      return InkWell(
+                        onTap: canUpdate
+                            ? () => _showEditDivisionDialog(currentRoom, idx)
+                            : null,
+                        borderRadius: BorderRadius.circular(4),
+                        child: Container(
+                          margin: const EdgeInsets.only(bottom: 10),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF8FAFC),
+                            borderRadius: BorderRadius.circular(4),
+                            border: Border.all(color: const Color(0xFFF1F5F9)),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 36,
+                                height: 36,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFE2E8F0),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                alignment: Alignment.center,
+                                child: Text(
+                                  tag,
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w900,
+                                    color: Colors.black,
+                                  ),
                                 ),
                               ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    divName,
-                                    style: const TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w800,
-                                      color: Colors.black,
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Flexible(
+                                          child: Text(
+                                            divName,
+                                            style: const TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w800,
+                                              color: Colors.black,
+                                            ),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                        if (canUpdate) ...[
+                                          const SizedBox(width: 6),
+                                          const Icon(Icons.edit_outlined, size: 14, color: Color(0xFF64748B)),
+                                        ],
+                                      ],
                                     ),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    '$subLabel • $itemsInDiv items allocated',
-                                    style: const TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w500,
-                                      color: Color(0xFF64748B),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      '$subLabel • $itemsInDiv items allocated',
+                                      style: const TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w500,
+                                        color: Color(0xFF64748B),
+                                      ),
                                     ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFE2E8F0),
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: Text(
-                                '$itemsInDiv Items',
-                                style: const TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w700,
-                                  color: Color(0xFF334155),
+                                  ],
                                 ),
                               ),
-                            ),
-                            const SizedBox(width: 4),
-                            const Icon(
-                              Icons.chevron_right,
-                              size: 18,
-                              color: Color(0xFF94A3B8),
-                            ),
-                          ],
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFE2E8F0),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Text(
+                                  '$itemsInDiv Items',
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                    color: Color(0xFF334155),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              Icon(
+                                canUpdate ? Icons.edit_note : Icons.chevron_right,
+                                size: 18,
+                                color: const Color(0xFF94A3B8),
+                              ),
+                            ],
+                          ),
                         ),
                       );
                     }),

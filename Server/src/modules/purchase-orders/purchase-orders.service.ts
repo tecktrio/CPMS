@@ -154,6 +154,11 @@ export class PurchaseOrdersService {
         total_packets: totalPackets,
         quantity_per_packet: qtyPerPacket,
         unit: it.unit || '',
+        completed_cartons: 0,
+        qc_passed: false,
+        packed_cartons: 0,
+        shipped_cartons: 0,
+        item_status: 'PENDING',
       };
     });
 
@@ -266,6 +271,8 @@ export class PurchaseOrdersService {
             ? Number(it.quantity_per_packet)
             : 1;
 
+        const existingItem = po.items.find((p) => p.item_id === it.item_id);
+
         return {
           item_id: it.item_id,
           item_name: it.item_name.trim(),
@@ -276,6 +283,11 @@ export class PurchaseOrdersService {
           total_packets: totalPackets,
           quantity_per_packet: qtyPerPacket,
           unit: it.unit || '',
+          completed_cartons: existingItem?.completed_cartons || 0,
+          qc_passed: existingItem?.qc_passed || false,
+          packed_cartons: existingItem?.packed_cartons || 0,
+          shipped_cartons: existingItem?.shipped_cartons || 0,
+          item_status: existingItem?.item_status || 'PENDING',
         };
       });
 
@@ -292,6 +304,72 @@ export class PurchaseOrdersService {
 
     await po.save();
     return po;
+  }
+
+  async updateItemPacking(
+    tenantId: string,
+    poId: string,
+    itemId: string,
+    packedCartons: number,
+  ) {
+    const po = await this.findOnePurchaseOrder(tenantId, poId);
+    const item = po.items.find((it) => it.item_id === itemId);
+    if (!item) {
+      throw new NotFoundException(`Item "${itemId}" not found in PO "${po.po_number}"`);
+    }
+
+    item.packed_cartons = Math.max(0, packedCartons);
+    if (item.packed_cartons >= item.cartons) {
+      if (item.item_status !== 'SHIPPED') item.item_status = 'PACKED';
+    } else if (item.packed_cartons > 0) {
+      if (item.item_status !== 'SHIPPED') item.item_status = 'PACKING';
+    }
+
+    po.total_packed_cartons = po.items.reduce(
+      (sum, it) => sum + (it.packed_cartons || 0),
+      0,
+    );
+
+    await po.save();
+    return { success: true, item, po };
+  }
+
+  async updateItemShipping(
+    tenantId: string,
+    poId: string,
+    itemId: string,
+    shippedCartons: number,
+    itemStatus?: string,
+  ) {
+    const po = await this.findOnePurchaseOrder(tenantId, poId);
+    const item = po.items.find((it) => it.item_id === itemId);
+    if (!item) {
+      throw new NotFoundException(`Item "${itemId}" not found in PO "${po.po_number}"`);
+    }
+
+    item.shipped_cartons = Math.max(0, shippedCartons);
+    if (itemStatus) {
+      item.item_status = itemStatus;
+    } else {
+      item.item_status =
+        item.shipped_cartons >= item.cartons ? 'SHIPPED' : 'PARTIALLY_SHIPPED';
+    }
+
+    po.total_shipped_cartons = po.items.reduce(
+      (sum, it) => sum + (it.shipped_cartons || 0),
+      0,
+    );
+
+    // If all items are shipped, transition entire PO status to SHIPPED
+    const allShipped = po.items.every(
+      (it) => (it.shipped_cartons || 0) >= (it.cartons || 0) && it.cartons > 0,
+    );
+    if (allShipped && po.items.length > 0) {
+      po.status = PurchaseOrderStatus.SHIPPED;
+    }
+
+    await po.save();
+    return { success: true, item, po };
   }
 
   async removePurchaseOrder(tenantId: string, poId: string) {

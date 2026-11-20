@@ -170,5 +170,77 @@ export const SYSTEM_PERMISSIONS: SystemPermissionDefinition[] = [
     display_name: 'Cancel Purchase Orders',
     description: 'Allows cancelling unfilled purchase orders.',
   },
+
+  // 7. Production Module
+  {
+    permission_id: 'permission.production.create',
+    module: 'Production',
+    action: 'CREATE',
+    display_name: 'Assign Production Lines',
+    description: 'Allows allocating PO item quantities to production supervisors.',
+  },
+  {
+    permission_id: 'permission.production.read',
+    module: 'Production',
+    action: 'READ',
+    display_name: 'View Production Tasks',
+    description: 'Allows viewing allocated production workloads and live line completions.',
+  },
+  {
+    permission_id: 'permission.production.update',
+    module: 'Production',
+    action: 'UPDATE',
+    display_name: 'Update Production Completion',
+    description: 'Allows supervisors to update completed carton progress on assigned items.',
+  },
+  {
+    permission_id: 'permission.production.delete',
+    module: 'Production',
+    action: 'DELETE',
+    display_name: 'Cancel Production Assignment',
+    description: 'Allows removing or revoking production supervisor assignments.',
+  },
+
+  // 8. Quality Control (QC)
+  {
+    permission_id: 'permission.qc.create',
+    module: 'QC',
+    action: 'CREATE',
+    display_name: 'Submit QC Report',
+    description: 'Allows filing inspection reports, lab verification, and sample audits.',
+  },
+  {
+    permission_id: 'permission.qc.read',
+    module: 'QC',
+    action: 'READ',
+    display_name: 'View QC Reports',
+    description: 'Allows reviewing quality audit records and item test evaluations.',
+  },
+  {
+    permission_id: 'permission.qc.update',
+    module: 'QC',
+    action: 'UPDATE',
+    display_name: 'Update QC Status',
+    description: 'Allows modifying QC inspection decisions, approvals, and reject counts.',
+  },
+
+  // 9. Packaging
+  {
+    permission_id: 'permission.packing.update',
+    module: 'Packing',
+    action: 'UPDATE',
+    display_name: 'Update Packed Cartons',
+    description: 'Allows packers to log packed cartons against purchase order items.',
+  },
+
+  // 10. Export & Dispatch
+  {
+    permission_id: 'permission.export.update',
+    module: 'Export',
+    action: 'UPDATE',
+    display_name: 'Update Shipped Cartons',
+    description: 'Allows export coordinators to log dispatched container cartons and shipping status.',
+  },
 ];
+
 

@@ -424,38 +424,34 @@ class _PurchaseOrdersListScreenState extends State<PurchaseOrdersListScreen> {
                                   ),
                                 ],
                               )
-                            : isWide
-                                ? GridView.builder(
-                                    padding: const EdgeInsets.fromLTRB(
-                                        24, 6, 24, 80),
-                                    physics:
-                                        const AlwaysScrollableScrollPhysics(),
-                                    gridDelegate:
-                                        const SliverGridDelegateWithMaxCrossAxisExtent(
-                                      maxCrossAxisExtent: 520,
-                                      mainAxisExtent: 175,
-                                      crossAxisSpacing: 14,
-                                      mainAxisSpacing: 14,
-                                    ),
-                                    itemCount: filteredOrders.length,
-                                    itemBuilder: (context, idx) {
-                                      final po = filteredOrders[idx];
-                                      return _buildPoCard(context, po);
-                                    },
-                                  )
-                                : ListView.separated(
-                                    padding: const EdgeInsets.fromLTRB(
-                                        16, 6, 16, 80),
-                                    physics:
-                                        const AlwaysScrollableScrollPhysics(),
-                                    itemCount: filteredOrders.length,
-                                    separatorBuilder: (_, _) =>
-                                        const SizedBox(height: 10),
-                                    itemBuilder: (context, idx) {
-                                      final po = filteredOrders[idx];
-                                      return _buildPoCard(context, po);
-                                    },
+                            : Column(
+                                children: [
+                                  _buildDrivePoTableHeader(isWide: isWide),
+                                  const Divider(
+                                    height: 1,
+                                    thickness: 1,
+                                    color: Color(0xFFE2E8F0),
                                   ),
+                                  Expanded(
+                                    child: ListView.separated(
+                                      padding: const EdgeInsets.only(bottom: 96),
+                                      physics:
+                                          const AlwaysScrollableScrollPhysics(),
+                                      itemCount: filteredOrders.length,
+                                      separatorBuilder: (_, _) =>
+                                          const Divider(
+                                        height: 1,
+                                        thickness: 1,
+                                        color: Color(0xFFF1F5F9),
+                                      ),
+                                      itemBuilder: (context, idx) {
+                                        final po = filteredOrders[idx];
+                                        return _buildDriveRowPo(context, po, isWide: isWide);
+                                      },
+                                    ),
+                                  ),
+                                ],
+                              ),
                       ),
               ),
             ],
@@ -464,10 +460,10 @@ class _PurchaseOrdersListScreenState extends State<PurchaseOrdersListScreen> {
       ),
       floatingActionButton: canCreatePo
           ? FloatingActionButton.extended(
-              backgroundColor: Colors.black,
+              backgroundColor: const Color(0xFF14532D), // Dark Green
               foregroundColor: Colors.white,
-              elevation: 0,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+              elevation: 2,
+              shape: const StadiumBorder(),
               icon: const Icon(Icons.add, size: 18),
               label: const Text(
                 'Create PO',
@@ -581,240 +577,311 @@ class _PurchaseOrdersListScreenState extends State<PurchaseOrdersListScreen> {
     );
   }
 
-  Widget _buildPoCard(BuildContext context, PurchaseOrderModel po) {
+  Widget _buildDrivePoTableHeader({required bool isWide}) {
     return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: const Color(0xFFE5E5E5)),
+      padding: EdgeInsets.symmetric(
+        horizontal: isWide ? 20 : 12,
+        vertical: 10,
       ),
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(4),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(4),
-          hoverColor: const Color(0xFFF8FAFC),
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => PurchaseOrderDetailScreen(poId: po.poId),
+      color: const Color(0xFFF8FAFC),
+      child: Row(
+        children: [
+          // Order / Name Header
+          Expanded(
+            flex: isWide ? 4 : 5,
+            child: Row(
+              children: const [
+                Text(
+                  'Order',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF475569),
+                    letterSpacing: 0.2,
+                  ),
+                ),
+                SizedBox(width: 4),
+                Icon(Icons.arrow_downward, size: 13, color: Color(0xFF64748B)),
+              ],
+            ),
+          ),
+          if (isWide) ...[
+            // Owner Header
+            const SizedBox(
+              width: 100,
+              child: Text(
+                'Owner',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF475569),
+                  letterSpacing: 0.2,
+                ),
               ),
-            );
-          },
-          child: Padding(
-            padding: const EdgeInsets.all(14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                // Top row: PO Number + Status
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          width: 28,
-                          height: 28,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF4F4F5),
-                            borderRadius: BorderRadius.circular(2),
-                          ),
-                          child: const Icon(
-                            Icons.assignment_turned_in_outlined,
-                            size: 16,
-                            color: Colors.black,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        RichText(
-                          text: TextSpan(
-                            style: const TextStyle(
-                              fontSize: 15,
-                              color: Colors.black,
-                            ),
-                            children: [
-                              const TextSpan(
-                                text: 'PO # ',
-                                style: TextStyle(
-                                  color: Color(0xFF71717A),
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 13,
-                                ),
-                              ),
-                              TextSpan(
-                                text: po.poNumber,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w900,
-                                  fontSize: 16,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 3,
-                      ),
-                      decoration: BoxDecoration(
-                        color: _getStatusBg(po.status),
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                      child: Text(
-                        po.status.replaceAll('_', ' ').toUpperCase(),
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w800,
-                          color: _getStatusTextColor(po.status),
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                    ),
-                  ],
+            ),
+            // Status Header
+            const SizedBox(
+              width: 130,
+              child: Text(
+                'Status',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF475569),
+                  letterSpacing: 0.2,
                 ),
+              ),
+            ),
+            // Cartons Header
+            const SizedBox(
+              width: 90,
+              child: Text(
+                'Cartons',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF475569),
+                  letterSpacing: 0.2,
+                ),
+              ),
+            ),
+          ],
+          // Date Header
+          SizedBox(
+            width: isWide ? 110 : 90,
+            child: Text(
+              'Date',
+              textAlign: isWide ? TextAlign.left : TextAlign.right,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF475569),
+                letterSpacing: 0.2,
+              ),
+            ),
+          ),
+          // Actions spacer
+          const SizedBox(
+            width: 36,
+            child: Icon(Icons.more_vert, size: 16, color: Colors.transparent),
+          ),
+        ],
+      ),
+    );
+  }
 
-                const SizedBox(height: 10),
-
-                // Customer Name
-                Row(
+  Widget _buildDriveRowPo(BuildContext context, PurchaseOrderModel po, {required bool isWide}) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        hoverColor: const Color(0xFFF1F5F9),
+        splashColor: const Color(0xFFE2E8F0),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => PurchaseOrderDetailScreen(poId: po.poId),
+            ),
+          );
+        },
+        child: Padding(
+          padding: EdgeInsets.symmetric(
+            horizontal: isWide ? 20 : 12,
+            vertical: 11,
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // Leading: Icon + PO number & Customer
+              Expanded(
+                flex: isWide ? 4 : 5,
+                child: Row(
                   children: [
-                    const Icon(
-                      Icons.business_outlined,
-                      size: 15,
-                      color: Color(0xFF71717A),
+                    Container(
+                      width: 32,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      alignment: Alignment.center,
+                      child: const Icon(
+                        Icons.description_outlined,
+                        size: 18,
+                        color: Color(0xFF475569),
+                      ),
                     ),
-                    const SizedBox(width: 6),
+                    const SizedBox(width: 12),
                     Expanded(
-                      child: Text(
-                        po.customerName,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w800,
-                          color: Colors.black,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 10),
-
-                // Dates info in subtle grey container
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF8FAFC),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(
-                        Icons.calendar_today_outlined,
-                        size: 13,
-                        color: Color(0xFF71717A),
-                      ),
-                      const SizedBox(width: 5),
-                      const Text(
-                        'PO: ',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: Color(0xFF71717A),
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      Text(
-                        _dateFormat.format(po.poDate),
-                        style: const TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w800,
-                          color: Colors.black,
-                        ),
-                      ),
-                      if (po.expectedShippingDate != null) ...[
-                        const SizedBox(width: 14),
-                        const Icon(
-                          Icons.local_shipping_outlined,
-                          size: 14,
-                          color: Color(0xFF71717A),
-                        ),
-                        const SizedBox(width: 4),
-                        const Text(
-                          'Exp: ',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: Color(0xFF71717A),
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        Text(
-                          _dateFormat.format(po.expectedShippingDate!),
-                          style: const TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w800,
-                            color: Colors.black,
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 10),
-
-                // Bottom row: items count & Cartons badge
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      '${po.items.length} ${po.items.length == 1 ? 'item' : 'items'} (${po.totalPackets} pkts)',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Color(0xFF71717A),
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 3,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF4F4F5),
-                        borderRadius: BorderRadius.circular(2),
-                        border: Border.all(color: const Color(0xFFE5E5E5)),
-                      ),
-                      child: Row(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(
-                            Icons.crop_square_outlined,
-                            size: 13,
-                            color: Colors.black87,
-                          ),
-                          const SizedBox(width: 4),
                           Text(
-                            '${po.totalCartons} Cartons',
+                            po.poNumber,
                             style: const TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w800,
-                              color: Colors.black,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF0F172A),
                             ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 2),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  po.customerName.isNotEmpty
+                                      ? po.customerName
+                                      : 'No Customer Assigned',
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w400,
+                                    color: Color(0xFF64748B),
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              if (po.totalCompletedCartons > 0 ||
+                                  po.totalPackedCartons > 0 ||
+                                  po.totalShippedCartons > 0) ...[
+                                const SizedBox(width: 6),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 6, vertical: 1),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF0FDF4),
+                                    borderRadius: BorderRadius.circular(4),
+                                    border: Border.all(
+                                        color: const Color(0xFFBBF7D0)),
+                                  ),
+                                  child: Text(
+                                    '${po.totalCompletedCartons}/${po.totalCartons} done',
+                                    style: const TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w700,
+                                      color: Color(0xFF15803D),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ],
                           ),
                         ],
                       ),
                     ),
                   ],
                 ),
+              ),
+
+              if (isWide) ...[
+                // Owner Column (Google Drive style)
+                SizedBox(
+                  width: 100,
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 22,
+                        height: 22,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFF202124),
+                          shape: BoxShape.circle,
+                        ),
+                        alignment: Alignment.center,
+                        child: const Icon(Icons.person, size: 13, color: Colors.white),
+                      ),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'me',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w400,
+                          color: Color(0xFF3C4043),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Status Column
+                SizedBox(
+                  width: 130,
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: _getStatusBg(po.status),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          po.status.replaceAll('_', ' ').toUpperCase(),
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                            color: _getStatusTextColor(po.status),
+                            letterSpacing: 0.3,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Cartons Column
+                SizedBox(
+                  width: 90,
+                  child: Text(
+                    '${po.totalCartons} ctns',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF334155),
+                    ),
+                  ),
+                ),
               ],
-            ),
+
+              // Date Column
+              SizedBox(
+                width: isWide ? 110 : 90,
+                child: Text(
+                  _dateFormat.format(po.poDate),
+                  textAlign: isWide ? TextAlign.left : TextAlign.right,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: Color(0xFF64748B),
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+
+              // Actions Icon
+              SizedBox(
+                width: 36,
+                child: IconButton(
+                  icon: const Icon(Icons.more_vert, size: 18, color: Color(0xFF64748B)),
+                  splashRadius: 18,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => PurchaseOrderDetailScreen(poId: po.poId),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
           ),
         ),
       ),

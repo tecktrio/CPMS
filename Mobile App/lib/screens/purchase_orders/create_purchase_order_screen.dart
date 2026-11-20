@@ -1411,11 +1411,11 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                                   height: 40,
                                   child: ElevatedButton.icon(
                                     style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.black,
+                                      backgroundColor: const Color(0xFF14532D), // Dark Green
                                       foregroundColor: Colors.white,
                                       elevation: 0,
-                                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(2)),
+                                      padding: const EdgeInsets.symmetric(horizontal: 18),
+                                      shape: const StadiumBorder(),
                                     ),
                                     onPressed: _addQuickItemToPo,
                                     icon: const Icon(Icons.add, size: 16),
@@ -1441,11 +1441,11 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                                 ),
                                 ElevatedButton.icon(
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.black,
+                                    backgroundColor: const Color(0xFF14532D), // Dark Green
                                     foregroundColor: Colors.white,
                                     elevation: 0,
-                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(2)),
+                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                    shape: const StadiumBorder(),
                                   ),
                                   onPressed: _addQuickItemToPo,
                                   icon: const Icon(Icons.add, size: 16),
@@ -2243,9 +2243,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                     style: OutlinedButton.styleFrom(
                       foregroundColor: Colors.black,
                       side: const BorderSide(color: Color(0xFFE5E5E5)),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(2),
-                      ),
+                      shape: const StadiumBorder(),
                     ),
                     onPressed: _isSaving ? null : () => _submit(asDraft: true),
                     icon: const Icon(Icons.edit_note_outlined, size: 18),
@@ -2260,19 +2258,17 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                 ),
               ),
               const SizedBox(width: 12),
-              // Primary Solid Black: Create or Save Changes
+              // Primary Dark Green: Create or Save Changes
               Expanded(
                 flex: 6,
                 child: SizedBox(
                   height: 48,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.black,
+                      backgroundColor: const Color(0xFF14532D), // Dark Green
                       foregroundColor: Colors.white,
                       elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(2),
-                      ),
+                      shape: const StadiumBorder(),
                     ),
                     onPressed: _isSaving ? null : () => _submit(asDraft: false),
                     child: _isSaving

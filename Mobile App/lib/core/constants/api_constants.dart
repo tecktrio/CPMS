@@ -77,5 +77,24 @@ class ApiConstants {
   // Purchase Orders & Customers
   static const String purchaseOrders = '/purchase-orders';
   static const String customers = '/customers';
+  static String poItemPacking(String poId, String itemId) =>
+      '/purchase-orders/$poId/items/$itemId/packing';
+  static String poItemShipping(String poId, String itemId) =>
+      '/purchase-orders/$poId/items/$itemId/shipping';
+
+  // Production Module
+  static const String productionAssignments = '/production/assignments';
+  static const String productionAssignmentsMy = '/production/assignments/my';
+  static String productionAssignmentsByPo(String poId) =>
+      '/production/assignments/po/$poId';
+  static String productionAssignmentProgress(String id) =>
+      '/production/assignments/$id/progress';
+  static String productionAssignmentCancel(String id) =>
+      '/production/assignments/$id';
+
+  // Quality Control (QC)
+  static const String qcReports = '/qc/reports';
+  static String qcReportsByPo(String poId) => '/qc/reports/po/$poId';
+  static String qcReportDetail(String reportId) => '/qc/reports/$reportId';
 }
 

@@ -3,6 +3,7 @@ import {
   NotFoundException,
   ConflictException,
   BadRequestException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
@@ -14,6 +15,7 @@ import {
 import { PermissionsService } from '../permissions/permissions.service';
 import { CreateDepartmentDto } from './dtos/create-department.dto';
 import { UpdateDepartmentDto } from './dtos/update-department.dto';
+import { FIXED_DEPARTMENTS } from './departments.constants';
 
 @Injectable()
 export class DepartmentsService {
@@ -23,39 +25,58 @@ export class DepartmentsService {
     private readonly permissionsService: PermissionsService,
   ) {}
 
-  async create(tenantId: string, dto: CreateDepartmentDto) {
-    const trimmedName = dto.department_name.trim();
+  /**
+   * Automatically seeds the 9 fixed system departments for a tenant.
+   * If any already exist, their permission set and description are updated/synced.
+   */
+  async seedFixedDepartments(tenantId: string): Promise<DepartmentDocument[]> {
+    const seededDepartments: DepartmentDocument[] = [];
 
-    // Enforce unique department name per tenant
-    const existing = await this.departmentModel.findOne({
-      tenant_id: tenantId,
-      department_name: { $regex: new RegExp(`^${trimmedName}$`, 'i') },
-      is_active: true,
-    });
+    for (const fixed of FIXED_DEPARTMENTS) {
+      const existing = await this.departmentModel.findOne({
+        tenant_id: tenantId,
+        department_name: { $regex: new RegExp(`^${fixed.name}$`, 'i') },
+      });
 
-    if (existing) {
-      throw new ConflictException(
-        `Department with name "${trimmedName}" already exists in this organization`,
-      );
+      if (existing) {
+        existing.permission_ids = fixed.permission_ids;
+        existing.description = fixed.description;
+        existing.is_active = true;
+        await existing.save();
+        seededDepartments.push(existing);
+      } else {
+        const newDept = new this.departmentModel({
+          department_id: uuidv4(),
+          tenant_id: tenantId,
+          department_name: fixed.name,
+          description: fixed.description,
+          permission_ids: fixed.permission_ids,
+          is_active: true,
+        });
+        await newDept.save();
+        seededDepartments.push(newDept);
+      }
     }
 
-    // Validate that provided permissions exist in system catalogue
-    await this.permissionsService.validatePermissionIds(dto.permission_ids);
+    return seededDepartments;
+  }
 
-    const newDepartment = new this.departmentModel({
-      department_id: uuidv4(),
-      tenant_id: tenantId,
-      department_name: trimmedName,
-      description: dto.description?.trim() || '',
-      permission_ids: dto.permission_ids,
-      is_active: true,
-    });
-
-    await newDepartment.save();
-    return newDepartment;
+  async create(tenantId: string, dto: CreateDepartmentDto) {
+    throw new ForbiddenException(
+      'Custom departments cannot be created. Departments in this system are fixed presets (Administrator, Sales, Store Room, Production Manager, Supervisor, QC, Packer, Export, Accounts).',
+    );
   }
 
   async findAll(tenantId: string) {
+    // Check if fixed departments are seeded; if not, auto-seed them
+    const count = await this.departmentModel.countDocuments({
+      tenant_id: tenantId,
+      is_active: true,
+    });
+    if (count === 0) {
+      await this.seedFixedDepartments(tenantId);
+    }
+
     return this.departmentModel
       .find({
         tenant_id: tenantId,
@@ -93,34 +114,19 @@ export class DepartmentsService {
   async update(tenantId: string, departmentId: string, dto: UpdateDepartmentDto) {
     const department = await this.findOne(tenantId, departmentId);
 
-    if (dto.department_name) {
-      const trimmedName = dto.department_name.trim();
-      const duplicate = await this.departmentModel.findOne({
-        tenant_id: tenantId,
-        department_name: { $regex: new RegExp(`^${trimmedName}$`, 'i') },
-        department_id: { $ne: departmentId },
-        is_active: true,
-      });
+    // Prevent altering fixed department permissions or core identity
+    const isFixed = FIXED_DEPARTMENTS.some(
+      (f) => f.name.toLowerCase() === department.department_name.toLowerCase(),
+    );
 
-      if (duplicate) {
-        throw new ConflictException(
-          `Another department with name "${trimmedName}" already exists in this organization`,
-        );
-      }
-      department.department_name = trimmedName;
+    if (isFixed && dto.permission_ids !== undefined) {
+      throw new ForbiddenException(
+        'Permission sets for fixed preset departments are immutable and managed by the system.',
+      );
     }
 
     if (dto.description !== undefined) {
       department.description = dto.description.trim();
-    }
-
-    if (dto.permission_ids !== undefined) {
-      await this.permissionsService.validatePermissionIds(dto.permission_ids);
-      department.permission_ids = dto.permission_ids;
-    }
-
-    if (dto.is_active !== undefined) {
-      department.is_active = dto.is_active;
     }
 
     await department.save();
@@ -129,6 +135,16 @@ export class DepartmentsService {
 
   async delete(tenantId: string, departmentId: string) {
     const department = await this.findOne(tenantId, departmentId);
+
+    const isFixed = FIXED_DEPARTMENTS.some(
+      (f) => f.name.toLowerCase() === department.department_name.toLowerCase(),
+    );
+    if (isFixed) {
+      throw new ForbiddenException(
+        'Fixed system departments cannot be deleted or deactivated.',
+      );
+    }
+
     department.is_active = false;
     await department.save();
 

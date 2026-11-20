@@ -51,6 +51,13 @@ class PurchaseOrderItemModel {
   final double quantityPerPacket;
   final String unit;
 
+  // Lifecycle stage tracking fields
+  final int completedCartons;
+  final bool qcPassed;
+  final int packedCartons;
+  final int shippedCartons;
+  final String itemStatus;
+
   PurchaseOrderItemModel({
     required this.itemId,
     required this.itemName,
@@ -61,6 +68,11 @@ class PurchaseOrderItemModel {
     int? totalPackets,
     this.quantityPerPacket = 1.0,
     this.unit = '',
+    this.completedCartons = 0,
+    this.qcPassed = false,
+    this.packedCartons = 0,
+    this.shippedCartons = 0,
+    this.itemStatus = 'PENDING',
   }) : totalPackets = totalPackets ?? (packetPerCarton * cartons);
 
   double get totalQuantity => totalPackets * quantityPerPacket;
@@ -75,6 +87,11 @@ class PurchaseOrderItemModel {
         'total_packets': totalPackets,
         'quantity_per_packet': quantityPerPacket,
         'unit': unit,
+        'completed_cartons': completedCartons,
+        'qc_passed': qcPassed,
+        'packed_cartons': packedCartons,
+        'shipped_cartons': shippedCartons,
+        'item_status': itemStatus,
       };
 
   factory PurchaseOrderItemModel.fromJson(Map<String, dynamic> json) {
@@ -93,6 +110,11 @@ class PurchaseOrderItemModel {
       totalPackets: total,
       quantityPerPacket: qtyPerPacket,
       unit: json['unit'] ?? '',
+      completedCartons: (json['completed_cartons'] as num?)?.toInt() ?? 0,
+      qcPassed: json['qc_passed'] == true,
+      packedCartons: (json['packed_cartons'] as num?)?.toInt() ?? 0,
+      shippedCartons: (json['shipped_cartons'] as num?)?.toInt() ?? 0,
+      itemStatus: json['item_status'] ?? 'PENDING',
     );
   }
 }
@@ -111,6 +133,11 @@ class PurchaseOrderModel {
   final int totalCartons;
   final int totalPackets;
   final int totalItemsCount;
+  final int totalAssignedCartons;
+  final int totalCompletedCartons;
+  final int totalQcPassedItems;
+  final int totalPackedCartons;
+  final int totalShippedCartons;
   final String status;
   final String notes;
   final DateTime? createdAt;
@@ -129,6 +156,11 @@ class PurchaseOrderModel {
     required this.totalCartons,
     required this.totalPackets,
     required this.totalItemsCount,
+    this.totalAssignedCartons = 0,
+    this.totalCompletedCartons = 0,
+    this.totalQcPassedItems = 0,
+    this.totalPackedCartons = 0,
+    this.totalShippedCartons = 0,
     this.status = 'CONFIRMED',
     this.notes = '',
     this.createdAt,
@@ -148,6 +180,11 @@ class PurchaseOrderModel {
         'total_cartons': totalCartons,
         'total_packets': totalPackets,
         'total_items_count': totalItemsCount,
+        'total_assigned_cartons': totalAssignedCartons,
+        'total_completed_cartons': totalCompletedCartons,
+        'total_qc_passed_items': totalQcPassedItems,
+        'total_packed_cartons': totalPackedCartons,
+        'total_shipped_cartons': totalShippedCartons,
         'status': status,
         'notes': notes,
         'created_at': createdAt?.toIso8601String(),
@@ -192,6 +229,11 @@ class PurchaseOrderModel {
       totalCartons: (json['total_cartons'] as num?)?.toInt() ?? 0,
       totalPackets: (json['total_packets'] as num?)?.toInt() ?? 0,
       totalItemsCount: (json['total_items_count'] as num?)?.toInt() ?? parsedItems.length,
+      totalAssignedCartons: (json['total_assigned_cartons'] as num?)?.toInt() ?? 0,
+      totalCompletedCartons: (json['total_completed_cartons'] as num?)?.toInt() ?? 0,
+      totalQcPassedItems: (json['total_qc_passed_items'] as num?)?.toInt() ?? 0,
+      totalPackedCartons: (json['total_packed_cartons'] as num?)?.toInt() ?? 0,
+      totalShippedCartons: (json['total_shipped_cartons'] as num?)?.toInt() ?? 0,
       status: json['status'] ?? 'CONFIRMED',
       notes: json['notes'] ?? '',
       createdAt: created,
@@ -382,6 +424,70 @@ class PurchaseOrderProvider with ChangeNotifier {
     } finally {
       _isLoading = false;
       notifyListeners();
+    }
+  }
+
+  Future<bool> updateItemPacking({
+    required String poId,
+    required String itemId,
+    required int packedCartons,
+  }) async {
+    try {
+      final res = await apiClient.patch(
+        ApiConstants.poItemPacking(poId, itemId),
+        body: {'packed_cartons': packedCartons},
+      );
+      if (res is Map && res['po'] != null) {
+        final updatedPo =
+            PurchaseOrderModel.fromJson(Map<String, dynamic>.from(res['po']));
+        final idx = _purchaseOrders.indexWhere((p) => p.poId == poId);
+        if (idx >= 0) {
+          _purchaseOrders[idx] = updatedPo;
+        }
+      } else {
+        await loadPurchaseOrders();
+      }
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _errorMessage = e.toString();
+      debugPrint('Error updating packing: $e');
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> updateItemShipping({
+    required String poId,
+    required String itemId,
+    required int shippedCartons,
+    String? itemStatus,
+  }) async {
+    try {
+      final body = <String, dynamic>{'shipped_cartons': shippedCartons};
+      if (itemStatus != null) body['item_status'] = itemStatus;
+
+      final res = await apiClient.patch(
+        ApiConstants.poItemShipping(poId, itemId),
+        body: body,
+      );
+      if (res is Map && res['po'] != null) {
+        final updatedPo =
+            PurchaseOrderModel.fromJson(Map<String, dynamic>.from(res['po']));
+        final idx = _purchaseOrders.indexWhere((p) => p.poId == poId);
+        if (idx >= 0) {
+          _purchaseOrders[idx] = updatedPo;
+        }
+      } else {
+        await loadPurchaseOrders();
+      }
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _errorMessage = e.toString();
+      debugPrint('Error updating shipping: $e');
+      notifyListeners();
+      return false;
     }
   }
 

@@ -366,52 +366,51 @@ class _StoreRoomsListScreenState extends State<StoreRoomsListScreen> {
                           ),
                         ),
                       )
-                    : isWide
-                        ? GridView.builder(
-                            physics: const AlwaysScrollableScrollPhysics(),
-                            padding: const EdgeInsets.fromLTRB(24, 20, 24, 96),
-                            gridDelegate:
-                                SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount:
-                                  screenWidth >= 1050 ? 3 : 2,
-                              crossAxisSpacing: 16,
-                              mainAxisSpacing: 16,
-                              mainAxisExtent: 130,
-                            ),
-                            itemCount: inventory.storeRooms.length,
-                            itemBuilder: (context, index) {
-                              return _buildRoomCard(
-                                  context, inventory.storeRooms[index]);
-                            },
-                          )
-                        : ListView.builder(
-                            physics: const AlwaysScrollableScrollPhysics(),
-                            padding: const EdgeInsets.fromLTRB(16, 14, 16, 90),
-                            itemCount: inventory.storeRooms.length + 1,
-                            itemBuilder: (context, index) {
-                              if (index == inventory.storeRooms.length) {
-                                return const Padding(
-                                  padding: EdgeInsets.symmetric(vertical: 24),
-                                  child: Center(
-                                    child: Text(
-                                      'Developed by Bigburry Hypersystems LLP',
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        color: Color(0xFF94A3B8),
-                                        fontWeight: FontWeight.w500,
+                    : Column(
+                        children: [
+                          _buildDriveStoreRoomTableHeader(isWide: isWide),
+                          const Divider(
+                            height: 1,
+                            thickness: 1,
+                            color: Color(0xFFE2E8F0),
+                          ),
+                          Expanded(
+                            child: ListView.separated(
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              padding: const EdgeInsets.only(bottom: 96),
+                              itemCount: inventory.storeRooms.length + 1,
+                              separatorBuilder: (_, _) => const Divider(
+                                height: 1,
+                                thickness: 1,
+                                color: Color(0xFFF1F5F9),
+                              ),
+                              itemBuilder: (context, index) {
+                                if (index == inventory.storeRooms.length) {
+                                  return const Padding(
+                                    padding: EdgeInsets.symmetric(vertical: 24),
+                                    child: Center(
+                                      child: Text(
+                                        'Developed by Bigburry Hypersystems LLP',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          color: Color(0xFF94A3B8),
+                                          fontWeight: FontWeight.w500,
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                );
-                              }
+                                  );
+                                }
 
-                              return Padding(
-                                padding: const EdgeInsets.only(bottom: 12),
-                                child: _buildRoomCard(
-                                    context, inventory.storeRooms[index]),
-                              );
-                            },
+                                return _buildDriveRowStoreRoom(
+                                  context,
+                                  inventory.storeRooms[index],
+                                  isWide: isWide,
+                                );
+                              },
+                            ),
                           ),
+                        ],
+                      ),
                   ),
                 ),
               ],
@@ -421,158 +420,299 @@ class _StoreRoomsListScreenState extends State<StoreRoomsListScreen> {
       );
   }
 
-  Widget _buildRoomCard(BuildContext context, StoreRoomModel room) {
-    final uniqueItemCount =
-        room.items.map((it) => it.itemId).where((id) => id.isNotEmpty).toSet().length;
-    final hasDesc = room.description.trim().isNotEmpty;
-
+  Widget _buildDriveStoreRoomTableHeader({required bool isWide}) {
     return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x06000000),
-            blurRadius: 8,
-            offset: Offset(0, 2),
+      padding: EdgeInsets.symmetric(
+        horizontal: isWide ? 20 : 12,
+        vertical: 10,
+      ),
+      color: const Color(0xFFF8FAFC),
+      child: Row(
+        children: [
+          // Store Room Name Header
+          Expanded(
+            flex: isWide ? 4 : 5,
+            child: Row(
+              children: const [
+                Text(
+                  'Name',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF475569),
+                    letterSpacing: 0.2,
+                  ),
+                ),
+                SizedBox(width: 4),
+                Icon(Icons.arrow_downward, size: 13, color: Color(0xFF64748B)),
+              ],
+            ),
+          ),
+          if (isWide) ...[
+            // Owner Header
+            const SizedBox(
+              width: 100,
+              child: Text(
+                'Owner',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF475569),
+                  letterSpacing: 0.2,
+                ),
+              ),
+            ),
+            // Divisions Header
+            const SizedBox(
+              width: 120,
+              child: Text(
+                'Divisions',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF475569),
+                  letterSpacing: 0.2,
+                ),
+              ),
+            ),
+            // Status Header
+            const SizedBox(
+              width: 110,
+              child: Text(
+                'Status',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF475569),
+                  letterSpacing: 0.2,
+                ),
+              ),
+            ),
+          ],
+          // Stored items count header
+          SizedBox(
+            width: isWide ? 100 : 80,
+            child: Text(
+              'Items',
+              textAlign: isWide ? TextAlign.left : TextAlign.right,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF475569),
+                letterSpacing: 0.2,
+              ),
+            ),
+          ),
+          // Trailing action spacer
+          const SizedBox(
+            width: 36,
+            child: Icon(Icons.more_vert, size: 16, color: Colors.transparent),
           ),
         ],
       ),
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(8),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(8),
-          hoverColor: const Color(0xFFF8FAFC),
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => StoreRoomDetailScreen(room: room),
-              ),
-            );
-          },
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                // Top: Name + Chevron
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
+    );
+  }
+
+  Widget _buildDriveRowStoreRoom(
+    BuildContext context,
+    StoreRoomModel room, {
+    required bool isWide,
+  }) {
+    final uniqueItemCount =
+        room.items.map((it) => it.itemId).where((id) => id.isNotEmpty).toSet().length;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        hoverColor: const Color(0xFFF1F5F9),
+        splashColor: const Color(0xFFE2E8F0),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => StoreRoomDetailScreen(room: room),
+            ),
+          );
+        },
+        child: Padding(
+          padding: EdgeInsets.symmetric(
+            horizontal: isWide ? 20 : 12,
+            vertical: 11,
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // Leading Folder Icon + Room Name & Description
+              Expanded(
+                flex: isWide ? 4 : 5,
+                child: Row(
                   children: [
-                    Expanded(
-                      child: Text(
-                        room.roomName,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w800,
-                          color: Colors.black,
-                          letterSpacing: -0.3,
-                        ),
-                        overflow: TextOverflow.ellipsis,
+                    Container(
+                      width: 32,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      alignment: Alignment.center,
+                      child: const Icon(
+                        Icons.folder,
+                        size: 20,
+                        color: Color(0xFF5F6368), // Google Drive folder grey
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    const Icon(
-                      Icons.chevron_right,
-                      size: 20,
-                      color: Color(0xFF94A3B8),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            room.roomName,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF0F172A),
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          if (room.description.isNotEmpty) ...[
+                            const SizedBox(height: 2),
+                            Text(
+                              room.description,
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w400,
+                                color: Color(0xFF64748B),
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ],
+                      ),
                     ),
                   ],
                 ),
+              ),
 
-                // Middle: Description (if available)
-                if (hasDesc) ...[
-                  const SizedBox(height: 6),
-                  Text(
-                    room.description,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w400,
-                      color: Color(0xFF64748B),
-                      height: 1.3,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
+              if (isWide) ...[
+                // Owner Column (Google Drive style)
+                SizedBox(
+                  width: 100,
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 22,
+                        height: 22,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFF202124),
+                          shape: BoxShape.circle,
+                        ),
+                        alignment: Alignment.center,
+                        child: const Icon(Icons.person, size: 13, color: Colors.white),
+                      ),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'me',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w400,
+                          color: Color(0xFF3C4043),
+                        ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
 
-                const SizedBox(height: 12),
+                // Divisions Column
+                SizedBox(
+                  width: 120,
+                  child: Text(
+                    '${room.divisions.length} divisions',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF334155),
+                    ),
+                  ),
+                ),
 
-                // Bottom Row: Divisions Count & Distinct Individual Items Count Pills
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF8FAFC),
-                        borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: const Color(0xFFE2E8F0)),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(
-                            Icons.grid_view_outlined,
-                            size: 14,
-                            color: Color(0xFF64748B),
+                // Status Column
+                SizedBox(
+                  width: 110,
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: room.isActive
+                              ? const Color(0xFFF0FDF4)
+                              : const Color(0xFFF1F5F9),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: room.isActive
+                                ? const Color(0xFFBBF7D0)
+                                : const Color(0xFFE2E8F0),
                           ),
-                          const SizedBox(width: 6),
-                          Text(
-                            '${room.divisions.length} Divisions',
-                            style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                              color: Color(0xFF334155),
-                            ),
+                        ),
+                        child: Text(
+                          room.isActive ? 'Active' : 'Inactive',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: room.isActive
+                                ? const Color(0xFF15803D)
+                                : const Color(0xFF64748B),
                           ),
-                        ],
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 10),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF8FAFC),
-                        borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: const Color(0xFFE2E8F0)),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(
-                            Icons.inventory_2_outlined,
-                            size: 14,
-                            color: Color(0xFF64748B),
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            '$uniqueItemCount ${uniqueItemCount == 1 ? "Item" : "Items"}',
-                            style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                              color: Color(0xFF334155),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ],
-            ),
+
+              // Stored Items Count Column
+              SizedBox(
+                width: isWide ? 100 : 80,
+                child: Text(
+                  '$uniqueItemCount items',
+                  textAlign: isWide ? TextAlign.left : TextAlign.right,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF0F172A),
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+
+              // Trailing Actions Menu Icon
+              SizedBox(
+                width: 36,
+                child: IconButton(
+                  icon: const Icon(Icons.more_vert, size: 18, color: Color(0xFF64748B)),
+                  splashRadius: 18,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => StoreRoomDetailScreen(room: room),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
+
 }

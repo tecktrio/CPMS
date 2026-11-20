@@ -30,5 +30,22 @@ class AppPermissions {
   static const String poRead = 'permission.po.read';
   static const String poUpdate = 'permission.po.update';
   static const String poDelete = 'permission.po.delete';
+
+  // Production Module
+  static const String productionCreate = 'permission.production.create';
+  static const String productionRead = 'permission.production.read';
+  static const String productionUpdate = 'permission.production.update';
+  static const String productionDelete = 'permission.production.delete';
+
+  // QC (Quality Control)
+  static const String qcCreate = 'permission.qc.create';
+  static const String qcRead = 'permission.qc.read';
+  static const String qcUpdate = 'permission.qc.update';
+
+  // Packaging
+  static const String packingUpdate = 'permission.packing.update';
+
+  // Export
+  static const String exportUpdate = 'permission.export.update';
 }
 

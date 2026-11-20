@@ -331,30 +331,41 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
                                 ),
                               ],
                             )
-                          : isWide
-                              ? CustomScrollView(
-                                  controller: _scrollController,
-                                  physics: const AlwaysScrollableScrollPhysics(),
-                                  slivers: [
-                                    SliverPadding(
-                                      padding: const EdgeInsets.fromLTRB(24, 6, 24, 16),
-                                      sliver: SliverGrid(
-                                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                                          crossAxisCount: screenWidth >= 1050 ? 3 : 2,
-                                          crossAxisSpacing: 14,
-                                          mainAxisSpacing: 14,
-                                          mainAxisExtent: 88,
-                                        ),
-                                        delegate: SliverChildBuilderDelegate(
-                                          (context, index) => _buildItemCard(pagedItems[index]),
-                                          childCount: pagedItems.length,
-                                        ),
-                                      ),
+                          : Column(
+                              children: [
+                                _buildDriveTableHeader(isWide: isWide),
+                                const Divider(
+                                  height: 1,
+                                  thickness: 1,
+                                  color: Color(0xFFE2E8F0),
+                                ),
+                                Expanded(
+                                  child: ListView.separated(
+                                    controller: _scrollController,
+                                    physics:
+                                        const AlwaysScrollableScrollPhysics(),
+                                    padding: const EdgeInsets.only(bottom: 96),
+                                    itemCount: pagedItems.length +
+                                        (hasMore
+                                            ? 1
+                                            : (totalFiltered > 0 ? 1 : 0)),
+                                    separatorBuilder: (context, index) =>
+                                        const Divider(
+                                      height: 1,
+                                      thickness: 1,
+                                      color: Color(0xFFF1F5F9),
                                     ),
-                                    if (hasMore)
-                                      SliverToBoxAdapter(
-                                        child: Padding(
-                                          padding: const EdgeInsets.symmetric(vertical: 24),
+                                    itemBuilder: (context, index) {
+                                      if (index < pagedItems.length) {
+                                        return _buildDriveRowItem(
+                                          pagedItems[index],
+                                          isWide: isWide,
+                                        );
+                                      }
+                                      if (hasMore) {
+                                        return Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                              vertical: 20),
                                           child: Center(
                                             child: Row(
                                               mainAxisSize: MainAxisSize.min,
@@ -362,102 +373,46 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
                                                 const SizedBox(
                                                   width: 18,
                                                   height: 18,
-                                                  child: CircularProgressIndicator(
+                                                  child:
+                                                      CircularProgressIndicator(
                                                     strokeWidth: 2,
-                                                    color: Colors.black,
+                                                    color: Color(0xFF14532D),
                                                   ),
                                                 ),
                                                 const SizedBox(width: 12),
                                                 Text(
-                                                  'Loading more items (${pagedItems.length} of $totalFiltered)...',
+                                                  'Loading more (${pagedItems.length} of $totalFiltered)...',
                                                   style: const TextStyle(
                                                     fontSize: 13,
-                                                    fontWeight: FontWeight.w600,
+                                                    fontWeight:
+                                                        FontWeight.w600,
                                                     color: Color(0xFF64748B),
                                                   ),
                                                 ),
                                               ],
                                             ),
                                           ),
-                                        ),
-                                      )
-                                    else if (totalFiltered > 0)
-                                      SliverToBoxAdapter(
-                                        child: Padding(
-                                          padding: const EdgeInsets.symmetric(vertical: 20),
-                                          child: Center(
-                                            child: Text(
-                                              'All $totalFiltered items loaded',
-                                              style: const TextStyle(
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.w600,
-                                                color: Color(0xFF94A3B8),
-                                              ),
+                                        );
+                                      }
+                                      return Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                            vertical: 20),
+                                        child: Center(
+                                          child: Text(
+                                            'All $totalFiltered items loaded',
+                                            style: const TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w600,
+                                              color: Color(0xFF94A3B8),
                                             ),
                                           ),
                                         ),
-                                      ),
-                                    const SliverToBoxAdapter(
-                                      child: SizedBox(height: 80),
-                                    ),
-                                  ],
-                                )
-                              : ListView.builder(
-                                  controller: _scrollController,
-                                  physics: const AlwaysScrollableScrollPhysics(),
-                                  padding: const EdgeInsets.fromLTRB(16, 6, 16, 80),
-                                  itemCount: pagedItems.length + (hasMore ? 1 : 1),
-                                  itemBuilder: (context, index) {
-                                    if (index < pagedItems.length) {
-                                      return Padding(
-                                        padding: const EdgeInsets.only(bottom: 12),
-                                        child: _buildItemCard(pagedItems[index]),
                                       );
-                                    }
-                                    if (hasMore) {
-                                      return Padding(
-                                        padding: const EdgeInsets.symmetric(vertical: 20),
-                                        child: Center(
-                                          child: Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              const SizedBox(
-                                                width: 18,
-                                                height: 18,
-                                                child: CircularProgressIndicator(
-                                                  strokeWidth: 2,
-                                                  color: Colors.black,
-                                                ),
-                                              ),
-                                              const SizedBox(width: 12),
-                                              Text(
-                                                'Loading more (${pagedItems.length} of $totalFiltered)...',
-                                                style: const TextStyle(
-                                                  fontSize: 13,
-                                                  fontWeight: FontWeight.w600,
-                                                  color: Color(0xFF64748B),
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      );
-                                    }
-                                    return Padding(
-                                      padding: const EdgeInsets.symmetric(vertical: 20),
-                                      child: Center(
-                                        child: Text(
-                                          'All $totalFiltered items loaded',
-                                          style: const TextStyle(
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w600,
-                                            color: Color(0xFF94A3B8),
-                                          ),
-                                        ),
-                                      ),
-                                    );
-                                  },
+                                    },
+                                  ),
                                 ),
+                              ],
+                            ),
                 ),
               ),
             ],
@@ -466,12 +421,10 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
       ),
       floatingActionButton: canCreate
           ? FloatingActionButton.extended(
-              backgroundColor: Colors.black,
+              backgroundColor: const Color(0xFF14532D), // Dark Green
               foregroundColor: Colors.white,
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(4),
-              ),
+              elevation: 2,
+              shape: const StadiumBorder(),
               icon: const Icon(Icons.add, color: Colors.white, size: 20),
               label: const Text(
                 'Register Item',
@@ -658,23 +611,105 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
     );
   }
 
-  Widget _buildItemCard(ItemModel item) {
+  Widget _buildDriveTableHeader({required bool isWide}) {
     return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x04000000),
-            blurRadius: 6,
-            offset: Offset(0, 2),
+      padding: EdgeInsets.symmetric(
+        horizontal: isWide ? 20 : 12,
+        vertical: 10,
+      ),
+      color: const Color(0xFFF8FAFC),
+      child: Row(
+        children: [
+          // Name Header
+          Expanded(
+            flex: isWide ? 4 : 6,
+            child: Row(
+              children: const [
+                Text(
+                  'Name',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF475569),
+                    letterSpacing: 0.2,
+                  ),
+                ),
+                SizedBox(width: 4),
+                Icon(Icons.arrow_downward, size: 13, color: Color(0xFF64748B)),
+              ],
+            ),
+          ),
+          if (isWide) ...[
+            // Owner Header
+            const SizedBox(
+              width: 100,
+              child: Text(
+                'Owner',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF475569),
+                  letterSpacing: 0.2,
+                ),
+              ),
+            ),
+            // Category Header
+            const SizedBox(
+              width: 130,
+              child: Text(
+                'Category',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF475569),
+                  letterSpacing: 0.2,
+                ),
+              ),
+            ),
+            // Spec / Pack Size Header
+            const SizedBox(
+              width: 110,
+              child: Text(
+                'Pack Size',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF475569),
+                  letterSpacing: 0.2,
+                ),
+              ),
+            ),
+          ],
+          // Stock / Quantity Header
+          SizedBox(
+            width: isWide ? 110 : 90,
+            child: Text(
+              'Stock',
+              textAlign: isWide ? TextAlign.left : TextAlign.right,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF475569),
+                letterSpacing: 0.2,
+              ),
+            ),
+          ),
+          // Action icon header placeholder
+          const SizedBox(
+            width: 36,
+            child: Icon(Icons.more_vert, size: 16, color: Colors.transparent),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildDriveRowItem(ItemModel item, {required bool isWide}) {
+    return Material(
+      color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(4),
-        hoverColor: const Color(0xFFF8FAFC),
+        hoverColor: const Color(0xFFF1F5F9),
+        splashColor: const Color(0xFFE2E8F0),
         onTap: () {
           Navigator.push(
             context,
@@ -684,99 +719,173 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
           );
         },
         child: Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: 14,
-            vertical: 14,
+          padding: EdgeInsets.symmetric(
+            horizontal: isWide ? 20 : 12,
+            vertical: 10,
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // Thumbnail
-              ClipRRect(
-                borderRadius: BorderRadius.circular(4),
-                child: (item.imageUrl != null && item.imageUrl!.isNotEmpty)
-                    ? Image.network(
-                        ApiConstants.resolveImageUrl(item.imageUrl)!,
-                        width: 52,
-                        height: 52,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) =>
-                            _buildItemThumbnailFallback(item),
-                      )
-                    : _buildItemThumbnailFallback(item),
-              ),
-              const SizedBox(width: 14),
-
-              // Item Name & SKU / Type / Unit
+              // Left: Leading Icon / Thumbnail + Name
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
+                flex: isWide ? 4 : 6,
+                child: Row(
                   children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: (item.imageUrl != null && item.imageUrl!.isNotEmpty)
+                          ? Image.network(
+                              ApiConstants.resolveImageUrl(item.imageUrl)!,
+                              width: 26,
+                              height: 26,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) =>
+                                  _buildItemMiniThumbnail(item),
+                            )
+                          : _buildItemMiniThumbnail(item),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
                             item.itemName,
                             style: const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w800,
-                              color: Colors.black,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                              color: Color(0xFF202124),
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF0FDF4),
-                            borderRadius: BorderRadius.circular(4),
-                            border: Border.all(color: const Color(0xFFBBF7D0)),
-                          ),
-                          child: Text(
-                            item.specification,
-                            style: const TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w800,
-                              color: Color(0xFF15803D),
+                          if (!isWide) ...[
+                            const SizedBox(height: 2),
+                            Text(
+                              '${item.itemType.replaceAll('_', ' ')} • ${item.specification}',
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w400,
+                                color: Color(0xFF64748B),
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${item.itemType == 'PACKAGING' ? 'PACKING MATERIALS' : item.itemType.replaceAll('_', ' ').toUpperCase()} • ${item.quantity.toStringAsFixed(item.quantity.truncateToDouble() == item.quantity ? 0 : 2)} ${item.measurementUnit.toUpperCase()}',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF64748B),
-                        letterSpacing: 0.2,
+                          ],
+                        ],
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),
               ),
-              const SizedBox(width: 8),
 
-              // Trailing Navigation Chevron
-              Container(
-                width: 34,
-                height: 34,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF8FAFC),
-                  shape: BoxShape.circle,
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
+              if (isWide) ...[
+                // Owner Column (Google Drive style)
+                SizedBox(
+                  width: 100,
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 22,
+                        height: 22,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFF202124),
+                          shape: BoxShape.circle,
+                        ),
+                        alignment: Alignment.center,
+                        child: const Icon(Icons.person, size: 13, color: Colors.white),
+                      ),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'me',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w400,
+                          color: Color(0xFF3C4043),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                alignment: Alignment.center,
-                child: const Icon(
-                  Icons.chevron_right,
-                  size: 18,
-                  color: Color(0xFF64748B),
+
+                // Category Column
+                SizedBox(
+                  width: 130,
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF1F5F9),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          item.itemType == 'PACKAGING'
+                              ? 'Packing'
+                              : item.itemType.replaceAll('_', ' '),
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF334155),
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Spec / Pack size Column
+                SizedBox(
+                  width: 110,
+                  child: Text(
+                    item.specification.isNotEmpty ? item.specification : '-',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF64748B),
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+
+              // Stock / Qty Column
+              SizedBox(
+                width: isWide ? 110 : 90,
+                child: Text(
+                  '${item.quantity.toStringAsFixed(item.quantity.truncateToDouble() == item.quantity ? 0 : 2)} ${item.measurementUnit}',
+                  textAlign: isWide ? TextAlign.left : TextAlign.right,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF0F172A),
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+
+              // Trailing Action Icon (Google Drive 3-dots)
+              SizedBox(
+                width: 36,
+                child: IconButton(
+                  icon: const Icon(Icons.more_vert, size: 18, color: Color(0xFF64748B)),
+                  splashRadius: 18,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => ItemDetailScreen(item: item),
+                      ),
+                    );
+                  },
                 ),
               ),
             ],
@@ -786,24 +895,19 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
     );
   }
 
-  Widget _buildItemThumbnailFallback(ItemModel item) {
+  Widget _buildItemMiniThumbnail(ItemModel item) {
     return Container(
-      width: 52,
-      height: 52,
+      width: 26,
+      height: 26,
       decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
+        color: const Color(0xFFF1F5F9),
         borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
       ),
-      child: Center(
-        child: Text(
-          item.itemName.isNotEmpty ? item.itemName[0].toUpperCase() : 'I',
-          style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w800,
-            color: Colors.black,
-          ),
-        ),
+      alignment: Alignment.center,
+      child: const Icon(
+        Icons.insert_drive_file_outlined,
+        size: 16,
+        color: Color(0xFF5F6368),
       ),
     );
   }

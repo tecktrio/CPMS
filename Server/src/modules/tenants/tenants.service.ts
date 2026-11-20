@@ -87,12 +87,16 @@ export class TenantsService {
 
     await newTenant.save();
 
-    // Automatically establish tenant membership for the creator as admin
+    // Automatically seed the 9 fixed preset departments for the new tenant
+    const seededDepts = await this.departmentsService.seedFixedDepartments(tenantId);
+    const allDeptIds = seededDepts.map((d) => d.department_id);
+
+    // Automatically establish tenant membership for the creator as admin (all departments assigned)
     const membership = new this.membershipModel({
       membership_id: uuidv4(),
       user_id: userId,
       tenant_id: tenantId,
-      department_ids: [],
+      department_ids: allDeptIds,
       is_active: true,
     });
 
@@ -231,10 +235,23 @@ export class TenantsService {
         'permission.user.add',
         'permission.user.update',
         'permission.user.delete',
+        'permission.po.create',
+        'permission.po.read',
+        'permission.po.update',
+        'permission.po.delete',
         'permission.batch.read',
         'permission.batch.create',
         'permission.batch.update',
         'permission.batch.deduct',
+        'permission.production.read',
+        'permission.production.create',
+        'permission.production.update',
+        'permission.production.delete',
+        'permission.qc.read',
+        'permission.qc.create',
+        'permission.qc.update',
+        'permission.packing.update',
+        'permission.export.update',
       ];
       const permissions = Array.from(
         new Set([...allSystemPerms, ...allDepts.flatMap((d) => d.permission_ids || [])]),

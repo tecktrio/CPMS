@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../core/constants/permissions.dart';
+import '../../providers/department_provider.dart';
+import '../../providers/production_provider.dart';
 import '../../providers/purchase_order_provider.dart';
 import '../../providers/tenant_provider.dart';
 import '../../services/purchase_order_export_service.dart';
@@ -21,6 +23,510 @@ class PurchaseOrderDetailScreen extends StatefulWidget {
 
 class _PurchaseOrderDetailScreenState extends State<PurchaseOrderDetailScreen> {
   final DateFormat _dateFormat = DateFormat('dd/MM/yyyy');
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<DepartmentProvider>().loadTenantUsers();
+      context.read<ProductionProvider>().loadAssignmentsByPo(widget.poId);
+    });
+  }
+
+  void _showAssignSupervisorsDialog(PurchaseOrderModel po, PurchaseOrderItemModel item) {
+    final deptProv = context.read<DepartmentProvider>();
+    final users = deptProv.tenantUsers;
+    String? selectedUserId = users.isNotEmpty ? users.first.userId : null;
+    final remainingCartons = item.cartons - item.completedCartons > 0 ? item.cartons - item.completedCartons : item.cartons;
+    final cartonsController = TextEditingController(text: '$remainingCartons');
+    final notesController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+          title: Row(
+            children: [
+              const Icon(Icons.assignment_ind_outlined, size: 20, color: Colors.black),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Assign: ${item.itemName}',
+                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Total PO Requirement: ${item.cartons} ctns (${item.completedCartons} produced)',
+                  style: const TextStyle(fontSize: 12, color: Color(0xFF64748B), fontWeight: FontWeight.w500),
+                ),
+                const SizedBox(height: 16),
+                const Text('Select Supervisor', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF334155))),
+                const SizedBox(height: 6),
+                DropdownButtonFormField<String>(
+                  initialValue: selectedUserId,
+                  isExpanded: true,
+                  decoration: InputDecoration(
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(4)),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  ),
+                  items: users.map((u) {
+                    final deptName = u.departmentIds.isNotEmpty ? ' (${u.departmentIds.length} roles)' : '';
+                    return DropdownMenuItem(
+                      value: u.userId,
+                      child: Text('${u.fullName.isNotEmpty ? u.fullName : u.emailAddress}$deptName', style: const TextStyle(fontSize: 13)),
+                    );
+                  }).toList(),
+                  onChanged: (val) {
+                    setDialogState(() => selectedUserId = val);
+                  },
+                ),
+                const SizedBox(height: 14),
+                const Text('Assigned Cartons', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF334155))),
+                const SizedBox(height: 6),
+                TextField(
+                  controller: cartonsController,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    hintText: 'Enter carton count e.g. 20',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(4)),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                const Text('Production Notes (Optional)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF334155))),
+                const SizedBox(height: 6),
+                TextField(
+                  controller: notesController,
+                  maxLines: 2,
+                  decoration: InputDecoration(
+                    hintText: 'Batch details, line number, or instructions',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(4)),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel', style: TextStyle(color: Color(0xFF64748B))),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.black,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+              ),
+              onPressed: () async {
+                final qty = int.tryParse(cartonsController.text.trim()) ?? 0;
+                if (selectedUserId == null || qty <= 0) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Please select a supervisor and valid carton count.')),
+                  );
+                  return;
+                }
+                Navigator.pop(ctx);
+                final prodProv = context.read<ProductionProvider>();
+                final success = await prodProv.createAssignment(
+                  poId: po.poId,
+                  itemId: item.itemId,
+                  supervisorUserId: selectedUserId!,
+                  assignedCartons: qty,
+                  notes: notesController.text.trim(),
+                );
+                if (!mounted) return;
+                if (success) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Successfully assigned $qty cartons to supervisor.'),
+                      backgroundColor: const Color(0xFF15803D),
+                    ),
+                  );
+                  await context.read<PurchaseOrderProvider>().loadPurchaseOrders();
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(prodProv.errorMessage ?? 'Failed to assign supervisor.'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              },
+              child: const Text('Assign Task'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showQcInspectionDialog(PurchaseOrderModel po, PurchaseOrderItemModel item) {
+    String qcStatus = 'PASSED';
+    final inspectedController = TextEditingController(text: '${item.cartons}');
+    final rejectedController = TextEditingController(text: '0');
+    final remarksController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+          title: Row(
+            children: [
+              const Icon(Icons.verified_outlined, size: 20, color: Color(0xFF0F766E)),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'QC: ${item.itemName}',
+                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Total Cartons: ${item.cartons} | Produced: ${item.completedCartons}',
+                  style: const TextStyle(fontSize: 12, color: Color(0xFF64748B), fontWeight: FontWeight.w500),
+                ),
+                const SizedBox(height: 16),
+                const Text('Verdict', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF334155))),
+                const SizedBox(height: 6),
+                DropdownButtonFormField<String>(
+                  initialValue: qcStatus,
+                  isExpanded: true,
+                  decoration: InputDecoration(
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(4)),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  ),
+                  items: const [
+                    DropdownMenuItem(value: 'PASSED', child: Text('PASSED (Approved)', style: TextStyle(color: Color(0xFF15803D), fontWeight: FontWeight.w700))),
+                    DropdownMenuItem(value: 'CONDITIONAL_PASS', child: Text('CONDITIONAL PASS', style: TextStyle(color: Color(0xFFB45309), fontWeight: FontWeight.w700))),
+                    DropdownMenuItem(value: 'FAILED', child: Text('FAILED (Rejected)', style: TextStyle(color: Color(0xFFDC2626), fontWeight: FontWeight.w700))),
+                  ],
+                  onChanged: (val) {
+                    if (val != null) setDialogState(() => qcStatus = val);
+                  },
+                ),
+                const SizedBox(height: 14),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Inspected', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF334155))),
+                          const SizedBox(height: 6),
+                          TextField(
+                            controller: inspectedController,
+                            keyboardType: TextInputType.number,
+                            decoration: InputDecoration(
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(4)),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Rejected', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF334155))),
+                          const SizedBox(height: 6),
+                          TextField(
+                            controller: rejectedController,
+                            keyboardType: TextInputType.number,
+                            decoration: InputDecoration(
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(4)),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                const Text('Remarks', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF334155))),
+                const SizedBox(height: 6),
+                TextField(
+                  controller: remarksController,
+                  maxLines: 2,
+                  decoration: InputDecoration(
+                    hintText: 'Weight check, sealing, etc.',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(4)),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel', style: TextStyle(color: Color(0xFF64748B))),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF0F766E),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+              ),
+              onPressed: () async {
+                final insp = int.tryParse(inspectedController.text.trim()) ?? item.cartons;
+                final rej = int.tryParse(rejectedController.text.trim()) ?? 0;
+                Navigator.pop(ctx);
+                final prodProv = context.read<ProductionProvider>();
+                final success = await prodProv.submitQcReport(
+                  poId: po.poId,
+                  itemId: item.itemId,
+                  status: qcStatus,
+                  inspectedCartons: insp,
+                  rejectedCartons: rej,
+                  remarks: remarksController.text.trim(),
+                );
+                if (!mounted) return;
+                if (success) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('QC report submitted: marked as $qcStatus.'),
+                      backgroundColor: const Color(0xFF0F766E),
+                    ),
+                  );
+                  await context.read<PurchaseOrderProvider>().loadPurchaseOrders();
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(prodProv.errorMessage ?? 'Failed to submit QC report.'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              },
+              child: const Text('Submit QC Report'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showPackingDialog(PurchaseOrderModel po, PurchaseOrderItemModel item) {
+    final controller = TextEditingController(text: '${item.packedCartons > 0 ? item.packedCartons : item.cartons}');
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+        title: Row(
+          children: [
+            const Icon(Icons.inventory_2_outlined, size: 20, color: Color(0xFF4338CA)),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Pack: ${item.itemName}',
+                style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Total Cartons Required: ${item.cartons} | Produced: ${item.completedCartons}',
+              style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+            ),
+            const SizedBox(height: 16),
+            const Text('Total Packed Cartons', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF334155))),
+            const SizedBox(height: 6),
+            TextField(
+              controller: controller,
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(4)),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel', style: TextStyle(color: Color(0xFF64748B))),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF4338CA),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+            ),
+            onPressed: () async {
+              final packed = int.tryParse(controller.text.trim()) ?? 0;
+              Navigator.pop(ctx);
+              final poProv = context.read<PurchaseOrderProvider>();
+              final success = await poProv.updateItemPacking(
+                poId: po.poId,
+                itemId: item.itemId,
+                packedCartons: packed,
+              );
+              if (!mounted) return;
+              if (success) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Updated packing: $packed / ${item.cartons} cartons.'),
+                    backgroundColor: const Color(0xFF4338CA),
+                  ),
+                );
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(poProv.errorMessage ?? 'Failed to update packing.'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            },
+            child: const Text('Update Packing'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showShippingDialog(PurchaseOrderModel po, PurchaseOrderItemModel item) {
+    final controller = TextEditingController(text: '${item.shippedCartons > 0 ? item.shippedCartons : item.cartons}');
+    String itemStatus = item.itemStatus.isNotEmpty ? item.itemStatus : 'SHIPPED';
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+          title: Row(
+            children: [
+              const Icon(Icons.local_shipping_outlined, size: 20, color: Color(0xFF1D4ED8)),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Shipping: ${item.itemName}',
+                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Total Cartons: ${item.cartons} | Packed: ${item.packedCartons}',
+                style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+              ),
+              const SizedBox(height: 16),
+              const Text('Total Shipped Cartons', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF334155))),
+              const SizedBox(height: 6),
+              TextField(
+                controller: controller,
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(4)),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                ),
+              ),
+              const SizedBox(height: 14),
+              const Text('Line Item Status', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF334155))),
+              const SizedBox(height: 6),
+              DropdownButtonFormField<String>(
+                initialValue: itemStatus,
+                isExpanded: true,
+                decoration: InputDecoration(
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(4)),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                ),
+                items: const [
+                  DropdownMenuItem(value: 'IN_PRODUCTION', child: Text('IN PRODUCTION')),
+                  DropdownMenuItem(value: 'SHIPPED', child: Text('SHIPPED')),
+                  DropdownMenuItem(value: 'DELIVERED', child: Text('DELIVERED')),
+                ],
+                onChanged: (val) {
+                  if (val != null) setDialogState(() => itemStatus = val);
+                },
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel', style: TextStyle(color: Color(0xFF64748B))),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF1D4ED8),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+              ),
+              onPressed: () async {
+                final shipped = int.tryParse(controller.text.trim()) ?? 0;
+                Navigator.pop(ctx);
+                final poProv = context.read<PurchaseOrderProvider>();
+                final success = await poProv.updateItemShipping(
+                  poId: po.poId,
+                  itemId: item.itemId,
+                  shippedCartons: shipped,
+                  itemStatus: itemStatus,
+                );
+                if (!mounted) return;
+                if (success) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Updated shipping: $shipped / ${item.cartons} cartons ($itemStatus).'),
+                      backgroundColor: const Color(0xFF1D4ED8),
+                    ),
+                  );
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(poProv.errorMessage ?? 'Failed to update shipping.'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              },
+              child: const Text('Update Shipping'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   Future<void> _handleDelete(PurchaseOrderModel po) async {
     final confirm = await showDialog<bool>(
@@ -372,6 +878,10 @@ class _PurchaseOrderDetailScreenState extends State<PurchaseOrderDetailScreen> {
     final isAdmin = tenant.isTenantAdmin;
     final canUpdatePo = isAdmin || tenant.hasPermission(AppPermissions.poUpdate);
     final canDeletePo = isAdmin || tenant.hasPermission(AppPermissions.poDelete);
+    final canAssignProduction = isAdmin || tenant.hasPermission(AppPermissions.productionCreate);
+    final canDoQc = isAdmin || tenant.hasPermission(AppPermissions.qcCreate);
+    final canUpdatePacking = isAdmin || tenant.hasPermission(AppPermissions.packingUpdate);
+    final canUpdateShipping = isAdmin || tenant.hasPermission(AppPermissions.exportUpdate);
     final screenWidth = MediaQuery.of(context).size.width;
     final isWide = screenWidth >= 700;
 
@@ -757,6 +1267,11 @@ class _PurchaseOrderDetailScreenState extends State<PurchaseOrderDetailScreen> {
                   ],
                 ),
 
+                const SizedBox(height: 14),
+
+                // Production & Order Lifecycle Progress Card
+                _buildProductionWorkflowCard(po),
+
                 const SizedBox(height: 20),
 
                 // Section Header: ACTIVE ITEMS & CARTON SPECIFICATION
@@ -868,49 +1383,140 @@ class _PurchaseOrderDetailScreenState extends State<PurchaseOrderDetailScreen> {
                             return Container(
                               color: idx % 2 == 0 ? Colors.white : const Color(0xFFFAFAFA),
                               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-                              child: Row(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  SizedBox(
-                                    width: 26,
-                                    child: Text(
-                                      '${idx + 1}',
-                                      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
-                                    ),
-                                  ),
-                                  Expanded(
-                                    flex: 6,
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          item.itemName,
-                                          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
+                                  Row(
+                                    children: [
+                                      SizedBox(
+                                        width: 26,
+                                        child: Text(
+                                          '${idx + 1}',
+                                          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
                                         ),
-                                        const SizedBox(height: 1),
-                                        if (itemDescription.isNotEmpty)
-                                          Text(
-                                            '$itemDescription per packet',
-                                            style: const TextStyle(fontSize: 10, color: Color(0xFF64748B)),
-                                          ),
+                                      ),
+                                      Expanded(
+                                        flex: 6,
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              item.itemName,
+                                              style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
+                                            ),
+                                            const SizedBox(height: 1),
+                                            if (itemDescription.isNotEmpty)
+                                              Text(
+                                                '$itemDescription per packet',
+                                                style: const TextStyle(fontSize: 10, color: Color(0xFF64748B)),
+                                              ),
+                                          ],
+                                        ),
+                                      ),
+                                      Expanded(
+                                        flex: 2,
+                                        child: Text(
+                                          '${item.packetPerCarton}',
+                                          textAlign: TextAlign.center,
+                                          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                                        ),
+                                      ),
+                                      Expanded(
+                                        flex: 2,
+                                        child: Text(
+                                          '${item.cartons}',
+                                          textAlign: TextAlign.center,
+                                          style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 8),
+                                  // Lifecycle Stage Tracking Badges
+                                  SingleChildScrollView(
+                                    scrollDirection: Axis.horizontal,
+                                    child: Row(
+                                      children: [
+                                        const SizedBox(width: 26),
+                                        // Produced badge
+                                        _buildStageBadge(
+                                          label: 'Produced: ${item.completedCartons}/${item.cartons}',
+                                          color: item.completedCartons >= item.cartons
+                                              ? const Color(0xFF15803D)
+                                              : (item.completedCartons > 0 ? const Color(0xFFB45309) : const Color(0xFF64748B)),
+                                          bgColor: item.completedCartons >= item.cartons
+                                              ? const Color(0xFFF0FDF4)
+                                              : (item.completedCartons > 0 ? const Color(0xFFFEF3C7) : const Color(0xFFF1F5F9)),
+                                          icon: Icons.precision_manufacturing_outlined,
+                                        ),
+                                        const SizedBox(width: 6),
+                                        // QC badge
+                                        _buildStageBadge(
+                                          label: item.qcPassed ? 'QC: PASSED' : 'QC: PENDING',
+                                          color: item.qcPassed ? const Color(0xFF0F766E) : const Color(0xFF64748B),
+                                          bgColor: item.qcPassed ? const Color(0xFFF0FDFA) : const Color(0xFFF1F5F9),
+                                          icon: item.qcPassed ? Icons.verified : Icons.verified_outlined,
+                                        ),
+                                        const SizedBox(width: 6),
+                                        // Packed badge
+                                        _buildStageBadge(
+                                          label: 'Packed: ${item.packedCartons}/${item.cartons}',
+                                          color: item.packedCartons >= item.cartons ? const Color(0xFF4338CA) : const Color(0xFF64748B),
+                                          bgColor: item.packedCartons >= item.cartons ? const Color(0xFFEEF2FF) : const Color(0xFFF1F5F9),
+                                          icon: Icons.inventory_2_outlined,
+                                        ),
+                                        const SizedBox(width: 6),
+                                        // Shipped badge
+                                        _buildStageBadge(
+                                          label: 'Shipped: ${item.shippedCartons}/${item.cartons}',
+                                          color: item.shippedCartons >= item.cartons ? const Color(0xFF1D4ED8) : const Color(0xFF64748B),
+                                          bgColor: item.shippedCartons >= item.cartons ? const Color(0xFFEFF6FF) : const Color(0xFFF1F5F9),
+                                          icon: Icons.local_shipping_outlined,
+                                        ),
                                       ],
                                     ),
                                   ),
-                                  Expanded(
-                                    flex: 2,
-                                    child: Text(
-                                      '${item.packetPerCarton}',
-                                      textAlign: TextAlign.center,
-                                      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                                  // Role-based Quick Action Buttons
+                                  if (canAssignProduction || canDoQc || canUpdatePacking || canUpdateShipping) ...[
+                                    const SizedBox(height: 8),
+                                    Padding(
+                                      padding: const EdgeInsets.only(left: 26),
+                                      child: Wrap(
+                                        spacing: 6,
+                                        runSpacing: 4,
+                                        children: [
+                                          if (canAssignProduction)
+                                            _buildActionButton(
+                                              label: 'Assign Task',
+                                              icon: Icons.person_add_alt_1_outlined,
+                                              color: Colors.black,
+                                              onPressed: () => _showAssignSupervisorsDialog(po, item),
+                                            ),
+                                          if (canDoQc)
+                                            _buildActionButton(
+                                              label: 'QC Inspect',
+                                              icon: Icons.fact_check_outlined,
+                                              color: const Color(0xFF0F766E),
+                                              onPressed: () => _showQcInspectionDialog(po, item),
+                                            ),
+                                          if (canUpdatePacking)
+                                            _buildActionButton(
+                                              label: 'Pack',
+                                              icon: Icons.archive_outlined,
+                                              color: const Color(0xFF4338CA),
+                                              onPressed: () => _showPackingDialog(po, item),
+                                            ),
+                                          if (canUpdateShipping)
+                                            _buildActionButton(
+                                              label: 'Ship',
+                                              icon: Icons.local_shipping_outlined,
+                                              color: const Color(0xFF1D4ED8),
+                                              onPressed: () => _showShippingDialog(po, item),
+                                            ),
+                                        ],
+                                      ),
                                     ),
-                                  ),
-                                  Expanded(
-                                    flex: 2,
-                                    child: Text(
-                                      '${item.cartons}',
-                                      textAlign: TextAlign.center,
-                                      style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13),
-                                    ),
-                                  ),
+                                  ],
                                 ],
                               ),
                             );
@@ -1159,6 +1765,182 @@ class _PurchaseOrderDetailScreenState extends State<PurchaseOrderDetailScreen> {
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildProductionWorkflowCard(PurchaseOrderModel po) {
+    final producedRatio = po.totalCartons > 0 ? (po.totalCompletedCartons / po.totalCartons).clamp(0.0, 1.0) : 0.0;
+    final packedRatio = po.totalCartons > 0 ? (po.totalPackedCartons / po.totalCartons).clamp(0.0, 1.0) : 0.0;
+    final shippedRatio = po.totalCartons > 0 ? (po.totalShippedCartons / po.totalCartons).clamp(0.0, 1.0) : 0.0;
+    final qcRatio = po.items.isNotEmpty ? (po.totalQcPassedItems / po.items.length).clamp(0.0, 1.0) : 0.0;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: const [
+              Icon(Icons.track_changes, size: 16, color: Color(0xFF0F172A)),
+              SizedBox(width: 8),
+              Text(
+                'PRODUCTION & FULFILLMENT STATUS',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF475569),
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: _buildStageProgressItem(
+                  stage: '1. Production',
+                  progressText: '${po.totalCompletedCartons}/${po.totalCartons} ctns',
+                  ratio: producedRatio,
+                  color: const Color(0xFF15803D),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildStageProgressItem(
+                  stage: '2. QC Inspection',
+                  progressText: '${po.totalQcPassedItems}/${po.items.length} items',
+                  ratio: qcRatio,
+                  color: const Color(0xFF0F766E),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _buildStageProgressItem(
+                  stage: '3. Packing',
+                  progressText: '${po.totalPackedCartons}/${po.totalCartons} ctns',
+                  ratio: packedRatio,
+                  color: const Color(0xFF4338CA),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildStageProgressItem(
+                  stage: '4. Shipping',
+                  progressText: '${po.totalShippedCartons}/${po.totalCartons} ctns',
+                  ratio: shippedRatio,
+                  color: const Color(0xFF1D4ED8),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStageProgressItem({
+    required String stage,
+    required String progressText,
+    required double ratio,
+    required Color color,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(stage, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF334155))),
+            Text(progressText, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: color)),
+          ],
+        ),
+        const SizedBox(height: 5),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(2),
+          child: LinearProgressIndicator(
+            value: ratio,
+            minHeight: 6,
+            backgroundColor: const Color(0xFFF1F5F9),
+            valueColor: AlwaysStoppedAnimation<Color>(color),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStageBadge({
+    required String label,
+    required Color color,
+    required Color bgColor,
+    required IconData icon,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(3),
+        border: Border.all(color: color.withValues(alpha: 0.25)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 10, color: color),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActionButton({
+    required String label,
+    required IconData icon,
+    required Color color,
+    required VoidCallback onPressed,
+  }) {
+    return InkWell(
+      onTap: onPressed,
+      borderRadius: BorderRadius.circular(2),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(2),
+          border: Border.all(color: color.withValues(alpha: 0.3)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 12, color: color),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: color,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

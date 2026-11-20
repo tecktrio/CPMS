@@ -81,6 +81,18 @@ class ApiClient {
         ));
   }
 
+  Future<dynamic> patch(
+    String endpoint, {
+    dynamic body,
+    Map<String, String>? headers,
+  }) async {
+    return _sendRequest(() => http.patch(
+          Uri.parse('${ApiConstants.baseUrl}$endpoint'),
+          headers: _buildHeaders(extraHeaders: headers),
+          body: body != null ? jsonEncode(body) : null,
+        ));
+  }
+
   Future<dynamic> delete(
     String endpoint, {
     Map<String, String>? headers,

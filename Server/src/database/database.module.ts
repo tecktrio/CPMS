@@ -26,6 +26,11 @@ import {
   PurchaseOrder,
   PurchaseOrderSchema,
 } from './schemas/purchase-order.schema';
+import {
+  ProductionAssignment,
+  ProductionAssignmentSchema,
+} from './schemas/production-assignment.schema';
+import { QcReport, QcReportSchema } from './schemas/qc-report.schema';
 
 @Module({
   imports: [
@@ -50,6 +55,8 @@ import {
       { name: Permission.name, schema: PermissionSchema },
       { name: Customer.name, schema: CustomerSchema },
       { name: PurchaseOrder.name, schema: PurchaseOrderSchema },
+      { name: ProductionAssignment.name, schema: ProductionAssignmentSchema },
+      { name: QcReport.name, schema: QcReportSchema },
     ]),
   ],
   exports: [MongooseModule],

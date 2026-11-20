@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import '../../core/constants/permissions.dart';
 import '../../providers/tenant_provider.dart';
 import 'departments_list_screen.dart';
-import 'create_department_screen.dart';
 import 'add_tenant_user_screen.dart';
 import '../../widgets/user_profile_avatar.dart';
 
@@ -16,13 +15,12 @@ class DepartmentsHubScreen extends StatelessWidget {
     final isAdmin = tenant.isTenantAdmin;
 
     final canReadDept = isAdmin || tenant.hasPermission(AppPermissions.departmentRead);
-    final canCreateDept = isAdmin || tenant.hasPermission(AppPermissions.departmentCreate);
     final canReadUser = isAdmin || tenant.hasPermission(AppPermissions.userRead);
     final canAddUser = isAdmin || tenant.hasPermission(AppPermissions.userAdd);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Departments & Staff Roles Hub'),
+        title: const Text('Staff & Roles Hub'),
         actions: const [
           UserProfileAvatar(),
           SizedBox(width: 4),
@@ -40,19 +38,23 @@ class DepartmentsHubScreen extends StatelessWidget {
             ),
             child: const Row(
               children: [
-                Icon(Icons.badge_outlined, color: Color(0xFFD97706), size: 28),
+                Icon(Icons.badge_outlined, color: Color(0xFF14532D), size: 28),
                 SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Department-Centric RBAC Operations',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Color(0xFFD97706)),
+                        'Preset Role-Based System (9 Fixed Departments)',
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                            color: Color(0xFF14532D)),
                       ),
                       Text(
-                        'Choose an operation page based on your allocated permissions.',
-                        style: TextStyle(fontSize: 12, color: Color(0xFFD97706)),
+                        'Assign team members to fixed organizational roles with dedicated module access.',
+                        style:
+                            TextStyle(fontSize: 12, color: Color(0xFF14532D)),
                       ),
                     ],
                   ),
@@ -62,30 +64,14 @@ class DepartmentsHubScreen extends StatelessWidget {
           ),
           const SizedBox(height: 16),
 
-          if (canCreateDept)
-            _buildPermissionPageCard(
-              context: context,
-              title: 'Create Department',
-              description: 'Define organizational departments and allocate specific module permissions.',
-              permissionId: AppPermissions.departmentCreate,
-              icon: Icons.add_home_work_outlined,
-              color: const Color(0xFFD97706),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const CreateDepartmentScreen()),
-                );
-              },
-            ),
-
           if (canReadDept)
             _buildPermissionPageCard(
               context: context,
-              title: 'View & Manage Departments',
-              description: 'Browse configured departments, inspect allocated permissions, and edit roles.',
+              title: 'View Organizational Roles & Departments',
+              description: 'Browse the 9 fixed preset departments and see their respective module permissions.',
               permissionId: AppPermissions.departmentRead,
               icon: Icons.apartment,
-              color: const Color(0xFF0F766E),
+              color: const Color(0xFF14532D),
               onTap: () {
                 Navigator.push(
                   context,
@@ -126,7 +112,7 @@ class DepartmentsHubScreen extends StatelessWidget {
               },
             ),
 
-          if (!canCreateDept && !canReadDept && !canAddUser && !canReadUser)
+          if (!canReadDept && !canAddUser && !canReadUser)
             Center(
               child: Padding(
                 padding: const EdgeInsets.all(32),

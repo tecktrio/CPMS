@@ -41,6 +41,35 @@ export class PurchaseOrderItem {
 
   @Prop({ type: String, default: '' })
   unit: string;
+
+  // Lifecycle Stage Quantities per Line Item:
+  @Prop({ type: Number, default: 0, min: 0 })
+  completed_cartons: number;
+
+  @Prop({ type: Boolean, default: false })
+  qc_passed: boolean;
+
+  @Prop({ type: Number, default: 0, min: 0 })
+  packed_cartons: number;
+
+  @Prop({ type: Number, default: 0, min: 0 })
+  shipped_cartons: number;
+
+  @Prop({
+    type: String,
+    enum: [
+      'PENDING',
+      'IN_PRODUCTION',
+      'PRODUCED',
+      'QC_APPROVED',
+      'PACKING',
+      'PACKED',
+      'PARTIALLY_SHIPPED',
+      'SHIPPED',
+    ],
+    default: 'PENDING',
+  })
+  item_status: string;
 }
 
 export const PurchaseOrderItemSchema =
@@ -96,6 +125,22 @@ export class PurchaseOrder {
 
   @Prop({ type: Number, required: true, default: 0 })
   total_items_count: number;
+
+  // Aggregated Pipeline Tracking Across Items:
+  @Prop({ type: Number, default: 0 })
+  total_assigned_cartons: number;
+
+  @Prop({ type: Number, default: 0 })
+  total_completed_cartons: number;
+
+  @Prop({ type: Number, default: 0 })
+  total_qc_passed_items: number;
+
+  @Prop({ type: Number, default: 0 })
+  total_packed_cartons: number;
+
+  @Prop({ type: Number, default: 0 })
+  total_shipped_cartons: number;
 
   @Prop({
     type: String,

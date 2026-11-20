@@ -3,6 +3,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/constants/api_constants.dart';
+import '../../core/constants/permissions.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/department_provider.dart';
 import '../../providers/inventory_provider.dart';
@@ -11,6 +12,7 @@ import '../departments/departments_list_screen.dart';
 import '../items/item_detail_screen.dart';
 import '../items/items_list_screen.dart';
 import '../purchase_orders/purchase_orders_list_screen.dart';
+import '../production/production_hub_screen.dart';
 import '../store_rooms/store_rooms_list_screen.dart';
 import '../store_rooms/store_room_detail_screen.dart';
 import '../tenant/tenant_selector_screen.dart';
@@ -343,6 +345,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final hasDeptAccess = isAdmin || tenant.hasAnyPermissionInModule('department');
     final hasUserAccess = isAdmin || tenant.hasAnyPermissionInModule('user');
     final hasPoAccess = isAdmin || tenant.hasAnyPermissionInModule('po');
+    final hasProductionAccess = isAdmin ||
+        tenant.hasPermission(AppPermissions.productionRead) ||
+        tenant.hasPermission(AppPermissions.productionCreate) ||
+        tenant.hasPermission(AppPermissions.productionUpdate);
 
     final departmentsBadgeCount = tenant.tenantDepartments.isNotEmpty
         ? tenant.tenantDepartments.length
@@ -386,6 +392,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
             context,
             MaterialPageRoute(
                 builder: (_) => const PurchaseOrdersListScreen()),
+          );
+        },
+      ),
+      _DashboardModuleItem(
+        title: 'Production Lines',
+        subtitle: 'Supervisors & Line Completion',
+        icon: Icons.precision_manufacturing_outlined,
+        isPermitted: hasProductionAccess,
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (_) => const ProductionHubScreen()),
           );
         },
       ),
@@ -2507,7 +2526,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                 decoration: BoxDecoration(
-                  color: Colors.black,
+                  color: const Color(0xFF14532D), // Dark green active nav pill
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Icon(icon, color: Colors.white, size: 20),
@@ -2532,7 +2551,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         width: 7,
                         height: 7,
                         decoration: const BoxDecoration(
-                          color: Colors.black,
+                          color: Color(0xFF15803D), // Green indicator
                           shape: BoxShape.circle,
                         ),
                       ),
@@ -2545,7 +2564,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: isActive ? FontWeight.w800 : FontWeight.w500,
-                color: isActive ? Colors.black : const Color(0xFF6B7280),
+                color: isActive ? const Color(0xFF14532D) : const Color(0xFF6B7280),
               ),
             ),
           ],
@@ -2599,10 +2618,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Icon(
-                      mod.icon,
-                      size: 38,
-                      color: Colors.black,
+                    Container(
+                      width: 52,
+                      height: 52,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF0FDF4),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: const Color(0xFFDCFCE7)),
+                      ),
+                      alignment: Alignment.center,
+                      child: Icon(
+                        mod.icon,
+                        size: 28,
+                        color: const Color(0xFF15803D), // Emerald / Dark Green icon
+                      ),
                     ),
                     const SizedBox(height: 10),
                     Text(
