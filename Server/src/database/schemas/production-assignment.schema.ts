@@ -66,7 +66,6 @@ export class ProductionAssignment {
 export const ProductionAssignmentSchema =
   SchemaFactory.createForClass(ProductionAssignment);
 
-ProductionAssignmentSchema.index({ assignment_id: 1 }, { unique: true });
 ProductionAssignmentSchema.index({ tenant_id: 1, po_id: 1 });
 ProductionAssignmentSchema.index({ tenant_id: 1, supervisor_user_id: 1 });
 

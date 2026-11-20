@@ -65,7 +65,6 @@ export class QcReport {
 
 export const QcReportSchema = SchemaFactory.createForClass(QcReport);
 
-QcReportSchema.index({ qc_report_id: 1 }, { unique: true });
 QcReportSchema.index({ tenant_id: 1, po_id: 1 });
 QcReportSchema.index({ tenant_id: 1, item_id: 1 });
 
