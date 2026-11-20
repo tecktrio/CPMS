@@ -69,6 +69,17 @@ export class DepartmentsController {
     return this.departmentsService.findAll(tenantId);
   }
 
+  @Post('migrate-fixed')
+  @ApiOperation({
+    summary: 'Migrate all tenants to fixed preset departments',
+    description:
+      'Verifies and seeds the 9 fixed preset departments for all existing tenants and assigns them to tenant admins.',
+  })
+  @ApiResponse({ status: 200, description: 'Migration summary' })
+  async migrateFixed() {
+    return this.departmentsService.migrateAllTenantsToFixedDepartments();
+  }
+
   @Get(':id')
   @ApiOperation({
     summary: 'Get department details',

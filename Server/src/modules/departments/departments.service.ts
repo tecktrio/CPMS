@@ -4,6 +4,8 @@ import {
   ConflictException,
   BadRequestException,
   ForbiddenException,
+  OnModuleInit,
+  Logger,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
@@ -12,22 +14,51 @@ import {
   Department,
   DepartmentDocument,
 } from '../../database/schemas/department.schema';
+import {
+  Tenant,
+  TenantDocument,
+} from '../../database/schemas/tenant.schema';
+import {
+  TenantMembership,
+  TenantMembershipDocument,
+} from '../../database/schemas/tenant-membership.schema';
 import { PermissionsService } from '../permissions/permissions.service';
 import { CreateDepartmentDto } from './dtos/create-department.dto';
 import { UpdateDepartmentDto } from './dtos/update-department.dto';
 import { FIXED_DEPARTMENTS } from './departments.constants';
 
 @Injectable()
-export class DepartmentsService {
+export class DepartmentsService implements OnModuleInit {
+  private readonly logger = new Logger(DepartmentsService.name);
+
   constructor(
     @InjectModel(Department.name)
     private readonly departmentModel: Model<DepartmentDocument>,
+    @InjectModel(Tenant.name)
+    private readonly tenantModel: Model<TenantDocument>,
+    @InjectModel(TenantMembership.name)
+    private readonly membershipModel: Model<TenantMembershipDocument>,
     private readonly permissionsService: PermissionsService,
   ) {}
+
+  async onModuleInit() {
+    try {
+      this.logger.log('Starting automated migration of existing tenants to fixed departments...');
+      const res = await this.migrateAllTenantsToFixedDepartments();
+      this.logger.log(
+        `Migration complete: ${res.tenantsMigrated} tenant(s) verified/updated to 9 fixed departments.`,
+      );
+    } catch (err: any) {
+      this.logger.warn(
+        `Automated fixed departments migration deferred: ${err.message}`,
+      );
+    }
+  }
 
   /**
    * Automatically seeds the 9 fixed system departments for a tenant.
    * If any already exist, their permission set and description are updated/synced.
+   * Also deactivates any obsolete non-fixed departments.
    */
   async seedFixedDepartments(tenantId: string): Promise<DepartmentDocument[]> {
     const seededDepartments: DepartmentDocument[] = [];
@@ -39,6 +70,7 @@ export class DepartmentsService {
       });
 
       if (existing) {
+        existing.department_name = fixed.name;
         existing.permission_ids = fixed.permission_ids;
         existing.description = fixed.description;
         existing.is_active = true;
@@ -58,7 +90,60 @@ export class DepartmentsService {
       }
     }
 
+    // Deactivate any legacy custom departments that are not among the 9 fixed presets
+    const fixedDeptIds = seededDepartments.map((d) => d.department_id);
+    await this.departmentModel.updateMany(
+      {
+        tenant_id: tenantId,
+        department_id: { $nin: fixedDeptIds },
+      },
+      {
+        $set: { is_active: false },
+      },
+    );
+
     return seededDepartments;
+  }
+
+  /**
+   * Migrates and ensures all existing tenants across the entire system have the 9 fixed departments
+   * and that their administrators are granted access to all fixed departments.
+   */
+  async migrateAllTenantsToFixedDepartments(): Promise<{
+    tenantsMigrated: number;
+    details: Array<{ tenantId: string; companyName: string; departmentCount: number }>;
+  }> {
+    const tenants = await this.tenantModel.find({});
+    const details = [];
+
+    for (const tenant of tenants) {
+      const fixedDepts = await this.seedFixedDepartments(tenant.tenant_id);
+      const fixedDeptIds = fixedDepts.map((d) => d.department_id);
+
+      // Ensure the tenant admin has all 9 fixed departments
+      if (tenant.admin_user_id) {
+        await this.membershipModel.updateOne(
+          {
+            tenant_id: tenant.tenant_id,
+            user_id: tenant.admin_user_id,
+          },
+          {
+            $addToSet: { department_ids: { $each: fixedDeptIds } },
+          },
+        );
+      }
+
+      details.push({
+        tenantId: tenant.tenant_id,
+        companyName: tenant.company_name,
+        departmentCount: fixedDepts.length,
+      });
+    }
+
+    return {
+      tenantsMigrated: tenants.length,
+      details,
+    };
   }
 
   async create(tenantId: string, dto: CreateDepartmentDto) {
@@ -68,12 +153,16 @@ export class DepartmentsService {
   }
 
   async findAll(tenantId: string) {
-    // Check if fixed departments are seeded; if not, auto-seed them
-    const count = await this.departmentModel.countDocuments({
+    // Proactively verify that the tenant has all 9 fixed system departments active
+    const activeFixedCount = await this.departmentModel.countDocuments({
       tenant_id: tenantId,
+      department_name: {
+        $in: FIXED_DEPARTMENTS.map((f) => new RegExp(`^${f.name}$`, 'i')),
+      },
       is_active: true,
     });
-    if (count === 0) {
+
+    if (activeFixedCount < FIXED_DEPARTMENTS.length) {
       await this.seedFixedDepartments(tenantId);
     }
 
