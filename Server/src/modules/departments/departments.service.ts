@@ -107,20 +107,170 @@ export class DepartmentsService implements OnModuleInit {
 
   /**
    * Migrates and ensures all existing tenants across the entire system have the 9 fixed departments
-   * and that their administrators are granted access to all fixed departments.
+   * and that all tenant members have their legacy department allocations mapped to the fixed presets.
    */
   async migrateAllTenantsToFixedDepartments(): Promise<{
     tenantsMigrated: number;
-    details: Array<{ tenantId: string; companyName: string; departmentCount: number }>;
+    details: Array<{
+      tenantId: string;
+      companyName: string;
+      departmentCount: number;
+      membersMigrated: number;
+    }>;
   }> {
     const tenants = await this.tenantModel.find({});
     const details = [];
 
     for (const tenant of tenants) {
+      // 1. Seed / sync the 9 fixed preset departments
       const fixedDepts = await this.seedFixedDepartments(tenant.tenant_id);
       const fixedDeptIds = fixedDepts.map((d) => d.department_id);
+      const adminDept =
+        fixedDepts.find(
+          (d) => d.department_name.toLowerCase() === 'administrator',
+        ) || fixedDepts[0];
 
-      // Ensure the tenant admin has all 9 fixed departments
+      // 2. Query all existing departments (active & inactive) to build mapping
+      const allDepts = await this.departmentModel.find({
+        tenant_id: tenant.tenant_id,
+      });
+
+      const oldIdToFixedId = new Map<string, string>();
+      for (const oldD of allDepts) {
+        if (fixedDeptIds.includes(oldD.department_id)) {
+          oldIdToFixedId.set(oldD.department_id, oldD.department_id);
+          continue;
+        }
+
+        const name = (oldD.department_name || '').toLowerCase().trim();
+        let targetFixed = adminDept;
+
+        if (
+          name.includes('admin') ||
+          name.includes('manage') ||
+          name.includes('owner') ||
+          name.includes('exec') ||
+          name.includes('director') ||
+          name.includes('general')
+        ) {
+          targetFixed = adminDept;
+        } else if (
+          name.includes('sale') ||
+          name.includes('order') ||
+          name.includes('cust') ||
+          name.includes('client')
+        ) {
+          targetFixed =
+            fixedDepts.find(
+              (d) => d.department_name.toLowerCase() === 'sales',
+            ) || adminDept;
+        } else if (
+          name.includes('store') ||
+          name.includes('warehous') ||
+          name.includes('invent') ||
+          name.includes('stock')
+        ) {
+          targetFixed =
+            fixedDepts.find(
+              (d) => d.department_name.toLowerCase() === 'store room',
+            ) || adminDept;
+        } else if (name.includes('prod') && name.includes('super')) {
+          targetFixed =
+            fixedDepts.find(
+              (d) => d.department_name.toLowerCase() === 'supervisor',
+            ) || adminDept;
+        } else if (
+          name.includes('prod') ||
+          name.includes('manufact') ||
+          name.includes('line')
+        ) {
+          targetFixed =
+            fixedDepts.find(
+              (d) => d.department_name.toLowerCase() === 'production manager',
+            ) || adminDept;
+        } else if (name.includes('super')) {
+          targetFixed =
+            fixedDepts.find(
+              (d) => d.department_name.toLowerCase() === 'supervisor',
+            ) || adminDept;
+        } else if (
+          name.includes('qc') ||
+          name.includes('qual') ||
+          name.includes('inspect') ||
+          name.includes('test')
+        ) {
+          targetFixed =
+            fixedDepts.find((d) => d.department_name.toLowerCase() === 'qc') ||
+            adminDept;
+        } else if (name.includes('pack') || name.includes('box')) {
+          targetFixed =
+            fixedDepts.find(
+              (d) => d.department_name.toLowerCase() === 'packer',
+            ) || adminDept;
+        } else if (
+          name.includes('export') ||
+          name.includes('ship') ||
+          name.includes('dispatch') ||
+          name.includes('logist')
+        ) {
+          targetFixed =
+            fixedDepts.find(
+              (d) => d.department_name.toLowerCase() === 'export',
+            ) || adminDept;
+        } else if (
+          name.includes('acc') ||
+          name.includes('finan') ||
+          name.includes('audit') ||
+          name.includes('book')
+        ) {
+          targetFixed =
+            fixedDepts.find(
+              (d) => d.department_name.toLowerCase() === 'accounts',
+            ) || adminDept;
+        }
+
+        oldIdToFixedId.set(oldD.department_id, targetFixed.department_id);
+      }
+
+      // 3. Migrate all memberships for this tenant
+      const memberships = await this.membershipModel.find({
+        tenant_id: tenant.tenant_id,
+      });
+      let membersMigrated = 0;
+
+      for (const mem of memberships) {
+        const isTenantAdmin = tenant.admin_user_id === mem.user_id;
+
+        // Tenant creator/admin gets all fixed departments
+        if (isTenantAdmin || memberships.length === 1) {
+          mem.department_ids = fixedDeptIds;
+          mem.is_active = true;
+          await mem.save();
+          membersMigrated++;
+          continue;
+        }
+
+        // Map existing department IDs
+        const newDeptIds = new Set<string>();
+        for (const oldId of mem.department_ids || []) {
+          const mappedId = oldIdToFixedId.get(oldId);
+          if (mappedId && fixedDeptIds.includes(mappedId)) {
+            newDeptIds.add(mappedId);
+          }
+        }
+
+        // Fallback: If no department matched or array was empty, assign Administrator
+        if (newDeptIds.size === 0) {
+          newDeptIds.add(adminDept.department_id);
+        }
+
+        mem.department_ids = Array.from(newDeptIds);
+        mem.is_active = true;
+        await mem.save();
+        membersMigrated++;
+      }
+
+      // 4. Ensure tenant.admin_user_id has a membership document with all fixed departments
       if (tenant.admin_user_id) {
         await this.membershipModel.updateOne(
           {
@@ -128,8 +278,12 @@ export class DepartmentsService implements OnModuleInit {
             user_id: tenant.admin_user_id,
           },
           {
-            $addToSet: { department_ids: { $each: fixedDeptIds } },
+            $set: {
+              department_ids: fixedDeptIds,
+              is_active: true,
+            },
           },
+          { upsert: true },
         );
       }
 
@@ -137,6 +291,7 @@ export class DepartmentsService implements OnModuleInit {
         tenantId: tenant.tenant_id,
         companyName: tenant.company_name,
         departmentCount: fixedDepts.length,
+        membersMigrated,
       });
     }
 

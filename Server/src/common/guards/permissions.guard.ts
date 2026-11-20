@@ -87,20 +87,82 @@ export class PermissionsGuard implements CanActivate {
       });
     }
 
-    if (!membership || !membership.department_ids || membership.department_ids.length === 0) {
+    if (!membership) {
       throw new ForbiddenException(
         `Access denied: You are not assigned to any active departments in this tenant organization`,
       );
     }
 
     // 3. Retrieve all active departments the user is assigned to
-    const departments = await this.departmentModel.find({
+    let departments = await this.departmentModel.find({
       tenant_id: tenantId,
-      department_id: { $in: membership.department_ids },
+      department_id: { $in: membership.department_ids || [] },
       is_active: true,
     });
 
-    // 4. Aggregate all permission IDs granted across the user's departments (Department-Centric RBAC)
+    // Self-healing: If user has no active departments found (due to legacy department IDs), auto-resolve to active fixed departments
+    if (departments.length === 0) {
+      const fixedDepts = await this.departmentModel.find({
+        tenant_id: tenantId,
+        is_active: true,
+      });
+
+      if (fixedDepts.length > 0) {
+        const oldDepts = await this.departmentModel.find({
+          tenant_id: tenantId,
+          department_id: { $in: membership.department_ids || [] },
+        });
+
+        const recoveredDeptIds: string[] = [];
+        for (const oldD of oldDepts) {
+          const oldName = (oldD.department_name || '').toLowerCase();
+          const mapped = fixedDepts.find((f) => {
+            const fName = f.department_name.toLowerCase();
+            return fName.includes(oldName) || oldName.includes(fName);
+          });
+          if (mapped) recoveredDeptIds.push(mapped.department_id);
+        }
+
+        const adminDept =
+          fixedDepts.find(
+            (d) => d.department_name.toLowerCase() === 'administrator',
+          ) || fixedDepts[0];
+
+        const isTenantAdmin = tenant && tenant.admin_user_id === user.user_id;
+        const newDeptIds = isTenantAdmin
+          ? fixedDepts.map((d) => d.department_id)
+          : recoveredDeptIds.length > 0
+            ? recoveredDeptIds
+            : [adminDept.department_id];
+
+        membership.department_ids = newDeptIds;
+        await this.membershipModel.updateOne(
+          { _id: (membership as any)._id },
+          { $set: { department_ids: newDeptIds } },
+        );
+
+        departments = fixedDepts.filter((d) =>
+          newDeptIds.includes(d.department_id),
+        );
+      }
+    }
+
+    if (departments.length === 0) {
+      throw new ForbiddenException(
+        `Access denied: You are not assigned to any active departments in this tenant organization`,
+      );
+    }
+
+    // 4. Users with the Administrator department inherit full access across all modules
+    if (
+      departments.some(
+        (d) => d.department_name.toLowerCase() === 'administrator',
+      )
+    ) {
+      return true;
+    }
+
+    // 5. Aggregate all permission IDs granted across the user's departments (Department-Centric RBAC)
     const aggregatedPermissions = new Set<string>();
     for (const dept of departments) {
       if (Array.isArray(dept.permission_ids)) {

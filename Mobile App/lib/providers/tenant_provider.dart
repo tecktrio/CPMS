@@ -114,7 +114,10 @@ class TenantProvider extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('cpms_active_tenant', tenant.tenantId);
 
-    await loadTenantDepartments();
+    await Future.wait([
+      loadTenantDepartments(),
+      loadTenantPermissions(),
+    ]);
     notifyListeners();
   }
 
@@ -129,7 +132,10 @@ class TenantProvider extends ChangeNotifier {
       if (match != null) {
         _activeTenant = match;
         apiClient.setActiveTenantId(savedTenantId);
-        await loadTenantDepartments();
+        await Future.wait([
+          loadTenantDepartments(),
+          loadTenantPermissions(),
+        ]);
         notifyListeners();
       }
     }

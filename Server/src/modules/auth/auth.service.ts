@@ -164,7 +164,9 @@ export class AuthService {
       },
       available_tenants: tenants.map((t) => {
         const mem = memberships.find((m) => m.tenant_id === t.tenant_id);
-        const isAdmin = t.admin_user_id === user.user_id;
+        const isOwner = t.admin_user_id === user.user_id;
+        const tenantMembers = memberships.filter((m) => m.tenant_id === t.tenant_id);
+        const isAdmin = isOwner || tenantMembers.length === 1;
         return {
           tenant_id: t.tenant_id,
           company_name: t.company_name,
@@ -225,7 +227,9 @@ export class AuthService {
       },
       available_tenants: tenants.map((t) => {
         const mem = memberships.find((m) => m.tenant_id === t.tenant_id);
-        const isAdmin = t.admin_user_id === user.user_id;
+        const isOwner = t.admin_user_id === user.user_id;
+        const tenantMembers = memberships.filter((m) => m.tenant_id === t.tenant_id);
+        const isAdmin = isOwner || tenantMembers.length === 1;
         return {
           tenant_id: t.tenant_id,
           company_name: t.company_name,

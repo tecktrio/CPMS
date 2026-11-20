@@ -126,13 +126,20 @@ export class TenantsService {
 
     return Promise.all(
       tenants.map(async (tenant) => {
-        const isAdmin = tenant.admin_user_id === userId;
+        const isTenantOwner = tenant.admin_user_id === userId;
         const membership = memberships.find((m) => m.tenant_id === tenant.tenant_id);
+        const allDepts = await this.departmentsService.findAll(tenant.tenant_id);
+        const adminDept = allDepts.find((d) => d.department_name.toLowerCase() === 'administrator');
 
-        // When a user is Tenant Admin, they have access to all departments in the organization
         let departmentIds = membership?.department_ids || [];
-        if (isAdmin) {
-          const allDepts = await this.departmentsService.findAll(tenant.tenant_id);
+
+        // Check if user is owner, has Administrator department, or is the single member
+        const hasAdminRole =
+          isTenantOwner ||
+          (adminDept && departmentIds.includes(adminDept.department_id)) ||
+          memberships.filter((m) => m.tenant_id === tenant.tenant_id).length === 1;
+
+        if (hasAdminRole) {
           departmentIds = allDepts.map((d) => d.department_id);
         }
 
@@ -140,8 +147,8 @@ export class TenantsService {
           tenant_id: tenant.tenant_id,
           company_name: tenant.company_name,
           admin_user_id: tenant.admin_user_id,
-          is_admin: isAdmin,
-          has_all_departments_access: isAdmin,
+          is_admin: hasAdminRole,
+          has_all_departments_access: hasAdminRole,
           department_ids: departmentIds,
           created_at: (tenant as any).created_at,
         };
@@ -212,52 +219,54 @@ export class TenantsService {
       throw new NotFoundException('Tenant not found');
     }
 
+    const allSystemPerms = [
+      'permission.item.read',
+      'permission.item.create',
+      'permission.item.update',
+      'permission.item.delete',
+      'permission.item_category.manage',
+      'permission.packaging_material.manage',
+      'permission.storeroom.read',
+      'permission.storeroom.create',
+      'permission.storeroom.update',
+      'permission.storeroom.delete',
+      'permission.department.read',
+      'permission.department.create',
+      'permission.department.update',
+      'permission.department.delete',
+      'permission.user.read',
+      'permission.user.add',
+      'permission.user.update',
+      'permission.user.delete',
+      'permission.po.create',
+      'permission.po.read',
+      'permission.po.update',
+      'permission.po.delete',
+      'permission.batch.read',
+      'permission.batch.create',
+      'permission.batch.update',
+      'permission.batch.deduct',
+      'permission.production.read',
+      'permission.production.create',
+      'permission.production.update',
+      'permission.production.delete',
+      'permission.qc.read',
+      'permission.qc.create',
+      'permission.qc.update',
+      'permission.packing.update',
+      'permission.export.update',
+    ];
+
     const isAdmin = tenant.admin_user_id === userId;
 
     if (isAdmin) {
       const allDepts = await this.departmentsService.findAll(tenantId);
-      const allSystemPerms = [
-        'permission.item.read',
-        'permission.item.create',
-        'permission.item.update',
-        'permission.item.delete',
-        'permission.item_category.manage',
-        'permission.packaging_material.manage',
-        'permission.storeroom.read',
-        'permission.storeroom.create',
-        'permission.storeroom.update',
-        'permission.storeroom.delete',
-        'permission.department.read',
-        'permission.department.create',
-        'permission.department.update',
-        'permission.department.delete',
-        'permission.user.read',
-        'permission.user.add',
-        'permission.user.update',
-        'permission.user.delete',
-        'permission.po.create',
-        'permission.po.read',
-        'permission.po.update',
-        'permission.po.delete',
-        'permission.batch.read',
-        'permission.batch.create',
-        'permission.batch.update',
-        'permission.batch.deduct',
-        'permission.production.read',
-        'permission.production.create',
-        'permission.production.update',
-        'permission.production.delete',
-        'permission.qc.read',
-        'permission.qc.create',
-        'permission.qc.update',
-        'permission.packing.update',
-        'permission.export.update',
-      ];
       const permissions = Array.from(
         new Set([...allSystemPerms, ...allDepts.flatMap((d) => d.permission_ids || [])]),
       );
       return {
         tenant_id: tenantId,
+        company_name: tenant.company_name,
         is_admin: true,
         has_all_departments_access: true,
         department_ids: allDepts.map((d) => d.department_id),
@@ -283,10 +292,74 @@ export class TenantsService {
       };
     }
 
-    const depts = await this.departmentsService.findByIds(
+    let depts = await this.departmentsService.findByIds(
       tenantId,
       membership.department_ids || [],
     );
+
+    // Self-healing: If user has no active departments found (due to legacy department IDs), auto-resolve
+    if (depts.length === 0) {
+      const fixedDepts = await this.departmentsService.findAll(tenantId);
+      if (fixedDepts.length > 0) {
+        const oldDepts = await this.departmentModel.find({
+          tenant_id: tenantId,
+          department_id: { $in: membership.department_ids || [] },
+        });
+
+        const recoveredDeptIds: string[] = [];
+        for (const oldD of oldDepts) {
+          const oldName = (oldD.department_name || '').toLowerCase();
+          const mapped = fixedDepts.find((f) => {
+            const fName = f.department_name.toLowerCase();
+            return fName.includes(oldName) || oldName.includes(fName);
+          });
+          if (mapped) recoveredDeptIds.push(mapped.department_id);
+        }
+
+        const adminDept =
+          fixedDepts.find(
+            (d) => d.department_name.toLowerCase() === 'administrator',
+          ) || fixedDepts[0];
+
+        const isTenantAdmin = tenant.admin_user_id === userId;
+        const newDeptIds = isTenantAdmin
+          ? fixedDepts.map((d) => d.department_id)
+          : recoveredDeptIds.length > 0
+            ? recoveredDeptIds
+            : [adminDept.department_id];
+
+        membership.department_ids = newDeptIds;
+        await this.membershipModel.updateOne(
+          { _id: (membership as any)._id },
+          { $set: { department_ids: newDeptIds } },
+        );
+
+        depts = fixedDepts.filter((d) => newDeptIds.includes(d.department_id));
+      }
+    }
+
+    const hasAdminDept = depts.some(
+      (d) => d.department_name.toLowerCase() === 'administrator',
+    );
+
+    if (hasAdminDept) {
+      const allDepts = await this.departmentsService.findAll(tenantId);
+      const permissions = Array.from(
+        new Set([
+          ...allSystemPerms,
+          ...allDepts.flatMap((d) => d.permission_ids || []),
+        ]),
+      );
+      return {
+        tenant_id: tenantId,
+        company_name: tenant.company_name,
+        is_admin: true,
+        has_all_departments_access: true,
+        department_ids: allDepts.map((d) => d.department_id),
+        departments: allDepts,
+        permissions,
+      };
+    }
 
     const permissionsSet = new Set<string>(
       depts.flatMap((d) => d.permission_ids || []),
@@ -302,6 +375,7 @@ export class TenantsService {
 
     return {
       tenant_id: tenantId,
+      company_name: tenant.company_name,
       is_admin: false,
       has_all_departments_access: false,
       department_ids: membership.department_ids || [],
