@@ -8,6 +8,7 @@ import '../../providers/tenant_provider.dart';
 import '../../widgets/user_profile_avatar.dart';
 import '../../widgets/success_screen.dart';
 import 'manage_item_categories_modal.dart';
+import 'manage_packaging_materials_modal.dart';
 
 class CreateItemScreen extends StatefulWidget {
   const CreateItemScreen({super.key});
@@ -59,7 +60,9 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<InventoryProvider>().loadItemCategories(silent: true);
+      final inv = context.read<InventoryProvider>();
+      inv.loadItemCategories(silent: true);
+      inv.loadPackagingMaterials(silent: true);
     });
   }
 
@@ -129,7 +132,7 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
     }).toList();
 
     String finalItemName = _nameController.text.trim();
-    if (_selectedItemType == 'PACKAGING') {
+    if (_selectedItemType == 'PACKAGING' || finalItemName.isEmpty) {
       if (_selectedPackageMaterial == 'Custom') {
         finalItemName = _customPackageMaterialController.text.trim();
       } else {
@@ -398,104 +401,29 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
 
               const SizedBox(height: 24),
 
-              // Item Name / Package Material
-              if (_selectedItemType == 'PACKAGING') ...[
-                _buildFieldLabel('PACKAGE MATERIAL *'),
-                DropdownButtonFormField<String>(
-                  initialValue: _selectedPackageMaterial,
-                  icon: const Icon(
-                    Icons.keyboard_arrow_down,
-                    color: Color(0xFF64748B),
-                  ),
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.black,
-                  ),
-                  decoration: InputDecoration(
-                    filled: true,
-                    fillColor: Colors.white,
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 14,
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(4),
-                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(4),
-                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(4),
-                      borderSide: const BorderSide(color: Colors.black, width: 1.5),
-                    ),
-                  ),
-                  items: _packageMaterialOptions
-                      .map((opt) => DropdownMenuItem(
-                            value: opt,
-                            child: Text(opt),
-                          ))
-                      .toList(),
-                  onChanged: (val) {
-                    if (val != null) {
-                      setState(() => _selectedPackageMaterial = val);
-                    }
-                  },
+              // Item Name
+              _buildFieldLabel('ITEM NAME *'),
+              TextFormField(
+                controller: _nameController,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black,
                 ),
-                if (_selectedPackageMaterial == 'Custom') ...[
-                  const SizedBox(height: 14),
-                  _buildFieldLabel('CUSTOM PACKAGE MATERIAL *'),
-                  TextFormField(
-                    controller: _customPackageMaterialController,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black,
-                    ),
-                    decoration: _buildInputDecoration(
-                      prefixIcon: const Icon(
-                        Icons.edit_note_outlined,
-                        size: 20,
-                        color: Color(0xFF94A3B8),
-                      ),
-                    ),
-                    validator: (val) {
-                      if (_selectedItemType == 'PACKAGING' &&
-                          _selectedPackageMaterial == 'Custom' &&
-                          (val == null || val.trim().isEmpty)) {
-                        return 'Package material name is required';
-                      }
-                      return null;
-                    },
+                decoration: _buildInputDecoration(
+                  prefixIcon: const Icon(
+                    Icons.local_offer_outlined,
+                    size: 20,
+                    color: Color(0xFF94A3B8),
                   ),
-                ],
-              ] else ...[
-                _buildFieldLabel('ITEM NAME *'),
-                TextFormField(
-                  controller: _nameController,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black,
-                  ),
-                  decoration: _buildInputDecoration(
-                    prefixIcon: const Icon(
-                      Icons.local_offer_outlined,
-                      size: 20,
-                      color: Color(0xFF94A3B8),
-                    ),
-                  ),
-                  validator: (val) {
-                    if (_selectedItemType != 'PACKAGING' &&
-                        (val == null || val.trim().isEmpty)) {
-                      return 'Item name is required';
-                    }
-                    return null;
-                  },
                 ),
-              ],
+                validator: (val) {
+                  if (val == null || val.trim().isEmpty) {
+                    return 'Item name is required';
+                  }
+                  return null;
+                },
+              ),
 
               const SizedBox(height: 18),
 
@@ -631,6 +559,151 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
                         setState(() => _selectedItemType = val);
                       }
                     },
+                  );
+                },
+              ),
+
+              const SizedBox(height: 18),
+
+              // Packaging Material Row (Dropdown below category)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  _buildFieldLabel('PACKING MATERIAL'),
+                  Consumer<TenantProvider>(
+                    builder: (context, tenant, _) {
+                      final canManage = tenant.isTenantAdmin ||
+                          tenant.hasPermission(AppPermissions.packagingMaterialManage) ||
+                          tenant.hasPermission(AppPermissions.itemCategoryManage);
+                      if (!canManage) return const SizedBox.shrink();
+                      return InkWell(
+                        onTap: () => ManagePackagingMaterialsModal.show(context),
+                        borderRadius: BorderRadius.circular(4),
+                        child: const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.settings_outlined,
+                                size: 14,
+                                color: Color(0xFF0F766E),
+                              ),
+                              SizedBox(width: 4),
+                              Text(
+                                'Manage Materials',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF0F766E),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
+              Consumer<InventoryProvider>(
+                builder: (context, inventory, _) {
+                  final materialOptions = <String>[];
+                  if (inventory.packagingMaterials.isNotEmpty) {
+                    for (final m in inventory.packagingMaterials) {
+                      materialOptions.add(m.name);
+                    }
+                  } else {
+                    materialOptions.addAll([
+                      'Duplex',
+                      'Rider',
+                      'Pouches with rider',
+                      'Pouches',
+                      'Bucket',
+                      'Tub',
+                    ]);
+                  }
+                  if (!materialOptions.contains('Custom')) {
+                    materialOptions.add('Custom');
+                  }
+
+                  if (!materialOptions.contains(_selectedPackageMaterial)) {
+                    _selectedPackageMaterial = materialOptions.first;
+                  }
+
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      DropdownButtonFormField<String>(
+                        initialValue: _selectedPackageMaterial,
+                        icon: const Icon(
+                          Icons.keyboard_arrow_down,
+                          color: Color(0xFF64748B),
+                        ),
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.black,
+                        ),
+                        decoration: InputDecoration(
+                          filled: true,
+                          fillColor: Colors.white,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 14,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(4),
+                            borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(4),
+                            borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(4),
+                            borderSide:
+                                const BorderSide(color: Colors.black, width: 1.5),
+                          ),
+                        ),
+                        items: materialOptions
+                            .map((opt) => DropdownMenuItem(
+                                  value: opt,
+                                  child: Text(opt),
+                                ))
+                            .toList(),
+                        onChanged: (val) {
+                          if (val != null) {
+                            setState(() => _selectedPackageMaterial = val);
+                          }
+                        },
+                      ),
+                      if (_selectedPackageMaterial == 'Custom') ...[
+                        const SizedBox(height: 14),
+                        _buildFieldLabel('CUSTOM PACKING MATERIAL *'),
+                        TextFormField(
+                          controller: _customPackageMaterialController,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black,
+                          ),
+                          decoration: _buildInputDecoration(
+                            prefixIcon: const Icon(
+                              Icons.edit_note_outlined,
+                              size: 20,
+                              color: Color(0xFF94A3B8),
+                            ),
+                          ),
+                          validator: (val) {
+                            if (_selectedPackageMaterial == 'Custom' &&
+                                (val == null || val.trim().isEmpty)) {
+                              return 'Packing material name is required';
+                            }
+                            return null;
+                          },
+                        ),
+                      ],
+                    ],
                   );
                 },
               ),

@@ -5,6 +5,7 @@ import '../../providers/inventory_provider.dart';
 import '../../providers/tenant_provider.dart';
 import '../../widgets/success_screen.dart';
 import 'manage_item_categories_modal.dart';
+import 'manage_packaging_materials_modal.dart';
 
 class CreateItemDialog extends StatefulWidget {
   const CreateItemDialog({super.key});
@@ -53,7 +54,9 @@ class _CreateItemDialogState extends State<CreateItemDialog> {
       _selectedStoreRoomId = inventory.storeRooms.first.storeRoomId;
     }
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<InventoryProvider>().loadItemCategories(silent: true);
+      final inv = context.read<InventoryProvider>();
+      inv.loadItemCategories(silent: true);
+      inv.loadPackagingMaterials(silent: true);
     });
   }
 
@@ -72,7 +75,7 @@ class _CreateItemDialogState extends State<CreateItemDialog> {
     final inventory = context.read<InventoryProvider>();
 
     String finalItemName = _nameController.text.trim();
-    if (_selectedItemType == 'PACKAGING') {
+    if (_selectedItemType == 'PACKAGING' || finalItemName.isEmpty) {
       if (_selectedPackageMaterial == 'Custom') {
         finalItemName = _customPackageMaterialController.text.trim();
       } else {
@@ -147,60 +150,20 @@ class _CreateItemDialogState extends State<CreateItemDialog> {
                 ),
                 const SizedBox(height: 20),
 
-                // Item Name / Package Material
-                if (_selectedItemType == 'PACKAGING') ...[
-                  DropdownButtonFormField<String>(
-                    initialValue: _selectedPackageMaterial,
-                    decoration: const InputDecoration(
-                      labelText: 'Package Material *',
-                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                    ),
-                    items: _packageMaterialOptions.map((opt) {
-                      return DropdownMenuItem(
-                        value: opt,
-                        child: Text(opt, style: const TextStyle(fontSize: 13)),
-                      );
-                    }).toList(),
-                    onChanged: (val) {
-                      if (val != null) {
-                        setState(() => _selectedPackageMaterial = val);
-                      }
-                    },
+                // Item Name
+                TextFormField(
+                  controller: _nameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Item Name / Description *',
+                    prefixIcon: Icon(Icons.label_outline, size: 20),
                   ),
-                  if (_selectedPackageMaterial == 'Custom') ...[
-                    const SizedBox(height: 14),
-                    TextFormField(
-                      controller: _customPackageMaterialController,
-                      decoration: const InputDecoration(
-                        labelText: 'Custom Package Material *',
-                        prefixIcon: Icon(Icons.edit_note, size: 20),
-                      ),
-                      validator: (val) {
-                        if (_selectedItemType == 'PACKAGING' &&
-                            _selectedPackageMaterial == 'Custom' &&
-                            (val == null || val.trim().isEmpty)) {
-                          return 'Package material name is required';
-                        }
-                        return null;
-                      },
-                    ),
-                  ],
-                ] else ...[
-                  TextFormField(
-                    controller: _nameController,
-                    decoration: const InputDecoration(
-                      labelText: 'Item Name / Description *',
-                      prefixIcon: Icon(Icons.label_outline, size: 20),
-                    ),
-                    validator: (val) {
-                      if (_selectedItemType != 'PACKAGING' &&
-                          (val == null || val.trim().isEmpty)) {
-                        return 'Item name is required';
-                      }
-                      return null;
-                    },
-                  ),
-                ],
+                  validator: (val) {
+                    if (val == null || val.trim().isEmpty) {
+                      return 'Item name is required';
+                    }
+                    return null;
+                  },
+                ),
                 const SizedBox(height: 14),
 
                 // Item Type / Category
@@ -275,6 +238,111 @@ class _CreateItemDialogState extends State<CreateItemDialog> {
                       onChanged: (val) {
                         if (val != null) setState(() => _selectedItemType = val);
                       },
+                    );
+                  },
+                ),
+                const SizedBox(height: 14),
+
+                // Packaging Material Row (Below category)
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Packing Material',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF64748B),
+                      ),
+                    ),
+                    Consumer<TenantProvider>(
+                      builder: (context, tenant, _) {
+                        final canManage = tenant.isTenantAdmin ||
+                            tenant.hasPermission(AppPermissions.packagingMaterialManage) ||
+                            tenant.hasPermission(AppPermissions.itemCategoryManage);
+                        if (!canManage) return const SizedBox.shrink();
+                        return InkWell(
+                          onTap: () => ManagePackagingMaterialsModal.show(context),
+                          child: const Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                            child: Text(
+                              'Manage Materials',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF0F766E),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Consumer<InventoryProvider>(
+                  builder: (context, inventory, _) {
+                    final materialOptions = <String>[];
+                    if (inventory.packagingMaterials.isNotEmpty) {
+                      for (final m in inventory.packagingMaterials) {
+                        materialOptions.add(m.name);
+                      }
+                    } else {
+                      materialOptions.addAll([
+                        'Duplex',
+                        'Rider',
+                        'Pouches with rider',
+                        'Pouches',
+                        'Bucket',
+                        'Tub',
+                      ]);
+                    }
+                    if (!materialOptions.contains('Custom')) {
+                      materialOptions.add('Custom');
+                    }
+
+                    if (!materialOptions.contains(_selectedPackageMaterial)) {
+                      _selectedPackageMaterial = materialOptions.first;
+                    }
+
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        DropdownButtonFormField<String>(
+                          initialValue: _selectedPackageMaterial,
+                          decoration: const InputDecoration(
+                            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                          ),
+                          items: materialOptions.map((opt) {
+                            return DropdownMenuItem(
+                              value: opt,
+                              child: Text(opt, style: const TextStyle(fontSize: 13)),
+                            );
+                          }).toList(),
+                          onChanged: (val) {
+                            if (val != null) {
+                              setState(() => _selectedPackageMaterial = val);
+                            }
+                          },
+                        ),
+                        if (_selectedPackageMaterial == 'Custom') ...[
+                          const SizedBox(height: 14),
+                          TextFormField(
+                            controller: _customPackageMaterialController,
+                            decoration: const InputDecoration(
+                              labelText: 'Custom Packing Material *',
+                              prefixIcon: Icon(Icons.edit_note, size: 20),
+                            ),
+                            validator: (val) {
+                              if (_selectedPackageMaterial == 'Custom' &&
+                                  (val == null || val.trim().isEmpty)) {
+                                return 'Packing material name is required';
+                              }
+                              return null;
+                            },
+                          ),
+                        ],
+                      ],
                     );
                   },
                 ),

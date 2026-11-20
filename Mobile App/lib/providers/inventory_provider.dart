@@ -534,6 +534,36 @@ class ItemCategoryModel {
       };
 }
 
+class PackagingMaterialModel {
+  final String materialId;
+  final String name;
+  final bool isPreset;
+  final bool isActive;
+
+  PackagingMaterialModel({
+    required this.materialId,
+    required this.name,
+    this.isPreset = false,
+    this.isActive = true,
+  });
+
+  factory PackagingMaterialModel.fromJson(Map<String, dynamic> json) {
+    return PackagingMaterialModel(
+      materialId: json['material_id']?.toString() ?? '',
+      name: json['name']?.toString() ?? '',
+      isPreset: json['is_preset'] == true,
+      isActive: json['is_active'] != false,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'material_id': materialId,
+        'name': name,
+        'is_preset': isPreset,
+        'is_active': isActive,
+      };
+}
+
 class InventoryProvider extends ChangeNotifier {
   final ApiClient apiClient;
   final SyncManager syncManager = SyncManager();
@@ -541,6 +571,7 @@ class InventoryProvider extends ChangeNotifier {
   List<StoreRoomModel> _storeRooms = [];
   List<ItemModel> _items = [];
   List<ItemCategoryModel> _itemCategories = [];
+  List<PackagingMaterialModel> _packagingMaterials = [];
   List<StockBatchModel> _stockBatches = [];
   List<StockBatchModel> _expiringSoonBatches = [];
 
@@ -556,6 +587,7 @@ class InventoryProvider extends ChangeNotifier {
   List<StoreRoomModel> get storeRooms => _storeRooms;
   List<ItemModel> get items => _items;
   List<ItemCategoryModel> get itemCategories => _itemCategories;
+  List<PackagingMaterialModel> get packagingMaterials => _packagingMaterials;
   List<StockBatchModel> get stockBatches => _stockBatches;
   List<StockBatchModel> get expiringSoonBatches => _expiringSoonBatches;
   bool get isLoading => _isLoading;
@@ -565,6 +597,7 @@ class InventoryProvider extends ChangeNotifier {
     _storeRooms = [];
     _items = [];
     _itemCategories = [];
+    _packagingMaterials = [];
     _stockBatches = [];
     _expiringSoonBatches = [];
     _errorMessage = null;
@@ -1076,6 +1109,114 @@ class InventoryProvider extends ChangeNotifier {
       // Remove local items belonging to this category
       _items.removeWhere((i) => i.itemType == code);
       _itemCategories.removeWhere((c) => c.code == code);
+      _persistItemsLocally();
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _errorMessage = e.toString();
+      notifyListeners();
+      return false;
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Packaging Materials Management
+  // ---------------------------------------------------------------------------
+
+  Future<void> loadPackagingMaterials({bool silent = false}) async {
+    try {
+      final res = await apiClient.get(ApiConstants.packagingMaterials);
+      if (res is List) {
+        _packagingMaterials =
+            res.map((item) => PackagingMaterialModel.fromJson(item)).toList();
+        notifyListeners();
+      }
+    } catch (e) {
+      _errorMessage = e.toString();
+    }
+  }
+
+  Future<bool> createPackagingMaterial({
+    required String name,
+  }) async {
+    try {
+      final res = await apiClient.post(
+        ApiConstants.packagingMaterialBase,
+        body: {
+          'name': name.trim(),
+        },
+      );
+      if (res is Map<String, dynamic>) {
+        final newMat = PackagingMaterialModel.fromJson(res);
+        _packagingMaterials.removeWhere(
+            (m) => m.name.toLowerCase() == newMat.name.toLowerCase());
+        _packagingMaterials.add(newMat);
+        notifyListeners();
+        return true;
+      }
+      return false;
+    } catch (e) {
+      _errorMessage = e.toString();
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> updatePackagingMaterial({
+    required String idOrName,
+    required String name,
+  }) async {
+    try {
+      final res = await apiClient.put(
+        ApiConstants.packagingMaterialDetail(idOrName),
+        body: {
+          'name': name.trim(),
+        },
+      );
+      if (res is Map<String, dynamic>) {
+        final updatedMat = PackagingMaterialModel.fromJson(res);
+        final idx = _packagingMaterials.indexWhere((m) =>
+            m.materialId == idOrName ||
+            m.name.toLowerCase() == idOrName.toLowerCase());
+        if (idx != -1) {
+          _packagingMaterials[idx] = updatedMat;
+        }
+        notifyListeners();
+        return true;
+      }
+      return false;
+    } catch (e) {
+      _errorMessage = e.toString();
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<int> checkPackagingMaterialItemsCount(String idOrName) async {
+    try {
+      final res = await apiClient
+          .get(ApiConstants.packagingMaterialItemsCount(idOrName));
+      if (res is Map<String, dynamic> && res['count'] != null) {
+        return (res['count'] as num).toInt();
+      }
+    } catch (_) {}
+    return _items
+        .where((i) =>
+            i.itemType == 'PACKAGING' &&
+            i.itemName.toLowerCase() == idOrName.toLowerCase())
+        .length;
+  }
+
+  Future<bool> deletePackagingMaterial(String idOrName) async {
+    try {
+      await apiClient.delete(ApiConstants.packagingMaterialDetail(idOrName));
+      _items.removeWhere((i) =>
+          i.itemType == 'PACKAGING' &&
+          (i.itemName.toLowerCase() == idOrName.toLowerCase() ||
+              i.itemId == idOrName));
+      _packagingMaterials.removeWhere((m) =>
+          m.materialId == idOrName ||
+          m.name.toLowerCase() == idOrName.toLowerCase());
       _persistItemsLocally();
       notifyListeners();
       return true;

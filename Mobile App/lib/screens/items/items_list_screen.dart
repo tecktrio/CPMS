@@ -19,21 +19,70 @@ class ItemsListScreen extends StatefulWidget {
 
 class _ItemsListScreenState extends State<ItemsListScreen> {
   final TextEditingController _searchController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
   String _searchQuery = '';
   String _selectedCategory = 'ALL';
+
+  // Infinite Scroll Pagination state
+  int _displayedCount = 30;
+  static const int _pageSize = 20;
+  bool _isLoadingMore = false;
 
   @override
   void initState() {
     super.initState();
+    _scrollController.addListener(_onScroll);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<InventoryProvider>().loadItems();
       context.read<InventoryProvider>().loadItemCategories(silent: true);
     });
   }
 
+  void _onScroll() {
+    if (!_scrollController.hasClients || _isLoadingMore) return;
+    final maxScroll = _scrollController.position.maxScrollExtent;
+    final currentScroll = _scrollController.position.pixels;
+    // Trigger when user is within 250 pixels of the bottom
+    if (maxScroll - currentScroll <= 250) {
+      _loadMoreItems();
+    }
+  }
+
+  void _loadMoreItems() {
+    final inventory = context.read<InventoryProvider>();
+    final allItems = inventory.items;
+    final filteredCount = allItems.where((item) {
+      final matchesSearch = item.itemName
+              .toLowerCase()
+              .contains(_searchQuery.toLowerCase()) ||
+          item.sku.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+          item.specification.toLowerCase().contains(_searchQuery.toLowerCase());
+      final matchesCat =
+          _selectedCategory == 'ALL' || item.itemType == _selectedCategory;
+      return matchesSearch && matchesCat;
+    }).length;
+
+    if (_displayedCount < filteredCount) {
+      setState(() {
+        _isLoadingMore = true;
+      });
+      // Brief debounce / smooth UI transition
+      Future.delayed(const Duration(milliseconds: 150), () {
+        if (mounted) {
+          setState(() {
+            _displayedCount = (_displayedCount + _pageSize).clamp(0, filteredCount);
+            _isLoadingMore = false;
+          });
+        }
+      });
+    }
+  }
+
   @override
   void dispose() {
+    _scrollController.removeListener(_onScroll);
     _searchController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -61,6 +110,11 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
           _selectedCategory == 'ALL' || item.itemType == _selectedCategory;
       return matchesSearch && matchesCat;
     }).toList();
+
+    final totalFiltered = filteredItems.length;
+    final displayLimit = _displayedCount.clamp(0, totalFiltered);
+    final pagedItems = filteredItems.take(displayLimit).toList();
+    final hasMore = displayLimit < totalFiltered;
 
     String pageTitle = 'Items & Materials';
     if (widget.manageMode) {
@@ -278,37 +332,129 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
                               ],
                             )
                           : isWide
-                              ? GridView.builder(
-                                  physics:
-                                      const AlwaysScrollableScrollPhysics(),
-                                  padding: const EdgeInsets.fromLTRB(
-                                      24, 6, 24, 90),
-                                  gridDelegate:
-                                      SliverGridDelegateWithFixedCrossAxisCount(
-                                    crossAxisCount:
-                                        screenWidth >= 1050 ? 3 : 2,
-                                    crossAxisSpacing: 14,
-                                    mainAxisSpacing: 14,
-                                    mainAxisExtent: 88,
-                                  ),
-                                  itemCount: filteredItems.length,
-                                  itemBuilder: (context, index) {
-                                    return _buildItemCard(
-                                        filteredItems[index]);
-                                  },
+                              ? CustomScrollView(
+                                  controller: _scrollController,
+                                  physics: const AlwaysScrollableScrollPhysics(),
+                                  slivers: [
+                                    SliverPadding(
+                                      padding: const EdgeInsets.fromLTRB(24, 6, 24, 16),
+                                      sliver: SliverGrid(
+                                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                                          crossAxisCount: screenWidth >= 1050 ? 3 : 2,
+                                          crossAxisSpacing: 14,
+                                          mainAxisSpacing: 14,
+                                          mainAxisExtent: 88,
+                                        ),
+                                        delegate: SliverChildBuilderDelegate(
+                                          (context, index) => _buildItemCard(pagedItems[index]),
+                                          childCount: pagedItems.length,
+                                        ),
+                                      ),
+                                    ),
+                                    if (hasMore)
+                                      SliverToBoxAdapter(
+                                        child: Padding(
+                                          padding: const EdgeInsets.symmetric(vertical: 24),
+                                          child: Center(
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                const SizedBox(
+                                                  width: 18,
+                                                  height: 18,
+                                                  child: CircularProgressIndicator(
+                                                    strokeWidth: 2,
+                                                    color: Colors.black,
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 12),
+                                                Text(
+                                                  'Loading more items (${pagedItems.length} of $totalFiltered)...',
+                                                  style: const TextStyle(
+                                                    fontSize: 13,
+                                                    fontWeight: FontWeight.w600,
+                                                    color: Color(0xFF64748B),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      )
+                                    else if (totalFiltered > 0)
+                                      SliverToBoxAdapter(
+                                        child: Padding(
+                                          padding: const EdgeInsets.symmetric(vertical: 20),
+                                          child: Center(
+                                            child: Text(
+                                              'All $totalFiltered items loaded',
+                                              style: const TextStyle(
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w600,
+                                                color: Color(0xFF94A3B8),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    const SliverToBoxAdapter(
+                                      child: SizedBox(height: 80),
+                                    ),
+                                  ],
                                 )
                               : ListView.builder(
-                                  physics:
-                                      const AlwaysScrollableScrollPhysics(),
-                                  padding: const EdgeInsets.fromLTRB(
-                                      16, 6, 16, 90),
-                                  itemCount: filteredItems.length,
+                                  controller: _scrollController,
+                                  physics: const AlwaysScrollableScrollPhysics(),
+                                  padding: const EdgeInsets.fromLTRB(16, 6, 16, 80),
+                                  itemCount: pagedItems.length + (hasMore ? 1 : 1),
                                   itemBuilder: (context, index) {
+                                    if (index < pagedItems.length) {
+                                      return Padding(
+                                        padding: const EdgeInsets.only(bottom: 12),
+                                        child: _buildItemCard(pagedItems[index]),
+                                      );
+                                    }
+                                    if (hasMore) {
+                                      return Padding(
+                                        padding: const EdgeInsets.symmetric(vertical: 20),
+                                        child: Center(
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              const SizedBox(
+                                                width: 18,
+                                                height: 18,
+                                                child: CircularProgressIndicator(
+                                                  strokeWidth: 2,
+                                                  color: Colors.black,
+                                                ),
+                                              ),
+                                              const SizedBox(width: 12),
+                                              Text(
+                                                'Loading more (${pagedItems.length} of $totalFiltered)...',
+                                                style: const TextStyle(
+                                                  fontSize: 13,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: Color(0xFF64748B),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      );
+                                    }
                                     return Padding(
-                                      padding:
-                                          const EdgeInsets.only(bottom: 12),
-                                      child: _buildItemCard(
-                                          filteredItems[index]),
+                                      padding: const EdgeInsets.symmetric(vertical: 20),
+                                      child: Center(
+                                        child: Text(
+                                          'All $totalFiltered items loaded',
+                                          style: const TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w600,
+                                            color: Color(0xFF94A3B8),
+                                          ),
+                                        ),
+                                      ),
                                     );
                                   },
                                 ),
@@ -388,7 +534,10 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
                 contentPadding: EdgeInsets.symmetric(vertical: 14),
               ),
               onChanged: (val) {
-                setState(() => _searchQuery = val.trim());
+                setState(() {
+                  _searchQuery = val.trim();
+                  _displayedCount = 30;
+                });
               },
             ),
           ),
@@ -398,7 +547,10 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
               splashRadius: 18,
               onPressed: () {
                 _searchController.clear();
-                setState(() => _searchQuery = '');
+                setState(() {
+                  _searchQuery = '';
+                  _displayedCount = 30;
+                });
               },
             ),
         ],
@@ -440,6 +592,7 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
               onTap: () {
                 setState(() {
                   _selectedCategory = code;
+                  _displayedCount = 30;
                 });
               },
               borderRadius: BorderRadius.circular(2),

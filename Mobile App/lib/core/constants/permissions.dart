@@ -5,6 +5,7 @@ class AppPermissions {
   static const String itemUpdate = 'permission.item.update';
   static const String itemDelete = 'permission.item.delete';
   static const String itemCategoryManage = 'permission.item_category.manage';
+  static const String packagingMaterialManage = 'permission.packaging_material.manage';
 
   // Store Rooms / Cold Storage
   static const String storeroomCreate = 'permission.storeroom.create';

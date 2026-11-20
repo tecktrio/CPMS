@@ -13,6 +13,10 @@ import {
   ItemCategoryDocument,
 } from '../../database/schemas/item-category.schema';
 import {
+  PackagingMaterial,
+  PackagingMaterialDocument,
+} from '../../database/schemas/packaging-material.schema';
+import {
   StoreRoom,
   StoreRoomDocument,
 } from '../../database/schemas/store-room.schema';
@@ -27,6 +31,10 @@ import {
   CreateItemCategoryDto,
   UpdateItemCategoryDto,
 } from './dtos/item-category.dto';
+import {
+  CreatePackagingMaterialDto,
+  UpdatePackagingMaterialDto,
+} from './dtos/packaging-material.dto';
 import { StorageService } from '../storage/storage.service';
 
 function normalizeIngredients(ingredients?: any[]): Array<{ item_id: string; quantity: number; unit?: string }> {
@@ -50,6 +58,8 @@ export class ItemsService {
     private readonly itemModel: Model<ItemDocument>,
     @InjectModel(ItemCategory.name)
     private readonly itemCategoryModel: Model<ItemCategoryDocument>,
+    @InjectModel(PackagingMaterial.name)
+    private readonly packagingMaterialModel: Model<PackagingMaterialDocument>,
     @InjectModel(StoreRoom.name)
     private readonly storeRoomModel: Model<StoreRoomDocument>,
     @InjectModel(StockBatch.name)
@@ -475,6 +485,194 @@ export class ItemsService {
       message: `Category "${category.label}" and ${itemIds.length} item(s) deleted successfully`,
       deleted_items_count: itemIds.length,
       category_code: cleanCode,
+    };
+  }
+
+  // --- PACKAGING MATERIALS MANAGEMENT ---
+
+  private async ensureDefaultPackagingMaterials(
+    tenantId: string,
+  ): Promise<void> {
+    const defaultMaterials = [
+      'Duplex',
+      'Rider',
+      'Pouches with rider',
+      'Pouches',
+      'Bucket',
+      'Tub',
+    ];
+
+    for (const name of defaultMaterials) {
+      const exists = await this.packagingMaterialModel.findOne({
+        tenant_id: tenantId,
+        name: { $regex: new RegExp(`^${name}$`, 'i') },
+      });
+      if (!exists) {
+        await this.packagingMaterialModel.create({
+          tenant_id: tenantId,
+          name,
+          is_preset: true,
+          is_active: true,
+        });
+      }
+    }
+  }
+
+  async getPackagingMaterials(tenantId: string) {
+    await this.ensureDefaultPackagingMaterials(tenantId);
+    return this.packagingMaterialModel
+      .find({ tenant_id: tenantId, is_active: true })
+      .sort({ is_preset: -1, created_at: 1 });
+  }
+
+  async createPackagingMaterial(
+    tenantId: string,
+    dto: CreatePackagingMaterialDto,
+  ) {
+    const cleanName = dto.name.trim();
+    if (!cleanName) {
+      throw new BadRequestException('Packaging material name is required');
+    }
+
+    const existing = await this.packagingMaterialModel.findOne({
+      tenant_id: tenantId,
+      name: { $regex: new RegExp(`^${cleanName}$`, 'i') },
+    });
+
+    if (existing) {
+      if (!existing.is_active) {
+        existing.is_active = true;
+        existing.name = cleanName;
+        await existing.save();
+        return existing;
+      }
+      throw new ConflictException(
+        `Packaging material "${cleanName}" already exists`,
+      );
+    }
+
+    return this.packagingMaterialModel.create({
+      tenant_id: tenantId,
+      name: cleanName,
+      is_preset: false,
+      is_active: true,
+    });
+  }
+
+  async updatePackagingMaterial(
+    tenantId: string,
+    idOrName: string,
+    dto: UpdatePackagingMaterialDto,
+  ) {
+    const cleanName = dto.name?.trim();
+    if (!cleanName) {
+      throw new BadRequestException('New name is required');
+    }
+
+    const material = await this.packagingMaterialModel.findOne({
+      tenant_id: tenantId,
+      $or: [
+        { material_id: idOrName },
+        { name: { $regex: new RegExp(`^${idOrName}$`, 'i') } },
+      ],
+      is_active: true,
+    });
+
+    if (!material) {
+      throw new NotFoundException('Packaging material not found');
+    }
+
+    // Rename items with this packaging material name if they are in PACKAGING category
+    await this.itemModel.updateMany(
+      {
+        tenant_id: tenantId,
+        item_type: 'PACKAGING',
+        item_name: material.name,
+      },
+      {
+        $set: { item_name: cleanName },
+      },
+    );
+
+    material.name = cleanName;
+    await material.save();
+    return material;
+  }
+
+  async checkPackagingMaterialItemsCount(tenantId: string, idOrName: string) {
+    const material = await this.packagingMaterialModel.findOne({
+      tenant_id: tenantId,
+      $or: [
+        { material_id: idOrName },
+        { name: { $regex: new RegExp(`^${idOrName}$`, 'i') } },
+      ],
+    });
+
+    const materialName = material ? material.name : idOrName;
+    const count = await this.itemModel.countDocuments({
+      tenant_id: tenantId,
+      item_type: 'PACKAGING',
+      item_name: { $regex: new RegExp(`^${materialName}$`, 'i') },
+    });
+
+    return {
+      name: materialName,
+      count,
+    };
+  }
+
+  async deletePackagingMaterial(tenantId: string, idOrName: string) {
+    const material = await this.packagingMaterialModel.findOne({
+      tenant_id: tenantId,
+      $or: [
+        { material_id: idOrName },
+        { name: { $regex: new RegExp(`^${idOrName}$`, 'i') } },
+      ],
+      is_active: true,
+    });
+
+    if (!material) {
+      throw new NotFoundException('Packaging material not found');
+    }
+
+    // Find all items with this packaging material
+    const itemsToDelete = await this.itemModel.find({
+      tenant_id: tenantId,
+      item_type: 'PACKAGING',
+      item_name: { $regex: new RegExp(`^${material.name}$`, 'i') },
+    });
+
+    const itemIds = itemsToDelete.map((it) => it.item_id);
+
+    if (itemIds.length > 0) {
+      await this.batchModel.deleteMany({
+        tenant_id: tenantId,
+        item_id: { $in: itemIds },
+      });
+
+      for (const item of itemsToDelete) {
+        if (item.image_url) {
+          try {
+            await this.storageService.deleteFile(item.image_url);
+          } catch (_) {}
+        }
+      }
+
+      await this.itemModel.deleteMany({
+        tenant_id: tenantId,
+        item_id: { $in: itemIds },
+      });
+    }
+
+    await this.packagingMaterialModel.deleteOne({
+      tenant_id: tenantId,
+      material_id: material.material_id,
+    });
+
+    return {
+      message: `Packaging material "${material.name}" and ${itemIds.length} item(s) deleted successfully`,
+      deleted_items_count: itemIds.length,
+      name: material.name,
     };
   }
 }

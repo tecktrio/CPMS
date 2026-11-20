@@ -43,6 +43,13 @@ export const SYSTEM_PERMISSIONS: SystemPermissionDefinition[] = [
     display_name: 'Manage Item Categories',
     description: 'Allows creating, updating, and deleting item categories for the tenant.',
   },
+  {
+    permission_id: 'permission.packaging_material.manage',
+    module: 'Items',
+    action: 'UPDATE',
+    display_name: 'Manage Packaging Materials',
+    description: 'Allows creating, updating, and deleting packaging materials for the tenant.',
+  },
 
   // 2. Cold Store Rooms
   {

@@ -33,6 +33,17 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
 
   bool _isSaving = false;
 
+  // Inline Quick Add Items state
+  ItemModel? _quickSelectedItem;
+  final TextEditingController _quickItemSearchCtrl = TextEditingController();
+  final TextEditingController _quickPktPerCtnCtrl = TextEditingController(text: '10');
+  final TextEditingController _quickCtnsCtrl = TextEditingController(text: '20');
+  final FocusNode _quickItemSearchFocusNode = FocusNode();
+  final FocusNode _quickPktFocusNode = FocusNode();
+  final FocusNode _quickCtnsFocusNode = FocusNode();
+  bool _showItemSuggestions = false;
+  String _itemSearchFilter = '';
+
   @override
   void initState() {
     super.initState();
@@ -80,6 +91,12 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
   void dispose() {
     _poNumberCtrl.dispose();
     _notesCtrl.dispose();
+    _quickItemSearchCtrl.dispose();
+    _quickPktPerCtnCtrl.dispose();
+    _quickCtnsCtrl.dispose();
+    _quickItemSearchFocusNode.dispose();
+    _quickPktFocusNode.dispose();
+    _quickCtnsFocusNode.dispose();
     super.dispose();
   }
 
@@ -480,6 +497,49 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
         },
       ),
     );
+  }
+
+  void _addQuickItemToPo() {
+    if (_quickSelectedItem == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select an item from the suggestions')),
+      );
+      return;
+    }
+
+    final p = int.tryParse(_quickPktPerCtnCtrl.text.trim()) ?? 0;
+    final c = int.tryParse(_quickCtnsCtrl.text.trim()) ?? 0;
+    if (p <= 0 || c <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter valid quantities for packets and cartons')),
+      );
+      return;
+    }
+
+    final qpp = _quickSelectedItem!.quantity;
+    final newItem = PurchaseOrderItemModel(
+      itemId: _quickSelectedItem!.itemId,
+      itemName: _quickSelectedItem!.itemName,
+      sku: _quickSelectedItem!.sku,
+      specification: _quickSelectedItem!.specification,
+      packetPerCarton: p,
+      cartons: c,
+      quantityPerPacket: qpp > 0 ? qpp : 1.0,
+      unit: _quickSelectedItem!.measurementUnit,
+    );
+
+    setState(() {
+      // Newly added items go right to the top of the list so they are immediately visible
+      _orderItems.insert(0, newItem);
+      _quickSelectedItem = null;
+      _quickItemSearchCtrl.clear();
+      _itemSearchFilter = '';
+      _showItemSuggestions = false;
+      _quickPktPerCtnCtrl.text = '10';
+      _quickCtnsCtrl.text = '20';
+    });
+
+    FocusScope.of(context).unfocus();
   }
 
   void _showAddItemModal({PurchaseOrderItemModel? editItem, int? editIndex}) {
@@ -962,7 +1022,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                           if (editIndex != null && editIndex >= 0 && editIndex < _orderItems.length) {
                             _orderItems[editIndex] = newItem;
                           } else {
-                            _orderItems.add(newItem);
+                            _orderItems.insert(0, newItem);
                           }
                         });
 
@@ -984,19 +1044,444 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
     );
   }
 
+  Widget _buildInlineItemSearchBar() {
+    final invProv = context.watch<InventoryProvider>();
+    final items = invProv.items;
+    final filtered = items.where((i) {
+      final q = _itemSearchFilter.toLowerCase();
+      if (q.isEmpty) return false;
+      return i.itemName.toLowerCase().contains(q) ||
+          i.sku.toLowerCase().contains(q) ||
+          i.specification.toLowerCase().contains(q);
+    }).take(10).toList();
+
+    final int ppc = int.tryParse(_quickPktPerCtnCtrl.text.trim()) ?? 0;
+    final int ctns = int.tryParse(_quickCtnsCtrl.text.trim()) ?? 0;
+    final double qpp = _quickSelectedItem?.quantity ?? 1.0;
+    final int totalPkts = ppc * ctns;
+    final double totalQty = totalPkts * qpp;
+    final unitStr = _quickSelectedItem?.measurementUnit.toUpperCase() ?? '';
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(
+          color: _quickSelectedItem != null ? Colors.black : const Color(0xFFE5E5E5),
+          width: _quickSelectedItem != null ? 1.5 : 1.0,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // 1. Search Box Row
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+            child: Row(
+              children: [
+                const Icon(Icons.search, size: 20, color: Colors.black),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: TextField(
+                    controller: _quickItemSearchCtrl,
+                    focusNode: _quickItemSearchFocusNode,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.black,
+                    ),
+                    decoration: InputDecoration(
+                      hintText: _quickSelectedItem != null
+                          ? _quickSelectedItem!.itemName
+                          : 'Search item title, SKU or specification to add...',
+                      hintStyle: TextStyle(
+                        fontSize: 13,
+                        color: _quickSelectedItem != null ? Colors.black : const Color(0xFFA1A1AA),
+                        fontWeight: _quickSelectedItem != null ? FontWeight.w700 : FontWeight.w500,
+                      ),
+                      border: InputBorder.none,
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                    onChanged: (val) {
+                      setState(() {
+                        _itemSearchFilter = val.trim();
+                        _showItemSuggestions = val.trim().isNotEmpty;
+                        if (_quickSelectedItem != null && val.trim() != _quickSelectedItem!.itemName) {
+                          _quickSelectedItem = null;
+                        }
+                      });
+                    },
+                    onTap: () {
+                      if (_quickItemSearchCtrl.text.trim().isNotEmpty) {
+                        setState(() => _showItemSuggestions = true);
+                      }
+                    },
+                  ),
+                ),
+                if (_quickSelectedItem != null || _quickItemSearchCtrl.text.isNotEmpty)
+                  IconButton(
+                    icon: const Icon(Icons.clear, size: 18, color: Colors.black),
+                    splashRadius: 18,
+                    onPressed: () {
+                      setState(() {
+                        _quickSelectedItem = null;
+                        _quickItemSearchCtrl.clear();
+                        _itemSearchFilter = '';
+                        _showItemSuggestions = false;
+                      });
+                    },
+                  ),
+              ],
+            ),
+          ),
+
+          // 2. Recommendations Dropdown (When typing)
+          if (_showItemSuggestions && _itemSearchFilter.isNotEmpty)
+            Container(
+              constraints: const BoxConstraints(maxHeight: 220),
+              decoration: const BoxDecoration(
+                border: Border(
+                  top: BorderSide(color: Color(0xFFE5E5E5)),
+                ),
+                color: Colors.white,
+              ),
+              child: filtered.isEmpty
+                  ? const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+                      child: Text(
+                        'No matching items found',
+                        style: TextStyle(fontSize: 12, color: Color(0xFF71717A), fontWeight: FontWeight.w600),
+                      ),
+                    )
+                  : ListView.separated(
+                      shrinkWrap: true,
+                      padding: EdgeInsets.zero,
+                      itemCount: filtered.length,
+                      separatorBuilder: (_, _) => const Divider(height: 1, color: Color(0xFFF4F4F5)),
+                      itemBuilder: (context, idx) {
+                        final item = filtered[idx];
+                        final isSelected = _quickSelectedItem?.itemId == item.itemId;
+                        return InkWell(
+                          onTap: () {
+                            setState(() {
+                              _quickSelectedItem = item;
+                              _quickItemSearchCtrl.text = item.itemName;
+                              _showItemSuggestions = false;
+                              _itemSearchFilter = '';
+                            });
+                            // Focus on the cartons input for super fast entry
+                            _quickCtnsFocusNode.requestFocus();
+                          },
+                          child: Container(
+                            color: isSelected ? const Color(0xFFF4F4F5) : Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 32,
+                                  height: 32,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(2),
+                                    border: Border.all(color: Colors.black),
+                                  ),
+                                  alignment: Alignment.center,
+                                  child: Text(
+                                    item.itemName.isNotEmpty ? item.itemName[0].toUpperCase() : 'I',
+                                    style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: Colors.black),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        item.itemName,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w800,
+                                          fontSize: 13,
+                                          color: Colors.black,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        '${item.sku} • ${item.specification.isNotEmpty ? item.specification : "${item.quantity} ${item.measurementUnit}"}',
+                                        style: const TextStyle(
+                                          fontSize: 11,
+                                          color: Color(0xFF71717A),
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const Icon(Icons.arrow_forward_ios, size: 12, color: Colors.black54),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+            ),
+
+          // 3. Requirements Inputs (Shown when item is selected)
+          if (_quickSelectedItem != null)
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                border: Border(
+                  top: BorderSide(color: Color(0xFFE5E5E5)),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Selected Item Details Chip
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: Colors.black,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                        child: Text(
+                          _quickSelectedItem!.sku,
+                          style: const TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w900,
+                            color: Colors.white,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          '${_quickSelectedItem!.specification.isNotEmpty ? _quickSelectedItem!.specification : "${_quickSelectedItem!.quantity} ${_quickSelectedItem!.measurementUnit}"} per packet',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.black,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Inputs row: PKT/CTN, CTNS, Metrics, Add Button
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final isNarrow = constraints.maxWidth < 500;
+                      return Column(
+                        children: [
+                          Row(
+                            children: [
+                              // Packets Per Carton
+                              Expanded(
+                                flex: 3,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      'PKT / CTN *',
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w900,
+                                        color: Colors.black,
+                                        letterSpacing: 0.5,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    TextField(
+                                      controller: _quickPktPerCtnCtrl,
+                                      focusNode: _quickPktFocusNode,
+                                      keyboardType: TextInputType.number,
+                                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Colors.black),
+                                      decoration: InputDecoration(
+                                        filled: true,
+                                        fillColor: Colors.white,
+                                        contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(2),
+                                          borderSide: const BorderSide(color: Color(0xFFE5E5E5)),
+                                        ),
+                                        enabledBorder: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(2),
+                                          borderSide: const BorderSide(color: Color(0xFFE5E5E5)),
+                                        ),
+                                        focusedBorder: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(2),
+                                          borderSide: const BorderSide(color: Colors.black, width: 1.5),
+                                        ),
+                                        isDense: true,
+                                      ),
+                                      onChanged: (_) => setState(() {}),
+                                      onSubmitted: (_) => _quickCtnsFocusNode.requestFocus(),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+
+                              // Cartons
+                              Expanded(
+                                flex: 3,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      'CARTONS *',
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w900,
+                                        color: Colors.black,
+                                        letterSpacing: 0.5,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    TextField(
+                                      controller: _quickCtnsCtrl,
+                                      focusNode: _quickCtnsFocusNode,
+                                      keyboardType: TextInputType.number,
+                                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Colors.black),
+                                      decoration: InputDecoration(
+                                        filled: true,
+                                        fillColor: Colors.white,
+                                        contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(2),
+                                          borderSide: const BorderSide(color: Color(0xFFE5E5E5)),
+                                        ),
+                                        enabledBorder: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(2),
+                                          borderSide: const BorderSide(color: Color(0xFFE5E5E5)),
+                                        ),
+                                        focusedBorder: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(2),
+                                          borderSide: const BorderSide(color: Colors.black, width: 1.5),
+                                        ),
+                                        isDense: true,
+                                      ),
+                                      onChanged: (_) => setState(() {}),
+                                      onSubmitted: (_) => _addQuickItemToPo(),
+                                    ),
+                                  ],
+                                ),
+                              ),
+
+                              if (!isNarrow) ...[
+                                const SizedBox(width: 14),
+                                // Preview Metric
+                                Expanded(
+                                  flex: 4,
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(2),
+                                      border: Border.all(color: const Color(0xFFE5E5E5)),
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Text(
+                                          '$totalPkts Packets',
+                                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Colors.black),
+                                        ),
+                                        Text(
+                                          '${totalQty.toStringAsFixed(totalQty.truncateToDouble() == totalQty ? 0 : 2)} $unitStr',
+                                          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF71717A)),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                // Add Button
+                                SizedBox(
+                                  height: 40,
+                                  child: ElevatedButton.icon(
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.black,
+                                      foregroundColor: Colors.white,
+                                      elevation: 0,
+                                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(2)),
+                                    ),
+                                    onPressed: _addQuickItemToPo,
+                                    icon: const Icon(Icons.add, size: 16),
+                                    label: const Text(
+                                      'Add to Table',
+                                      style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+
+                          if (isNarrow) ...[
+                            const SizedBox(height: 10),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    'Total: $totalPkts Pkts • ${totalQty.toStringAsFixed(totalQty.truncateToDouble() == totalQty ? 0 : 2)} $unitStr',
+                                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Colors.black),
+                                  ),
+                                ),
+                                ElevatedButton.icon(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.black,
+                                    foregroundColor: Colors.white,
+                                    elevation: 0,
+                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(2)),
+                                  ),
+                                  onPressed: _addQuickItemToPo,
+                                  icon: const Icon(Icons.add, size: 16),
+                                  label: const Text(
+                                    'Add to Table',
+                                    style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ],
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildStatusOption(String code, String label) {
     final isSelected = _status.toUpperCase() == code;
     return InkWell(
       onTap: () => setState(() => _status = code),
-      borderRadius: BorderRadius.circular(4),
+      borderRadius: BorderRadius.circular(2),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? Colors.black : const Color(0xFFF8FAFC),
-          borderRadius: BorderRadius.circular(4),
+          color: isSelected ? Colors.black : Colors.white,
+          borderRadius: BorderRadius.circular(2),
           border: Border.all(
-            color: isSelected ? Colors.black : const Color(0xFFE2E8F0),
-            width: isSelected ? 1.5 : 1.0,
+            color: isSelected ? Colors.black : const Color(0xFFE5E5E5),
+            width: 1.0,
           ),
         ),
         child: Row(
@@ -1010,8 +1495,8 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
               label,
               style: TextStyle(
                 fontSize: 12,
-                fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-                color: isSelected ? Colors.white : const Color(0xFF334155),
+                fontWeight: isSelected ? FontWeight.w900 : FontWeight.w600,
+                color: isSelected ? Colors.white : Colors.black,
               ),
             ),
           ],
@@ -1158,8 +1643,8 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
               'PURCHASE ORDER NUMBER *',
               style: TextStyle(
                 fontSize: 11,
-                fontWeight: FontWeight.w800,
-                color: Color(0xFF64748B),
+                fontWeight: FontWeight.w900,
+                color: Colors.black,
                 letterSpacing: 0.5,
               ),
             ),
@@ -1167,16 +1652,24 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
             TextFormField(
               controller: _poNumberCtrl,
               textCapitalization: TextCapitalization.characters,
-              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.black),
               decoration: InputDecoration(
                 hintText: 'e.g. MALTA-PO-2026-01',
-                hintStyle: const TextStyle(fontSize: 13, color: Color(0xFF94A3B8)),
+                hintStyle: const TextStyle(fontSize: 13, color: Color(0xFFA1A1AA)),
                 filled: true,
-                fillColor: const Color(0xFFF8FAFC),
-                prefixIcon: const Icon(Icons.tag, size: 20, color: Color(0xFF64748B)),
+                fillColor: Colors.white,
+                prefixIcon: const Icon(Icons.tag, size: 20, color: Colors.black),
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(4),
-                  borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                  borderRadius: BorderRadius.circular(2),
+                  borderSide: const BorderSide(color: Color(0xFFE5E5E5)),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(2),
+                  borderSide: const BorderSide(color: Color(0xFFE5E5E5)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(2),
+                  borderSide: const BorderSide(color: Colors.black, width: 1.5),
                 ),
                 contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
               ),
@@ -1201,30 +1694,30 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                         'PO DATE *',
                         style: TextStyle(
                           fontSize: 11,
-                          fontWeight: FontWeight.w800,
-                          color: Color(0xFF64748B),
+                          fontWeight: FontWeight.w900,
+                          color: Colors.black,
                           letterSpacing: 0.5,
                         ),
                       ),
                       const SizedBox(height: 6),
                       InkWell(
                         onTap: _selectPoDate,
-                        borderRadius: BorderRadius.circular(4),
+                        borderRadius: BorderRadius.circular(2),
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 13),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFF8FAFC),
-                            borderRadius: BorderRadius.circular(4),
-                            border: Border.all(color: const Color(0xFFE2E8F0)),
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(2),
+                            border: Border.all(color: const Color(0xFFE5E5E5)),
                           ),
                           child: Row(
                             children: [
-                              const Icon(Icons.calendar_today_outlined, size: 18, color: Color(0xFF64748B)),
+                              const Icon(Icons.calendar_today_outlined, size: 18, color: Colors.black),
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
                                   dateFormat.format(_poDate),
-                                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+                                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.black),
                                 ),
                               ),
                             ],
@@ -1243,25 +1736,25 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                         'EXP. SHIPPING DATE',
                         style: TextStyle(
                           fontSize: 11,
-                          fontWeight: FontWeight.w800,
-                          color: Color(0xFF64748B),
+                          fontWeight: FontWeight.w900,
+                          color: Colors.black,
                           letterSpacing: 0.5,
                         ),
                       ),
                       const SizedBox(height: 6),
                       InkWell(
                         onTap: _selectShippingDate,
-                        borderRadius: BorderRadius.circular(4),
+                        borderRadius: BorderRadius.circular(2),
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 13),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFF8FAFC),
-                            borderRadius: BorderRadius.circular(4),
-                            border: Border.all(color: const Color(0xFFE2E8F0)),
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(2),
+                            border: Border.all(color: const Color(0xFFE5E5E5)),
                           ),
                           child: Row(
                             children: [
-                              const Icon(Icons.local_shipping_outlined, size: 18, color: Color(0xFF64748B)),
+                              const Icon(Icons.local_shipping_outlined, size: 18, color: Colors.black),
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
@@ -1271,7 +1764,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                                   style: TextStyle(
                                     fontSize: 13,
                                     fontWeight: FontWeight.w700,
-                                    color: _expectedShippingDate != null ? Colors.black : const Color(0xFF94A3B8),
+                                    color: _expectedShippingDate != null ? Colors.black : const Color(0xFFA1A1AA),
                                   ),
                                 ),
                               ),
@@ -1295,8 +1788,8 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                   'CUSTOMER / CONSIGNEE *',
                   style: TextStyle(
                     fontSize: 11,
-                    fontWeight: FontWeight.w800,
-                    color: Color(0xFF64748B),
+                    fontWeight: FontWeight.w900,
+                    color: Colors.black,
                     letterSpacing: 0.5,
                   ),
                 ),
@@ -1309,7 +1802,8 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w800,
-                        color: Color(0xFF0F766E),
+                        color: Colors.black,
+                        decoration: TextDecoration.underline,
                       ),
                     ),
                   ),
@@ -1320,20 +1814,20 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
 
             InkWell(
               onTap: _showCustomerPickerModal,
-              borderRadius: BorderRadius.circular(4),
+              borderRadius: BorderRadius.circular(2),
               child: Container(
                 width: double.infinity,
                 padding:
                     const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF8FAFC),
-                  borderRadius: BorderRadius.circular(4),
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(2),
+                  border: Border.all(color: const Color(0xFFE5E5E5)),
                 ),
                 child: Row(
                   children: [
                     const Icon(Icons.business_outlined,
-                        size: 20, color: Color(0xFF64748B)),
+                        size: 20, color: Colors.black),
                     const SizedBox(width: 12),
                     Expanded(
                       child: _selectedCustomer != null
@@ -1355,7 +1849,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                                       _selectedCustomer!.address,
                                       style: const TextStyle(
                                         fontSize: 12,
-                                        color: Color(0xFF64748B),
+                                        color: Color(0xFF71717A),
                                         fontWeight: FontWeight.w500,
                                       ),
                                       maxLines: 1,
@@ -1368,13 +1862,13 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                               'Select Consignee / Customer',
                               style: TextStyle(
                                 fontSize: 13,
-                                color: Color(0xFF94A3B8),
+                                color: Color(0xFFA1A1AA),
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
                     ),
                     const Icon(Icons.swap_horiz,
-                        size: 20, color: Color(0xFF64748B)),
+                        size: 20, color: Colors.black),
                   ],
                 ),
               ),
@@ -1405,65 +1899,36 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                     ),
                   ],
                 ),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    GestureDetector(
-                      onTap: () async {
-                        await Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const CreateItemScreen(),
-                          ),
-                        );
-                        setState(() {});
-                      },
-                      child: const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-                        child: Text(
-                          '+ Register Item',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.black,
-                            decoration: TextDecoration.underline,
-                          ),
-                        ),
+                GestureDetector(
+                  onTap: () async {
+                    await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const CreateItemScreen(),
+                      ),
+                    );
+                    setState(() {});
+                  },
+                  child: const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                    child: Text(
+                      '+ Register Item',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.black,
+                        decoration: TextDecoration.underline,
                       ),
                     ),
-                    const SizedBox(width: 4),
-                    InkWell(
-                      onTap: () => _showAddItemModal(),
-                      borderRadius: BorderRadius.circular(4),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: Colors.black,
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: const Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.add, size: 14, color: Colors.white),
-                            SizedBox(width: 4),
-                            Text(
-                              'Add Item',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w800,
-                                color: Colors.white,
-                                letterSpacing: 0.2,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ],
             ),
             const SizedBox(height: 12),
+
+            // Inline Item Search & Requirements Box
+            _buildInlineItemSearchBar(),
+            const SizedBox(height: 14),
 
             // Items Table Card
             if (_orderItems.isEmpty)
@@ -1471,45 +1936,23 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 20),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF8FAFC),
-                  borderRadius: BorderRadius.circular(4),
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(2),
+                  border: Border.all(color: const Color(0xFFE5E5E5)),
                 ),
                 child: Column(
                   children: [
-                    const Icon(Icons.shopping_cart_outlined, size: 40, color: Color(0xFFCBD5E1)),
+                    const Icon(Icons.shopping_cart_outlined, size: 40, color: Colors.black26),
                     const SizedBox(height: 10),
                     const Text(
                       'No items added yet',
-                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Colors.black),
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Colors.black),
                     ),
                     const SizedBox(height: 4),
                     const Text(
-                      'Tap "+ Add Item" to select products, or register a new item.',
+                      'Use the search box above to quickly find and add items.',
                       textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
-                    ),
-                    const SizedBox(height: 12),
-                    TextButton.icon(
-                      onPressed: () async {
-                        await Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const CreateItemScreen(),
-                          ),
-                        );
-                        setState(() {});
-                      },
-                      icon: const Icon(Icons.add, size: 15, color: Colors.black),
-                      label: const Text(
-                        'Register New Item',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.black,
-                          decoration: TextDecoration.underline,
-                        ),
-                      ),
+                      style: TextStyle(fontSize: 12, color: Color(0xFF71717A)),
                     ),
                   ],
                 ),
@@ -1518,8 +1961,8 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
               Container(
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(4),
-                  border: Border.all(color: Colors.black, width: 1.2),
+                  borderRadius: BorderRadius.circular(2),
+                  border: Border.all(color: Colors.black, width: 1.0),
                 ),
                 clipBehavior: Clip.antiAlias,
                 child: Column(
@@ -1570,7 +2013,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
                       itemCount: _orderItems.length,
-                      separatorBuilder: (_, _) => const Divider(height: 1, color: Color(0xFFE2E8F0)),
+                      separatorBuilder: (_, _) => const Divider(height: 1, color: Color(0xFFE5E5E5)),
                       itemBuilder: (context, idx) {
                         final item = _orderItems[idx];
                         final itemDescription = item.specification.isNotEmpty
@@ -1580,7 +2023,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                                 item.unit,
                               );
                         return Container(
-                          color: idx % 2 == 0 ? Colors.white : const Color(0xFFFAFAFA),
+                          color: Colors.white,
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
                           child: Row(
                             children: [
@@ -1588,7 +2031,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                                 width: 26,
                                 child: Text(
                                   '${idx + 1}',
-                                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
+                                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12, color: Colors.black),
                                 ),
                               ),
                               Expanded(
@@ -1598,13 +2041,13 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                                   children: [
                                     Text(
                                       item.itemName,
-                                      style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
+                                      style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: Colors.black),
                                     ),
                                     const SizedBox(height: 1),
                                     if (itemDescription.isNotEmpty)
                                       Text(
                                         '$itemDescription per packet',
-                                        style: const TextStyle(fontSize: 10, color: Color(0xFF64748B)),
+                                        style: const TextStyle(fontSize: 10, color: Color(0xFF71717A), fontWeight: FontWeight.w500),
                                       ),
                                   ],
                                 ),
@@ -1614,7 +2057,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                                 child: Text(
                                   '${item.packetPerCarton}',
                                   textAlign: TextAlign.center,
-                                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: Colors.black),
                                 ),
                               ),
                               Expanded(
@@ -1622,13 +2065,13 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                                 child: Text(
                                   '${item.cartons}',
                                   textAlign: TextAlign.center,
-                                  style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13),
+                                  style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: Colors.black),
                                 ),
                               ),
                               SizedBox(
                                 width: 28,
                                 child: PopupMenuButton<String>(
-                                  icon: const Icon(Icons.more_vert, size: 18, color: Color(0xFF64748B)),
+                                  icon: const Icon(Icons.more_vert, size: 18, color: Colors.black),
                                   padding: EdgeInsets.zero,
                                   onSelected: (action) {
                                     if (action == 'edit') {
@@ -1669,7 +2112,12 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
 
                     // Table Footer showing TOTAL CARTONS
                     Container(
-                      color: const Color(0xFFF1F5F9),
+                      color: Colors.white,
+                      decoration: const BoxDecoration(
+                        border: Border(
+                          top: BorderSide(color: Colors.black, width: 1.0),
+                        ),
+                      ),
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
                       child: Row(
                         children: [
@@ -1686,7 +2134,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                             child: Text(
                               '$_totalPackets pkts',
                               textAlign: TextAlign.center,
-                              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 11, color: Color(0xFF64748B)),
+                              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 11, color: Color(0xFF71717A)),
                             ),
                           ),
                           Expanded(
@@ -1738,8 +2186,8 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
               'NOTES & PACKAGING INSTRUCTIONS (OPTIONAL)',
               style: TextStyle(
                 fontSize: 11,
-                fontWeight: FontWeight.w800,
-                color: Color(0xFF64748B),
+                fontWeight: FontWeight.w900,
+                color: Colors.black,
                 letterSpacing: 0.5,
               ),
             ),
@@ -1747,15 +2195,23 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
             TextFormField(
               controller: _notesCtrl,
               maxLines: 2,
-              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.black),
               decoration: InputDecoration(
                 hintText: 'e.g. Temperature controlled -18°C frozen cargo shipping',
-                hintStyle: const TextStyle(fontSize: 13, color: Color(0xFF94A3B8)),
+                hintStyle: const TextStyle(fontSize: 13, color: Color(0xFFA1A1AA)),
                 filled: true,
-                fillColor: const Color(0xFFF8FAFC),
+                fillColor: Colors.white,
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(4),
-                  borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                  borderRadius: BorderRadius.circular(2),
+                  borderSide: const BorderSide(color: Color(0xFFE5E5E5)),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(2),
+                  borderSide: const BorderSide(color: Color(0xFFE5E5E5)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(2),
+                  borderSide: const BorderSide(color: Colors.black, width: 1.5),
                 ),
                 contentPadding: const EdgeInsets.all(12),
               ),
@@ -1770,7 +2226,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
       decoration: const BoxDecoration(
         color: Colors.white,
-        border: Border(top: BorderSide(color: Color(0xFFF1F5F9))),
+        border: Border(top: BorderSide(color: Color(0xFFE5E5E5))),
       ),
       child: Center(
         heightFactor: 1.0,
@@ -1786,9 +2242,9 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                   child: OutlinedButton.icon(
                     style: OutlinedButton.styleFrom(
                       foregroundColor: Colors.black,
-                      side: const BorderSide(color: Color(0xFFCBD5E1)),
+                      side: const BorderSide(color: Color(0xFFE5E5E5)),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(4),
+                        borderRadius: BorderRadius.circular(2),
                       ),
                     ),
                     onPressed: _isSaving ? null : () => _submit(asDraft: true),
@@ -1815,7 +2271,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                       foregroundColor: Colors.white,
                       elevation: 0,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(4),
+                        borderRadius: BorderRadius.circular(2),
                       ),
                     ),
                     onPressed: _isSaving ? null : () => _submit(asDraft: false),

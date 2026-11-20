@@ -13,6 +13,10 @@ import {
   ItemCategory,
   ItemCategorySchema,
 } from './schemas/item-category.schema';
+import {
+  PackagingMaterial,
+  PackagingMaterialSchema,
+} from './schemas/packaging-material.schema';
 import { StockBatch, StockBatchSchema } from './schemas/stock-batch.schema';
 import { OtpRecord, OtpRecordSchema } from './schemas/otp-record.schema';
 import { Department, DepartmentSchema } from './schemas/department.schema';
@@ -39,6 +43,7 @@ import {
       { name: StoreRoom.name, schema: StoreRoomSchema },
       { name: Item.name, schema: ItemSchema },
       { name: ItemCategory.name, schema: ItemCategorySchema },
+      { name: PackagingMaterial.name, schema: PackagingMaterialSchema },
       { name: StockBatch.name, schema: StockBatchSchema },
       { name: OtpRecord.name, schema: OtpRecordSchema },
       { name: Department.name, schema: DepartmentSchema },

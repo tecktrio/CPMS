@@ -27,6 +27,10 @@ import {
   CreateItemCategoryDto,
   UpdateItemCategoryDto,
 } from './dtos/item-category.dto';
+import {
+  CreatePackagingMaterialDto,
+  UpdatePackagingMaterialDto,
+} from './dtos/packaging-material.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { TenantGuard } from '../../common/guards/tenant.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
@@ -221,5 +225,70 @@ export class ItemsController {
     @Param('code') code: string,
   ) {
     return this.itemsService.deleteCategory(tenantId, code);
+  }
+
+  // --- PACKAGING MATERIALS ENDPOINTS ---
+
+  @Get('packaging-materials/all')
+  @RequireAnyPermissions(
+    'permission.item.read',
+    'permission.item.create',
+    'permission.item.update',
+    'permission.packaging_material.manage',
+  )
+  @ApiOperation({ summary: 'List all packaging materials for tenant' })
+  @ApiResponse({ status: 200, description: 'List of packaging materials' })
+  async getPackagingMaterials(@CurrentTenant() tenantId: string) {
+    return this.itemsService.getPackagingMaterials(tenantId);
+  }
+
+  @Post('packaging-materials')
+  @RequirePermissions('permission.packaging_material.manage')
+  @ApiOperation({ summary: 'Create a new packaging material' })
+  @ApiResponse({ status: 201, description: 'Packaging material created' })
+  async createPackagingMaterial(
+    @CurrentTenant() tenantId: string,
+    @Body() dto: CreatePackagingMaterialDto,
+  ) {
+    return this.itemsService.createPackagingMaterial(tenantId, dto);
+  }
+
+  @Put('packaging-materials/:id')
+  @RequirePermissions('permission.packaging_material.manage')
+  @ApiOperation({ summary: 'Update packaging material name' })
+  @ApiResponse({ status: 200, description: 'Packaging material updated' })
+  async updatePackagingMaterial(
+    @CurrentTenant() tenantId: string,
+    @Param('id') id: string,
+    @Body() dto: UpdatePackagingMaterialDto,
+  ) {
+    return this.itemsService.updatePackagingMaterial(tenantId, id, dto);
+  }
+
+  @Get('packaging-materials/:id/items-count')
+  @RequirePermissions('permission.packaging_material.manage')
+  @ApiOperation({ summary: 'Get count of items using this packaging material' })
+  @ApiResponse({ status: 200, description: 'Items count for packaging material' })
+  async getPackagingMaterialItemsCount(
+    @CurrentTenant() tenantId: string,
+    @Param('id') id: string,
+  ) {
+    return this.itemsService.checkPackagingMaterialItemsCount(tenantId, id);
+  }
+
+  @Delete('packaging-materials/:id')
+  @RequirePermissions('permission.packaging_material.manage')
+  @ApiOperation({
+    summary: 'Delete packaging material and all associated items cascade',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Packaging material and items deleted',
+  })
+  async deletePackagingMaterial(
+    @CurrentTenant() tenantId: string,
+    @Param('id') id: string,
+  ) {
+    return this.itemsService.deletePackagingMaterial(tenantId, id);
   }
 }
