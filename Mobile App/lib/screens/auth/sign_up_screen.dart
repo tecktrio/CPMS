@@ -175,7 +175,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         ),
                         const SizedBox(height: 6),
                         const Text(
-                          'Register to manage inventory, store rooms, or start your tenant organization.',
+                          'Register to access your organization\'s inventory, store rooms, and production.',
                           style: TextStyle(
                             color: Color(0xFF64748B),
                             fontSize: 14,

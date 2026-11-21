@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/tenant_provider.dart';
@@ -12,9 +13,7 @@ class TenantSelectorScreen extends StatefulWidget {
 }
 
 class _TenantSelectorScreenState extends State<TenantSelectorScreen> {
-  final _newOrgController = TextEditingController();
-  final _formKey = GlobalKey<FormState>();
-  bool _isCreating = false;
+  bool _isRefreshing = false;
 
   @override
   void initState() {
@@ -35,43 +34,41 @@ class _TenantSelectorScreenState extends State<TenantSelectorScreen> {
     });
   }
 
-  @override
-  void dispose() {
-    _newOrgController.dispose();
-    super.dispose();
-  }
+  Future<void> _handleRefresh() async {
+    if (_isRefreshing) return;
+    setState(() => _isRefreshing = true);
 
-  Future<void> _handleCreateTenant() async {
-    if (!_formKey.currentState!.validate()) return;
-
-    final name = _newOrgController.text.trim();
-    if (name.isEmpty) return;
-
-    setState(() => _isCreating = true);
-    final tenantProvider = context.read<TenantProvider>();
     final authProvider = context.read<AuthProvider>();
+    final tenantProvider = context.read<TenantProvider>();
 
-    final created = await tenantProvider.createTenant(name);
+    final tenants = await authProvider.refreshAvailableTenants();
+
     if (!mounted) return;
-    setState(() => _isCreating = false);
+    setState(() => _isRefreshing = false);
 
-    if (created != null) {
-      final currentList = List<TenantOption>.from(authProvider.availableTenants);
-      currentList.add(created);
-      authProvider.updateAvailableTenants(currentList);
-
-      await tenantProvider.selectTenant(created);
+    if (tenants.isNotEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Organization found! Loading workspace...'),
+          backgroundColor: Color(0xFF04482D),
+        ),
+      );
+      await tenantProvider.selectTenant(tenants.first);
       if (!mounted) return;
-
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => const DashboardScreen()),
       );
     } else {
+      final username = authProvider.user?.userName ?? '';
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(tenantProvider.errorMessage ?? 'Failed to create organization'),
-          backgroundColor: const Color(0xFFDC2626),
+          content: Text(
+            username.isNotEmpty
+                ? 'No organization assigned yet. Please contact your tenant admin to add @$username.'
+                : 'No organization assigned yet. Please contact your tenant admin to add your username.',
+          ),
+          backgroundColor: const Color(0xFF0F172A),
         ),
       );
     }
@@ -82,6 +79,7 @@ class _TenantSelectorScreenState extends State<TenantSelectorScreen> {
     final authProvider = context.watch<AuthProvider>();
     final tenantProvider = context.watch<TenantProvider>();
     final user = authProvider.user;
+    final availableTenants = authProvider.availableTenants;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
@@ -93,6 +91,17 @@ class _TenantSelectorScreenState extends State<TenantSelectorScreen> {
         elevation: 0,
         backgroundColor: Colors.white,
         actions: [
+          IconButton(
+            tooltip: 'Refresh',
+            icon: _isRefreshing
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black),
+                  )
+                : const Icon(Icons.refresh_rounded, color: Colors.black),
+            onPressed: _isRefreshing ? null : _handleRefresh,
+          ),
           IconButton(
             tooltip: 'Sign Out',
             icon: const Icon(Icons.logout, color: Color(0xFFDC2626)),
@@ -106,198 +115,300 @@ class _TenantSelectorScreenState extends State<TenantSelectorScreen> {
         ],
       ),
       body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 460),
-              child: Container(
-                padding: const EdgeInsets.all(28),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.04),
-                      blurRadius: 16,
-                      offset: const Offset(0, 6),
+        child: RefreshIndicator(
+          color: const Color(0xFF04482D),
+          onRefresh: _handleRefresh,
+          child: Center(
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 460),
+                  child: Container(
+                    padding: const EdgeInsets.all(28),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.04),
+                          blurRadius: 16,
+                          offset: const Offset(0, 6),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Circular Icon
-                      Container(
-                        width: 72,
-                        height: 72,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF0FDF4),
-                          shape: BoxShape.circle,
-                          border: Border.all(color: const Color(0xFFBBF7D0), width: 2),
-                        ),
-                        child: const Icon(
-                          Icons.apartment_rounded,
-                          size: 36,
-                          color: Color(0xFF16A34A),
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-
-                      // User greeting chip
-                      if (user != null)
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                          margin: const EdgeInsets.only(bottom: 14),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF1F5F9),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(Icons.person, size: 14, color: Color(0xFF64748B)),
-                              const SizedBox(width: 6),
-                              Text(
-                                '@${user.userName.isNotEmpty ? user.userName : user.fullName}',
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w700,
-                                  color: Color(0xFF334155),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-
-                      // Heading
-                      const Text(
-                        'You are not in any organization',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w900,
-                          color: Color(0xFF0F172A),
-                          letterSpacing: -0.4,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-
-                      const Text(
-                        'To begin managing products, batches, purchase orders and cold rooms, register a new organization workspace.',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: Color(0xFF64748B),
-                          fontSize: 13.5,
-                          height: 1.4,
-                        ),
-                      ),
-                      const SizedBox(height: 28),
-
-                      // Input field
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          'ORGANIZATION / COMPANY NAME',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w800,
-                            color: Colors.grey.shade700,
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      TextFormField(
-                        controller: _newOrgController,
-                        autofocus: true,
-                        style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.black,
-                        ),
-                        decoration: InputDecoration(
-                          hintText: 'e.g. Cyan Cold Chain Logistics',
-                          hintStyle: TextStyle(
-                            color: Colors.grey.shade400,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w400,
-                          ),
-                          prefixIcon: const Icon(Icons.business, color: Color(0xFF94A3B8), size: 20),
-                          filled: true,
-                          fillColor: const Color(0xFFF8FAFC),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: Color(0xFF04482D), width: 1.5),
-                          ),
-                        ),
-                        validator: (v) {
-                          if (v == null || v.trim().isEmpty) {
-                            return 'Please enter your organization name';
-                          }
-                          if (v.trim().length < 2) {
-                            return 'Name must be at least 2 characters';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 24),
-
-                      // Create button
-                      SizedBox(
-                        width: double.infinity,
-                        height: 48,
-                        child: ElevatedButton.icon(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF04482D),
-                            foregroundColor: Colors.white,
-                            elevation: 0,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                          onPressed: _isCreating ? null : _handleCreateTenant,
-                          icon: _isCreating
-                              ? const SizedBox(
-                                  width: 18,
-                                  height: 18,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: Colors.white,
-                                  ),
-                                )
-                              : const Icon(Icons.add_business_rounded, size: 20),
-                          label: Text(
-                            _isCreating ? 'Creating Workspace...' : 'Create New Organization',
-                            style: const TextStyle(
-                              fontSize: 14.5,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
+                    child: availableTenants.isNotEmpty
+                        ? _buildTenantList(availableTenants, tenantProvider)
+                        : _buildNoOrganizationView(user),
                   ),
                 ),
               ),
             ),
           ),
-          ),
         ),
       ),
+    );
+  }
+
+  Widget _buildNoOrganizationView(dynamic user) {
+    final userName = user != null && user.userName.isNotEmpty
+        ? user.userName
+        : (user?.fullName ?? '');
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Circular Icon
+        Container(
+          width: 76,
+          height: 76,
+          decoration: BoxDecoration(
+            color: const Color(0xFFF0FDF4),
+            shape: BoxShape.circle,
+            border: Border.all(color: const Color(0xFFBBF7D0), width: 2),
+          ),
+          child: const Icon(
+            Icons.domain_verification_rounded,
+            size: 38,
+            color: Color(0xFF16A34A),
+          ),
+        ),
+        const SizedBox(height: 20),
+
+        // User Username Pill with tap to copy
+        if (userName.isNotEmpty)
+          InkWell(
+            onTap: () {
+              Clipboard.setData(ClipboardData(text: userName));
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Username @$userName copied to clipboard'),
+                  duration: const Duration(seconds: 2),
+                  backgroundColor: const Color(0xFF04482D),
+                ),
+              );
+            },
+            borderRadius: BorderRadius.circular(20),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF1F5F9),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.alternate_email, size: 14, color: Color(0xFF64748B)),
+                  const SizedBox(width: 4),
+                  Text(
+                    userName,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF0F172A),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  const Icon(Icons.copy_rounded, size: 13, color: Color(0xFF94A3B8)),
+                ],
+              ),
+            ),
+          ),
+
+        // Title
+        const Text(
+          'No Organization Assigned',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.w900,
+            color: Color(0xFF0F172A),
+            letterSpacing: -0.4,
+          ),
+        ),
+        const SizedBox(height: 10),
+
+        // Description instructing user to contact tenant admin
+        Text(
+          userName.isNotEmpty
+              ? 'Contact your tenant admin to add your username (@$userName) to your organization\'s workspace.'
+              : 'Contact your tenant admin to add your username to your organization\'s workspace.',
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            color: Color(0xFF64748B),
+            fontSize: 14,
+            height: 1.45,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(height: 20),
+
+        // Info notice
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF8FAFC),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: const Color(0xFFE2E8F0)),
+          ),
+          child: const Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(Icons.info_outline, size: 18, color: Color(0xFF0F766E)),
+              SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Once your administrator adds your account in the system, tap the refresh button below to enter your workspace.',
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    color: Color(0xFF475569),
+                    height: 1.4,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 24),
+
+        // Refresh Button
+        SizedBox(
+          width: double.infinity,
+          height: 50,
+          child: ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.black,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            onPressed: _isRefreshing ? null : _handleRefresh,
+            icon: _isRefreshing
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : const Icon(Icons.refresh_rounded, size: 20),
+            label: Text(
+              _isRefreshing ? 'Checking Status...' : 'Refresh Status',
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+
+        // Sign Out link
+        Center(
+          child: TextButton.icon(
+            onPressed: () async {
+              final authProvider = context.read<AuthProvider>();
+              final tenantProvider = context.read<TenantProvider>();
+              tenantProvider.clear();
+              await authProvider.signOut();
+              if (!mounted) return;
+              Navigator.pushNamedAndRemoveUntil(context, '/signin', (route) => false);
+            },
+            icon: const Icon(Icons.logout, size: 16, color: Color(0xFF64748B)),
+            label: const Text(
+              'Sign Out / Switch Account',
+              style: TextStyle(
+                color: Color(0xFF64748B),
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTenantList(List<TenantOption> tenants, TenantProvider tenantProvider) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Select Organization',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w900,
+            color: Color(0xFF0F172A),
+            letterSpacing: -0.4,
+          ),
+        ),
+        const SizedBox(height: 6),
+        const Text(
+          'Choose a workspace to continue',
+          style: TextStyle(fontSize: 13, color: Color(0xFF64748B)),
+        ),
+        const SizedBox(height: 20),
+        ...tenants.map((t) {
+          return Container(
+            margin: const EdgeInsets.only(bottom: 10),
+            decoration: BoxDecoration(
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: ListTile(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+              leading: Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF0FDF4),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.business_rounded, color: Color(0xFF16A34A), size: 22),
+              ),
+              title: Text(
+                t.companyName,
+                style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
+              ),
+              subtitle: t.isAdmin
+                  ? const Text('Administrator', style: TextStyle(fontSize: 11, color: Color(0xFF04482D), fontWeight: FontWeight.w600))
+                  : null,
+              trailing: const Icon(Icons.chevron_right, color: Color(0xFF94A3B8)),
+              onTap: () async {
+                await tenantProvider.selectTenant(t);
+                if (!mounted) return;
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (_) => const DashboardScreen()),
+                );
+              },
+            ),
+          );
+        }),
+        const SizedBox(height: 12),
+        SizedBox(
+          width: double.infinity,
+          height: 44,
+          child: OutlinedButton.icon(
+            style: OutlinedButton.styleFrom(
+              foregroundColor: Colors.black,
+              side: const BorderSide(color: Color(0xFFCBD5E1)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            onPressed: _isRefreshing ? null : _handleRefresh,
+            icon: const Icon(Icons.refresh, size: 18),
+            label: const Text('Refresh Organizations', style: TextStyle(fontWeight: FontWeight.w700)),
+          ),
+        ),
+      ],
     );
   }
 }
