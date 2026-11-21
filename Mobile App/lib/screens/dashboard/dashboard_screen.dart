@@ -654,7 +654,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             physics: const AlwaysScrollableScrollPhysics(),
             padding: EdgeInsets.symmetric(
               horizontal: horizontalPadding,
-              vertical: isWide ? 14 : 6,
+              vertical: isWide ? 16 : 10,
             ),
             children: [
               // 1. Hero Green Textured Banner on Top
@@ -670,7 +670,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 isWide: isWide,
               ),
 
-              const SizedBox(height: 12),
+              const SizedBox(height: 20),
 
               // 2. Modules Section Header
               const Text(
@@ -682,7 +682,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   letterSpacing: -0.3,
                 ),
               ),
-              const SizedBox(height: 2),
+              const SizedBox(height: 3),
               const Text(
                 'modules that your account have access in this tenant',
                 style: TextStyle(
@@ -691,9 +691,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   fontWeight: FontWeight.w500,
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 12),
 
-              // 3. Apps Launcher Row/Wrap (Responsive, fits modules cleanly with zero overflow)
+              // 3. Apps Launcher Row/Wrap (Responsive, max 4 icons per row)
               if (allowedModules.isEmpty)
                 Container(
                   padding: const EdgeInsets.all(20),
@@ -718,15 +718,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 LayoutBuilder(
                   builder: (context, constraints) {
                     final width = constraints.maxWidth;
-                    // Responsive column count: minimum 3, maximum 5 per row
-                    final calculatedCount = (width / 82).floor();
-                    final count = calculatedCount.clamp(3, 5);
+                    // Responsive column count: minimum 3, maximum 4 per row
+                    final calculatedCount = (width / 84).floor();
+                    final count = calculatedCount.clamp(3, 4);
                     const spacing = 4.0;
                     final itemWidth =
                         ((width - ((count - 1) * spacing)) / count).floorToDouble();
                     return Wrap(
                       spacing: spacing,
-                      runSpacing: 8,
+                      runSpacing: 12,
                       alignment: WrapAlignment.start,
                       children: allowedModules.map((m) {
                         return SizedBox(
@@ -738,12 +738,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   },
                 ),
 
-              const SizedBox(height: 14),
+              const SizedBox(height: 24),
 
               // 4. Emergency Contacts Section
               _buildEmergencyContactsSection(isWide: isWide),
 
-              const SizedBox(height: 16),
+              const SizedBox(height: 24),
             ],
           ),
         ),
@@ -2843,7 +2843,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
           ],
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 12),
 
         // Contact Cards List
         if (emergencyProvider.isLoading && contacts.isEmpty)
@@ -2929,7 +2929,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 6),
+      margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
         color: Colors.white,
