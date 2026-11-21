@@ -718,13 +718,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 LayoutBuilder(
                   builder: (context, constraints) {
                     final width = constraints.maxWidth;
-                    final count = isWide ? 6 : (width > 480 ? 5 : 5);
+                    // Responsive column count: minimum 3, maximum 5 per row
+                    final calculatedCount = (width / 82).floor();
+                    final count = calculatedCount.clamp(3, 5);
                     const spacing = 4.0;
-                    final itemWidth = ((width - ((count - 1) * spacing)) / count)
-                        .clamp(56.0, 110.0);
+                    final itemWidth =
+                        ((width - ((count - 1) * spacing)) / count).floorToDouble();
                     return Wrap(
                       spacing: spacing,
-                      runSpacing: 6,
+                      runSpacing: 8,
                       alignment: WrapAlignment.start,
                       children: allowedModules.map((m) {
                         return SizedBox(
