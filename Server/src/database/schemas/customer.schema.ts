@@ -36,7 +36,6 @@ export class Customer {
 }
 
 export const CustomerSchema = SchemaFactory.createForClass(Customer);
-CustomerSchema.index({ customer_id: 1 }, { unique: true });
 CustomerSchema.index({ tenant_id: 1, customer_name: 1 });
 CustomerSchema.index({ tenant_id: 1 });
 

@@ -34,7 +34,6 @@ export class TenantMembership {
 
 export const TenantMembershipSchema =
   SchemaFactory.createForClass(TenantMembership);
-TenantMembershipSchema.index({ membership_id: 1 }, { unique: true });
 TenantMembershipSchema.index({ user_id: 1 }, { unique: true });
 TenantMembershipSchema.index({ user_id: 1, tenant_id: 1 }, { unique: true });
 TenantMembershipSchema.index({ tenant_id: 1 });

@@ -34,7 +34,6 @@ export class PackagingMaterial {
 
 export const PackagingMaterialSchema =
   SchemaFactory.createForClass(PackagingMaterial);
-PackagingMaterialSchema.index({ material_id: 1 }, { unique: true });
 PackagingMaterialSchema.index({ tenant_id: 1, name: 1 }, { unique: true });
 PackagingMaterialSchema.index({ tenant_id: 1 });
 

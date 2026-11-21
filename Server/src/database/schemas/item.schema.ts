@@ -82,7 +82,6 @@ export class Item {
 }
 
 export const ItemSchema = SchemaFactory.createForClass(Item);
-ItemSchema.index({ item_id: 1 }, { unique: true });
 ItemSchema.index({ tenant_id: 1, sku: 1 }, { unique: true });
 ItemSchema.index({ tenant_id: 1 });
 

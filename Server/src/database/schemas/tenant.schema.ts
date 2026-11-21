@@ -30,6 +30,5 @@ export class Tenant {
 }
 
 export const TenantSchema = SchemaFactory.createForClass(Tenant);
-TenantSchema.index({ tenant_id: 1 }, { unique: true });
 TenantSchema.index({ admin_user_id: 1 });
 

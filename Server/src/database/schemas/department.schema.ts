@@ -36,7 +36,6 @@ export class Department {
 }
 
 export const DepartmentSchema = SchemaFactory.createForClass(Department);
-DepartmentSchema.index({ department_id: 1 }, { unique: true });
 DepartmentSchema.index({ tenant_id: 1, department_name: 1 }, { unique: true });
 DepartmentSchema.index({ tenant_id: 1, is_active: 1 });
 

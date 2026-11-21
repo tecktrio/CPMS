@@ -67,7 +67,6 @@ export class StoreRoom {
 }
 
 export const StoreRoomSchema = SchemaFactory.createForClass(StoreRoom);
-StoreRoomSchema.index({ store_room_id: 1 }, { unique: true });
 StoreRoomSchema.index({ tenant_id: 1, room_code: 1 }, { unique: true });
 StoreRoomSchema.index({ tenant_id: 1 });
 

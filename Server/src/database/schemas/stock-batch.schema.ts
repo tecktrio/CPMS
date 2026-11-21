@@ -59,7 +59,6 @@ export class StockBatch {
 }
 
 export const StockBatchSchema = SchemaFactory.createForClass(StockBatch);
-StockBatchSchema.index({ batch_id: 1 }, { unique: true });
 StockBatchSchema.index({ tenant_id: 1, item_id: 1, expiry_date: 1 }); // FEFO index!
 StockBatchSchema.index({ tenant_id: 1, batch_number: 1 });
 StockBatchSchema.index({ tenant_id: 1, store_room_id: 1 });
