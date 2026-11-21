@@ -9,6 +9,8 @@ import '../../providers/auth_provider.dart';
 import '../../providers/department_provider.dart';
 import '../../providers/inventory_provider.dart';
 import '../../providers/tenant_provider.dart';
+import '../../providers/emergency_contacts_provider.dart';
+import 'manage_emergency_contacts_modal.dart';
 import '../departments/departments_list_screen.dart';
 import '../items/item_detail_screen.dart';
 import '../items/items_list_screen.dart';
@@ -79,6 +81,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       dept.loadTenantUsers(),
       inventory.loadItems(),
       inventory.loadStoreRooms(),
+      context.read<EmergencyContactsProvider>().loadContacts(),
     ]);
   }
 
@@ -2769,67 +2772,162 @@ class _DashboardScreenState extends State<DashboardScreen> {
   // EMERGENCY CONTACTS SECTION
   // ==========================================
   Widget _buildEmergencyContactsSection({required bool isWide}) {
-    const contacts = [
-      _EmergencyContactItem(
-        title: 'Facility Security & Control',
-        subtitle: 'Control Room • Ext. 101',
-        phoneNumber: '+1 (800) 555-0199',
-        icon: Icons.warning_amber_rounded,
-        iconColor: Color(0xFFEF4444),
-        bgColor: Color(0xFFFEF2F2),
-        borderColor: Color(0xFFFEE2E2),
-      ),
-      _EmergencyContactItem(
-        title: 'Safety Coordinator (EHS)',
-        subtitle: 'Tariq Vance • Lead Officer',
-        phoneNumber: '+1 (800) 555-0142',
-        icon: Icons.gpp_good_outlined,
-        iconColor: Color(0xFF16A34A),
-        bgColor: Color(0xFFF0FDF4),
-        borderColor: Color(0xFFDCFCE7),
-      ),
-      _EmergencyContactItem(
-        title: 'First Aid & Medical Bay',
-        subtitle: 'Building B • Clinic Desk',
-        phoneNumber: '+1 (800) 555-0188',
-        icon: Icons.medical_services_outlined,
-        iconColor: Color(0xFF2563EB),
-        bgColor: Color(0xFFEFF6FF),
-        borderColor: Color(0xFFDBEAFE),
-      ),
-    ];
+    final tenant = context.watch<TenantProvider>();
+    final emergencyProvider = context.watch<EmergencyContactsProvider>();
+    final isAdministrator = tenant.isUserInAdministratorDepartment;
+    final contacts = emergencyProvider.contacts;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Emergency Contacts Section Header
-        const Text(
-          'Emergency Contacts',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.w800,
-            color: Color(0xFF0F172A),
-            letterSpacing: -0.4,
-          ),
-        ),
-        const SizedBox(height: 3),
-        const Text(
-          'Direct hotlines and on-site emergency personnel',
-          style: TextStyle(
-            fontSize: 12.5,
-            color: Color(0xFF94A3B8),
-            fontWeight: FontWeight.w500,
-          ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: const [
+                Text(
+                  'Emergency Contacts',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF0F172A),
+                    letterSpacing: -0.4,
+                  ),
+                ),
+                SizedBox(height: 3),
+                Text(
+                  'Direct hotlines and on-site emergency personnel',
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    color: Color(0xFF94A3B8),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+            if (isAdministrator)
+              InkWell(
+                onTap: () => ManageEmergencyContactsModal.show(context),
+                borderRadius: BorderRadius.circular(10),
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF0FDF4),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: const Color(0xFFDCFCE7)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: const [
+                      Icon(
+                        Icons.edit_note_rounded,
+                        size: 16,
+                        color: Color(0xFF16A34A),
+                      ),
+                      SizedBox(width: 4),
+                      Text(
+                        'Update',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF16A34A),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+          ],
         ),
         const SizedBox(height: 14),
 
         // Contact Cards List
-        ...contacts.map((c) => _buildEmergencyContactCard(c, isWide: isWide)),
+        if (emergencyProvider.isLoading && contacts.isEmpty)
+          const Center(
+            child: Padding(
+              padding: EdgeInsets.all(24),
+              child: CircularProgressIndicator(color: Color(0xFF064E3B)),
+            ),
+          )
+        else if (contacts.isEmpty)
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+            ),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.info_outline,
+                  color: Color(0xFF64748B),
+                  size: 20,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    isAdministrator
+                        ? 'No emergency contacts added yet. Tap "Update" above to configure hotlines.'
+                        : 'No emergency contacts configured for this organization.',
+                    style:
+                        const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                  ),
+                ),
+              ],
+            ),
+          )
+        else
+          ...contacts.map(
+            (c) => _buildEmergencyContactCardFromModel(c, isWide: isWide),
+          ),
       ],
     );
   }
 
-  Widget _buildEmergencyContactCard(_EmergencyContactItem item, {required bool isWide}) {
+  Widget _buildEmergencyContactCardFromModel(
+    EmergencyContactModel item, {
+    required bool isWide,
+  }) {
+    IconData icon;
+    Color iconColor;
+    Color bgColor;
+    Color borderColor;
+
+    switch (item.iconType.toLowerCase()) {
+      case 'safety':
+        icon = Icons.gpp_good_outlined;
+        iconColor = const Color(0xFF16A34A);
+        bgColor = const Color(0xFFF0FDF4);
+        borderColor = const Color(0xFFDCFCE7);
+        break;
+      case 'medical':
+        icon = Icons.medical_services_outlined;
+        iconColor = const Color(0xFF2563EB);
+        bgColor = const Color(0xFFEFF6FF);
+        borderColor = const Color(0xFFDBEAFE);
+        break;
+      case 'general':
+      case 'phone':
+        icon = Icons.support_agent_rounded;
+        iconColor = const Color(0xFF0F766E);
+        bgColor = const Color(0xFFF0FDFA);
+        borderColor = const Color(0xFFCCFBF1);
+        break;
+      case 'security':
+      case 'warning':
+      default:
+        icon = Icons.warning_amber_rounded;
+        iconColor = const Color(0xFFEF4444);
+        bgColor = const Color(0xFFFEF2F2);
+        borderColor = const Color(0xFFFEE2E2);
+        break;
+    }
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -2852,11 +2950,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
             width: 44,
             height: 44,
             decoration: BoxDecoration(
-              color: item.bgColor,
+              color: bgColor,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: item.borderColor),
+              border: Border.all(color: borderColor),
             ),
-            child: Icon(item.icon, color: item.iconColor, size: 22),
+            child: Icon(icon, color: iconColor, size: 22),
           ),
           const SizedBox(width: 12),
 
@@ -2961,26 +3059,6 @@ class _BannerTexturePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
-class _EmergencyContactItem {
-  final String title;
-  final String subtitle;
-  final String phoneNumber;
-  final IconData icon;
-  final Color iconColor;
-  final Color bgColor;
-  final Color borderColor;
-
-  const _EmergencyContactItem({
-    required this.title,
-    required this.subtitle,
-    required this.phoneNumber,
-    required this.icon,
-    required this.iconColor,
-    required this.bgColor,
-    required this.borderColor,
-  });
 }
 
 class _DashboardModuleItem {

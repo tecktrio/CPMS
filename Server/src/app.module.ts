@@ -14,6 +14,7 @@ import { PermissionsModule } from './modules/permissions/permissions.module';
 import { PurchaseOrdersModule } from './modules/purchase-orders/purchase-orders.module';
 import { ProductionModule } from './modules/production/production.module';
 import { QcModule } from './modules/qc/qc.module';
+import { EmergencyContactsModule } from './modules/emergency-contacts/emergency-contacts.module';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { QcModule } from './modules/qc/qc.module';
     PurchaseOrdersModule,
     ProductionModule,
     QcModule,
+    EmergencyContactsModule,
   ],
 })
 export class AppModule {}

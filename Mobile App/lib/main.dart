@@ -9,6 +9,7 @@ import 'providers/inventory_provider.dart';
 import 'providers/purchase_order_provider.dart';
 import 'providers/tenant_provider.dart';
 import 'providers/production_provider.dart';
+import 'providers/emergency_contacts_provider.dart';
 import 'screens/auth/sign_in_screen.dart';
 import 'screens/dashboard/dashboard_screen.dart';
 import 'screens/tenant/tenant_selector_screen.dart';
@@ -60,6 +61,9 @@ class CpmsMobileApp extends StatelessWidget {
         ),
         ChangeNotifierProvider(
           create: (_) => ProductionProvider(apiClient: client),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => EmergencyContactsProvider(apiClient: client),
         ),
       ],
       child: MaterialApp(

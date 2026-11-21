@@ -83,6 +83,14 @@ class TenantProvider extends ChangeNotifier {
     return _activeTenant?.isAdmin ?? false;
   }
 
+  /// Whether the user is in the Administrator department or is a Tenant Admin
+  bool get isUserInAdministratorDepartment {
+    if (_activeTenant == null) return false;
+    if (_activeTenant!.isAdmin) return true;
+    final dept = selectedDepartmentName?.toLowerCase() ?? '';
+    return dept == 'administrator' || dept.contains('admin');
+  }
+
   /// Returns the number of departments the user has access to in the active organization
   int get userDepartmentCount {
     if (_activeTenant == null) return 0;

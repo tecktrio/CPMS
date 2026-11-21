@@ -97,5 +97,9 @@ class ApiConstants {
   static const String qcReports = '/qc/reports';
   static String qcReportsByPo(String poId) => '/qc/reports/po/$poId';
   static String qcReportDetail(String reportId) => '/qc/reports/$reportId';
+
+  // Emergency Contacts
+  static const String emergencyContacts = '/emergency-contacts';
+  static String emergencyContactById(String id) => '/emergency-contacts/$id';
 }
 
