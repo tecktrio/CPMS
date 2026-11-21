@@ -139,9 +139,12 @@ class _AddTenantUserScreenState extends State<AddTenantUserScreen> {
           SizedBox(width: 4),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Form(
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1100),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(20),
+            child: Form(
           key: _formKey,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -628,6 +631,8 @@ class _AddTenantUserScreenState extends State<AddTenantUserScreen> {
           ),
         ),
       ),
-    );
+    ),
+  ),
+);
   }
 }

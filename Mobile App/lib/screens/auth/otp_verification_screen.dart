@@ -197,12 +197,13 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
           builder: (context, constraints) {
             return SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-              child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  minHeight: constraints.maxHeight - 16,
-                  maxWidth: 440,
-                ),
-                child: IntrinsicHeight(
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    minHeight: constraints.maxHeight - 16,
+                    maxWidth: 440,
+                  ),
+                  child: IntrinsicHeight(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -418,7 +419,8 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                   ),
                 ),
               ),
-            );
+            ),
+          );
           },
         ),
       ),

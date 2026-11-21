@@ -26,9 +26,12 @@ class DepartmentsHubScreen extends StatelessWidget {
           SizedBox(width: 4),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1100),
+          child: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
@@ -124,7 +127,9 @@ class DepartmentsHubScreen extends StatelessWidget {
             ),
         ],
       ),
-    );
+    ),
+  ),
+);
   }
 
   Widget _buildPermissionPageCard({

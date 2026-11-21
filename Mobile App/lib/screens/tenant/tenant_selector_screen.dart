@@ -109,8 +109,9 @@ class _TenantSelectorScreenState extends State<TenantSelectorScreen> {
         child: Center(
           child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 460),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 460),
               child: Container(
                 padding: const EdgeInsets.all(28),
                 decoration: BoxDecoration(
@@ -293,6 +294,7 @@ class _TenantSelectorScreenState extends State<TenantSelectorScreen> {
                 ),
               ),
             ),
+          ),
           ),
         ),
       ),

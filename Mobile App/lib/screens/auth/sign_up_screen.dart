@@ -137,12 +137,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
           builder: (context, constraints) {
             return SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-              child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  minHeight: constraints.maxHeight - 40,
-                  maxWidth: 420,
-                ),
-                child: IntrinsicHeight(
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    minHeight: constraints.maxHeight - 40,
+                    maxWidth: 420,
+                  ),
+                  child: IntrinsicHeight(
                   child: Form(
                     key: _formKey,
                     child: Column(
@@ -456,7 +457,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   ),
                 ),
               ),
-            );
+            ),
+          );
           },
         ),
       ),

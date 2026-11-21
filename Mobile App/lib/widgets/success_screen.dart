@@ -63,9 +63,12 @@ class _SuccessScreenState extends State<SuccessScreen>
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 480),
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
             children: [
               const Spacer(),
               ScaleTransition(
@@ -131,6 +134,8 @@ class _SuccessScreenState extends State<SuccessScreen>
           ),
         ),
       ),
-    );
+    ),
+  ),
+);
   }
 }

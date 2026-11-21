@@ -185,9 +185,12 @@ class _EditDepartmentScreenState extends State<EditDepartmentScreen> {
           child: Divider(height: 1, color: Color(0xFFF1F5F9)),
         ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        child: Form(
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1100),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            child: Form(
           key: _formKey,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -678,7 +681,9 @@ class _EditDepartmentScreenState extends State<EditDepartmentScreen> {
           ),
         ),
       ),
-    );
+    ),
+  ),
+);
   }
 }
 
