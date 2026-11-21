@@ -50,13 +50,17 @@ class TenantProvider extends ChangeNotifier {
   TenantOption? get activeTenant => _activeTenant;
   String? get selectedDepartmentName {
     if (_activeTenant == null) return null;
-    if (_activeTenant!.isAdmin) return 'Org Admin';
-    if (_activeTenant!.departmentIds.isEmpty) return 'Assigned Department';
-    final assignedId = _activeTenant!.departmentIds.first;
-    for (final d in _tenantDepartments) {
-      if (d.departmentId == assignedId) {
-        return d.departmentName;
+    if (_activeTenant!.departmentIds.isNotEmpty) {
+      final assignedId = _activeTenant!.departmentIds.first;
+      for (final d in _tenantDepartments) {
+        if (d.departmentId == assignedId) {
+          return d.departmentName;
+        }
       }
+    }
+    if (_activeTenant!.isAdmin) return 'Administrator';
+    if (_tenantDepartments.isNotEmpty) {
+      return _tenantDepartments.first.departmentName;
     }
     return 'Assigned Department';
   }
@@ -66,12 +70,23 @@ class TenantProvider extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
 
   bool get isTenantSelected => _activeTenant != null;
-  bool get isTenantAdmin => _activeTenant?.isAdmin ?? false;
+  bool get isTenantAdmin {
+    if (_activeTenant == null) return false;
+    // Operational staff in specific departments (Sales, Store Room, Supervisor, QC, etc.)
+    // are strictly scoped to their assigned department's permissions.
+    if (_activeTenant!.departmentIds.isNotEmpty) {
+      final deptName = selectedDepartmentName?.toLowerCase() ?? '';
+      if (deptName.isNotEmpty && !deptName.contains('admin')) {
+        return false;
+      }
+    }
+    return _activeTenant?.isAdmin ?? false;
+  }
 
   /// Returns the number of departments the user has access to in the active organization
   int get userDepartmentCount {
     if (_activeTenant == null) return 0;
-    if (_activeTenant!.isAdmin || _activeTenant!.hasAllDepartmentsAccess) {
+    if (isTenantAdmin || _activeTenant!.hasAllDepartmentsAccess) {
       return _tenantDepartments.length;
     }
     return _activeTenant!.departmentIds.length;
@@ -81,11 +96,21 @@ class TenantProvider extends ChangeNotifier {
   bool hasPermission(String permissionId) {
     if (_activeTenant == null) return false;
     // Tenant Admin automatically has superadmin access across all modules
-    if (_activeTenant!.isAdmin || _activeTenant!.hasAllDepartmentsAccess) {
+    if (isTenantAdmin) {
       return true;
     }
 
     if (_userPermissions.contains(permissionId)) return true;
+
+    // Check user's assigned single department permissions
+    if (_activeTenant!.departmentIds.isNotEmpty) {
+      final assignedId = _activeTenant!.departmentIds.first;
+      for (final d in _tenantDepartments) {
+        if (d.departmentId == assignedId) {
+          if (d.permissionIds.contains(permissionId)) return true;
+        }
+      }
+    }
 
     // Auto-grant read permission if user has any action permission in that module
     if (permissionId.endsWith('.read')) {
@@ -94,6 +119,16 @@ class TenantProvider extends ChangeNotifier {
         final modulePrefix = 'permission.${parts[1]}.';
         if (_userPermissions.any((p) => p.startsWith(modulePrefix))) {
           return true;
+        }
+        if (_activeTenant!.departmentIds.isNotEmpty) {
+          final assignedId = _activeTenant!.departmentIds.first;
+          for (final d in _tenantDepartments) {
+            if (d.departmentId == assignedId) {
+              if (d.permissionIds.any((p) => p.startsWith(modulePrefix))) {
+                return true;
+              }
+            }
+          }
         }
       }
     }
@@ -104,11 +139,21 @@ class TenantProvider extends ChangeNotifier {
   /// Checks if user has ANY permission in a given module (e.g. 'item', 'storeroom', 'department', 'user')
   bool hasAnyPermissionInModule(String module) {
     if (_activeTenant == null) return false;
-    if (_activeTenant!.isAdmin || _activeTenant!.hasAllDepartmentsAccess) {
+    if (isTenantAdmin) {
       return true;
     }
     final prefix = 'permission.$module.';
-    return _userPermissions.any((p) => p.startsWith(prefix));
+    if (_userPermissions.any((p) => p.startsWith(prefix))) return true;
+
+    if (_activeTenant!.departmentIds.isNotEmpty) {
+      final assignedId = _activeTenant!.departmentIds.first;
+      for (final d in _tenantDepartments) {
+        if (d.departmentId == assignedId) {
+          return d.permissionIds.any((p) => p.startsWith(prefix));
+        }
+      }
+    }
+    return false;
   }
 
   void setSelectedDepartment(String? deptName) {
@@ -198,9 +243,12 @@ class TenantProvider extends ChangeNotifier {
           }
         }
 
-        final isAdmin = res['is_admin'] == true || _activeTenant!.isAdmin;
-        final hasAllAccess = res['has_all_departments_access'] == true ||
-            _activeTenant!.hasAllDepartmentsAccess;
+        final isAdmin = res.containsKey('is_admin')
+            ? res['is_admin'] == true
+            : _activeTenant!.isAdmin;
+        final hasAllAccess = res.containsKey('has_all_departments_access')
+            ? res['has_all_departments_access'] == true
+            : _activeTenant!.hasAllDepartmentsAccess;
 
         List<String> latestDeptIds = _activeTenant!.departmentIds;
         if (res['department_ids'] is List) {

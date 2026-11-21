@@ -85,7 +85,7 @@ class _UpdateUserDepartmentsScreenState
         SnackBar(
           content: Text(
             isEditing
-                ? 'Staff user departments updated successfully!'
+                ? 'Staff user department reassigned successfully!'
                 : 'Staff user ${_emailController.text.trim()} added successfully!',
           ),
           backgroundColor: const Color(0xFF0F766E),
@@ -129,7 +129,7 @@ class _UpdateUserDepartmentsScreenState
         ),
         centerTitle: true,
         title: Text(
-          isEditing ? 'Update Staff Departments' : 'Add Staff Member',
+          isEditing ? 'Reassign Department' : 'Add Staff Member',
           style: const TextStyle(
             color: Colors.black,
             fontSize: 18,
@@ -184,19 +184,21 @@ class _UpdateUserDepartmentsScreenState
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        children: const [
+                        children: [
                           Text(
-                            'Assign Departments',
-                            style: TextStyle(
+                            isEditing ? 'Reassign Department' : 'Assign Department',
+                            style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w900,
                               color: Colors.black,
                             ),
                           ),
-                          SizedBox(height: 4),
+                          const SizedBox(height: 4),
                           Text(
-                            'Assign user to one or more organization departments to regulate access & permissions.',
-                            style: TextStyle(
+                            isEditing
+                                ? 'Select one of the system fixed departments to reassign this staff user.'
+                                : 'Select one of the system fixed departments to assign to this new staff user.',
+                            style: const TextStyle(
                               fontSize: 12,
                               color: Color(0xFF64748B),
                               height: 1.35,
@@ -331,7 +333,7 @@ class _UpdateUserDepartmentsScreenState
                   Row(
                     children: const [
                       Text(
-                        'ASSIGN DEPARTMENTS',
+                        'FIXED SYSTEM DEPARTMENT',
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w900,
@@ -553,7 +555,7 @@ class _UpdateUserDepartmentsScreenState
                           ),
                         )
                       : Text(
-                          isEditing ? 'Save Changes' : 'Add Staff Member',
+                          isEditing ? 'Reassign Department' : 'Add Staff Member',
                           style: const TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w800,

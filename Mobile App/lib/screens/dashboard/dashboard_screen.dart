@@ -324,7 +324,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     // Resolve displayed department name (fixed single department assigned by Tenant Admin)
     final resolvedDeptName = tenant.selectedDepartmentName ??
-        (isAdmin ? 'Org Admin' : 'Assigned Department');
+        (isAdmin ? 'Administrator' : 'Assigned Department');
 
     // Module permission gating
     final hasItemAccess = isAdmin || tenant.hasAnyPermissionInModule('item');
@@ -434,7 +434,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final userName = user != null && user.fullName.isNotEmpty
         ? user.fullName
         : 'Authenticated User';
-    final userRoleSubtitle = isAdmin ? 'Org Admin' : resolvedDeptName;
+    final userRoleSubtitle = isAdmin ? 'Organization Admin' : resolvedDeptName;
     final userInitial = userName.isNotEmpty ? userName[0].toUpperCase() : 'U';
     final userAvatarUrl = ApiConstants.resolveImageUrl(user?.avatarUrl);
 
@@ -1055,7 +1055,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   context,
                                   MaterialPageRoute(
                                     builder: (_) =>
-                                        const DepartmentsListScreen(initialTabIndex: 0),
+                                        const DepartmentsListScreen(),
                                   ),
                                 );
                               },
@@ -1073,14 +1073,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               imageUrl: staff.avatarUrl,
                               title: staff.fullName.isNotEmpty ? staff.fullName : staff.emailAddress,
                               subtitleLine1: staff.emailAddress,
-                              subtitleLine2: '${staff.departmentIds.length} Assigned Departments',
+                              subtitleLine2: staff.departmentIds.isNotEmpty ? 'Assigned Department' : 'No Department',
                               badgeText: staff.accountStatus.toUpperCase(),
                               onTap: () {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
                                     builder: (_) =>
-                                        const DepartmentsListScreen(initialTabIndex: 0),
+                                        const DepartmentsListScreen(),
                                   ),
                                 );
                               },
@@ -2565,11 +2565,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
           .split(' ')
           .map((w) => w.isNotEmpty ? w[0].toUpperCase() + w.substring(1).toLowerCase() : '')
           .join(' ');
-      if (!deptFormatted.toLowerCase().contains('department')) {
+      if (isAdmin && (deptFormatted.toLowerCase().contains('admin') || deptFormatted.toLowerCase() == 'administrator')) {
+        deptFormatted = 'Organization Admin';
+      } else if (!deptFormatted.toLowerCase().contains('department')) {
         deptFormatted = '$deptFormatted Department';
       }
     } else {
-      deptFormatted = 'All Operations';
+      deptFormatted = isAdmin ? 'Organization Admin' : 'All Operations';
     }
 
     return Material(

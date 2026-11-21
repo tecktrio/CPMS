@@ -242,7 +242,7 @@ export class DepartmentsService implements OnModuleInit {
         const isTenantAdmin = tenant.admin_user_id === mem.user_id;
 
         // Tenant creator/admin gets all fixed departments
-        if (isTenantAdmin || memberships.length === 1) {
+        if (isTenantAdmin) {
           mem.department_ids = fixedDeptIds;
           mem.is_active = true;
           await mem.save();

@@ -133,11 +133,10 @@ export class TenantsService {
 
         let departmentIds = membership?.department_ids || [];
 
-        // Check if user is owner, has Administrator department, or is the single member
+        // Check if user is owner or has Administrator department
         const hasAdminRole =
           isTenantOwner ||
-          (adminDept && departmentIds.includes(adminDept.department_id)) ||
-          memberships.filter((m) => m.tenant_id === tenant.tenant_id).length === 1;
+          (adminDept && departmentIds.includes(adminDept.department_id));
 
         if (hasAdminRole) {
           departmentIds = allDepts.map((d) => d.department_id);
