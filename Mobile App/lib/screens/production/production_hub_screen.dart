@@ -307,9 +307,12 @@ class _ProductionHubScreenState extends State<ProductionHubScreen>
         ),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(49),
-          child: Column(
-            children: [
-              TabBar(
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1100),
+              child: Column(
+                children: [
+                  TabBar(
                 controller: _tabController,
                 indicatorColor: const Color(0xFF14532D),
                 labelColor: const Color(0xFF14532D),
@@ -378,6 +381,8 @@ class _ProductionHubScreenState extends State<ProductionHubScreen>
             ],
           ),
         ),
+      ),
+    ),
       ),
       body: Center(
         child: ConstrainedBox(

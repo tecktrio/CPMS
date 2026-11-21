@@ -22,14 +22,19 @@ class ManageEmergencyContactsModal extends StatelessWidget {
     final viewInsets = MediaQuery.of(context).viewInsets.bottom;
     final screenHeight = MediaQuery.of(context).size.height;
 
-    return Container(
-      constraints: BoxConstraints(maxHeight: screenHeight * 0.85),
-      padding: EdgeInsets.only(bottom: viewInsets),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      child: Column(
+    return Center(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxWidth: 680,
+          maxHeight: screenHeight * 0.85,
+        ),
+        child: Container(
+          padding: EdgeInsets.only(bottom: viewInsets),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           // Drag handle
@@ -273,7 +278,9 @@ class ManageEmergencyContactsModal extends StatelessWidget {
           ),
         ],
       ),
-    );
+    ),
+  ),
+);
   }
 
   static IconData _resolveIcon(String iconType) {
