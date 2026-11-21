@@ -87,6 +87,18 @@ class PurchaseOrderItemModel {
         'total_packets': totalPackets,
         'quantity_per_packet': quantityPerPacket,
         'unit': unit,
+      };
+
+  Map<String, dynamic> toFullJson() => {
+        'item_id': itemId,
+        'item_name': itemName,
+        'sku': sku,
+        'specification': specification,
+        'packet_per_carton': packetPerCarton,
+        'cartons': cartons,
+        'total_packets': totalPackets,
+        'quantity_per_packet': quantityPerPacket,
+        'unit': unit,
         'completed_cartons': completedCartons,
         'qc_passed': qcPassed,
         'packed_cartons': packedCartons,

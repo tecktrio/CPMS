@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/constants/api_constants.dart';
 import '../../core/constants/permissions.dart';
@@ -18,6 +19,7 @@ import '../store_rooms/store_room_detail_screen.dart';
 import '../tenant/tenant_selector_screen.dart';
 import '../../utils/app_update_helper.dart';
 import '../../widgets/sync_status_indicator.dart';
+import '../../widgets/cpms_bottom_nav_bar.dart';
 
 class DashboardScreen extends StatefulWidget {
   final int initialNavIndex;
@@ -30,6 +32,8 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   String? _selectedDepartmentName;
   late int _currentNavIndex;
+  late final ValueNotifier<int> _currentNavIndexNotifier;
+  final GlobalKey<NavigatorState> _shellNavigatorKey = GlobalKey<NavigatorState>();
 
   // Universal Search State
   final TextEditingController _searchController = TextEditingController();
@@ -51,6 +55,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   void initState() {
     super.initState();
     _currentNavIndex = widget.initialNavIndex;
+    _currentNavIndexNotifier = ValueNotifier<int>(widget.initialNavIndex);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadInitialData();
     });
@@ -62,6 +67,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     _firstNameController.dispose();
     _lastNameController.dispose();
     _phoneController.dispose();
+    _currentNavIndexNotifier.dispose();
     super.dispose();
   }
 
@@ -294,7 +300,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   void _handleNavTap(int index) {
-    setState(() => _currentNavIndex = index);
+    if (_currentNavIndex == index) {
+      _shellNavigatorKey.currentState?.popUntil((route) => route.isFirst);
+    } else {
+      _shellNavigatorKey.currentState?.popUntil((route) => route.isFirst);
+      _currentNavIndexNotifier.value = index;
+      setState(() => _currentNavIndex = index);
+    }
   }
 
   @override
@@ -359,9 +371,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     final modules = <_DashboardModuleItem>[
       _DashboardModuleItem(
-        title: 'Items & Products',
+        title: 'Items &\nProducts',
         subtitle: 'Catalog & Stock Management',
-        icon: Icons.view_in_ar_outlined,
+        icon: Icons.view_in_ar_rounded,
+        iconColor: const Color(0xFF16A34A),
+        bgColor: const Color(0xFFF0FDF4),
+        borderColor: const Color(0xFFDCFCE7),
         isPermitted: hasItemAccess,
         onTap: () {
           Navigator.push(
@@ -373,7 +388,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
       _DashboardModuleItem(
         title: 'Store Rooms',
         subtitle: 'Storage & Sections',
-        icon: Icons.inbox_outlined,
+        icon: Icons.home_work_outlined,
+        iconColor: const Color(0xFF2563EB),
+        bgColor: const Color(0xFFEFF6FF),
+        borderColor: const Color(0xFFDBEAFE),
         isPermitted: hasStoreRoomAccess,
         onTap: () {
           Navigator.push(
@@ -383,9 +401,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
         },
       ),
       _DashboardModuleItem(
-        title: 'Purchase Orders',
+        title: 'Purchase\nOrders',
         subtitle: 'Orders & Shipment Planning',
         icon: Icons.receipt_long_outlined,
+        iconColor: const Color(0xFF7C3AED),
+        bgColor: const Color(0xFFFAF5FF),
+        borderColor: const Color(0xFFF3E8FF),
         isPermitted: hasPoAccess,
         onTap: () {
           Navigator.push(
@@ -396,9 +417,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
         },
       ),
       _DashboardModuleItem(
-        title: 'Production Lines',
+        title: 'Production\nLines',
         subtitle: 'Supervisors & Line Completion',
-        icon: Icons.precision_manufacturing_outlined,
+        icon: Icons.output_rounded,
+        iconColor: const Color(0xFFD97706),
+        bgColor: const Color(0xFFFFFBEB),
+        borderColor: const Color(0xFFFEF3C7),
         isPermitted: hasProductionAccess,
         onTap: () {
           Navigator.push(
@@ -409,10 +433,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
         },
       ),
       _DashboardModuleItem(
-        title: 'Users & Departments',
+        title: 'Users & Depts',
         subtitle: 'Staff, Structure & RBAC',
-        badgeText: staffBadgeCount > 0 ? '$staffBadgeCount Users' : '$departmentsBadgeCount Depts',
-        icon: Icons.people_outline,
+        badgeText: staffBadgeCount > 0 ? '$staffBadgeCount' : (departmentsBadgeCount > 0 ? '$departmentsBadgeCount' : null),
+        icon: Icons.groups_outlined,
+        iconColor: const Color(0xFF0D9488),
+        bgColor: const Color(0xFFF0FDFA),
+        borderColor: const Color(0xFFCCFBF1),
         isPermitted: hasDeptAccess || hasUserAccess,
         onTap: () {
           Navigator.push(
@@ -425,7 +452,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     ];
 
     final allowedModules = modules.where((m) => m.isPermitted).toList();
-    final hasAlerts = inventory.items.any((i) => i.isBelowReorderThreshold);
 
     final tenantDisplayName = activeTenant != null && activeTenant.companyName.isNotEmpty
         ? activeTenant.companyName.toLowerCase()
@@ -443,214 +469,210 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     return Scaffold(
       backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Top Bar (Centered with Max Width on wide screens)
-            Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 1080),
-                child: Padding(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: horizontalPadding,
-                    vertical: isWide ? 20 : 14,
-                  ),
-                  child: Row(
-                    children: [
-                      // Tenant Brand & Switcher
-                      InkWell(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (_) => const TenantSelectorScreen()),
-                          );
-                        },
-                        borderRadius: BorderRadius.circular(4),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Row(
-                                  mainAxisSize: MainAxisSize.min,
+      body: PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, result) {
+          if (didPop) return;
+          final nav = _shellNavigatorKey.currentState;
+          if (nav != null && nav.canPop()) {
+            nav.pop();
+          }
+        },
+        child: Navigator(
+          key: _shellNavigatorKey,
+          onGenerateRoute: (settings) {
+            return MaterialPageRoute(
+              settings: settings,
+              builder: (navContext) => ValueListenableBuilder<int>(
+                valueListenable: _currentNavIndexNotifier,
+                builder: (context, activeNavIndex, _) {
+                  return SafeArea(
+                    child: Column(
+                      children: [
+                        // Top Bar: Shown on Search (0), Alerts (1), Settings (3).
+                        // On Modules (2), the green textured hero banner serves as the top header.
+                        if (activeNavIndex != 2)
+                          Center(
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 1080),
+                              child: Padding(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: horizontalPadding,
+                                  vertical: isWide ? 20 : 14,
+                                ),
+                                child: Row(
                                   children: [
-                                    Text(
-                                      tenantDisplayName,
-                                      style: const TextStyle(
-                                        fontSize: 24,
-                                        fontWeight: FontWeight.w900,
-                                        color: Colors.black,
-                                        letterSpacing: -0.7,
+                                    // Tenant Brand & Switcher
+                                    InkWell(
+                                      onTap: () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                              builder: (_) => const TenantSelectorScreen()),
+                                        );
+                                      },
+                                      borderRadius: BorderRadius.circular(4),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Text(
+                                                    tenantDisplayName,
+                                                    style: const TextStyle(
+                                                      fontSize: 24,
+                                                      fontWeight: FontWeight.w900,
+                                                      color: Colors.black,
+                                                      letterSpacing: -0.7,
+                                                    ),
+                                                  ),
+                                                  const SizedBox(width: 4),
+                                                  const Icon(
+                                                    Icons.keyboard_arrow_down_rounded,
+                                                    size: 20,
+                                                    color: Color(0xFF64748B),
+                                                  ),
+                                                ],
+                                              ),
+                                              if (resolvedDeptName.isNotEmpty) ...[
+                                                const SizedBox(height: 1),
+                                                Text(
+                                                  resolvedDeptName,
+                                                  style: const TextStyle(
+                                                    fontSize: 12,
+                                                    fontWeight: FontWeight.w600,
+                                                    color: Color(0xFF64748B),
+                                                  ),
+                                                ),
+                                              ],
+                                            ],
+                                          ),
+                                        ],
                                       ),
                                     ),
-                                    const SizedBox(width: 4),
-                                    const Icon(
-                                      Icons.keyboard_arrow_down_rounded,
-                                      size: 20,
-                                      color: Color(0xFF64748B),
+                                    const Spacer(),
+
+                                    // Real-time Sync Status Indicator
+                                    const SyncStatusIndicator(),
+                                    const SizedBox(width: 8),
+
+                                    // User Info & Avatar
+                                    Column(
+                                      crossAxisAlignment: CrossAxisAlignment.end,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          userName,
+                                          style: const TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w800,
+                                            color: Colors.black,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 1),
+                                        Text(
+                                          userRoleSubtitle,
+                                          style: const TextStyle(
+                                            fontSize: 12,
+                                            color: Color(0xFF6B7280),
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(width: 10),
+                                    InkWell(
+                                      onTap: () => _showProfileModal(context),
+                                      borderRadius: BorderRadius.circular(4),
+                                      child: Stack(
+                                        clipBehavior: Clip.none,
+                                        children: [
+                                          CircleAvatar(
+                                            radius: 20,
+                                            backgroundColor: const Color(0xFFE2E8F0),
+                                            backgroundImage: userAvatarUrl != null
+                                                ? NetworkImage(userAvatarUrl)
+                                                : null,
+                                            child: userAvatarUrl == null
+                                                ? Text(
+                                                    userInitial,
+                                                    style: const TextStyle(
+                                                      color: Color(0xFF334155),
+                                                      fontWeight: FontWeight.w800,
+                                                      fontSize: 15,
+                                                    ),
+                                                  )
+                                                : null,
+                                          ),
+                                          Positioned(
+                                            bottom: 0,
+                                            right: 0,
+                                            child: Container(
+                                              width: 9,
+                                              height: 9,
+                                              decoration: BoxDecoration(
+                                                color: Colors.black,
+                                                shape: BoxShape.circle,
+                                                border: Border.all(color: Colors.white, width: 1.5),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
                                     ),
                                   ],
                                 ),
-                                if (resolvedDeptName.isNotEmpty) ...[
-                                  const SizedBox(height: 1),
-                                  Text(
-                                    resolvedDeptName,
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w600,
-                                      color: Color(0xFF64748B),
-                                    ),
-                                  ),
-                                ],
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                      const Spacer(),
-
-                      // Real-time Sync Status Indicator
-                      const SyncStatusIndicator(),
-                      const SizedBox(width: 8),
-
-                      // User Info & Avatar
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            userName,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w800,
-                              color: Colors.black,
-                            ),
-                          ),
-                          const SizedBox(height: 1),
-                          Text(
-                            userRoleSubtitle,
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: Color(0xFF6B7280),
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(width: 10),
-                      InkWell(
-                        onTap: () => _showProfileModal(context),
-                        borderRadius: BorderRadius.circular(4),
-                        child: Stack(
-                          clipBehavior: Clip.none,
-                          children: [
-                            CircleAvatar(
-                              radius: 20,
-                              backgroundColor: const Color(0xFFE2E8F0),
-                              backgroundImage: userAvatarUrl != null
-                                  ? NetworkImage(userAvatarUrl)
-                                  : null,
-                              child: userAvatarUrl == null
-                                  ? Text(
-                                      userInitial,
-                                      style: const TextStyle(
-                                        color: Color(0xFF334155),
-                                        fontWeight: FontWeight.w800,
-                                        fontSize: 15,
-                                      ),
-                                    )
-                                  : null,
-                            ),
-                            Positioned(
-                              bottom: 0,
-                              right: 0,
-                              child: Container(
-                                width: 9,
-                                height: 9,
-                                decoration: BoxDecoration(
-                                  color: Colors.black,
-                                  shape: BoxShape.circle,
-                                  border: Border.all(color: Colors.white, width: 1.5),
-                                ),
                               ),
                             ),
-                          ],
+                          ),
+
+                        // Tab Body: Search (Tab 0), Alerts (Tab 1), Modules (Tab 2), Settings (Tab 3)
+                        Expanded(
+                          child: _buildCurrentTabBody(
+                            activeNavIndex: activeNavIndex,
+                            isWide: isWide,
+                            horizontalPadding: horizontalPadding,
+                            tenant: tenant,
+                            inventory: inventory,
+                            deptProvider: deptProvider,
+                            allowedModules: allowedModules,
+                            resolvedDeptName: resolvedDeptName,
+                            userName: userName,
+                            userAvatarUrl: userAvatarUrl,
+                            userInitial: userInitial,
+                            tenantDisplayName: tenantDisplayName,
+                            userRoleSubtitle: userRoleSubtitle,
+                            isAdmin: isAdmin,
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                ),
+                      ],
+                    ),
+                  );
+                },
               ),
-            ),
-
-            // Tab Body: Search (Tab 0), Alerts (Tab 1), Modules (Tab 2), Settings (Tab 3)
-            Expanded(
-              child: _buildCurrentTabBody(
-                isWide: isWide,
-                horizontalPadding: horizontalPadding,
-                tenant: tenant,
-                inventory: inventory,
-                deptProvider: deptProvider,
-                allowedModules: allowedModules,
-                resolvedDeptName: resolvedDeptName,
-              ),
-            ),
-
-            // Bottom Navigation Bar (Centered with max width on wide screens)
-            Container(
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                border: Border(
-                  top: BorderSide(color: Color(0xFFE5E7EB), width: 1),
-                ),
-              ),
-              padding: const EdgeInsets.only(top: 8, bottom: 12),
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 620),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      _buildNavItem(
-                        index: 0,
-                        icon: Icons.search,
-                        label: 'Search',
-                        isActive: _currentNavIndex == 0,
-                      ),
-                      _buildNavItem(
-                        index: 1,
-                        icon: Icons.notifications_none_outlined,
-                        label: 'Alerts',
-                        hasBadge: hasAlerts,
-                        isActive: _currentNavIndex == 1,
-                      ),
-                      _buildNavItem(
-                        index: 2,
-                        icon: Icons.grid_view_rounded,
-                        label: 'Modules',
-                        isActive: _currentNavIndex == 2,
-                      ),
-                      _buildNavItem(
-                        index: 3,
-                        icon: Icons.settings_outlined,
-                        label: 'Settings',
-                        isActive: _currentNavIndex == 3,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ],
+            );
+          },
         ),
+      ),
+      bottomNavigationBar: ValueListenableBuilder<int>(
+        valueListenable: _currentNavIndexNotifier,
+        builder: (context, activeNavIndex, _) {
+          return CpmsBottomNavBar(
+            currentIndex: activeNavIndex,
+            onNavTap: _handleNavTap,
+          );
+        },
       ),
     );
   }
 
   Widget _buildCurrentTabBody({
+    int? activeNavIndex,
     required bool isWide,
     required double horizontalPadding,
     required TenantProvider tenant,
@@ -658,8 +680,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
     required DepartmentProvider deptProvider,
     required List<_DashboardModuleItem> allowedModules,
     required String resolvedDeptName,
+    required String userName,
+    required String? userAvatarUrl,
+    required String userInitial,
+    required String tenantDisplayName,
+    required String userRoleSubtitle,
+    required bool isAdmin,
   }) {
-    if (_currentNavIndex == 0) {
+    final effectiveNavIndex = activeNavIndex ?? _currentNavIndex;
+    if (effectiveNavIndex == 0) {
       return _buildUniversalSearchView(
         isWide: isWide,
         horizontalPadding: horizontalPadding,
@@ -667,13 +696,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
         inventory: inventory,
         deptProvider: deptProvider,
       );
-    } else if (_currentNavIndex == 1) {
+    } else if (effectiveNavIndex == 1) {
       return _buildAlertsView(
         isWide: isWide,
         horizontalPadding: horizontalPadding,
         inventory: inventory,
       );
-    } else if (_currentNavIndex == 3) {
+    } else if (effectiveNavIndex == 3) {
       return _buildSettingsView(
         isWide: isWide,
         horizontalPadding: horizontalPadding,
@@ -681,9 +710,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
       );
     }
 
-     // Default: Modules Operations Tab (Tab 2)
+    // Default: Modules Operations Tab (Tab 2)
     return RefreshIndicator(
-      color: Colors.black,
+      color: const Color(0xFF047857),
       onRefresh: _loadInitialData,
       child: Center(
         child: ConstrainedBox(
@@ -692,63 +721,95 @@ class _DashboardScreenState extends State<DashboardScreen> {
             physics: const AlwaysScrollableScrollPhysics(),
             padding: EdgeInsets.symmetric(
               horizontal: horizontalPadding,
-              vertical: isWide ? 12 : 8,
+              vertical: isWide ? 20 : 14,
             ),
             children: [
-              // Manage Operations Section Header
-              Text(
-                'Manage Operations',
+              // 1. Hero Green Textured Banner on Top (Tapping switches Organization & Department)
+              _buildTopBanner(
+                context: context,
+                userName: userName,
+                userAvatarUrl: userAvatarUrl,
+                userInitial: userInitial,
+                tenantDisplayName: tenantDisplayName,
+                resolvedDeptName: resolvedDeptName,
+                userRoleSubtitle: userRoleSubtitle,
+                isAdmin: isAdmin,
+                isWide: isWide,
+                onTap: () => _showOrganizationAndDepartmentModal(context),
+              ),
+
+              const SizedBox(height: 22),
+
+              // 2. Modules Section Header
+              const Text(
+                'Modules',
                 style: TextStyle(
-                  fontSize: isWide ? 26 : 20,
-                  fontWeight: FontWeight.w900,
-                  color: Colors.black,
-                  letterSpacing: -0.5,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF0F172A),
+                  letterSpacing: -0.4,
                 ),
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 3),
               const Text(
-                'Select a module to view records, manage assets, and configure workflows.',
+                'modules that your account have access in this tenant',
                 style: TextStyle(
-                  fontSize: 13,
-                  color: Color(0xFF6B7280),
-                  height: 1.35,
+                  fontSize: 12.5,
+                  color: Color(0xFF94A3B8),
+                  fontWeight: FontWeight.w500,
                 ),
               ),
               const SizedBox(height: 16),
 
-              // Module Cards (Clean, Modern 2 Cards per Row Grid)
+              // 3. Apps Launcher Grid (4 columns on mobile, matching mockup)
               if (allowedModules.isEmpty)
                 Container(
-                  padding: const EdgeInsets.all(24),
+                  padding: const EdgeInsets.all(28),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF6F7F9),
-                    borderRadius: BorderRadius.circular(8),
+                    color: const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
                   ),
                   child: const Center(
                     child: Text(
                       'No operational modules permitted for your current department scope.',
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: Color(0xFF6B7280)),
+                      style: TextStyle(
+                        color: Color(0xFF64748B),
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ),
                 )
               else
-                GridView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: isWide ? 4 : 2,
-                    crossAxisSpacing: 14,
-                    mainAxisSpacing: 14,
-                    childAspectRatio: isWide ? 1.05 : 1.0,
-                  ),
-                  itemCount: allowedModules.length,
-                  itemBuilder: (context, index) {
-                    return _buildOperationCard(allowedModules[index], isWide: isWide);
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final width = constraints.maxWidth;
+                    final crossAxisCount = isWide ? 5 : (width > 500 ? 5 : 4);
+                    return GridView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: crossAxisCount,
+                        crossAxisSpacing: isWide ? 16 : 8,
+                        mainAxisSpacing: isWide ? 20 : 14,
+                        childAspectRatio: isWide ? 0.95 : 0.78,
+                      ),
+                      itemCount: allowedModules.length,
+                      itemBuilder: (context, index) {
+                        return _buildAppModuleItem(allowedModules[index], isWide: isWide);
+                      },
+                    );
                   },
                 ),
 
-              const SizedBox(height: 24),
+              const SizedBox(height: 26),
+
+              // 4. Emergency Contacts Section
+              _buildEmergencyContactsSection(isWide: isWide),
+
+              const SizedBox(height: 36),
             ],
           ),
         ),
@@ -2504,161 +2565,602 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  // ==========================================
-  // BOTTOM NAVIGATION ITEM BUILDER
-  // ==========================================
-  Widget _buildNavItem({
-    required int index,
-    required IconData icon,
-    required String label,
-    bool isActive = false,
-    bool hasBadge = false,
+  Widget _buildTopBanner({
+    required BuildContext context,
+    required String userName,
+    required String? userAvatarUrl,
+    required String userInitial,
+    required String tenantDisplayName,
+    required String resolvedDeptName,
+    required String userRoleSubtitle,
+    required bool isAdmin,
+    required bool isWide,
+    required VoidCallback onTap,
   }) {
-    return InkWell(
-      onTap: () => _handleNavTap(index),
-      borderRadius: BorderRadius.circular(4),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (isActive)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF14532D), // Dark green active nav pill
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Icon(icon, color: Colors.white, size: 20),
-              )
-            else
-              Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4),
-                    child: Icon(
-                      icon,
-                      color: const Color(0xFF4B5563),
-                      size: 22,
-                    ),
+    // Format Organization and Department text to match mockup:
+    // e.g. "Cyan International • Accounts Department"
+    final orgFormatted = tenantDisplayName.isNotEmpty
+        ? tenantDisplayName
+            .split(' ')
+            .map((w) => w.isNotEmpty ? w[0].toUpperCase() + w.substring(1).toLowerCase() : '')
+            .join(' ')
+        : 'Organization';
+
+    String deptFormatted = resolvedDeptName;
+    if (deptFormatted.isNotEmpty) {
+      deptFormatted = deptFormatted
+          .split(' ')
+          .map((w) => w.isNotEmpty ? w[0].toUpperCase() + w.substring(1).toLowerCase() : '')
+          .join(' ');
+      if (!deptFormatted.toLowerCase().contains('department')) {
+        deptFormatted = '$deptFormatted Department';
+      }
+    } else {
+      deptFormatted = 'All Operations';
+    }
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(22),
+        splashColor: Colors.white.withValues(alpha: 0.12),
+        highlightColor: Colors.white.withValues(alpha: 0.06),
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(22),
+            gradient: const LinearGradient(
+              colors: [
+                Color(0xFF04482D), // Deep rich forest emerald
+                Color(0xFF033822), // Dark emerald
+                Color(0xFF022B19), // Midnight emerald
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF04482D).withValues(alpha: 0.35),
+                blurRadius: 18,
+                offset: const Offset(0, 8),
+                spreadRadius: -2,
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(22),
+            child: Stack(
+              children: [
+                // Concentric radiating rings centered on the avatar
+                Positioned.fill(
+                  child: CustomPaint(
+                    painter: _BannerTexturePainter(),
                   ),
-                  if (hasBadge)
-                    Positioned(
-                      top: 2,
-                      right: -1,
-                      child: Container(
-                        width: 7,
-                        height: 7,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFF15803D), // Green indicator
-                          shape: BoxShape.circle,
+                ),
+                // Banner Content
+                Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: isWide ? 24.0 : 18.0,
+                    vertical: isWide ? 22.0 : 18.0,
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      // Left: WELCOME BACK, Name, Organization • Department
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Text(
+                                  'WELCOME BACK',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                    color: Color(0xFF6EE7B7), // Mint green
+                                    letterSpacing: 0.8,
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                const Icon(
+                                  Icons.keyboard_arrow_down_rounded,
+                                  size: 15,
+                                  color: Color(0xFF6EE7B7),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 5),
+
+                            // User Name
+                            Text(
+                              userName,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: isWide ? 24 : 21,
+                                fontWeight: FontWeight.w800,
+                                color: Colors.white,
+                                letterSpacing: -0.4,
+                              ),
+                            ),
+                            const SizedBox(height: 5),
+
+                            // Subtitle: Cyan International • Accounts Department
+                            Text(
+                              '$orgFormatted • $deptFormatted',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.w500,
+                                color: Color(0xFFD1FAE5),
+                                letterSpacing: 0.1,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ),
-                ],
-              ),
-            const SizedBox(height: 3),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: isActive ? FontWeight.w800 : FontWeight.w500,
-                color: isActive ? const Color(0xFF14532D) : const Color(0xFF6B7280),
-              ),
+
+                      const SizedBox(width: 14),
+
+                      // Right: Avatar with online status dot
+                      Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(2.5),
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: Colors.white.withValues(alpha: 0.35),
+                                width: 2,
+                              ),
+                            ),
+                            child: CircleAvatar(
+                              radius: isWide ? 28 : 24,
+                              backgroundColor: Colors.white.withValues(alpha: 0.15),
+                              backgroundImage: userAvatarUrl != null
+                                  ? NetworkImage(userAvatarUrl)
+                                  : null,
+                              child: userAvatarUrl == null
+                                  ? Text(
+                                      userInitial,
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w900,
+                                        fontSize: isWide ? 20 : 17,
+                                      ),
+                                    )
+                                  : null,
+                            ),
+                          ),
+                          Positioned(
+                            bottom: 2,
+                            right: 2,
+                            child: Container(
+                              width: 12,
+                              height: 12,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF10B981),
+                                shape: BoxShape.circle,
+                                border: Border.all(color: Colors.white, width: 2),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildOperationCard(_DashboardModuleItem mod, {required bool isWide}) {
+  /// Interactive Modal Bottom Sheet to switch Organization (Tenant) and Department scope
+  void _showOrganizationAndDepartmentModal(BuildContext context) {
+    final tenant = context.read<TenantProvider>();
+    final auth = context.read<AuthProvider>();
+    final availableTenants = auth.availableTenants;
+    final activeTenantId = tenant.activeTenant?.tenantId;
+    final departments = tenant.tenantDepartments;
+    final currentDept = tenant.selectedDepartmentName;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (modalCtx) {
+        return StatefulBuilder(
+          builder: (ctx, setModalState) {
+            final activeTenant = tenant.activeTenant;
+            final isOrgAdmin = activeTenant?.isAdmin ?? false;
+
+            return Container(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(context).size.height * 0.82,
+              ),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Drag Handle
+                  Container(
+                    margin: const EdgeInsets.only(top: 12, bottom: 8),
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFCBD5E1),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+
+                  // Header
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 8, 16, 12),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.swap_horiz_rounded,
+                          color: Color(0xFF064E3B),
+                          size: 24,
+                        ),
+                        const SizedBox(width: 10),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Organization & Department',
+                                style: TextStyle(
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.w800,
+                                  color: Color(0xFF0F172A),
+                                ),
+                              ),
+                              Text(
+                                'Tap to switch active organization or department',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Color(0xFF64748B),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close_rounded, size: 20),
+                          color: const Color(0xFF64748B),
+                          onPressed: () => Navigator.pop(modalCtx),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Divider(height: 1, color: Color(0xFFE2E8F0)),
+
+                  Flexible(
+                    child: ListView(
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                      children: [
+                        // SECTION 1: ORGANIZATIONS
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              'ORGANIZATION',
+                              style: TextStyle(
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w800,
+                                color: Color(0xFF64748B),
+                                letterSpacing: 0.6,
+                              ),
+                            ),
+                            if (availableTenants.length > 1)
+                              Text(
+                                '${availableTenants.length} available',
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  color: Color(0xFF94A3B8),
+                                ),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+
+                        ...availableTenants.map((t) {
+                          final isSelected = t.tenantId == activeTenantId;
+                          return InkWell(
+                            onTap: () async {
+                              Navigator.pop(modalCtx);
+                              await tenant.selectTenant(t);
+                              _loadInitialData();
+                            },
+                            borderRadius: BorderRadius.circular(12),
+                            child: Container(
+                              margin: const EdgeInsets.only(bottom: 8),
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                              decoration: BoxDecoration(
+                                color: isSelected
+                                    ? const Color(0xFFF0FDF4)
+                                    : const Color(0xFFF8FAFC),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: isSelected
+                                      ? const Color(0xFF16A34A)
+                                      : const Color(0xFFE2E8F0),
+                                  width: isSelected ? 1.5 : 1,
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 36,
+                                    height: 36,
+                                    decoration: BoxDecoration(
+                                      color: isSelected
+                                          ? const Color(0xFF16A34A)
+                                          : const Color(0xFFE2E8F0),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Icon(
+                                      Icons.business_rounded,
+                                      size: 20,
+                                      color: isSelected ? Colors.white : const Color(0xFF64748B),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          t.companyName,
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                                            color: isSelected ? const Color(0xFF064E3B) : const Color(0xFF1E293B),
+                                          ),
+                                        ),
+                                        if (t.isAdmin)
+                                          const Text(
+                                            'Organization Administrator',
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              color: Color(0xFF16A34A),
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                  ),
+                                  if (isSelected)
+                                    const Icon(
+                                      Icons.check_circle_rounded,
+                                      color: Color(0xFF16A34A),
+                                      size: 20,
+                                    ),
+                                ],
+                              ),
+                            ),
+                          );
+                        }),
+
+                        const SizedBox(height: 18),
+
+                        // SECTION 2: DEPARTMENTS
+                        const Text(
+                          'DEPARTMENT SCOPE',
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFF64748B),
+                            letterSpacing: 0.6,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        const Text(
+                          'Switch operational context to view department-specific items and orders',
+                          style: TextStyle(fontSize: 11.5, color: Color(0xFF94A3B8)),
+                        ),
+                        const SizedBox(height: 10),
+
+                        // Option for All Departments (if admin)
+                        if (isOrgAdmin)
+                          InkWell(
+                            onTap: () {
+                              tenant.setSelectedDepartment(null);
+                              setState(() => _selectedDepartmentName = null);
+                              Navigator.pop(modalCtx);
+                            },
+                            borderRadius: BorderRadius.circular(10),
+                            child: Container(
+                              margin: const EdgeInsets.only(bottom: 8),
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                              decoration: BoxDecoration(
+                                color: (currentDept == null || currentDept.isEmpty)
+                                    ? const Color(0xFFF0FDF4)
+                                    : const Color(0xFFF8FAFC),
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: (currentDept == null || currentDept.isEmpty)
+                                      ? const Color(0xFF16A34A)
+                                      : const Color(0xFFE2E8F0),
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.apps_rounded, size: 18, color: Color(0xFF16A34A)),
+                                  const SizedBox(width: 10),
+                                  const Expanded(
+                                    child: Text(
+                                      'All Departments (Full Organization Scope)',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w700,
+                                        color: Color(0xFF064E3B),
+                                      ),
+                                    ),
+                                  ),
+                                  if (currentDept == null || currentDept.isEmpty)
+                                    const Icon(Icons.check_rounded, color: Color(0xFF16A34A), size: 18),
+                                ],
+                              ),
+                            ),
+                          ),
+
+                        // List of departments
+                        ...departments.map((dept) {
+                          final isCurrent = currentDept == dept.departmentName;
+                          return InkWell(
+                            onTap: () {
+                              tenant.setSelectedDepartment(dept.departmentName);
+                              setState(() => _selectedDepartmentName = dept.departmentName);
+                              Navigator.pop(modalCtx);
+                            },
+                            borderRadius: BorderRadius.circular(10),
+                            child: Container(
+                              margin: const EdgeInsets.only(bottom: 6),
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                              decoration: BoxDecoration(
+                                color: isCurrent
+                                    ? const Color(0xFFF0FDF4)
+                                    : Colors.white,
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: isCurrent
+                                      ? const Color(0xFF16A34A)
+                                      : const Color(0xFFE2E8F0),
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.apartment_rounded,
+                                    size: 18,
+                                    color: isCurrent ? const Color(0xFF16A34A) : const Color(0xFF64748B),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Text(
+                                      dept.departmentName,
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: isCurrent ? FontWeight.w700 : FontWeight.w500,
+                                        color: isCurrent ? const Color(0xFF064E3B) : const Color(0xFF1E293B),
+                                      ),
+                                    ),
+                                  ),
+                                  if (isCurrent)
+                                    const Icon(Icons.check_rounded, color: Color(0xFF16A34A), size: 18),
+                                ],
+                              ),
+                            ),
+                          );
+                        }),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildAppModuleItem(_DashboardModuleItem mod, {required bool isWide}) {
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: mod.onTap,
-        borderRadius: BorderRadius.circular(10),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-          decoration: BoxDecoration(
-            color: const Color(0xFFF8FAFC),
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: const Color(0xFFE2E8F0)),
-          ),
-          child: Stack(
+        borderRadius: BorderRadius.circular(16),
+        splashColor: mod.iconColor.withValues(alpha: 0.12),
+        highlightColor: mod.iconColor.withValues(alpha: 0.05),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 4),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // Top-right badge (if present)
-              if (mod.badgeText != null)
-                Positioned(
-                  top: 0,
-                  right: 0,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              // Icon Container with Badge
+              Stack(
+                clipBehavior: Clip.none,
+                alignment: Alignment.center,
+                children: [
+                  Container(
+                    width: isWide ? 62 : 54,
+                    height: isWide ? 62 : 54,
                     decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(4),
-                      border: Border.all(color: const Color(0xFFCBD5E1)),
-                    ),
-                    child: Text(
-                      mod.badgeText!,
-                      style: const TextStyle(
-                        fontSize: 9,
-                        fontWeight: FontWeight.w800,
-                        color: Color(0xFF334155),
+                      color: mod.bgColor,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: mod.borderColor,
+                        width: 1.5,
                       ),
+                    ),
+                    alignment: Alignment.center,
+                    child: Icon(
+                      mod.icon,
+                      size: isWide ? 30 : 26,
+                      color: mod.iconColor,
                     ),
                   ),
-                ),
+                  if (mod.badgeText != null)
+                    Positioned(
+                      top: -5,
+                      right: -8,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 5, vertical: 1.5),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFEF4444),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: Colors.white, width: 1.5),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.15),
+                              blurRadius: 3,
+                              offset: const Offset(0, 1),
+                            ),
+                          ],
+                        ),
+                        child: Text(
+                          mod.badgeText!,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 9,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 7),
 
-              // Centered content: Clean symbol + Title + Subtitle
-              Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Container(
-                      width: 52,
-                      height: 52,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF0FDF4),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: const Color(0xFFDCFCE7)),
-                      ),
-                      alignment: Alignment.center,
-                      child: Icon(
-                        mod.icon,
-                        size: 28,
-                        color: const Color(0xFF15803D), // Emerald / Dark Green icon
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      mod.title,
-                      maxLines: 1,
-                      textAlign: TextAlign.center,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 13.5,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.black,
-                        letterSpacing: -0.2,
-                      ),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      mod.subtitle,
-                      maxLines: 1,
-                      textAlign: TextAlign.center,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color: Color(0xFF64748B),
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
+              // Module Title
+              Text(
+                mod.title,
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: isWide ? 12.5 : 11.5,
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFF334155),
+                  letterSpacing: -0.2,
+                  height: 1.15,
                 ),
               ),
             ],
@@ -2667,6 +3169,223 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
     );
   }
+
+  // ==========================================
+  // EMERGENCY CONTACTS SECTION
+  // ==========================================
+  Widget _buildEmergencyContactsSection({required bool isWide}) {
+    const contacts = [
+      _EmergencyContactItem(
+        title: 'Facility Security & Control',
+        subtitle: 'Control Room • Ext. 101',
+        phoneNumber: '+1 (800) 555-0199',
+        icon: Icons.warning_amber_rounded,
+        iconColor: Color(0xFFEF4444),
+        bgColor: Color(0xFFFEF2F2),
+        borderColor: Color(0xFFFEE2E2),
+      ),
+      _EmergencyContactItem(
+        title: 'Safety Coordinator (EHS)',
+        subtitle: 'Tariq Vance • Lead Officer',
+        phoneNumber: '+1 (800) 555-0142',
+        icon: Icons.gpp_good_outlined,
+        iconColor: Color(0xFF16A34A),
+        bgColor: Color(0xFFF0FDF4),
+        borderColor: Color(0xFFDCFCE7),
+      ),
+      _EmergencyContactItem(
+        title: 'First Aid & Medical Bay',
+        subtitle: 'Building B • Clinic Desk',
+        phoneNumber: '+1 (800) 555-0188',
+        icon: Icons.medical_services_outlined,
+        iconColor: Color(0xFF2563EB),
+        bgColor: Color(0xFFEFF6FF),
+        borderColor: Color(0xFFDBEAFE),
+      ),
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Emergency Contacts Section Header
+        const Text(
+          'Emergency Contacts',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w800,
+            color: Color(0xFF0F172A),
+            letterSpacing: -0.4,
+          ),
+        ),
+        const SizedBox(height: 3),
+        const Text(
+          'Direct hotlines and on-site emergency personnel',
+          style: TextStyle(
+            fontSize: 12.5,
+            color: Color(0xFF94A3B8),
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(height: 14),
+
+        // Contact Cards List
+        ...contacts.map((c) => _buildEmergencyContactCard(c, isWide: isWide)),
+      ],
+    );
+  }
+
+  Widget _buildEmergencyContactCard(_EmergencyContactItem item, {required bool isWide}) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          // Left Icon Container
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: item.bgColor,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: item.borderColor),
+            ),
+            child: Icon(item.icon, color: item.iconColor, size: 22),
+          ),
+          const SizedBox(width: 12),
+
+          // Contact Details
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item.title,
+                  style: const TextStyle(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF0F172A),
+                  ),
+                ),
+                const SizedBox(height: 1),
+                Text(
+                  item.subtitle,
+                  style: const TextStyle(
+                    fontSize: 11.5,
+                    color: Color(0xFF64748B),
+                  ),
+                ),
+                const SizedBox(height: 2),
+                InkWell(
+                  onTap: () => _makePhoneCall(item.phoneNumber),
+                  child: Text(
+                    item.phoneNumber,
+                    style: const TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF064E3B),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Right Call Button
+          InkWell(
+            onTap: () => _makePhoneCall(item.phoneNumber),
+            borderRadius: BorderRadius.circular(20),
+            child: Container(
+              width: 38,
+              height: 38,
+              decoration: const BoxDecoration(
+                color: Color(0xFF064E3B),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.phone_rounded,
+                color: Colors.white,
+                size: 18,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _makePhoneCall(String phoneNumber) async {
+    final cleaned = phoneNumber.replaceAll(RegExp(r'[^0-9+]'), '');
+    final uri = Uri.parse('tel:$cleaned');
+    try {
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri);
+      } else {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Could not launch dialer for $phoneNumber: $e'),
+            backgroundColor: const Color(0xFFEF4444),
+          ),
+        );
+      }
+    }
+  }
+}
+
+class _BannerTexturePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    // Concentric radiating rings centered on the avatar circle on the right
+    final ringCenter = Offset(size.width - 50, size.height * 0.5);
+
+    final ringPaint = Paint()
+      ..color = const Color(0xFF34D399).withValues(alpha: 0.10)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.2;
+
+    const radii = [42.0, 72.0, 108.0, 150.0, 200.0, 260.0];
+    for (final r in radii) {
+      canvas.drawCircle(ringCenter, r, ringPaint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class _EmergencyContactItem {
+  final String title;
+  final String subtitle;
+  final String phoneNumber;
+  final IconData icon;
+  final Color iconColor;
+  final Color bgColor;
+  final Color borderColor;
+
+  const _EmergencyContactItem({
+    required this.title,
+    required this.subtitle,
+    required this.phoneNumber,
+    required this.icon,
+    required this.iconColor,
+    required this.bgColor,
+    required this.borderColor,
+  });
 }
 
 class _DashboardModuleItem {
@@ -2674,6 +3393,9 @@ class _DashboardModuleItem {
   final String subtitle;
   final String? badgeText;
   final IconData icon;
+  final Color iconColor;
+  final Color bgColor;
+  final Color borderColor;
   final bool isPermitted;
   final VoidCallback onTap;
 
@@ -2682,6 +3404,9 @@ class _DashboardModuleItem {
     required this.subtitle,
     this.badgeText,
     required this.icon,
+    required this.iconColor,
+    required this.bgColor,
+    required this.borderColor,
     required this.isPermitted,
     required this.onTap,
   });

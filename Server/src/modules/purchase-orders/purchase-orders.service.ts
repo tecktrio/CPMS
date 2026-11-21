@@ -154,11 +154,14 @@ export class PurchaseOrdersService {
         total_packets: totalPackets,
         quantity_per_packet: qtyPerPacket,
         unit: it.unit || '',
-        completed_cartons: 0,
-        qc_passed: false,
-        packed_cartons: 0,
-        shipped_cartons: 0,
-        item_status: 'PENDING',
+        completed_cartons:
+          it.completed_cartons !== undefined ? Number(it.completed_cartons) : 0,
+        qc_passed: it.qc_passed === true,
+        packed_cartons:
+          it.packed_cartons !== undefined ? Number(it.packed_cartons) : 0,
+        shipped_cartons:
+          it.shipped_cartons !== undefined ? Number(it.shipped_cartons) : 0,
+        item_status: it.item_status || 'PENDING',
       };
     });
 

@@ -2112,8 +2112,8 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
 
                     // Table Footer showing TOTAL CARTONS
                     Container(
-                      color: Colors.white,
                       decoration: const BoxDecoration(
+                        color: Colors.white,
                         border: Border(
                           top: BorderSide(color: Colors.black, width: 1.0),
                         ),

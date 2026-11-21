@@ -1,6 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsArray,
+  IsBoolean,
   IsEnum,
   IsNotEmpty,
   IsNumber,
@@ -59,6 +60,34 @@ export class PurchaseOrderItemDto {
   @IsString()
   @IsOptional()
   unit?: string;
+
+  @ApiPropertyOptional({ example: 0, description: 'Completed cartons from production' })
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  completed_cartons?: number;
+
+  @ApiPropertyOptional({ example: false, description: 'QC Passed status' })
+  @IsBoolean()
+  @IsOptional()
+  qc_passed?: boolean;
+
+  @ApiPropertyOptional({ example: 0, description: 'Packed cartons' })
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  packed_cartons?: number;
+
+  @ApiPropertyOptional({ example: 0, description: 'Shipped cartons' })
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  shipped_cartons?: number;
+
+  @ApiPropertyOptional({ example: 'PENDING', description: 'Item production status' })
+  @IsString()
+  @IsOptional()
+  item_status?: string;
 }
 
 export class CreatePurchaseOrderDto {
