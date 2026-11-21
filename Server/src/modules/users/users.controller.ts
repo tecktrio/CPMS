@@ -6,6 +6,7 @@ import {
   Delete,
   Param,
   Body,
+  Query,
   UseGuards,
   UseInterceptors,
   UploadedFile,
@@ -105,6 +106,30 @@ export class UsersController {
   @ApiResponse({ status: 403, description: 'Forbidden - Missing required permission' })
   async findAllInTenant(@CurrentTenant() tenantId: string) {
     return this.usersService.findAllInTenant(tenantId);
+  }
+
+  @Get('search-global')
+  @UseGuards(TenantGuard, PermissionsGuard)
+  @RequireAnyPermissions(
+    'permission.user.read',
+    'permission.user.add',
+    'permission.user.update',
+  )
+  @ApiHeader({
+    name: 'X-Tenant-ID',
+    description: 'Active tenant UUID',
+    required: true,
+  })
+  @ApiOperation({
+    summary: 'Search global users by username, email, or name with organization availability status',
+    description: 'Returns matching users with availability indicators for assigning to this tenant.',
+  })
+  @ApiResponse({ status: 200, description: 'Matching global users' })
+  async searchGlobal(
+    @Query('q') query: string,
+    @CurrentTenant() tenantId: string,
+  ) {
+    return this.usersService.searchGlobalUsers(query, tenantId);
   }
 
   @Get(':id')

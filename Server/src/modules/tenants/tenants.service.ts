@@ -444,12 +444,28 @@ export class TenantsService {
       dto.department_ids,
     );
 
-    const rawUsername = dto.user_name?.toLowerCase().trim() ||
-      (!dto.email_address?.includes('@') ? dto.email_address?.toLowerCase().trim() : undefined);
+    let rawUsername = dto.user_name?.toLowerCase().trim();
+    if (!rawUsername && dto.email_address) {
+      const emailOrUsername = dto.email_address.toLowerCase().trim();
+      if (!emailOrUsername.includes('@')) {
+        rawUsername = emailOrUsername;
+      } else {
+        const usersByEmail = await this.userModel.find({ email_address: emailOrUsername });
+        if (usersByEmail.length === 1) {
+          rawUsername = usersByEmail[0].user_name;
+        } else if (usersByEmail.length > 1) {
+          throw new BadRequestException(
+            'Multiple accounts found with this email. Please specify the unique username (@username).',
+          );
+        } else {
+          rawUsername = emailOrUsername.split('@')[0];
+        }
+      }
+    }
 
     if (!rawUsername) {
       throw new BadRequestException(
-        'Please provide the unique username of the user to add to this organization.',
+        'Please provide the unique username or email of the user to add to this organization.',
       );
     }
 

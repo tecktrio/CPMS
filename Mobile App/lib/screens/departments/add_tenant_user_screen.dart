@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/department_provider.dart';
@@ -19,6 +20,11 @@ class _AddTenantUserScreenState extends State<AddTenantUserScreen> {
   String? _selectedDepartmentId;
   bool _isSubmitting = false;
 
+  List<GlobalUserSuggestion> _userSuggestions = [];
+  bool _isSearchingUsers = false;
+  Timer? _debounceTimer;
+  GlobalUserSuggestion? _selectedSuggestion;
+
   bool get isEditing => widget.existingUser != null;
 
   @override
@@ -36,8 +42,34 @@ class _AddTenantUserScreenState extends State<AddTenantUserScreen> {
 
   @override
   void dispose() {
+    _debounceTimer?.cancel();
     _usernameController.dispose();
     super.dispose();
+  }
+
+  void _onSearchChanged(String val) {
+    if (isEditing) return;
+    _debounceTimer?.cancel();
+    final trimmed = val.trim();
+    if (trimmed.isEmpty) {
+      setState(() {
+        _userSuggestions = [];
+        _isSearchingUsers = false;
+        _selectedSuggestion = null;
+      });
+      return;
+    }
+
+    _debounceTimer = Timer(const Duration(milliseconds: 250), () async {
+      setState(() => _isSearchingUsers = true);
+      final results =
+          await context.read<DepartmentProvider>().searchGlobalUsers(trimmed);
+      if (!mounted) return;
+      setState(() {
+        _userSuggestions = results;
+        _isSearchingUsers = false;
+      });
+    });
   }
 
   Future<void> _submit() async {
@@ -142,24 +174,332 @@ class _AddTenantUserScreenState extends State<AddTenantUserScreen> {
               ),
               const SizedBox(height: 20),
 
-              // Username
-              TextFormField(
-                controller: _usernameController,
-                enabled: !isEditing,
-                keyboardType: TextInputType.text,
-                autocorrect: false,
-                decoration: InputDecoration(
-                  labelText: 'Staff Username (@username) *',
-                  hintText: 'e.g. janedoe',
-                  prefixIcon: const Icon(Icons.alternate_email),
-                  filled: isEditing,
-                  fillColor: isEditing ? const Color(0xFFF8FAFC) : null,
+              // Username / Global User Search
+              if (isEditing)
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                  ),
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 20,
+                        backgroundColor: const Color(0xFF0F766E),
+                        child: Text(
+                          (widget.existingUser!.fullName.isNotEmpty
+                                  ? widget.existingUser!.fullName[0]
+                                  : widget.existingUser!.userName.isNotEmpty
+                                      ? widget.existingUser!.userName[0]
+                                      : 'U')
+                              .toUpperCase(),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              widget.existingUser!.fullName.isNotEmpty
+                                  ? widget.existingUser!.fullName
+                                  : 'Staff Member',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              widget.existingUser!.userName.isNotEmpty
+                                  ? '@${widget.existingUser!.userName} • ${widget.existingUser!.emailAddress}'
+                                  : widget.existingUser!.emailAddress,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Color(0xFF64748B),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              else if (_selectedSuggestion != null)
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF0FDF4),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFF86EFAC)),
+                  ),
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 20,
+                        backgroundColor: const Color(0xFF16A34A),
+                        child: Text(
+                          (_selectedSuggestion!.fullName.isNotEmpty
+                                  ? _selectedSuggestion!.fullName[0]
+                                  : _selectedSuggestion!.userName.isNotEmpty
+                                      ? _selectedSuggestion!.userName[0]
+                                      : 'U')
+                              .toUpperCase(),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    _selectedSuggestion!.fullName.isNotEmpty
+                                        ? _selectedSuggestion!.fullName
+                                        : _selectedSuggestion!.userName,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFDCFCE7),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: const Text(
+                                    'Selected',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                      color: Color(0xFF16A34A),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              '@${_selectedSuggestion!.userName} • ${_selectedSuggestion!.emailAddress}',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Color(0xFF64748B),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(
+                          Icons.close,
+                          size: 20,
+                          color: Color(0xFF64748B),
+                        ),
+                        tooltip: 'Change User',
+                        onPressed: () {
+                          setState(() {
+                            _selectedSuggestion = null;
+                            _usernameController.clear();
+                            _userSuggestions = [];
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+                )
+              else ...[
+                TextFormField(
+                  controller: _usernameController,
+                  keyboardType: TextInputType.text,
+                  autocorrect: false,
+                  decoration: InputDecoration(
+                    labelText: 'Search Staff by Username or Email *',
+                    hintText: 'e.g. johndoe or john@example.com',
+                    prefixIcon: const Icon(Icons.search),
+                    suffixIcon: _usernameController.text.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear, size: 18),
+                            onPressed: () {
+                              _usernameController.clear();
+                              _onSearchChanged('');
+                            },
+                          )
+                        : null,
+                  ),
+                  onChanged: _onSearchChanged,
+                  validator: (val) {
+                    if (val == null || val.trim().isEmpty) {
+                      return 'Please search and select a staff user';
+                    }
+                    return null;
+                  },
                 ),
-                validator: (val) {
-                  if (val == null || val.trim().isEmpty) return 'Username is required';
-                  return null;
-                },
-              ),
+                if (_isSearchingUsers)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8, left: 4),
+                    child: Row(
+                      children: const [
+                        SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Color(0xFF0F766E),
+                          ),
+                        ),
+                        SizedBox(width: 8),
+                        Text(
+                          'Searching global registered users...',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF64748B),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                if (_userSuggestions.isNotEmpty && _selectedSuggestion == null)
+                  Container(
+                    margin: const EdgeInsets.only(top: 8),
+                    constraints: const BoxConstraints(maxHeight: 220),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: const Color(0xFFCBD5E1)),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Color(0x0A000000),
+                          blurRadius: 8,
+                          offset: Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: ListView.separated(
+                      shrinkWrap: true,
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      itemCount: _userSuggestions.length,
+                      separatorBuilder: (context, index) =>
+                          const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                      itemBuilder: (context, idx) {
+                        final s = _userSuggestions[idx];
+                        return ListTile(
+                          dense: true,
+                          leading: CircleAvatar(
+                            radius: 16,
+                            backgroundColor: s.isAvailable
+                                ? const Color(0xFF0F766E)
+                                : const Color(0xFF94A3B8),
+                            child: Text(
+                              (s.fullName.isNotEmpty
+                                      ? s.fullName[0]
+                                      : s.userName.isNotEmpty
+                                          ? s.userName[0]
+                                          : 'U')
+                                  .toUpperCase(),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          title: Text(
+                            s.fullName.isNotEmpty ? s.fullName : s.userName,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          subtitle: Text(
+                            '@${s.userName} • ${s.emailAddress}',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: Color(0xFF64748B),
+                            ),
+                          ),
+                          trailing: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: s.isInCurrentTenant
+                                  ? const Color(0xFFFEF3C7)
+                                  : s.isInOtherTenant
+                                      ? const Color(0xFFFEE2E2)
+                                      : const Color(0xFFDCFCE7),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              s.isInCurrentTenant
+                                  ? 'Already Member'
+                                  : s.isInOtherTenant
+                                      ? (s.otherTenantName != null
+                                          ? 'In: ${s.otherTenantName}'
+                                          : 'In Another Org')
+                                      : 'Available',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                color: s.isInCurrentTenant
+                                    ? const Color(0xFFB45309)
+                                    : s.isInOtherTenant
+                                        ? const Color(0xFFB91C1C)
+                                        : const Color(0xFF15803D),
+                              ),
+                            ),
+                          ),
+                          onTap: () {
+                            if (s.isInCurrentTenant) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    'This user is already a member of this organization.',
+                                  ),
+                                  backgroundColor: Colors.orange,
+                                ),
+                              );
+                              return;
+                            }
+                            if (s.isInOtherTenant) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    'This user is already a member of ${s.otherTenantName ?? "another organization"}. Users cannot belong to multiple organizations.',
+                                  ),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                              return;
+                            }
+                            setState(() {
+                              _selectedSuggestion = s;
+                              _usernameController.text = s.userName;
+                              _userSuggestions = [];
+                            });
+                          },
+                        );
+                      },
+                    ),
+                  ),
+              ],
               const SizedBox(height: 24),
 
               // Department Assignment

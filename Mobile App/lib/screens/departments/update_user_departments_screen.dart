@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/department_provider.dart';
@@ -17,11 +18,16 @@ class UpdateUserDepartmentsScreen extends StatefulWidget {
 class _UpdateUserDepartmentsScreenState
     extends State<UpdateUserDepartmentsScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController();
+  final _userSearchController = TextEditingController();
   final _searchController = TextEditingController();
   String? _selectedDepartmentId;
   String _searchQuery = '';
   bool _isSubmitting = false;
+
+  List<GlobalUserSuggestion> _userSuggestions = [];
+  bool _isSearchingUsers = false;
+  Timer? _debounceTimer;
+  GlobalUserSuggestion? _selectedSuggestion;
 
   bool get isEditing => widget.existingUser != null;
 
@@ -29,7 +35,6 @@ class _UpdateUserDepartmentsScreenState
   void initState() {
     super.initState();
     if (isEditing) {
-      _emailController.text = widget.existingUser!.emailAddress;
       if (widget.existingUser!.departmentIds.isNotEmpty) {
         _selectedDepartmentId = widget.existingUser!.departmentIds.first;
       }
@@ -41,9 +46,35 @@ class _UpdateUserDepartmentsScreenState
 
   @override
   void dispose() {
-    _emailController.dispose();
+    _debounceTimer?.cancel();
+    _userSearchController.dispose();
     _searchController.dispose();
     super.dispose();
+  }
+
+  void _onSearchChanged(String val) {
+    if (isEditing) return;
+    _debounceTimer?.cancel();
+    final trimmed = val.trim();
+    if (trimmed.isEmpty) {
+      setState(() {
+        _userSuggestions = [];
+        _isSearchingUsers = false;
+        _selectedSuggestion = null;
+      });
+      return;
+    }
+
+    _debounceTimer = Timer(const Duration(milliseconds: 250), () async {
+      setState(() => _isSearchingUsers = true);
+      final results =
+          await context.read<DepartmentProvider>().searchGlobalUsers(trimmed);
+      if (!mounted) return;
+      setState(() {
+        _userSuggestions = results;
+        _isSearchingUsers = false;
+      });
+    });
   }
 
   Future<void> _submit() async {
@@ -71,8 +102,20 @@ class _UpdateUserDepartmentsScreenState
         departmentIds: [_selectedDepartmentId!],
       );
     } else {
+      final username = _selectedSuggestion != null
+          ? _selectedSuggestion!.userName
+          : (!_userSearchController.text.contains('@')
+              ? _userSearchController.text.trim().toLowerCase()
+              : null);
+      final email = _selectedSuggestion != null
+          ? _selectedSuggestion!.emailAddress
+          : (_userSearchController.text.contains('@')
+              ? _userSearchController.text.trim().toLowerCase()
+              : null);
+
       success = await deptProvider.addTenantUser(
-        emailAddress: _emailController.text.trim().toLowerCase(),
+        userName: username,
+        emailAddress: email,
         departmentIds: [_selectedDepartmentId!],
       );
     }
@@ -81,12 +124,22 @@ class _UpdateUserDepartmentsScreenState
     setState(() => _isSubmitting = false);
 
     if (success) {
+      final displayName = isEditing
+          ? (widget.existingUser!.fullName.isNotEmpty
+              ? widget.existingUser!.fullName
+              : widget.existingUser!.userName.isNotEmpty
+                  ? '@${widget.existingUser!.userName}'
+                  : widget.existingUser!.emailAddress)
+          : (_selectedSuggestion != null
+              ? '@${_selectedSuggestion!.userName}'
+              : _userSearchController.text.trim());
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
             isEditing
-                ? 'Staff user department reassigned successfully!'
-                : 'Staff user ${_emailController.text.trim()} added successfully!',
+                ? 'Staff user $displayName department reassigned successfully!'
+                : 'Staff user $displayName added to department successfully!',
           ),
           backgroundColor: const Color(0xFF0F766E),
         ),
@@ -213,116 +266,441 @@ class _UpdateUserDepartmentsScreenState
 
               const SizedBox(height: 20),
 
-              // 2. User Email Address Field
-              Row(
-                children: const [
-                  Text(
-                    'USER EMAIL ADDRESS',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w800,
-                      color: Color(0xFF64748B),
-                      letterSpacing: 0.5,
+              // 2. Staff Member / User Search
+              if (isEditing) ...[
+                Row(
+                  children: const [
+                    Text(
+                      'STAFF MEMBER',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF64748B),
+                        letterSpacing: 0.5,
+                      ),
                     ),
-                  ),
-                  Text(
-                    ' *',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w800,
-                      color: Color(0xFFEF4444),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              TextFormField(
-                controller: _emailController,
-                readOnly: isEditing,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  color: isEditing ? const Color(0xFF334155) : Colors.black,
+                  ],
                 ),
-                decoration: InputDecoration(
-                  hintText: 'user@example.com',
-                  hintStyle: const TextStyle(
-                    color: Color(0xFF94A3B8),
-                    fontSize: 14,
-                    fontWeight: FontWeight.w400,
-                  ),
-                  filled: true,
-                  fillColor: isEditing ? const Color(0xFFF8FAFC) : Colors.white,
-                  contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-                  border: OutlineInputBorder(
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF8FAFC),
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
                   ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide:
-                        const BorderSide(color: Colors.black, width: 1.5),
-                  ),
-                  prefixIcon: const Icon(
-                    Icons.mail_outline,
-                    size: 20,
-                    color: Color(0xFF94A3B8),
-                  ),
-                  suffixIcon: isEditing
-                      ? Padding(
-                          padding: const EdgeInsets.only(right: 8),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                  vertical: 5,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFF1F5F9),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: const Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      Icons.lock,
-                                      size: 13,
-                                      color: Color(0xFF64748B),
-                                    ),
-                                    SizedBox(width: 4),
-                                    Text(
-                                      'Locked',
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w700,
-                                        color: Color(0xFF475569),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 20,
+                        backgroundColor: const Color(0xFF0F766E),
+                        child: Text(
+                          (widget.existingUser!.fullName.isNotEmpty
+                                  ? widget.existingUser!.fullName[0]
+                                  : widget.existingUser!.userName.isNotEmpty
+                                      ? widget.existingUser!.userName[0]
+                                      : 'U')
+                              .toUpperCase(),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
                           ),
-                        )
-                      : null,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              widget.existingUser!.fullName.isNotEmpty
+                                  ? widget.existingUser!.fullName
+                                  : 'Staff Member',
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w800,
+                                color: Color(0xFF0F172A),
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              widget.existingUser!.userName.isNotEmpty
+                                  ? '@${widget.existingUser!.userName} • ${widget.existingUser!.emailAddress}'
+                                  : widget.existingUser!.emailAddress,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Color(0xFF64748B),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF1F5F9),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.lock,
+                              size: 12,
+                              color: Color(0xFF64748B),
+                            ),
+                            SizedBox(width: 4),
+                            Text(
+                              'User Fixed',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF475569),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                validator: (val) {
-                  if (val == null || val.trim().isEmpty) {
-                    return 'Email address is required';
-                  }
-                  if (!val.contains('@')) {
-                    return 'Enter a valid email address';
-                  }
-                  return null;
-                },
-              ),
+              ] else if (_selectedSuggestion != null) ...[
+                Row(
+                  children: const [
+                    Text(
+                      'SELECTED STAFF MEMBER',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF64748B),
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF0FDF4),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFF86EFAC)),
+                  ),
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 20,
+                        backgroundColor: const Color(0xFF16A34A),
+                        child: Text(
+                          (_selectedSuggestion!.fullName.isNotEmpty
+                                  ? _selectedSuggestion!.fullName[0]
+                                  : _selectedSuggestion!.userName.isNotEmpty
+                                      ? _selectedSuggestion!.userName[0]
+                                      : 'U')
+                              .toUpperCase(),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    _selectedSuggestion!.fullName.isNotEmpty
+                                        ? _selectedSuggestion!.fullName
+                                        : _selectedSuggestion!.userName,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFDCFCE7),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: const Text(
+                                    'Selected',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                      color: Color(0xFF16A34A),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              '@${_selectedSuggestion!.userName} • ${_selectedSuggestion!.emailAddress}',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Color(0xFF64748B),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(
+                          Icons.close,
+                          size: 20,
+                          color: Color(0xFF64748B),
+                        ),
+                        tooltip: 'Change User',
+                        onPressed: () {
+                          setState(() {
+                            _selectedSuggestion = null;
+                            _userSearchController.clear();
+                            _userSuggestions = [];
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ] else ...[
+                Row(
+                  children: const [
+                    Text(
+                      'SEARCH STAFF USER (USERNAME OR EMAIL)',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF64748B),
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    Text(
+                      ' *',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFFEF4444),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: _userSearchController,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.black,
+                  ),
+                  decoration: InputDecoration(
+                    hintText: 'Search by @username or user@example.com',
+                    hintStyle: const TextStyle(
+                      color: Color(0xFF94A3B8),
+                      fontSize: 14,
+                      fontWeight: FontWeight.w400,
+                    ),
+                    filled: true,
+                    fillColor: Colors.white,
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 14),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide:
+                          const BorderSide(color: Colors.black, width: 1.5),
+                    ),
+                    prefixIcon: const Icon(
+                      Icons.search,
+                      size: 20,
+                      color: Color(0xFF94A3B8),
+                    ),
+                    suffixIcon: _userSearchController.text.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear, size: 18),
+                            onPressed: () {
+                              _userSearchController.clear();
+                              _onSearchChanged('');
+                            },
+                          )
+                        : null,
+                  ),
+                  onChanged: _onSearchChanged,
+                  validator: (val) {
+                    if (_selectedSuggestion == null &&
+                        (val == null || val.trim().isEmpty)) {
+                      return 'Please search and select a staff user';
+                    }
+                    return null;
+                  },
+                ),
+                if (_isSearchingUsers)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8, left: 4),
+                    child: Row(
+                      children: const [
+                        SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Color(0xFF0F766E),
+                          ),
+                        ),
+                        SizedBox(width: 8),
+                        Text(
+                          'Searching global registered users...',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF64748B),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                if (_userSuggestions.isNotEmpty && _selectedSuggestion == null)
+                  Container(
+                    margin: const EdgeInsets.only(top: 8),
+                    constraints: const BoxConstraints(maxHeight: 220),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: const Color(0xFFCBD5E1)),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Color(0x0A000000),
+                          blurRadius: 8,
+                          offset: Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: ListView.separated(
+                      shrinkWrap: true,
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      itemCount: _userSuggestions.length,
+                      separatorBuilder: (context, index) =>
+                          const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                      itemBuilder: (context, idx) {
+                        final s = _userSuggestions[idx];
+                        return ListTile(
+                          dense: true,
+                          leading: CircleAvatar(
+                            radius: 16,
+                            backgroundColor: s.isAvailable
+                                ? const Color(0xFF0F766E)
+                                : const Color(0xFF94A3B8),
+                            child: Text(
+                              (s.fullName.isNotEmpty
+                                      ? s.fullName[0]
+                                      : s.userName.isNotEmpty
+                                          ? s.userName[0]
+                                          : 'U')
+                                  .toUpperCase(),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          title: Text(
+                            s.fullName.isNotEmpty ? s.fullName : s.userName,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          subtitle: Text(
+                            '@${s.userName} • ${s.emailAddress}',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: Color(0xFF64748B),
+                            ),
+                          ),
+                          trailing: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: s.isInCurrentTenant
+                                  ? const Color(0xFFFEF3C7)
+                                  : s.isInOtherTenant
+                                      ? const Color(0xFFFEE2E2)
+                                      : const Color(0xFFDCFCE7),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              s.isInCurrentTenant
+                                  ? 'Already Member'
+                                  : s.isInOtherTenant
+                                      ? (s.otherTenantName != null
+                                          ? 'In: ${s.otherTenantName}'
+                                          : 'In Another Org')
+                                      : 'Available',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                color: s.isInCurrentTenant
+                                    ? const Color(0xFFB45309)
+                                    : s.isInOtherTenant
+                                        ? const Color(0xFFB91C1C)
+                                        : const Color(0xFF15803D),
+                              ),
+                            ),
+                          ),
+                          onTap: () {
+                            if (s.isInCurrentTenant) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    'This user is already a member of this organization.',
+                                  ),
+                                  backgroundColor: Colors.orange,
+                                ),
+                              );
+                              return;
+                            }
+                            if (s.isInOtherTenant) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    'This user is already a member of ${s.otherTenantName ?? "another organization"}. Users cannot belong to multiple organizations.',
+                                  ),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                              return;
+                            }
+                            setState(() {
+                              _selectedSuggestion = s;
+                              _userSearchController.text = s.userName;
+                              _userSuggestions = [];
+                            });
+                          },
+                        );
+                      },
+                    ),
+                  ),
+              ],
 
               const SizedBox(height: 24),
 

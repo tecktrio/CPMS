@@ -63,6 +63,44 @@ class TenantUserModel {
   }
 }
 
+class GlobalUserSuggestion {
+  final String userId;
+  final String userName;
+  final String fullName;
+  final String emailAddress;
+  final String? avatarUrl;
+  final bool isInCurrentTenant;
+  final bool isInOtherTenant;
+  final String? otherTenantName;
+  final bool isAvailable;
+
+  GlobalUserSuggestion({
+    required this.userId,
+    required this.userName,
+    required this.fullName,
+    required this.emailAddress,
+    this.avatarUrl,
+    required this.isInCurrentTenant,
+    required this.isInOtherTenant,
+    this.otherTenantName,
+    required this.isAvailable,
+  });
+
+  factory GlobalUserSuggestion.fromJson(Map<String, dynamic> json) {
+    return GlobalUserSuggestion(
+      userId: json['user_id'] ?? '',
+      userName: json['user_name'] ?? '',
+      fullName: json['full_name'] ?? '',
+      emailAddress: json['email_address'] ?? '',
+      avatarUrl: json['avatar_url'],
+      isInCurrentTenant: json['is_in_current_tenant'] == true,
+      isInOtherTenant: json['is_in_other_tenant'] == true,
+      otherTenantName: json['other_tenant_name'],
+      isAvailable: json['is_available'] == true,
+    );
+  }
+}
+
 class DepartmentProvider extends ChangeNotifier {
   final ApiClient apiClient;
 
@@ -176,6 +214,26 @@ class DepartmentProvider extends ChangeNotifier {
     } catch (e) {
       _errorMessage = e.toString();
       _setLoading(false);
+    }
+  }
+
+  Future<List<GlobalUserSuggestion>> searchGlobalUsers(String query) async {
+    final q = query.trim();
+    if (q.isEmpty) return [];
+
+    try {
+      final res = await apiClient.get(
+        '${ApiConstants.searchGlobalUsers}?q=${Uri.encodeComponent(q)}',
+      );
+      if (res is List) {
+        return res
+            .map((item) =>
+                GlobalUserSuggestion.fromJson(item as Map<String, dynamic>))
+            .toList();
+      }
+      return [];
+    } catch (_) {
+      return [];
     }
   }
 

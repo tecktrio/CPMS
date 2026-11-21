@@ -283,7 +283,7 @@ class _DepartmentsListScreenState extends State<DepartmentsListScreen> {
                     controller: _searchController,
                     style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
                     decoration: InputDecoration(
-                      hintText: 'Search staff by name, email, or department...',
+                      hintText: 'Search staff by username, email, or department...',
                       hintStyle: const TextStyle(
                         color: Color(0xFF94A3B8),
                         fontSize: 13,

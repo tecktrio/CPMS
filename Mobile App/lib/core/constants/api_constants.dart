@@ -52,6 +52,7 @@ class ApiConstants {
 
   // Directory users
   static const String usersDirectory = '/users';
+  static const String searchGlobalUsers = '/users/search-global';
 
   // Departments & Permissions
   static const String departments = '/departments';
