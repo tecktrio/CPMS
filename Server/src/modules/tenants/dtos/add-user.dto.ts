@@ -1,5 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
+  ArrayMaxSize,
+  ArrayMinSize,
   IsArray,
   IsEmail,
   IsNotEmpty,
@@ -26,12 +28,14 @@ export class AddUserDto {
   email_address: string;
 
   @ApiProperty({
-    example: ['dept-uuid-cold-storage-001', 'dept-uuid-quality-control-002'],
+    example: ['dept-uuid-quality-control-002'],
     description:
-      'List of Department IDs assigned to the user within this tenant. Multiple departments can be specified.',
+      'The single Department ID assigned to the user within this tenant (1 user = 1 department).',
     type: [String],
   })
   @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(1)
   @IsString({ each: true })
   @IsNotEmpty()
   department_ids: string[];

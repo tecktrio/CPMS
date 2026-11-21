@@ -624,7 +624,7 @@ class _DepartmentsListScreenState extends State<DepartmentsListScreen>
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                'ASSIGNED DEPARTMENTS',
+                'ASSIGNED DEPARTMENT',
                 style: TextStyle(
                   fontSize: 10,
                   color: Color(0xFF94A3B8),
@@ -639,7 +639,7 @@ class _DepartmentsListScreenState extends State<DepartmentsListScreen>
                 children: assignedDeptNames.isEmpty
                     ? [
                         const Text(
-                          'No departments assigned',
+                          'No department assigned',
                           style: TextStyle(
                             fontSize: 11,
                             color: Color(0xFF94A3B8),
@@ -652,16 +652,28 @@ class _DepartmentsListScreenState extends State<DepartmentsListScreen>
                           padding: const EdgeInsets.symmetric(
                               horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFF1F5F9),
+                            color: const Color(0xFFF0FDF4),
                             borderRadius: BorderRadius.circular(4),
+                            border: Border.all(color: const Color(0xFFDCFCE7)),
                           ),
-                          child: Text(
-                            name,
-                            style: const TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              color: Color(0xFF334155),
-                            ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.apartment,
+                                size: 12,
+                                color: Color(0xFF16A34A),
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                name,
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF064E3B),
+                                ),
+                              ),
+                            ],
                           ),
                         );
                       }).toList(),

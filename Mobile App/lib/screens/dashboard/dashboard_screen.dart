@@ -30,7 +30,6 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  String? _selectedDepartmentName;
   late int _currentNavIndex;
   late final ValueNotifier<int> _currentNavIndexNotifier;
   final GlobalKey<NavigatorState> _shellNavigatorKey = GlobalKey<NavigatorState>();
@@ -318,38 +317,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final activeTenant = tenant.activeTenant;
     final user = auth.user;
     final isAdmin = tenant.isTenantAdmin;
-    final deptCount = tenant.userDepartmentCount;
 
     final mediaQuery = MediaQuery.of(context);
     final screenWidth = mediaQuery.size.width;
     final isWide = screenWidth >= 650;
 
-    // Resolve displayed department name
-    String resolvedDeptName = 'Operations & Logistics';
-    if (tenant.selectedDepartmentName != null &&
-        tenant.selectedDepartmentName!.isNotEmpty) {
-      resolvedDeptName = tenant.selectedDepartmentName!;
-    } else if (_selectedDepartmentName != null &&
-        _selectedDepartmentName!.isNotEmpty) {
-      resolvedDeptName = _selectedDepartmentName!;
-    } else if (!isAdmin && activeTenant != null && activeTenant.departmentIds.length == 1) {
-      final match = tenant.tenantDepartments.firstWhere(
-        (d) => d.departmentId == activeTenant.departmentIds.first,
-        orElse: () => DepartmentModel(
-          departmentId: '',
-          tenantId: '',
-          departmentName: 'Assigned Department',
-          description: '',
-          permissionIds: [],
-          isActive: true,
-        ),
-      );
-      if (match.departmentName.isNotEmpty) {
-        resolvedDeptName = match.departmentName;
-      }
-    } else if (tenant.tenantDepartments.isNotEmpty) {
-      resolvedDeptName = tenant.tenantDepartments.first.departmentName;
-    }
+    // Resolve displayed department name (fixed single department assigned by Tenant Admin)
+    final resolvedDeptName = tenant.selectedDepartmentName ??
+        (isAdmin ? 'Org Admin' : 'Assigned Department');
 
     // Module permission gating
     final hasItemAccess = isAdmin || tenant.hasAnyPermissionInModule('item');
@@ -459,9 +434,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final userName = user != null && user.fullName.isNotEmpty
         ? user.fullName
         : 'Authenticated User';
-    final userRoleSubtitle = isAdmin
-        ? 'Org Admin'
-        : (deptCount == 1 ? resolvedDeptName : '$deptCount Depts');
+    final userRoleSubtitle = isAdmin ? 'Org Admin' : resolvedDeptName;
     final userInitial = userName.isNotEmpty ? userName[0].toUpperCase() : 'U';
     final userAvatarUrl = ApiConstants.resolveImageUrl(user?.avatarUrl);
 
@@ -735,7 +708,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 userRoleSubtitle: userRoleSubtitle,
                 isAdmin: isAdmin,
                 isWide: isWide,
-                onTap: () => _showOrganizationAndDepartmentModal(context),
+                onTap: () => _showOrganizationModal(context),
               ),
 
               const SizedBox(height: 22),
@@ -2763,14 +2736,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  /// Interactive Modal Bottom Sheet to switch Organization (Tenant) and Department scope
-  void _showOrganizationAndDepartmentModal(BuildContext context) {
+  /// Interactive Modal Bottom Sheet to switch Organization (Tenant) workspace
+  void _showOrganizationModal(BuildContext context) {
     final tenant = context.read<TenantProvider>();
     final auth = context.read<AuthProvider>();
     final availableTenants = auth.availableTenants;
     final activeTenantId = tenant.activeTenant?.tenantId;
-    final departments = tenant.tenantDepartments;
-    final currentDept = tenant.selectedDepartmentName;
 
     showModalBottomSheet(
       context: context,
@@ -2779,9 +2750,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
       builder: (modalCtx) {
         return StatefulBuilder(
           builder: (ctx, setModalState) {
-            final activeTenant = tenant.activeTenant;
-            final isOrgAdmin = activeTenant?.isAdmin ?? false;
-
             return Container(
               constraints: BoxConstraints(
                 maxHeight: MediaQuery.of(context).size.height * 0.82,
@@ -2820,7 +2788,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Organization & Department',
+                                'Active Organization',
                                 style: TextStyle(
                                   fontSize: 17,
                                   fontWeight: FontWeight.w800,
@@ -2828,7 +2796,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 ),
                               ),
                               Text(
-                                'Tap to switch active organization or department',
+                                'Tap to switch active organization workspace',
                                 style: TextStyle(
                                   fontSize: 12,
                                   color: Color(0xFF64748B),
@@ -2954,118 +2922,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           );
                         }),
 
-                        const SizedBox(height: 18),
 
-                        // SECTION 2: DEPARTMENTS
-                        const Text(
-                          'DEPARTMENT SCOPE',
-                          style: TextStyle(
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.w800,
-                            color: Color(0xFF64748B),
-                            letterSpacing: 0.6,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        const Text(
-                          'Switch operational context to view department-specific items and orders',
-                          style: TextStyle(fontSize: 11.5, color: Color(0xFF94A3B8)),
-                        ),
-                        const SizedBox(height: 10),
-
-                        // Option for All Departments (if admin)
-                        if (isOrgAdmin)
-                          InkWell(
-                            onTap: () {
-                              tenant.setSelectedDepartment(null);
-                              setState(() => _selectedDepartmentName = null);
-                              Navigator.pop(modalCtx);
-                            },
-                            borderRadius: BorderRadius.circular(10),
-                            child: Container(
-                              margin: const EdgeInsets.only(bottom: 8),
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                              decoration: BoxDecoration(
-                                color: (currentDept == null || currentDept.isEmpty)
-                                    ? const Color(0xFFF0FDF4)
-                                    : const Color(0xFFF8FAFC),
-                                borderRadius: BorderRadius.circular(10),
-                                border: Border.all(
-                                  color: (currentDept == null || currentDept.isEmpty)
-                                      ? const Color(0xFF16A34A)
-                                      : const Color(0xFFE2E8F0),
-                                ),
-                              ),
-                              child: Row(
-                                children: [
-                                  const Icon(Icons.apps_rounded, size: 18, color: Color(0xFF16A34A)),
-                                  const SizedBox(width: 10),
-                                  const Expanded(
-                                    child: Text(
-                                      'All Departments (Full Organization Scope)',
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w700,
-                                        color: Color(0xFF064E3B),
-                                      ),
-                                    ),
-                                  ),
-                                  if (currentDept == null || currentDept.isEmpty)
-                                    const Icon(Icons.check_rounded, color: Color(0xFF16A34A), size: 18),
-                                ],
-                              ),
-                            ),
-                          ),
-
-                        // List of departments
-                        ...departments.map((dept) {
-                          final isCurrent = currentDept == dept.departmentName;
-                          return InkWell(
-                            onTap: () {
-                              tenant.setSelectedDepartment(dept.departmentName);
-                              setState(() => _selectedDepartmentName = dept.departmentName);
-                              Navigator.pop(modalCtx);
-                            },
-                            borderRadius: BorderRadius.circular(10),
-                            child: Container(
-                              margin: const EdgeInsets.only(bottom: 6),
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                              decoration: BoxDecoration(
-                                color: isCurrent
-                                    ? const Color(0xFFF0FDF4)
-                                    : Colors.white,
-                                borderRadius: BorderRadius.circular(10),
-                                border: Border.all(
-                                  color: isCurrent
-                                      ? const Color(0xFF16A34A)
-                                      : const Color(0xFFE2E8F0),
-                                ),
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    Icons.apartment_rounded,
-                                    size: 18,
-                                    color: isCurrent ? const Color(0xFF16A34A) : const Color(0xFF64748B),
-                                  ),
-                                  const SizedBox(width: 10),
-                                  Expanded(
-                                    child: Text(
-                                      dept.departmentName,
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        fontWeight: isCurrent ? FontWeight.w700 : FontWeight.w500,
-                                        color: isCurrent ? const Color(0xFF064E3B) : const Color(0xFF1E293B),
-                                      ),
-                                    ),
-                                  ),
-                                  if (isCurrent)
-                                    const Icon(Icons.check_rounded, color: Color(0xFF16A34A), size: 18),
-                                ],
-                              ),
-                            ),
-                          );
-                        }),
                       ],
                     ),
                   ),

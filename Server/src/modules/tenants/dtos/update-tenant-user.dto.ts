@@ -1,5 +1,12 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsArray, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import {
+  ArrayMaxSize,
+  ArrayMinSize,
+  IsArray,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+} from 'class-validator';
 
 export class UpdateTenantUserDto {
   @ApiPropertyOptional({
@@ -12,12 +19,14 @@ export class UpdateTenantUserDto {
   tenant_id?: string;
 
   @ApiProperty({
-    example: ['dept-uuid-cold-storage-001', 'dept-uuid-packaging-002'],
+    example: ['dept-uuid-cold-storage-001'],
     description:
-      'Updated list of valid Department IDs assigned to the user within this tenant',
+      'The single Department ID assigned to the user within this tenant (1 user = 1 department)',
     type: [String],
   })
   @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(1)
   @IsString({ each: true })
   @IsNotEmpty()
   department_ids: string[];

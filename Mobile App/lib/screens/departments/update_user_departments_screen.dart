@@ -19,7 +19,7 @@ class _UpdateUserDepartmentsScreenState
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _searchController = TextEditingController();
-  final Set<String> _selectedDepartmentIds = {};
+  String? _selectedDepartmentId;
   String _searchQuery = '';
   bool _isSubmitting = false;
 
@@ -30,7 +30,9 @@ class _UpdateUserDepartmentsScreenState
     super.initState();
     if (isEditing) {
       _emailController.text = widget.existingUser!.emailAddress;
-      _selectedDepartmentIds.addAll(widget.existingUser!.departmentIds);
+      if (widget.existingUser!.departmentIds.isNotEmpty) {
+        _selectedDepartmentId = widget.existingUser!.departmentIds.first;
+      }
     }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<TenantProvider>().loadTenantDepartments();
@@ -44,23 +46,13 @@ class _UpdateUserDepartmentsScreenState
     super.dispose();
   }
 
-  void _toggleDepartment(String deptId) {
-    setState(() {
-      if (_selectedDepartmentIds.contains(deptId)) {
-        _selectedDepartmentIds.remove(deptId);
-      } else {
-        _selectedDepartmentIds.add(deptId);
-      }
-    });
-  }
-
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    if (_selectedDepartmentIds.isEmpty) {
+    if (_selectedDepartmentId == null || _selectedDepartmentId!.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            'Please select at least 1 department to assign permissions to this staff user.',
+            'Please select exactly 1 department to assign this staff user.',
           ),
           backgroundColor: Colors.red,
         ),
@@ -76,12 +68,12 @@ class _UpdateUserDepartmentsScreenState
     if (isEditing) {
       success = await deptProvider.updateTenantUser(
         userId: widget.existingUser!.userId,
-        departmentIds: _selectedDepartmentIds.toList(),
+        departmentIds: [_selectedDepartmentId!],
       );
     } else {
       success = await deptProvider.addTenantUser(
         emailAddress: _emailController.text.trim().toLowerCase(),
-        departmentIds: _selectedDepartmentIds.toList(),
+        departmentIds: [_selectedDepartmentId!],
       );
     }
 
@@ -361,11 +353,13 @@ class _UpdateUserDepartmentsScreenState
                     padding:
                         const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                     decoration: BoxDecoration(
-                      color: Colors.black,
+                      color: _selectedDepartmentId != null
+                          ? const Color(0xFF064E3B)
+                          : Colors.black,
                       borderRadius: BorderRadius.circular(14),
                     ),
                     child: Text(
-                      '${_selectedDepartmentIds.length} Selected',
+                      _selectedDepartmentId != null ? '1 Selected' : 'Required',
                       style: const TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w800,
@@ -439,16 +433,18 @@ class _UpdateUserDepartmentsScreenState
               else
                 ...filteredDepartments.map((dept) {
                   final isSelected =
-                      _selectedDepartmentIds.contains(dept.departmentId);
+                      _selectedDepartmentId == dept.departmentId;
 
                   return Container(
                     margin: const EdgeInsets.only(bottom: 10),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: isSelected
+                          ? const Color(0xFFF0FDF4)
+                          : Colors.white,
                       borderRadius: BorderRadius.circular(14),
                       border: Border.all(
                         color: isSelected
-                            ? Colors.black
+                            ? const Color(0xFF064E3B)
                             : const Color(0xFFE2E8F0),
                         width: isSelected ? 1.5 : 1.0,
                       ),
@@ -458,7 +454,11 @@ class _UpdateUserDepartmentsScreenState
                       borderRadius: BorderRadius.circular(14),
                       child: InkWell(
                         borderRadius: BorderRadius.circular(14),
-                        onTap: () => _toggleDepartment(dept.departmentId),
+                        onTap: () {
+                          setState(() {
+                            _selectedDepartmentId = dept.departmentId;
+                          });
+                        },
                         child: Padding(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 16,
@@ -472,10 +472,12 @@ class _UpdateUserDepartmentsScreenState
                                   children: [
                                     Text(
                                       dept.departmentName,
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontSize: 14,
                                         fontWeight: FontWeight.w800,
-                                        color: Colors.black,
+                                        color: isSelected
+                                            ? const Color(0xFF064E3B)
+                                            : Colors.black,
                                       ),
                                     ),
                                     if (dept.description.isNotEmpty) ...[
@@ -492,17 +494,18 @@ class _UpdateUserDepartmentsScreenState
                                 ),
                               ),
                               const SizedBox(width: 12),
-                              // Rounded Checkbox
+                              // Radio-style indicator
                               Container(
                                 width: 22,
                                 height: 22,
                                 decoration: BoxDecoration(
-                                  color:
-                                      isSelected ? Colors.black : Colors.white,
-                                  borderRadius: BorderRadius.circular(6),
+                                  color: isSelected
+                                      ? const Color(0xFF064E3B)
+                                      : Colors.white,
+                                  shape: BoxShape.circle,
                                   border: Border.all(
                                     color: isSelected
-                                        ? Colors.black
+                                        ? const Color(0xFF064E3B)
                                         : const Color(0xFFCBD5E1),
                                     width: 1.5,
                                   ),
@@ -511,7 +514,7 @@ class _UpdateUserDepartmentsScreenState
                                 child: isSelected
                                     ? const Icon(
                                         Icons.check,
-                                        size: 15,
+                                        size: 14,
                                         color: Colors.white,
                                       )
                                     : null,

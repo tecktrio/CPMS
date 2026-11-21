@@ -15,7 +15,7 @@ class AddTenantUserDialog extends StatefulWidget {
 class _AddTenantUserDialogState extends State<AddTenantUserDialog> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
-  final Set<String> _selectedDepartmentIds = {};
+  String? _selectedDepartmentId;
   bool _isSubmitting = false;
 
   bool get isEditing => widget.existingUser != null;
@@ -25,7 +25,9 @@ class _AddTenantUserDialogState extends State<AddTenantUserDialog> {
     super.initState();
     if (isEditing) {
       _emailController.text = widget.existingUser!.emailAddress;
-      _selectedDepartmentIds.addAll(widget.existingUser!.departmentIds);
+      if (widget.existingUser!.departmentIds.isNotEmpty) {
+        _selectedDepartmentId = widget.existingUser!.departmentIds.first;
+      }
     }
   }
 
@@ -37,10 +39,10 @@ class _AddTenantUserDialogState extends State<AddTenantUserDialog> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    if (_selectedDepartmentIds.isEmpty) {
+    if (_selectedDepartmentId == null || _selectedDepartmentId!.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Please select at least one department for this staff member.'),
+          content: Text('Please select 1 department for this staff member.'),
           backgroundColor: Colors.orange,
         ),
       );
@@ -54,12 +56,12 @@ class _AddTenantUserDialogState extends State<AddTenantUserDialog> {
     if (isEditing) {
       success = await deptProvider.updateTenantUser(
         userId: widget.existingUser!.userId,
-        departmentIds: _selectedDepartmentIds.toList(),
+        departmentIds: [_selectedDepartmentId!],
       );
     } else {
       success = await deptProvider.addTenantUser(
         emailAddress: _emailController.text.trim().toLowerCase(),
-        departmentIds: _selectedDepartmentIds.toList(),
+        departmentIds: [_selectedDepartmentId!],
       );
     }
 
@@ -159,16 +161,16 @@ class _AddTenantUserDialogState extends State<AddTenantUserDialog> {
                 ),
                 const SizedBox(height: 16),
 
-                // Department Multi-Select Header
+                // Department Single-Select Header
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     const Text(
-                      'Assign Departments *',
+                      'Assign Department *',
                       style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
                     ),
                     Text(
-                      '${_selectedDepartmentIds.length} Selected',
+                      _selectedDepartmentId != null ? '1 Selected' : 'Required',
                       style: const TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
@@ -179,7 +181,7 @@ class _AddTenantUserDialogState extends State<AddTenantUserDialog> {
                 ),
                 const SizedBox(height: 8),
 
-                // Departments Checkbox List
+                // Departments Radio List
                 Expanded(
                   child: departments.isEmpty
                       ? Center(
@@ -200,31 +202,58 @@ class _AddTenantUserDialogState extends State<AddTenantUserDialog> {
                             separatorBuilder: (_, _) => const Divider(height: 1),
                             itemBuilder: (context, index) {
                               final d = departments[index];
-                              final isChecked = _selectedDepartmentIds.contains(d.departmentId);
+                              final isChecked = _selectedDepartmentId == d.departmentId;
 
-                              return CheckboxListTile(
-                                dense: true,
-                                value: isChecked,
-                                activeColor: const Color(0xFF0F766E),
-                                title: Text(
-                                  d.departmentName,
-                                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
-                                ),
-                                subtitle: Text(
-                                  d.description.isNotEmpty
-                                      ? d.description
-                                      : '${d.permissionIds.length} permissions granted',
-                                  style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
-                                ),
-                                onChanged: (val) {
+                              return InkWell(
+                                onTap: () {
                                   setState(() {
-                                    if (val == true) {
-                                      _selectedDepartmentIds.add(d.departmentId);
-                                    } else {
-                                      _selectedDepartmentIds.remove(d.departmentId);
-                                    }
+                                    _selectedDepartmentId = d.departmentId;
                                   });
                                 },
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                  child: Row(
+                                    children: [
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              d.departmentName,
+                                              style: TextStyle(
+                                                fontWeight: FontWeight.w700,
+                                                fontSize: 13,
+                                                color: isChecked ? const Color(0xFF0F766E) : Colors.black,
+                                              ),
+                                            ),
+                                            Text(
+                                              d.description.isNotEmpty
+                                                  ? d.description
+                                                  : '${d.permissionIds.length} permissions granted',
+                                              style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      Container(
+                                        width: 18,
+                                        height: 18,
+                                        decoration: BoxDecoration(
+                                          color: isChecked ? const Color(0xFF0F766E) : Colors.white,
+                                          shape: BoxShape.circle,
+                                          border: Border.all(
+                                            color: isChecked ? const Color(0xFF0F766E) : const Color(0xFFCBD5E1),
+                                            width: 1.5,
+                                          ),
+                                        ),
+                                        alignment: Alignment.center,
+                                        child: isChecked
+                                            ? const Icon(Icons.check, size: 12, color: Colors.white)
+                                            : null,
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               );
                             },
                           ),

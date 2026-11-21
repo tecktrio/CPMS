@@ -16,7 +16,7 @@ class AddTenantUserScreen extends StatefulWidget {
 class _AddTenantUserScreenState extends State<AddTenantUserScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
-  final Set<String> _selectedDepartmentIds = {};
+  String? _selectedDepartmentId;
   bool _isSubmitting = false;
 
   bool get isEditing => widget.existingUser != null;
@@ -26,7 +26,9 @@ class _AddTenantUserScreenState extends State<AddTenantUserScreen> {
     super.initState();
     if (isEditing) {
       _emailController.text = widget.existingUser!.emailAddress;
-      _selectedDepartmentIds.addAll(widget.existingUser!.departmentIds);
+      if (widget.existingUser!.departmentIds.isNotEmpty) {
+        _selectedDepartmentId = widget.existingUser!.departmentIds.first;
+      }
     }
   }
 
@@ -38,10 +40,10 @@ class _AddTenantUserScreenState extends State<AddTenantUserScreen> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    if (_selectedDepartmentIds.isEmpty) {
+    if (_selectedDepartmentId == null || _selectedDepartmentId!.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Please select at least 1 department to assign permissions to this staff user.'),
+          content: Text('Please select 1 department to assign this staff user.'),
           backgroundColor: Colors.red,
         ),
       );
@@ -56,12 +58,12 @@ class _AddTenantUserScreenState extends State<AddTenantUserScreen> {
     if (isEditing) {
       success = await deptProvider.updateTenantUser(
         userId: widget.existingUser!.userId,
-        departmentIds: _selectedDepartmentIds.toList(),
+        departmentIds: [_selectedDepartmentId!],
       );
     } else {
       success = await deptProvider.addTenantUser(
         emailAddress: _emailController.text.trim().toLowerCase(),
-        departmentIds: _selectedDepartmentIds.toList(),
+        departmentIds: [_selectedDepartmentId!],
       );
     }
 
@@ -163,7 +165,7 @@ class _AddTenantUserScreenState extends State<AddTenantUserScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const Text(
-                    'Assign Departments *',
+                    'Assign Department *',
                     style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
                   ),
                   Container(
@@ -174,7 +176,7 @@ class _AddTenantUserScreenState extends State<AddTenantUserScreen> {
                       border: Border.all(color: const Color(0xFF99F6E4)),
                     ),
                     child: Text(
-                      '${_selectedDepartmentIds.length} Selected',
+                      _selectedDepartmentId != null ? '1 Selected' : 'Required',
                       style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF0F766E)),
                     ),
                   ),
@@ -182,7 +184,7 @@ class _AddTenantUserScreenState extends State<AddTenantUserScreen> {
               ),
               const SizedBox(height: 8),
               const Text(
-                'Select the departments this staff user belongs to. Their permissions will be aggregated across all selected departments.',
+                'Select the department this staff user belongs to. In this organization, each user is assigned to exactly one department.',
                 style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
               ),
               const SizedBox(height: 12),
@@ -202,7 +204,7 @@ class _AddTenantUserScreenState extends State<AddTenantUserScreen> {
                       itemCount: departments.length,
                       itemBuilder: (context, idx) {
                         final d = departments[idx];
-                        final isChecked = _selectedDepartmentIds.contains(d.departmentId);
+                        final isChecked = _selectedDepartmentId == d.departmentId;
 
                         return Card(
                           margin: const EdgeInsets.only(bottom: 8),
@@ -213,21 +215,46 @@ class _AddTenantUserScreenState extends State<AddTenantUserScreen> {
                               width: isChecked ? 1.5 : 1,
                             ),
                           ),
-                          child: CheckboxListTile(
-                            dense: true,
-                            title: Text(d.departmentName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                            subtitle: Text('${d.permissionIds.length} permissions granted'),
-                            value: isChecked,
-                            activeColor: const Color(0xFF0F766E),
-                            onChanged: (val) {
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(8),
+                            onTap: () {
                               setState(() {
-                                if (val == true) {
-                                  _selectedDepartmentIds.add(d.departmentId);
-                                } else {
-                                  _selectedDepartmentIds.remove(d.departmentId);
-                                }
+                                _selectedDepartmentId = d.departmentId;
                               });
                             },
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(d.departmentName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                                        const SizedBox(height: 2),
+                                        Text('${d.permissionIds.length} permissions granted', style: const TextStyle(fontSize: 11, color: Color(0xFF64748B))),
+                                      ],
+                                    ),
+                                  ),
+                                  Container(
+                                    width: 20,
+                                    height: 20,
+                                    decoration: BoxDecoration(
+                                      color: isChecked ? const Color(0xFF0F766E) : Colors.white,
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
+                                        color: isChecked ? const Color(0xFF0F766E) : const Color(0xFFCBD5E1),
+                                        width: 1.5,
+                                      ),
+                                    ),
+                                    alignment: Alignment.center,
+                                    child: isChecked
+                                        ? const Icon(Icons.check, size: 13, color: Colors.white)
+                                        : null,
+                                  ),
+                                ],
+                              ),
+                            ),
                           ),
                         );
                       },

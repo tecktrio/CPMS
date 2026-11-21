@@ -412,6 +412,12 @@ export class TenantsService {
       );
     }
 
+    if (!dto.department_ids || dto.department_ids.length !== 1) {
+      throw new BadRequestException(
+        'A user in a tenant must be assigned to exactly 1 department.',
+      );
+    }
+
     // Validate that all specified departments exist, belong to this tenant, and are active
     await this.departmentsService.validateDepartmentsExist(
       effectiveTenantId,
@@ -522,6 +528,12 @@ export class TenantsService {
     if (tenant.admin_user_id !== requestingUserId) {
       throw new ForbiddenException(
         'Only the Tenant Admin can update users in this organization',
+      );
+    }
+
+    if (!dto.department_ids || dto.department_ids.length !== 1) {
+      throw new BadRequestException(
+        'A user in a tenant must be assigned to exactly 1 department.',
       );
     }
 

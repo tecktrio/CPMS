@@ -109,26 +109,6 @@ class _TenantSelectorScreenState extends State<TenantSelectorScreen> {
     );
   }
 
-  Future<void> _handleDepartmentSelect(
-    String deptName,
-    TenantOption t,
-    TenantProvider tenantProvider,
-  ) async {
-    await tenantProvider.selectTenant(t, initialDepartmentName: deptName);
-    tenantProvider.setSelectedDepartment(deptName);
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Switched to $deptName'),
-        duration: const Duration(seconds: 2),
-      ),
-    );
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => const DashboardScreen()),
-    );
-  }
-
   void _showDeleteOrganizationDialog(
     TenantOption t,
     TenantProvider tenantProvider,
@@ -333,8 +313,6 @@ class _TenantSelectorScreenState extends State<TenantSelectorScreen> {
     final tenantProvider = context.watch<TenantProvider>();
     final tenants = authProvider.availableTenants;
     final activeTenant = tenantProvider.activeTenant;
-    final activeDeptName = tenantProvider.selectedDepartmentName;
-    final depts = tenantProvider.tenantDepartments;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
@@ -517,138 +495,6 @@ class _TenantSelectorScreenState extends State<TenantSelectorScreen> {
                   }),
 
                   const SizedBox(height: 24),
-
-                  // Section 2: Departments in Active Organization
-                  if (activeTenant != null) ...[
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'DEPARTMENTS (${activeTenant.companyName.toUpperCase()})',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 0.8,
-                            color: Color(0xFF64748B),
-                          ),
-                        ),
-                        if (tenantProvider.isLoading)
-                          const SizedBox(
-                            width: 14,
-                            height: 14,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black),
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    const Text(
-                      'Select an operational department to scope inventory, store rooms, and records.',
-                      style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
-                    ),
-                    const SizedBox(height: 10),
-
-                    // Organization-Wide / All Departments Option (for Admin)
-                    if (activeTenant.isAdmin)
-                      Container(
-                        margin: const EdgeInsets.only(bottom: 8),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: (activeDeptName == null || activeDeptName == 'All Departments')
-                                ? Colors.black
-                                : const Color(0xFFE2E8F0),
-                            width: (activeDeptName == null || activeDeptName == 'All Departments') ? 1.6 : 1.0,
-                          ),
-                        ),
-                        child: ListTile(
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
-                          leading: Container(
-                            width: 38,
-                            height: 38,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF1F5F9),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: const Icon(Icons.corporate_fare, color: Colors.black, size: 20),
-                          ),
-                          title: const Text(
-                            'All Departments (Organization-Wide)',
-                            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
-                          ),
-                          subtitle: const Text(
-                            'Full tenant administrative scope',
-                            style: TextStyle(fontSize: 11, color: Color(0xFF64748B)),
-                          ),
-                          trailing: (activeDeptName == null || activeDeptName == 'All Departments')
-                              ? const Icon(Icons.check_circle, color: Colors.black, size: 20)
-                              : null,
-                          onTap: () => _handleDepartmentSelect('All Departments', activeTenant, tenantProvider),
-                        ),
-                      ),
-
-                    // Listing of Departments
-                    if (depts.isEmpty && !tenantProvider.isLoading && !activeTenant.isAdmin)
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: const Color(0xFFE2E8F0)),
-                        ),
-                        child: const Center(
-                          child: Text(
-                            'No departments assigned to your account in this organization.',
-                            style: TextStyle(color: Color(0xFF64748B), fontSize: 13),
-                          ),
-                        ),
-                      )
-                    else
-                      ...depts.map((d) {
-                        final isSelected = activeDeptName == d.departmentName;
-                        return Container(
-                          margin: const EdgeInsets.only(bottom: 8),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(
-                              color: isSelected ? Colors.black : const Color(0xFFE2E8F0),
-                              width: isSelected ? 1.6 : 1.0,
-                            ),
-                          ),
-                          child: ListTile(
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
-                            leading: Container(
-                              width: 38,
-                              height: 38,
-                              decoration: BoxDecoration(
-                                color: isSelected ? const Color(0xFF0F172A) : const Color(0xFFF6F7F9),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Icon(
-                                Icons.apartment,
-                                color: isSelected ? Colors.white : Colors.black,
-                                size: 20,
-                              ),
-                            ),
-                            title: Text(
-                              d.departmentName,
-                              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
-                            ),
-                            subtitle: Text(
-                              d.description.isNotEmpty ? d.description : 'Operational Unit',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
-                            ),
-                            trailing: isSelected
-                                ? const Icon(Icons.check_circle, color: Colors.black, size: 20)
-                                : null,
-                            onTap: () => _handleDepartmentSelect(d.departmentName, activeTenant, tenantProvider),
-                          ),
-                        );
-                      }),
-                  ],
 
                   const SizedBox(height: 24),
                   OutlinedButton.icon(
