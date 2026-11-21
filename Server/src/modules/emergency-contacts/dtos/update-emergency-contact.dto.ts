@@ -14,3 +14,4 @@ export class UpdateEmergencyContactDto extends PartialType(
   @IsOptional()
   is_active?: boolean;
 }
+

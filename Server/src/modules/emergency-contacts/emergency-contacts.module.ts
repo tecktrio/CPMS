@@ -30,3 +30,4 @@ import { EmergencyContactsController } from './emergency-contacts.controller';
   exports: [EmergencyContactsService],
 })
 export class EmergencyContactsModule {}
+

@@ -51,3 +51,4 @@ export class CreateEmergencyContactDto {
   @IsOptional()
   priority_order?: number;
 }
+
