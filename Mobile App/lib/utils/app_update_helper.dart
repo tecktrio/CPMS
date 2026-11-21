@@ -5,7 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 class AppUpdateHelper {
   static const String appVersion = '1.0.1';
-  static const String buildNumber = '27';
+  static const String buildNumber = '31';
   static const String androidPackageName = 'com.cpms.cpms_mobile';
   static const String playStoreWebUrl =
       'https://play.google.com/store/apps/details?id=$androidPackageName';
