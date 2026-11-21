@@ -39,7 +39,7 @@ class CpmsBottomNavBar extends StatelessWidget {
       decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(
-          top: BorderSide(color: Color(0xFFE5E7EB), width: 1),
+          top: BorderSide(color: Color(0xFFF1F5F9), width: 1),
         ),
       ),
       padding: const EdgeInsets.only(top: 8, bottom: 12),
@@ -100,9 +100,9 @@ class CpmsBottomNavBar extends StatelessWidget {
   }) {
     return InkWell(
       onTap: () => _handleTap(context, index),
-      borderRadius: BorderRadius.circular(4),
+      borderRadius: BorderRadius.circular(10),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -110,8 +110,8 @@ class CpmsBottomNavBar extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF14532D), // Dark green active nav capsule
-                  borderRadius: BorderRadius.circular(4),
+                  color: const Color(0xFF0F172A), // Dark squircle for active tab
+                  borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(icon, color: Colors.white, size: 20),
               )
@@ -123,7 +123,7 @@ class CpmsBottomNavBar extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(vertical: 4),
                     child: Icon(
                       icon,
-                      color: const Color(0xFF4B5563),
+                      color: const Color(0xFF94A3B8),
                       size: 22,
                     ),
                   ),
@@ -148,7 +148,7 @@ class CpmsBottomNavBar extends StatelessWidget {
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: isActive ? FontWeight.w800 : FontWeight.w500,
-                color: isActive ? const Color(0xFF14532D) : const Color(0xFF6B7280),
+                color: isActive ? const Color(0xFF0F172A) : const Color(0xFF94A3B8),
               ),
             ),
           ],

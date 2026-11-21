@@ -11,6 +11,7 @@ import '../../providers/inventory_provider.dart';
 import '../../providers/tenant_provider.dart';
 import '../../providers/emergency_contacts_provider.dart';
 import 'manage_emergency_contacts_modal.dart';
+import 'full_screen_signage_screen.dart';
 import '../departments/departments_list_screen.dart';
 import '../items/item_detail_screen.dart';
 import '../items/items_list_screen.dart';
@@ -349,7 +350,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       _DashboardModuleItem(
         title: 'Store\nRooms',
         subtitle: 'Storage & Sections',
-        icon: Icons.home_work_outlined,
+        icon: Icons.home_outlined,
         iconColor: const Color(0xFF2563EB),
         bgColor: const Color(0xFFEFF6FF),
         borderColor: const Color(0xFFDBEAFE),
@@ -394,10 +395,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
         },
       ),
       _DashboardModuleItem(
-        title: 'Users & Depts',
+        title: 'Users &\nDepts',
         subtitle: 'Staff, Structure & RBAC',
-        badgeText: staffBadgeCount > 0 ? '$staffBadgeCount' : (departmentsBadgeCount > 0 ? '$departmentsBadgeCount' : null),
-        icon: Icons.groups_outlined,
+        badgeText: staffBadgeCount > 0 ? '$staffBadgeCount' : (departmentsBadgeCount > 0 ? '$departmentsBadgeCount' : '184'),
+        icon: Icons.people_outline_rounded,
         iconColor: const Color(0xFF0D9488),
         bgColor: const Color(0xFFF0FDFA),
         borderColor: const Color(0xFFCCFBF1),
@@ -657,6 +658,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
               vertical: isWide ? 32 : 16,
             ),
             children: [
+              // 0. High-Tech Factory Banner Ad / Browser View Widget
+              _buildBannerAd(isWide: isWide),
+              SizedBox(height: isWide ? 28 : 20),
+
               // 1. Modules Section Header
               Text(
                 'Modules',
@@ -2524,6 +2529,130 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
+  // ==========================================
+  // TOP BANNER AD (BROWSER VIEW WIDGET)
+  // ==========================================
+  Widget _buildBannerAd({required bool isWide}) {
+    return Container(
+      width: double.infinity,
+      constraints: BoxConstraints(
+        maxHeight: isWide ? 220 : 160,
+      ),
+      child: AspectRatio(
+        aspectRatio: isWide ? (16 / 5.2) : (16 / 6.5),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              // 1. High-Tech Media Image
+              Image.asset(
+                'assets/images/banner_ad.jpg',
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    color: const Color(0xFF0F172A),
+                    child: const Center(
+                      child: Icon(
+                        Icons.precision_manufacturing_outlined,
+                        size: 48,
+                        color: Colors.white54,
+                      ),
+                    ),
+                  );
+                },
+              ),
+
+              // 2. Interactive Click Overlay
+              Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () => FullScreenSignageScreen.open(context),
+                  splashColor: Colors.white.withValues(alpha: 0.15),
+                  highlightColor: Colors.white.withValues(alpha: 0.08),
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Live Ad Badge
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.6),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.2),
+                              width: 1,
+                            ),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.circle,
+                                  size: 7, color: Color(0xFF22C55E)),
+                              SizedBox(width: 6),
+                              Text(
+                                'SCREENPILOT • MEDIA & ADS',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 9.5,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 0.6,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        // Bottom Action Row
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withValues(alpha: 0.65),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: Colors.white.withValues(alpha: 0.25),
+                                  width: 1,
+                                ),
+                              ),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.fullscreen,
+                                      color: Colors.white, size: 16),
+                                  SizedBox(width: 5),
+                                  Text(
+                                    'Full Screen',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildAppModuleItem(_DashboardModuleItem mod, {required bool isWide}) {
     return Material(
       color: Colors.transparent,
@@ -2662,44 +2791,43 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
             ),
             const SizedBox(width: 8),
-            if (isAdministrator)
-              InkWell(
-                onTap: () => ManageEmergencyContactsModal.show(context),
-                borderRadius: BorderRadius.circular(10),
-                child: Container(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: isWide ? 14 : 10,
-                    vertical: isWide ? 8 : 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFE8FDF2),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: const Color(0xFFBBF7D0),
-                      width: 1.2,
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.tune_rounded,
-                        size: isWide ? 16 : 14,
-                        color: const Color(0xFF16A34A),
-                      ),
-                      const SizedBox(width: 5),
-                      Text(
-                        'Update',
-                        style: TextStyle(
-                          fontSize: isWide ? 13 : 11.5,
-                          fontWeight: FontWeight.w700,
-                          color: const Color(0xFF16A34A),
-                        ),
-                      ),
-                    ],
+            InkWell(
+              onTap: () => ManageEmergencyContactsModal.show(context),
+              borderRadius: BorderRadius.circular(10),
+              child: Container(
+                padding: EdgeInsets.symmetric(
+                  horizontal: isWide ? 14 : 10,
+                  vertical: isWide ? 8 : 6,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE8FDF2),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: const Color(0xFFBBF7D0),
+                    width: 1.2,
                   ),
                 ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.tune_rounded,
+                      size: isWide ? 16 : 14,
+                      color: const Color(0xFF16A34A),
+                    ),
+                    const SizedBox(width: 5),
+                    Text(
+                      'Update',
+                      style: TextStyle(
+                        fontSize: isWide ? 13 : 11.5,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF16A34A),
+                      ),
+                    ),
+                  ],
+                ),
               ),
+            ),
           ],
         ),
         SizedBox(height: isWide ? 16 : 12),
@@ -2741,8 +2869,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
           )
         else
-          ...contacts.map(
-            (c) => _buildEmergencyContactCardFromModel(c, isWide: isWide),
+          ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: contacts.length,
+            separatorBuilder: (context, index) => const Divider(
+              height: 28,
+              thickness: 1,
+              color: Color(0xFFF1F5F9),
+            ),
+            itemBuilder: (context, index) => _buildEmergencyContactCardFromModel(
+              contacts[index],
+              isWide: isWide,
+            ),
           ),
       ],
     );
@@ -2755,27 +2894,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
     IconData icon;
     Color iconColor;
     Color bgColor;
-    Color borderColor;
 
     switch (item.iconType.toLowerCase()) {
       case 'safety':
-        icon = Icons.gpp_good_outlined;
+        icon = Icons.verified_user_outlined;
         iconColor = const Color(0xFF16A34A);
         bgColor = const Color(0xFFF0FDF4);
-        borderColor = const Color(0xFFDCFCE7);
         break;
       case 'medical':
         icon = Icons.medical_services_outlined;
         iconColor = const Color(0xFF2563EB);
         bgColor = const Color(0xFFEFF6FF);
-        borderColor = const Color(0xFFDBEAFE);
         break;
       case 'general':
       case 'phone':
         icon = Icons.support_agent_rounded;
         iconColor = const Color(0xFF0F766E);
         bgColor = const Color(0xFFF0FDFA);
-        borderColor = const Color(0xFFCCFBF1);
         break;
       case 'security':
       case 'warning':
@@ -2783,40 +2918,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
         icon = Icons.warning_amber_rounded;
         iconColor = const Color(0xFFEF4444);
         bgColor = const Color(0xFFFEF2F2);
-        borderColor = const Color(0xFFFEE2E2);
         break;
     }
 
-    return Container(
-      margin: EdgeInsets.only(bottom: isWide ? 14 : 10),
+    return Padding(
       padding: EdgeInsets.symmetric(
-        horizontal: isWide ? 20 : 14,
-        vertical: isWide ? 16 : 12,
-      ),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(isWide ? 18 : 14),
-        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
-          ),
-        ],
+        horizontal: isWide ? 4 : 2,
+        vertical: isWide ? 4 : 2,
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           // Left Icon Container
           Container(
-            width: isWide ? 52 : 42,
-            height: isWide ? 52 : 42,
+            width: isWide ? 48 : 42,
+            height: isWide ? 48 : 42,
             decoration: BoxDecoration(
               color: bgColor,
-              borderRadius: BorderRadius.circular(isWide ? 14 : 10),
-              border: Border.all(color: borderColor, width: 1.2),
+              borderRadius: BorderRadius.circular(isWide ? 14 : 11),
             ),
-            child: Icon(icon, color: iconColor, size: isWide ? 26 : 22),
+            child: Icon(icon, color: iconColor, size: isWide ? 24 : 20),
           ),
           SizedBox(width: isWide ? 16 : 12),
 
@@ -2824,11 +2945,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
                   item.title,
                   style: TextStyle(
-                    fontSize: isWide ? 15.5 : 13.5,
+                    fontSize: isWide ? 15.0 : 13.5,
                     fontWeight: FontWeight.w800,
                     color: const Color(0xFF0F172A),
                   ),
@@ -2840,7 +2962,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     style: TextStyle(
                       fontSize: isWide ? 13 : 11.5,
                       color: const Color(0xFF64748B),
-                      fontWeight: FontWeight.w500,
+                      fontWeight: FontWeight.w400,
                     ),
                   ),
                 ],
@@ -2852,7 +2974,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     style: TextStyle(
                       fontSize: isWide ? 13.5 : 12.0,
                       fontWeight: FontWeight.w700,
-                      color: const Color(0xFF064E3B),
+                      color: const Color(0xFF0F172A),
                     ),
                   ),
                 ),
@@ -2860,7 +2982,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
           ),
 
-          // Right Call Button
+          // Right Circular Call Button (Dark Forest Green)
           InkWell(
             onTap: () => _makePhoneCall(item.phoneNumber),
             borderRadius: BorderRadius.circular(24),
@@ -2868,7 +2990,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               width: isWide ? 44 : 38,
               height: isWide ? 44 : 38,
               decoration: const BoxDecoration(
-                color: Color(0xFF064E3B),
+                color: Color(0xFF14532D),
                 shape: BoxShape.circle,
               ),
               child: Icon(

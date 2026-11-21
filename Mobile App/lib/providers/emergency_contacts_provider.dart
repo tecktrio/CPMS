@@ -48,7 +48,38 @@ class EmergencyContactsProvider extends ChangeNotifier {
 
   EmergencyContactsProvider({required this.apiClient});
 
-  List<EmergencyContactModel> get contacts => _contacts;
+  static final List<EmergencyContactModel> defaultContacts = [
+    EmergencyContactModel(
+      contactId: 'default_sec',
+      tenantId: '',
+      title: 'Facility Security & Control',
+      subtitle: 'Control Room • Ext. 101',
+      phoneNumber: '+91 9946658045',
+      iconType: 'warning',
+      priorityOrder: 1,
+    ),
+    EmergencyContactModel(
+      contactId: 'default_ehs',
+      tenantId: '',
+      title: 'Safety Coordinator (EHS)',
+      subtitle: 'Tariq Vance • Lead Officer',
+      phoneNumber: '+1 (800) 555-0142',
+      iconType: 'safety',
+      priorityOrder: 2,
+    ),
+    EmergencyContactModel(
+      contactId: 'default_med',
+      tenantId: '',
+      title: 'First Aid & Medical Bay',
+      subtitle: 'Building B • Clinic Desk',
+      phoneNumber: '+1 (800) 555-0188',
+      iconType: 'medical',
+      priorityOrder: 3,
+    ),
+  ];
+
+  List<EmergencyContactModel> get contacts =>
+      _contacts.isNotEmpty ? _contacts : defaultContacts;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
 
