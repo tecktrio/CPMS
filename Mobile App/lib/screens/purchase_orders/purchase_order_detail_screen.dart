@@ -899,7 +899,7 @@ class _PurchaseOrderDetailScreenState extends State<PurchaseOrderDetailScreen> {
         titleSpacing: 0,
         title: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 1050),
+            constraints: const BoxConstraints(maxWidth: 1100),
             child: Row(
               children: [
                 Text(
@@ -961,7 +961,7 @@ class _PurchaseOrderDetailScreenState extends State<PurchaseOrderDetailScreen> {
         },
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 1050),
+            constraints: const BoxConstraints(maxWidth: 1100),
             child: SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
               padding: EdgeInsets.symmetric(

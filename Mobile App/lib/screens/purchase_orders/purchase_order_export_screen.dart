@@ -123,7 +123,7 @@ class _PurchaseOrderExportScreenState extends State<PurchaseOrderExportScreen> {
         titleSpacing: 0,
         title: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 960),
+            constraints: const BoxConstraints(maxWidth: 1100),
             child: Row(
               children: const [
                 Text(
@@ -152,7 +152,7 @@ class _PurchaseOrderExportScreenState extends State<PurchaseOrderExportScreen> {
       ),
       body: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 960),
+          constraints: const BoxConstraints(maxWidth: 1100),
           child: SingleChildScrollView(
             padding: EdgeInsets.fromLTRB(
               isWide ? 28 : 16,

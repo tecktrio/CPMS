@@ -347,7 +347,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         },
       ),
       _DashboardModuleItem(
-        title: 'Store Rooms',
+        title: 'Store\nRooms',
         subtitle: 'Storage & Sections',
         icon: Icons.home_work_outlined,
         iconColor: const Color(0xFF2563EB),
@@ -453,7 +453,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         if (activeNavIndex != 2)
                           Center(
                             child: ConstrainedBox(
-                              constraints: const BoxConstraints(maxWidth: 1080),
+                              constraints: const BoxConstraints(maxWidth: 1100),
                               child: Padding(
                                 padding: EdgeInsets.symmetric(
                                   horizontal: horizontalPadding,
@@ -649,36 +649,36 @@ class _DashboardScreenState extends State<DashboardScreen> {
       onRefresh: _loadInitialData,
       child: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1080),
+          constraints: const BoxConstraints(maxWidth: 1100),
           child: ListView(
             physics: const AlwaysScrollableScrollPhysics(),
             padding: EdgeInsets.symmetric(
               horizontal: horizontalPadding,
-              vertical: isWide ? 20 : 16,
+              vertical: isWide ? 32 : 16,
             ),
             children: [
               // 1. Modules Section Header
-              const Text(
+              Text(
                 'Modules',
                 style: TextStyle(
-                  fontSize: 20,
+                  fontSize: isWide ? 26 : 20,
                   fontWeight: FontWeight.w800,
-                  color: Color(0xFF0F172A),
-                  letterSpacing: -0.3,
+                  color: const Color(0xFF0F172A),
+                  letterSpacing: -0.4,
                 ),
               ),
-              const SizedBox(height: 3),
-              const Text(
+              const SizedBox(height: 4),
+              Text(
                 'modules that your account have access in this tenant',
                 style: TextStyle(
-                  fontSize: 12,
-                  color: Color(0xFF94A3B8),
+                  fontSize: isWide ? 13.5 : 12,
+                  color: const Color(0xFF64748B),
                   fontWeight: FontWeight.w500,
                 ),
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: isWide ? 28 : 16),
 
-              // 2. Apps Launcher Row/Wrap (Responsive, max 4 icons per row)
+              // 2. Apps Launcher Row/Wrap (Responsive: 5 on wide/tablet, 3-4 on mobile)
               if (allowedModules.isEmpty)
                 Container(
                   padding: const EdgeInsets.all(20),
@@ -703,15 +703,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 LayoutBuilder(
                   builder: (context, constraints) {
                     final width = constraints.maxWidth;
-                    // Responsive column count: minimum 3, maximum 4 per row
-                    final calculatedCount = (width / 84).floor();
-                    final count = calculatedCount.clamp(3, 4);
-                    const spacing = 4.0;
+                    // On tablet/web, show all 5 modules across the row as in reference image.
+                    // On mobile, clamp columns between 3 and 4.
+                    final count = (width >= 560 || isWide)
+                        ? 5
+                        : (width / 88).floor().clamp(3, 4);
+                    final spacing = isWide ? 16.0 : 6.0;
                     final itemWidth =
                         ((width - ((count - 1) * spacing)) / count).floorToDouble();
                     return Wrap(
                       spacing: spacing,
-                      runSpacing: 12,
+                      runSpacing: isWide ? 20 : 12,
                       alignment: WrapAlignment.start,
                       children: allowedModules.map((m) {
                         return SizedBox(
@@ -723,12 +725,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   },
                 ),
 
-              const SizedBox(height: 24),
+              SizedBox(height: isWide ? 36 : 24),
 
-              // 4. Emergency Contacts Section
+              // 3. Emergency Contacts Section
               _buildEmergencyContactsSection(isWide: isWide),
 
-              const SizedBox(height: 24),
+              SizedBox(height: isWide ? 36 : 24),
             ],
           ),
         ),
@@ -792,7 +794,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     return Center(
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 1080),
+        constraints: const BoxConstraints(maxWidth: 1100),
         child: Column(
           children: [
             // Search Input Field
@@ -1265,7 +1267,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       onRefresh: _loadInitialData,
       child: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 680),
+          constraints: const BoxConstraints(maxWidth: 1100),
           child: ListView(
             physics: const AlwaysScrollableScrollPhysics(),
             padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: 16),
@@ -1712,7 +1714,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       onRefresh: _loadInitialData,
       child: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 680),
+          constraints: const BoxConstraints(maxWidth: 1100),
           child: ListView(
             physics: const AlwaysScrollableScrollPhysics(),
             padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: 16),
@@ -2527,56 +2529,64 @@ class _DashboardScreenState extends State<DashboardScreen> {
       color: Colors.transparent,
       child: InkWell(
         onTap: mod.onTap,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(isWide ? 18 : 12),
         splashColor: mod.iconColor.withValues(alpha: 0.12),
         highlightColor: mod.iconColor.withValues(alpha: 0.05),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 1, vertical: 2),
+          padding: EdgeInsets.symmetric(
+            horizontal: isWide ? 4 : 1,
+            vertical: isWide ? 6 : 2,
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // Icon Container with Badge
+              // Large Icon Container with Badge
               Stack(
                 clipBehavior: Clip.none,
                 alignment: Alignment.center,
                 children: [
                   Container(
-                    width: isWide ? 56 : 46,
-                    height: isWide ? 56 : 46,
+                    width: isWide ? 76 : 54,
+                    height: isWide ? 76 : 54,
                     decoration: BoxDecoration(
                       color: mod.bgColor,
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(isWide ? 18 : 13),
                       border: Border.all(
                         color: mod.borderColor,
-                        width: 1.5,
+                        width: isWide ? 1.8 : 1.5,
                       ),
                     ),
                     alignment: Alignment.center,
                     child: Icon(
                       mod.icon,
-                      size: isWide ? 26 : 22,
+                      size: isWide ? 34 : 25,
                       color: mod.iconColor,
                     ),
                   ),
                   if (mod.badgeText != null)
                     Positioned(
-                      top: -4,
-                      right: -6,
+                      top: isWide ? -6 : -4,
+                      right: isWide ? -8 : -5,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 4, vertical: 1),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: isWide ? 7 : 4,
+                          vertical: isWide ? 2 : 1,
+                        ),
                         decoration: BoxDecoration(
                           color: const Color(0xFFEF4444),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.white, width: 1.5),
+                          borderRadius: BorderRadius.circular(isWide ? 10 : 8),
+                          border: Border.all(
+                            color: Colors.white,
+                            width: isWide ? 2.0 : 1.5,
+                          ),
                         ),
                         child: Text(
                           mod.badgeText!,
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: Colors.white,
-                            fontSize: 8.5,
+                            fontSize: isWide ? 10.5 : 8.5,
                             fontWeight: FontWeight.w800,
                           ),
                         ),
@@ -2584,20 +2594,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
                 ],
               ),
-              const SizedBox(height: 4),
+              SizedBox(height: isWide ? 12 : 6),
 
-              // Module Title
+              // Module Title (Bold, readable)
               Text(
                 mod.title,
                 textAlign: TextAlign.center,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  fontSize: isWide ? 12 : 10.5,
-                  fontWeight: FontWeight.w600,
-                  color: const Color(0xFF334155),
+                  fontSize: isWide ? 13.5 : 11.0,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF1E293B),
                   letterSpacing: -0.2,
-                  height: 1.1,
+                  height: 1.25,
                 ),
               ),
             ],
@@ -2627,24 +2637,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
+                children: [
                   Text(
                     'Emergency Contacts',
                     style: TextStyle(
-                      fontSize: 18,
+                      fontSize: isWide ? 22 : 18,
                       fontWeight: FontWeight.w800,
-                      color: Color(0xFF0F172A),
+                      color: const Color(0xFF0F172A),
                       letterSpacing: -0.3,
                     ),
                   ),
-                  SizedBox(height: 2),
+                  const SizedBox(height: 3),
                   Text(
                     'Direct hotlines and on-site emergency personnel',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      fontSize: 11.5,
-                      color: Color(0xFF94A3B8),
+                      fontSize: isWide ? 13.5 : 12,
+                      color: const Color(0xFF64748B),
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -2655,30 +2665,35 @@ class _DashboardScreenState extends State<DashboardScreen> {
             if (isAdministrator)
               InkWell(
                 onTap: () => ManageEmergencyContactsModal.show(context),
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(10),
                 child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: isWide ? 14 : 10,
+                    vertical: isWide ? 8 : 6,
+                  ),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF0FDF4),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: const Color(0xFFDCFCE7)),
+                    color: const Color(0xFFE8FDF2),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: const Color(0xFFBBF7D0),
+                      width: 1.2,
+                    ),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
-                    children: const [
+                    children: [
                       Icon(
-                        Icons.edit_note_rounded,
-                        size: 15,
-                        color: Color(0xFF16A34A),
+                        Icons.tune_rounded,
+                        size: isWide ? 16 : 14,
+                        color: const Color(0xFF16A34A),
                       ),
-                      SizedBox(width: 3),
+                      const SizedBox(width: 5),
                       Text(
                         'Update',
                         style: TextStyle(
-                          fontSize: 11.5,
+                          fontSize: isWide ? 13 : 11.5,
                           fontWeight: FontWeight.w700,
-                          color: Color(0xFF16A34A),
+                          color: const Color(0xFF16A34A),
                         ),
                       ),
                     ],
@@ -2687,7 +2702,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
           ],
         ),
-        const SizedBox(height: 12),
+        SizedBox(height: isWide ? 16 : 12),
 
         // Contact Cards List
         if (emergencyProvider.isLoading && contacts.isEmpty)
@@ -2773,17 +2788,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      margin: EdgeInsets.only(bottom: isWide ? 14 : 10),
+      padding: EdgeInsets.symmetric(
+        horizontal: isWide ? 20 : 14,
+        vertical: isWide ? 16 : 12,
+      ),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        borderRadius: BorderRadius.circular(isWide ? 18 : 14),
+        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
-            blurRadius: 4,
-            offset: const Offset(0, 1),
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
           ),
         ],
       ),
@@ -2791,16 +2809,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
         children: [
           // Left Icon Container
           Container(
-            width: 38,
-            height: 38,
+            width: isWide ? 52 : 42,
+            height: isWide ? 52 : 42,
             decoration: BoxDecoration(
               color: bgColor,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: borderColor),
+              borderRadius: BorderRadius.circular(isWide ? 14 : 10),
+              border: Border.all(color: borderColor, width: 1.2),
             ),
-            child: Icon(icon, color: iconColor, size: 20),
+            child: Icon(icon, color: iconColor, size: isWide ? 26 : 22),
           ),
-          const SizedBox(width: 10),
+          SizedBox(width: isWide ? 16 : 12),
 
           // Contact Details
           Expanded(
@@ -2809,31 +2827,32 @@ class _DashboardScreenState extends State<DashboardScreen> {
               children: [
                 Text(
                   item.title,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF0F172A),
+                  style: TextStyle(
+                    fontSize: isWide ? 15.5 : 13.5,
+                    fontWeight: FontWeight.w800,
+                    color: const Color(0xFF0F172A),
                   ),
                 ),
                 if (item.subtitle.isNotEmpty) ...[
-                  const SizedBox(height: 1),
+                  const SizedBox(height: 2),
                   Text(
                     item.subtitle,
-                    style: const TextStyle(
-                      fontSize: 11,
-                      color: Color(0xFF64748B),
+                    style: TextStyle(
+                      fontSize: isWide ? 13 : 11.5,
+                      color: const Color(0xFF64748B),
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ],
-                const SizedBox(height: 1),
+                const SizedBox(height: 3),
                 InkWell(
                   onTap: () => _makePhoneCall(item.phoneNumber),
                   child: Text(
                     item.phoneNumber,
-                    style: const TextStyle(
-                      fontSize: 12,
+                    style: TextStyle(
+                      fontSize: isWide ? 13.5 : 12.0,
                       fontWeight: FontWeight.w700,
-                      color: Color(0xFF064E3B),
+                      color: const Color(0xFF064E3B),
                     ),
                   ),
                 ),
@@ -2844,18 +2863,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
           // Right Call Button
           InkWell(
             onTap: () => _makePhoneCall(item.phoneNumber),
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(24),
             child: Container(
-              width: 34,
-              height: 34,
+              width: isWide ? 44 : 38,
+              height: isWide ? 44 : 38,
               decoration: const BoxDecoration(
                 color: Color(0xFF064E3B),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.phone_rounded,
                 color: Colors.white,
-                size: 16,
+                size: isWide ? 20 : 17,
               ),
             ),
           ),

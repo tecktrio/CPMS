@@ -1179,7 +1179,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
         centerTitle: true,
         title: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 1050),
+            constraints: const BoxConstraints(maxWidth: 1100),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -1231,7 +1231,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
         },
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 1050),
+            constraints: const BoxConstraints(maxWidth: 1100),
             child: SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
               padding: EdgeInsets.symmetric(

@@ -197,7 +197,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
         centerTitle: true,
         title: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 960),
+            constraints: const BoxConstraints(maxWidth: 1100),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -240,7 +240,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
         },
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 960),
+            constraints: const BoxConstraints(maxWidth: 1100),
             child: SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
               padding: EdgeInsets.symmetric(

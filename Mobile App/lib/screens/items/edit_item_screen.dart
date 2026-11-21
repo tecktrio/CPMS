@@ -392,7 +392,7 @@ class _EditItemScreenState extends State<EditItemScreen> {
         titleSpacing: 0,
         title: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 960),
+            constraints: const BoxConstraints(maxWidth: 1100),
             child: Row(
               children: const [
                 Text(
@@ -433,7 +433,7 @@ class _EditItemScreenState extends State<EditItemScreen> {
       ),
       body: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 960),
+          constraints: const BoxConstraints(maxWidth: 1100),
           child: SingleChildScrollView(
             padding: EdgeInsets.fromLTRB(
               isWide ? 28 : 16,

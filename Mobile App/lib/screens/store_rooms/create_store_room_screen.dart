@@ -219,7 +219,7 @@ class _CreateStoreRoomScreenState extends State<CreateStoreRoomScreen> {
         titleSpacing: 0,
         title: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 960),
+            constraints: const BoxConstraints(maxWidth: 1100),
             child: Row(
               children: const [
                 Text(
@@ -248,7 +248,7 @@ class _CreateStoreRoomScreenState extends State<CreateStoreRoomScreen> {
       ),
       body: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 960),
+          constraints: const BoxConstraints(maxWidth: 1100),
           child: SingleChildScrollView(
             padding: EdgeInsets.fromLTRB(
               isWide ? 28 : 16,
@@ -676,7 +676,7 @@ class _CreateStoreRoomScreenState extends State<CreateStoreRoomScreen> {
           child: Center(
             heightFactor: 1.0,
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 960),
+              constraints: const BoxConstraints(maxWidth: 1100),
               child: SizedBox(
                 width: double.infinity,
                 height: 52,

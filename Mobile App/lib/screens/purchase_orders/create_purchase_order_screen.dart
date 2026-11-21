@@ -1627,7 +1627,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
       ),
       body: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1000),
+          constraints: const BoxConstraints(maxWidth: 1100),
           child: Form(
             key: _formKey,
             child: ListView(
@@ -2231,7 +2231,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
       child: Center(
         heightFactor: 1.0,
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1000),
+          constraints: const BoxConstraints(maxWidth: 1100),
           child: Row(
             children: [
               // Secondary Outline: Save as Draft
