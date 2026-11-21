@@ -31,6 +31,7 @@ export class UsersService {
       const mem = memberships.find((m) => m.user_id === u.user_id);
       return {
         user_id: u.user_id,
+        user_name: u.user_name,
         full_name: u.full_name,
         email_address: u.email_address,
         avatar_url: u.avatar_url || null,

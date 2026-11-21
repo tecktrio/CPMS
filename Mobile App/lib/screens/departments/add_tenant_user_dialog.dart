@@ -59,10 +59,18 @@ class _AddTenantUserDialogState extends State<AddTenantUserDialog> {
         departmentIds: [_selectedDepartmentId!],
       );
     } else {
-      success = await deptProvider.addTenantUser(
-        emailAddress: _emailController.text.trim().toLowerCase(),
-        departmentIds: [_selectedDepartmentId!],
-      );
+      final input = _emailController.text.trim();
+      if (input.contains('@')) {
+        success = await deptProvider.addTenantUser(
+          emailAddress: input.toLowerCase(),
+          departmentIds: [_selectedDepartmentId!],
+        );
+      } else {
+        success = await deptProvider.addTenantUser(
+          userName: input.toLowerCase(),
+          departmentIds: [_selectedDepartmentId!],
+        );
+      }
     }
 
     if (!mounted) return;
@@ -140,21 +148,22 @@ class _AddTenantUserDialogState extends State<AddTenantUserDialog> {
                 ),
                 const SizedBox(height: 16),
 
-                // Email Address
+                // Username or Email Address
                 TextFormField(
                   controller: _emailController,
                   enabled: !isEditing,
-                  keyboardType: TextInputType.emailAddress,
+                  keyboardType: TextInputType.text,
+                  autocorrect: false,
                   decoration: InputDecoration(
-                    labelText: 'User Email Address *',
-                    hintText: 'e.g. operator@cyanfoods.com',
-                    prefixIcon: const Icon(Icons.email_outlined, size: 20),
+                    labelText: 'User Username or Email *',
+                    hintText: 'e.g. janedoe or operator@cyanfoods.com',
+                    prefixIcon: const Icon(Icons.person_outline, size: 20),
                     filled: isEditing,
                     fillColor: isEditing ? const Color(0xFFF1F5F9) : null,
                   ),
                   validator: (val) {
-                    if (val == null || val.trim().isEmpty || !val.contains('@')) {
-                      return 'Enter a valid email address';
+                    if (val == null || val.trim().isEmpty) {
+                      return 'Enter username or email address';
                     }
                     return null;
                   },

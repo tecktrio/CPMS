@@ -27,10 +27,13 @@ export class User {
   @Prop({ type: String, default: uuidv4, unique: true })
   user_id: string;
 
+  @Prop({ type: String, required: true, unique: true, lowercase: true, trim: true })
+  user_name: string;
+
   @Prop({ type: String, required: true, trim: true })
   full_name: string;
 
-  @Prop({ type: String, required: true, unique: true, lowercase: true, trim: true })
+  @Prop({ type: String, required: true, lowercase: true, trim: true })
   email_address: string;
 
   @Prop({ type: String, required: true })
@@ -54,6 +57,7 @@ export class User {
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
-UserSchema.index({ email_address: 1 }, { unique: true });
+UserSchema.index({ user_name: 1 }, { unique: true });
+UserSchema.index({ email_address: 1 });
 UserSchema.index({ user_id: 1 }, { unique: true });
 

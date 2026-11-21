@@ -13,6 +13,7 @@ class SignUpScreen extends StatefulWidget {
 class _SignUpScreenState extends State<SignUpScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
+  final _usernameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
@@ -20,6 +21,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   @override
   void dispose() {
     _nameController.dispose();
+    _usernameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
@@ -30,6 +32,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
     final authProvider = context.read<AuthProvider>();
     final success = await authProvider.signUp(
+      userName: _usernameController.text.trim().toLowerCase(),
       fullName: _nameController.text,
       email: _emailController.text,
       password: _passwordController.text,
@@ -208,6 +211,49 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           validator: (val) {
                             if (val == null || val.trim().isEmpty) {
                               return 'Full name is required';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 18),
+
+                        // Username Field
+                        const Text(
+                          'USERNAME',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFF64748B),
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        TextFormField(
+                          controller: _usernameController,
+                          keyboardType: TextInputType.text,
+                          autocorrect: false,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black,
+                          ),
+                          decoration: _buildInputDecoration(
+                            hintText: 'e.g. janedoe (globally unique)',
+                            prefixIcon: const Icon(
+                              Icons.alternate_email,
+                              size: 20,
+                              color: Color(0xFF94A3B8),
+                            ),
+                          ),
+                          validator: (val) {
+                            if (val == null || val.trim().isEmpty) {
+                              return 'Username is required';
+                            }
+                            if (val.trim().length < 3) {
+                              return 'Username must be at least 3 characters';
+                            }
+                            if (!RegExp(r'^[a-zA-Z0-9_.-]+$').hasMatch(val.trim())) {
+                              return 'Username can only contain letters, numbers, _, ., -';
                             }
                             return null;
                           },

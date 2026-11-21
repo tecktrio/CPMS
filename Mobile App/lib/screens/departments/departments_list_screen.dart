@@ -116,6 +116,7 @@ class _DepartmentsListScreenState extends State<DepartmentsListScreen> {
       if (_searchQuery.isEmpty) return true;
       final q = _searchQuery.toLowerCase();
       final matchName = u.fullName.toLowerCase().contains(q);
+      final matchUsername = u.userName.toLowerCase().contains(q);
       final matchEmail = u.emailAddress.toLowerCase().contains(q);
       final matchDept = u.departmentIds.any((id) {
         final d = tenant.tenantDepartments.firstWhere(
@@ -131,7 +132,7 @@ class _DepartmentsListScreenState extends State<DepartmentsListScreen> {
         );
         return d.departmentName.toLowerCase().contains(q);
       });
-      return matchName || matchEmail || matchDept;
+      return matchName || matchUsername || matchEmail || matchDept;
     }).toList();
 
     final screenWidth = MediaQuery.of(context).size.width;
@@ -544,7 +545,9 @@ class _DepartmentsListScreenState extends State<DepartmentsListScreen> {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            u.emailAddress,
+                            u.userName.isNotEmpty
+                                ? '@${u.userName} • ${u.emailAddress}'
+                                : u.emailAddress,
                             style: const TextStyle(
                               fontSize: 12,
                               color: Color(0xFF64748B),

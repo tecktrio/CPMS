@@ -30,6 +30,7 @@ class SystemPermissionModel {
 
 class TenantUserModel {
   final String userId;
+  final String userName;
   final String fullName;
   final String emailAddress;
   final String? avatarUrl;
@@ -38,6 +39,7 @@ class TenantUserModel {
 
   TenantUserModel({
     required this.userId,
+    this.userName = '',
     required this.fullName,
     required this.emailAddress,
     this.avatarUrl,
@@ -48,6 +50,7 @@ class TenantUserModel {
   factory TenantUserModel.fromJson(Map<String, dynamic> json) {
     return TenantUserModel(
       userId: json['user_id'] ?? '',
+      userName: json['user_name'] ?? '',
       fullName: json['full_name'] ?? '',
       emailAddress: json['email_address'] ?? '',
       avatarUrl: json['avatar_url'],
@@ -177,16 +180,23 @@ class DepartmentProvider extends ChangeNotifier {
   }
 
   Future<bool> addTenantUser({
-    required String emailAddress,
+    String? emailAddress,
+    String? userName,
     required List<String> departmentIds,
   }) async {
     _setLoading(true);
     _errorMessage = null;
     try {
-      await apiClient.post(ApiConstants.addUserToTenant, body: {
-        'email_address': emailAddress.trim().toLowerCase(),
+      final body = <String, dynamic>{
         'department_ids': departmentIds,
-      });
+      };
+      if (userName != null && userName.trim().isNotEmpty) {
+        body['user_name'] = userName.trim().toLowerCase();
+      }
+      if (emailAddress != null && emailAddress.trim().isNotEmpty) {
+        body['email_address'] = emailAddress.trim().toLowerCase();
+      }
+      await apiClient.post(ApiConstants.addUserToTenant, body: body);
       await loadTenantUsers();
       return true;
     } catch (e) {

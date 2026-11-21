@@ -176,9 +176,9 @@ class _SignInScreenState extends State<SignInScreen> {
                         ),
                         const SizedBox(height: 32),
 
-                        // Email Field
+                        // Username or Email Field
                         const Text(
-                          'EMAIL ADDRESS',
+                          'USERNAME OR EMAIL',
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w800,
@@ -189,25 +189,25 @@ class _SignInScreenState extends State<SignInScreen> {
                         const SizedBox(height: 8),
                         TextFormField(
                           controller: _emailController,
-                          keyboardType: TextInputType.emailAddress,
+                          keyboardType: TextInputType.text,
+                          autocorrect: false,
                           style: const TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
                             color: Colors.black,
                           ),
                           decoration: _buildInputDecoration(
-                            hintText: 'operator@example.com',
+                            hintText: 'username or email address',
                             prefixIcon: const Icon(
-                              Icons.mail_outline,
+                              Icons.person_outline,
                               size: 20,
                               color: Color(0xFF94A3B8),
                             ),
                           ),
                           validator: (val) {
                             if (val == null || val.trim().isEmpty) {
-                              return 'Email is required';
+                              return 'Username or email is required';
                             }
-                            if (!val.contains('@')) return 'Enter a valid email';
                             return null;
                           },
                         ),

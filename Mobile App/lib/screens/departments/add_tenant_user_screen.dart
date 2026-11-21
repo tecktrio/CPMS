@@ -61,10 +61,18 @@ class _AddTenantUserScreenState extends State<AddTenantUserScreen> {
         departmentIds: [_selectedDepartmentId!],
       );
     } else {
-      success = await deptProvider.addTenantUser(
-        emailAddress: _emailController.text.trim().toLowerCase(),
-        departmentIds: [_selectedDepartmentId!],
-      );
+      final input = _emailController.text.trim();
+      if (input.contains('@')) {
+        success = await deptProvider.addTenantUser(
+          emailAddress: input.toLowerCase(),
+          departmentIds: [_selectedDepartmentId!],
+        );
+      } else {
+        success = await deptProvider.addTenantUser(
+          userName: input.toLowerCase(),
+          departmentIds: [_selectedDepartmentId!],
+        );
+      }
     }
 
     if (!mounted) return;
@@ -140,21 +148,21 @@ class _AddTenantUserScreenState extends State<AddTenantUserScreen> {
               ),
               const SizedBox(height: 20),
 
-              // Email Address
+              // Username or Email Address
               TextFormField(
                 controller: _emailController,
                 enabled: !isEditing,
-                keyboardType: TextInputType.emailAddress,
+                keyboardType: TextInputType.text,
+                autocorrect: false,
                 decoration: InputDecoration(
-                  labelText: 'Staff Email Address *',
-                  hintText: 'user@company.com',
-                  prefixIcon: const Icon(Icons.email_outlined),
+                  labelText: 'Staff Username or Email *',
+                  hintText: 'username or user@company.com',
+                  prefixIcon: const Icon(Icons.person_outline),
                   filled: isEditing,
                   fillColor: isEditing ? const Color(0xFFF8FAFC) : null,
                 ),
                 validator: (val) {
-                  if (val == null || val.trim().isEmpty) return 'Email is required';
-                  if (!val.contains('@')) return 'Enter a valid email';
+                  if (val == null || val.trim().isEmpty) return 'Username or email is required';
                   return null;
                 },
               ),

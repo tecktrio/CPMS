@@ -76,6 +76,27 @@ export class TenantsService {
   ) {}
 
   async createTenant(userId: string, dto: CreateTenantDto) {
+    // Ensure user does not already own or belong to another organization
+    const existingOwnership = await this.tenantModel.findOne({
+      admin_user_id: userId,
+      is_active: true,
+    });
+    if (existingOwnership) {
+      throw new BadRequestException(
+        `You already own an organization (${existingOwnership.company_name}). A user can belong to only one organization.`,
+      );
+    }
+
+    const existingMembership = await this.membershipModel.findOne({
+      user_id: userId,
+      is_active: true,
+    });
+    if (existingMembership) {
+      throw new BadRequestException(
+        'You already belong to an organization. A user can belong to only one organization.',
+      );
+    }
+
     const tenantId = uuidv4();
 
     const newTenant = new this.tenantModel({
@@ -423,21 +444,70 @@ export class TenantsService {
       dto.department_ids,
     );
 
-    const emailAddress = dto.email_address.toLowerCase().trim();
+    const rawUsername = dto.user_name ? dto.user_name.toLowerCase().trim() : undefined;
+    const rawEmail = dto.email_address ? dto.email_address.toLowerCase().trim() : undefined;
+
+    if (!rawUsername && !rawEmail) {
+      throw new BadRequestException(
+        'Please provide a username or email address for the user',
+      );
+    }
 
     // Find or automatically provision user profile
-    let targetUser = await this.userModel.findOne({
-      email_address: emailAddress,
-    });
+    let targetUser: UserDocument | null = null;
+    if (rawUsername) {
+      targetUser = await this.userModel.findOne({ user_name: rawUsername });
+    }
+    if (!targetUser && rawEmail) {
+      targetUser = await this.userModel.findOne({ email_address: rawEmail });
+    }
 
-    if (!targetUser) {
+    if (targetUser) {
+      // Validate that the user is not already in another tenant
+      const otherTenantOwned = await this.tenantModel.findOne({
+        admin_user_id: targetUser.user_id,
+        tenant_id: { $ne: effectiveTenantId },
+        is_active: true,
+      });
+      if (otherTenantOwned) {
+        throw new BadRequestException(
+          `User "${targetUser.user_name || targetUser.email_address}" is the admin of another organization (${otherTenantOwned.company_name}). A user can only belong to 1 organization.`,
+        );
+      }
+
+      const otherMembership = await this.membershipModel.findOne({
+        user_id: targetUser.user_id,
+        tenant_id: { $ne: effectiveTenantId },
+        is_active: true,
+      });
+      if (otherMembership) {
+        const otherTenant = await this.tenantModel.findOne({
+          tenant_id: otherMembership.tenant_id,
+        });
+        throw new BadRequestException(
+          `User "${targetUser.user_name || targetUser.email_address}" is already a member of another organization (${otherTenant?.company_name || 'Organization'}). A user can only belong to 1 organization.`,
+        );
+      }
+    } else {
+      // Target user does not exist in system yet: provision a pending activation account
       const salt = await bcrypt.genSalt(10);
       const temporaryHash = await bcrypt.hash(uuidv4(), salt);
+      const emailToUse = rawEmail || `${rawUsername}@cpms.local`;
+      let usernameToUse = rawUsername;
+      if (!usernameToUse) {
+        let base = emailToUse.split('@')[0].replace(/[^a-z0-9]/g, '');
+        if (!base || base.length < 3) base = 'user';
+        usernameToUse = `${base}_${Math.random().toString(36).substring(2, 6)}`;
+        while (await this.userModel.exists({ user_name: usernameToUse })) {
+          usernameToUse = `user_${Math.random().toString(36).substring(2, 8)}`;
+        }
+      }
 
       targetUser = new this.userModel({
         user_id: uuidv4(),
-        full_name: emailAddress.split('@')[0],
-        email_address: emailAddress,
+        user_name: usernameToUse,
+        full_name: rawUsername || emailToUse.split('@')[0],
+        email_address: emailToUse,
         password_hash: temporaryHash,
         account_status: UserAccountStatus.PENDING_ACTIVATION,
       });
@@ -461,6 +531,7 @@ export class TenantsService {
         membership: existingMembership,
         user: {
           user_id: targetUser.user_id,
+          user_name: targetUser.user_name,
           email_address: targetUser.email_address,
           full_name: targetUser.full_name,
           account_status: targetUser.account_status,
@@ -483,6 +554,7 @@ export class TenantsService {
       membership: newMembership,
       user: {
         user_id: targetUser.user_id,
+        user_name: targetUser.user_name,
         email_address: targetUser.email_address,
         full_name: targetUser.full_name,
         account_status: targetUser.account_status,

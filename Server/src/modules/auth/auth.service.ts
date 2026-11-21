@@ -4,6 +4,7 @@ import {
   UnauthorizedException,
   NotFoundException,
   Logger,
+  OnModuleInit,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
@@ -32,7 +33,7 @@ import { ForgotPasswordDto } from './dtos/forgot-password.dto';
 import { ResetPasswordDto } from './dtos/reset-password.dto';
 
 @Injectable()
-export class AuthService {
+export class AuthService implements OnModuleInit {
   private readonly logger = new Logger(AuthService.name);
 
   constructor(
@@ -48,34 +49,88 @@ export class AuthService {
     private readonly emailService: EmailService,
   ) {}
 
+  async onModuleInit() {
+    await this.migrateExistingUsers();
+  }
+
+  private async migrateExistingUsers() {
+    try {
+      // 1. Safely drop legacy unique index on email_address if it exists
+      await this.userModel.collection.dropIndex('email_address_1').catch(() => {});
+
+      // 2. Assign unique random username to any user missing user_name
+      const usersWithoutUsername = await this.userModel.find({
+        $or: [
+          { user_name: { $exists: false } },
+          { user_name: null },
+          { user_name: '' },
+        ],
+      });
+
+      for (const u of usersWithoutUsername) {
+        let base = (u.full_name || u.email_address?.split('@')[0] || 'user')
+          .toLowerCase()
+          .replace(/[^a-z0-9]/g, '');
+        if (!base || base.length < 3) base = 'user';
+
+        let candidate = `${base}_${Math.random().toString(36).substring(2, 6)}`;
+        while (await this.userModel.exists({ user_name: candidate })) {
+          candidate = `user_${Math.random().toString(36).substring(2, 8)}`;
+        }
+
+        u.user_name = candidate;
+        await u.save();
+        this.logger.log(`Migrated user ${u.email_address} to username: ${candidate}`);
+      }
+
+      // 3. Ensure unique index on user_name
+      await this.userModel.collection
+        .createIndex({ user_name: 1 }, { unique: true })
+        .catch(() => {});
+
+      // 4. Ensure unique index on membership user_id (1 user in max 1 tenant)
+      await this.membershipModel.collection
+        .createIndex({ user_id: 1 }, { unique: true })
+        .catch(() => {});
+
+      this.logger.log('User and membership migrations completed successfully.');
+    } catch (err: any) {
+      this.logger.warn(`User migration notice: ${err?.message}`);
+    }
+  }
+
   async signUp(dto: SignUpDto) {
-    const existingUser = await this.userModel.findOne({
-      email_address: dto.email_address.toLowerCase(),
+    const rawUsername = dto.user_name.trim().toLowerCase();
+    const rawEmail = dto.email_address.trim().toLowerCase();
+
+    // Check if username is already taken
+    const existingByUsername = await this.userModel.findOne({
+      user_name: rawUsername,
     });
 
-    if (existingUser) {
-      if (existingUser.account_status === UserAccountStatus.PENDING_ACTIVATION) {
-        // User was pre-added to a tenant by an admin; activate and set their password
+    if (existingByUsername) {
+      if (existingByUsername.account_status === UserAccountStatus.PENDING_ACTIVATION) {
+        // User was pre-added to a tenant by admin; activate and set their password
         const salt = await bcrypt.genSalt(10);
-        existingUser.password_hash = await bcrypt.hash(dto.password, salt);
-        existingUser.full_name = dto.full_name;
-        existingUser.account_status = UserAccountStatus.ACTIVE;
-        await existingUser.save();
+        existingByUsername.password_hash = await bcrypt.hash(dto.password, salt);
+        existingByUsername.full_name = dto.full_name;
+        existingByUsername.email_address = rawEmail;
+        existingByUsername.account_status = UserAccountStatus.ACTIVE;
+        await existingByUsername.save();
 
-        const otpCode = await this.generateAndSaveOtp(existingUser.email_address);
-        await this.emailService.sendOtpEmail(existingUser.email_address, otpCode);
+        const otpCode = await this.generateAndSaveOtp(existingByUsername.email_address);
+        await this.emailService.sendOtpEmail(existingByUsername.email_address, otpCode);
 
         return {
           message:
             'Registration successful. An OTP verification code has been dispatched to your email.',
-          user_id: existingUser.user_id,
-          email_address: existingUser.email_address,
+          user_id: existingByUsername.user_id,
+          user_name: existingByUsername.user_name,
+          email_address: existingByUsername.email_address,
         };
       }
 
-      throw new ConflictException(
-        'An account with this email address already exists',
-      );
+      throw new ConflictException('Username is already taken. Please choose another username.');
     }
 
     const salt = await bcrypt.genSalt(10);
@@ -83,8 +138,9 @@ export class AuthService {
 
     const newUser = new this.userModel({
       user_id: uuidv4(),
+      user_name: rawUsername,
       full_name: dto.full_name,
-      email_address: dto.email_address.toLowerCase(),
+      email_address: rawEmail,
       password_hash: passwordHash,
       account_status: UserAccountStatus.ACTIVE,
     });
@@ -100,17 +156,21 @@ export class AuthService {
     return {
       message: 'Registration successful.',
       email_address: newUser.email_address,
+      user_name: newUser.user_name,
       user_id: newUser.user_id,
     };
   }
 
   async signIn(dto: SignInDto) {
+    const identifier = dto.email_address.trim().toLowerCase();
+
+    // Support signing in by globally unique user_name or email_address
     const user = await this.userModel.findOne({
-      email_address: dto.email_address.toLowerCase(),
+      $or: [{ user_name: identifier }, { email_address: identifier }],
     });
 
     if (!user) {
-      throw new UnauthorizedException('Invalid email or password');
+      throw new UnauthorizedException('Invalid username/email or password');
     }
 
     const isPasswordValid = await bcrypt.compare(
@@ -156,6 +216,7 @@ export class AuthService {
       requires_otp: false,
       user: {
         user_id: user.user_id,
+        user_name: user.user_name,
         full_name: user.full_name,
         email_address: user.email_address,
         department_id: user.department_id,
@@ -217,6 +278,7 @@ export class AuthService {
       access_token: accessToken,
       user: {
         user_id: user.user_id,
+        user_name: user.user_name,
         full_name: user.full_name,
         email_address: user.email_address,
         department_id: user.department_id,

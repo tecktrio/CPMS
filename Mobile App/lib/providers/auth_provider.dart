@@ -5,6 +5,7 @@ import '../core/network/api_client.dart';
 
 class AuthUser {
   final String userId;
+  final String userName;
   final String fullName;
   final String emailAddress;
   final String? avatarUrl;
@@ -12,6 +13,7 @@ class AuthUser {
 
   AuthUser({
     required this.userId,
+    this.userName = '',
     required this.fullName,
     required this.emailAddress,
     this.avatarUrl,
@@ -21,6 +23,7 @@ class AuthUser {
   factory AuthUser.fromJson(Map<String, dynamic> json) {
     return AuthUser(
       userId: json['user_id'] ?? '',
+      userName: json['user_name'] ?? '',
       fullName: json['full_name'] ?? '',
       emailAddress: json['email_address'] ?? '',
       avatarUrl: json['avatar_url'],
@@ -30,6 +33,7 @@ class AuthUser {
 
   AuthUser copyWith({
     String? userId,
+    String? userName,
     String? fullName,
     String? emailAddress,
     String? avatarUrl,
@@ -37,6 +41,7 @@ class AuthUser {
   }) {
     return AuthUser(
       userId: userId ?? this.userId,
+      userName: userName ?? this.userName,
       fullName: fullName ?? this.fullName,
       emailAddress: emailAddress ?? this.emailAddress,
       avatarUrl: avatarUrl ?? this.avatarUrl,
@@ -126,6 +131,7 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<bool> signUp({
+    required String userName,
     required String fullName,
     required String email,
     required String password,
@@ -135,6 +141,7 @@ class AuthProvider extends ChangeNotifier {
 
     try {
       await apiClient.post(ApiConstants.signUp, body: {
+        'user_name': userName.trim().toLowerCase(),
         'full_name': fullName.trim(),
         'email_address': email.trim().toLowerCase(),
         'password': password,

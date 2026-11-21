@@ -5,7 +5,6 @@ import '../core/constants/api_constants.dart';
 import '../providers/auth_provider.dart';
 import '../providers/tenant_provider.dart';
 import '../providers/inventory_provider.dart';
-import '../screens/tenant/tenant_selector_screen.dart';
 import '../utils/app_update_helper.dart';
 
 class UserProfileAvatar extends StatelessWidget {
@@ -302,19 +301,8 @@ class UserProfileAvatar extends StatelessWidget {
                   leading: const Icon(Icons.business_outlined, color: Color(0xFF0F766E)),
                   title: const Text('Active Organization', style: TextStyle(fontSize: 12, color: Color(0xFF64748B))),
                   subtitle: Text(
-                    activeTenant?.companyName ?? 'Cyan CIMS',
+                    activeTenant?.companyName ?? 'Cyan CPMS',
                     style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFF0F172A)),
-                  ),
-                  trailing: TextButton.icon(
-                    icon: const Icon(Icons.swap_horiz, size: 16),
-                    label: const Text('Switch Org'),
-                    onPressed: () {
-                      Navigator.pop(ctx);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const TenantSelectorScreen()),
-                      );
-                    },
                   ),
                 ),
 

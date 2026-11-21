@@ -19,13 +19,21 @@ export class AddUserDto {
   @IsOptional()
   tenant_id?: string;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
+    example: 'operator_jane',
+    description: 'Unique global username of the user to add to the tenant organization',
+  })
+  @IsString()
+  @IsOptional()
+  user_name?: string;
+
+  @ApiPropertyOptional({
     example: 'operator.jane@example.com',
     description: 'Email address of the user to add to the tenant organization',
   })
-  @IsEmail()
-  @IsNotEmpty()
-  email_address: string;
+  @IsString()
+  @IsOptional()
+  email_address?: string;
 
   @ApiProperty({
     example: ['dept-uuid-quality-control-002'],

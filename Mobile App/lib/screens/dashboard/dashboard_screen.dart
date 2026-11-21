@@ -16,7 +16,6 @@ import '../purchase_orders/purchase_orders_list_screen.dart';
 import '../production/production_hub_screen.dart';
 import '../store_rooms/store_rooms_list_screen.dart';
 import '../store_rooms/store_room_detail_screen.dart';
-import '../tenant/tenant_selector_screen.dart';
 import '../../utils/app_update_helper.dart';
 import '../../widgets/sync_status_indicator.dart';
 import '../../widgets/cpms_bottom_nav_bar.dart';
@@ -151,7 +150,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final auth = context.read<AuthProvider>();
     final tenant = context.read<TenantProvider>();
     final user = auth.user;
-    final activeTenant = tenant.activeTenant;
 
     showModalBottomSheet(
       context: context,
@@ -253,21 +251,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   },
                 ),
                 const SizedBox(height: 20),
-                ListTile(
-                  leading: const Icon(Icons.business_outlined),
-                  title: const Text('Switch Organization',
-                      style: TextStyle(fontWeight: FontWeight.w700)),
-                  subtitle: Text(activeTenant?.companyName ?? 'Organization'),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () {
-                    Navigator.pop(ctx);
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (_) => const TenantSelectorScreen()),
-                    );
-                  },
-                ),
                 ListTile(
                   leading: const Icon(Icons.logout, color: Color(0xFFDC2626)),
                   title: const Text(
@@ -475,58 +458,32 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 ),
                                 child: Row(
                                   children: [
-                                    // Tenant Brand & Switcher
-                                    InkWell(
-                                      onTap: () {
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                              builder: (_) => const TenantSelectorScreen()),
-                                        );
-                                      },
-                                      borderRadius: BorderRadius.circular(4),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              Row(
-                                                mainAxisSize: MainAxisSize.min,
-                                                children: [
-                                                  Text(
-                                                    tenantDisplayName,
-                                                    style: const TextStyle(
-                                                      fontSize: 24,
-                                                      fontWeight: FontWeight.w900,
-                                                      color: Colors.black,
-                                                      letterSpacing: -0.7,
-                                                    ),
-                                                  ),
-                                                  const SizedBox(width: 4),
-                                                  const Icon(
-                                                    Icons.keyboard_arrow_down_rounded,
-                                                    size: 20,
-                                                    color: Color(0xFF64748B),
-                                                  ),
-                                                ],
-                                              ),
-                                              if (resolvedDeptName.isNotEmpty) ...[
-                                                const SizedBox(height: 1),
-                                                Text(
-                                                  resolvedDeptName,
-                                                  style: const TextStyle(
-                                                    fontSize: 12,
-                                                    fontWeight: FontWeight.w600,
-                                                    color: Color(0xFF64748B),
-                                                  ),
-                                                ),
-                                              ],
-                                            ],
+                                    // Tenant Brand
+                                    Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          tenantDisplayName,
+                                          style: const TextStyle(
+                                            fontSize: 24,
+                                            fontWeight: FontWeight.w900,
+                                            color: Colors.black,
+                                            letterSpacing: -0.7,
+                                          ),
+                                        ),
+                                        if (resolvedDeptName.isNotEmpty) ...[
+                                          const SizedBox(height: 1),
+                                          Text(
+                                            resolvedDeptName,
+                                            style: const TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w600,
+                                              color: Color(0xFF64748B),
+                                            ),
                                           ),
                                         ],
-                                      ),
+                                      ],
                                     ),
                                     const Spacer(),
 
@@ -697,7 +654,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               vertical: isWide ? 20 : 14,
             ),
             children: [
-              // 1. Hero Green Textured Banner on Top (Tapping switches Organization & Department)
+              // 1. Hero Green Textured Banner on Top
               _buildTopBanner(
                 context: context,
                 userName: userName,
@@ -708,7 +665,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 userRoleSubtitle: userRoleSubtitle,
                 isAdmin: isAdmin,
                 isWide: isWide,
-                onTap: () => _showOrganizationModal(context),
               ),
 
               const SizedBox(height: 22),
@@ -2548,7 +2504,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     required String userRoleSubtitle,
     required bool isAdmin,
     required bool isWide,
-    required VoidCallback onTap,
   }) {
     // Format Organization and Department text to match mockup:
     // e.g. "Cyan International • Accounts Department"
@@ -2574,366 +2529,147 @@ class _DashboardScreenState extends State<DashboardScreen> {
       deptFormatted = isAdmin ? 'Organization Admin' : 'All Operations';
     }
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
+    return Container(
+      decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(22),
-        splashColor: Colors.white.withValues(alpha: 0.12),
-        highlightColor: Colors.white.withValues(alpha: 0.06),
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(22),
-            gradient: const LinearGradient(
-              colors: [
-                Color(0xFF04482D), // Deep rich forest emerald
-                Color(0xFF033822), // Dark emerald
-                Color(0xFF022B19), // Midnight emerald
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFF04482D).withValues(alpha: 0.35),
-                blurRadius: 18,
-                offset: const Offset(0, 8),
-                spreadRadius: -2,
-              ),
-            ],
+        gradient: const LinearGradient(
+          colors: [
+            Color(0xFF04482D), // Deep rich forest emerald
+            Color(0xFF033822), // Dark emerald
+            Color(0xFF022B19), // Midnight emerald
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF04482D).withValues(alpha: 0.35),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+            spreadRadius: -2,
           ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(22),
-            child: Stack(
-              children: [
-                // Concentric radiating rings centered on the avatar
-                Positioned.fill(
-                  child: CustomPaint(
-                    painter: _BannerTexturePainter(),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(22),
+        child: Stack(
+          children: [
+            // Concentric radiating rings centered on the avatar
+            Positioned.fill(
+              child: CustomPaint(
+                painter: _BannerTexturePainter(),
+              ),
+            ),
+            // Banner Content
+            Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: isWide ? 24.0 : 18.0,
+                vertical: isWide ? 22.0 : 18.0,
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  // Left: WELCOME BACK, Name, Organization • Department
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text(
+                          'WELCOME BACK',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF6EE7B7), // Mint green
+                            letterSpacing: 0.8,
+                          ),
+                        ),
+                        const SizedBox(height: 5),
+
+                        // User Name
+                        Text(
+                          userName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: isWide ? 24 : 21,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white,
+                            letterSpacing: -0.4,
+                          ),
+                        ),
+                        const SizedBox(height: 5),
+
+                        // Subtitle: Cyan International • Accounts Department
+                        Text(
+                          '$orgFormatted • $deptFormatted',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w500,
+                            color: Color(0xFFD1FAE5),
+                            letterSpacing: 0.1,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                // Banner Content
-                Padding(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: isWide ? 24.0 : 18.0,
-                    vertical: isWide ? 22.0 : 18.0,
-                  ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
+
+                  const SizedBox(width: 14),
+
+                  // Right: Avatar with online status dot
+                  Stack(
+                    clipBehavior: Clip.none,
                     children: [
-                      // Left: WELCOME BACK, Name, Organization • Department
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Text(
-                                  'WELCOME BACK',
+                      Container(
+                        padding: const EdgeInsets.all(2.5),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.35),
+                            width: 2,
+                          ),
+                        ),
+                        child: CircleAvatar(
+                          radius: isWide ? 28 : 24,
+                          backgroundColor: Colors.white.withValues(alpha: 0.15),
+                          backgroundImage: userAvatarUrl != null
+                              ? NetworkImage(userAvatarUrl)
+                              : null,
+                          child: userAvatarUrl == null
+                              ? Text(
+                                  userInitial,
                                   style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w700,
-                                    color: Color(0xFF6EE7B7), // Mint green
-                                    letterSpacing: 0.8,
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w900,
+                                    fontSize: isWide ? 20 : 17,
                                   ),
-                                ),
-                                const SizedBox(width: 4),
-                                const Icon(
-                                  Icons.keyboard_arrow_down_rounded,
-                                  size: 15,
-                                  color: Color(0xFF6EE7B7),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 5),
-
-                            // User Name
-                            Text(
-                              userName,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontSize: isWide ? 24 : 21,
-                                fontWeight: FontWeight.w800,
-                                color: Colors.white,
-                                letterSpacing: -0.4,
-                              ),
-                            ),
-                            const SizedBox(height: 5),
-
-                            // Subtitle: Cyan International • Accounts Department
-                            Text(
-                              '$orgFormatted • $deptFormatted',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontSize: 12.5,
-                                fontWeight: FontWeight.w500,
-                                color: Color(0xFFD1FAE5),
-                                letterSpacing: 0.1,
-                              ),
-                            ),
-                          ],
+                                )
+                              : null,
                         ),
                       ),
-
-                      const SizedBox(width: 14),
-
-                      // Right: Avatar with online status dot
-                      Stack(
-                        clipBehavior: Clip.none,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(2.5),
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: Colors.white.withValues(alpha: 0.35),
-                                width: 2,
-                              ),
-                            ),
-                            child: CircleAvatar(
-                              radius: isWide ? 28 : 24,
-                              backgroundColor: Colors.white.withValues(alpha: 0.15),
-                              backgroundImage: userAvatarUrl != null
-                                  ? NetworkImage(userAvatarUrl)
-                                  : null,
-                              child: userAvatarUrl == null
-                                  ? Text(
-                                      userInitial,
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.w900,
-                                        fontSize: isWide ? 20 : 17,
-                                      ),
-                                    )
-                                  : null,
-                            ),
+                      Positioned(
+                        bottom: 2,
+                        right: 2,
+                        child: Container(
+                          width: 12,
+                          height: 12,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF10B981),
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 2),
                           ),
-                          Positioned(
-                            bottom: 2,
-                            right: 2,
-                            child: Container(
-                              width: 12,
-                              height: 12,
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF10B981),
-                                shape: BoxShape.circle,
-                                border: Border.all(color: Colors.white, width: 2),
-                              ),
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
                     ],
                   ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  /// Interactive Modal Bottom Sheet to switch Organization (Tenant) workspace
-  void _showOrganizationModal(BuildContext context) {
-    final tenant = context.read<TenantProvider>();
-    final auth = context.read<AuthProvider>();
-    final availableTenants = auth.availableTenants;
-    final activeTenantId = tenant.activeTenant?.tenantId;
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (modalCtx) {
-        return StatefulBuilder(
-          builder: (ctx, setModalState) {
-            return Container(
-              constraints: BoxConstraints(
-                maxHeight: MediaQuery.of(context).size.height * 0.82,
-              ),
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Drag Handle
-                  Container(
-                    margin: const EdgeInsets.only(top: 12, bottom: 8),
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFCBD5E1),
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-
-                  // Header
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 8, 16, 12),
-                    child: Row(
-                      children: [
-                        const Icon(
-                          Icons.swap_horiz_rounded,
-                          color: Color(0xFF064E3B),
-                          size: 24,
-                        ),
-                        const SizedBox(width: 10),
-                        const Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Active Organization',
-                                style: TextStyle(
-                                  fontSize: 17,
-                                  fontWeight: FontWeight.w800,
-                                  color: Color(0xFF0F172A),
-                                ),
-                              ),
-                              Text(
-                                'Tap to switch active organization workspace',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Color(0xFF64748B),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.close_rounded, size: 20),
-                          color: const Color(0xFF64748B),
-                          onPressed: () => Navigator.pop(modalCtx),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const Divider(height: 1, color: Color(0xFFE2E8F0)),
-
-                  Flexible(
-                    child: ListView(
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                      children: [
-                        // SECTION 1: ORGANIZATIONS
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Text(
-                              'ORGANIZATION',
-                              style: TextStyle(
-                                fontSize: 11.5,
-                                fontWeight: FontWeight.w800,
-                                color: Color(0xFF64748B),
-                                letterSpacing: 0.6,
-                              ),
-                            ),
-                            if (availableTenants.length > 1)
-                              Text(
-                                '${availableTenants.length} available',
-                                style: const TextStyle(
-                                  fontSize: 11,
-                                  color: Color(0xFF94A3B8),
-                                ),
-                              ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-
-                        ...availableTenants.map((t) {
-                          final isSelected = t.tenantId == activeTenantId;
-                          return InkWell(
-                            onTap: () async {
-                              Navigator.pop(modalCtx);
-                              await tenant.selectTenant(t);
-                              _loadInitialData();
-                            },
-                            borderRadius: BorderRadius.circular(12),
-                            child: Container(
-                              margin: const EdgeInsets.only(bottom: 8),
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                              decoration: BoxDecoration(
-                                color: isSelected
-                                    ? const Color(0xFFF0FDF4)
-                                    : const Color(0xFFF8FAFC),
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color: isSelected
-                                      ? const Color(0xFF16A34A)
-                                      : const Color(0xFFE2E8F0),
-                                  width: isSelected ? 1.5 : 1,
-                                ),
-                              ),
-                              child: Row(
-                                children: [
-                                  Container(
-                                    width: 36,
-                                    height: 36,
-                                    decoration: BoxDecoration(
-                                      color: isSelected
-                                          ? const Color(0xFF16A34A)
-                                          : const Color(0xFFE2E8F0),
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: Icon(
-                                      Icons.business_rounded,
-                                      size: 20,
-                                      color: isSelected ? Colors.white : const Color(0xFF64748B),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          t.companyName,
-                                          style: TextStyle(
-                                            fontSize: 14,
-                                            fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-                                            color: isSelected ? const Color(0xFF064E3B) : const Color(0xFF1E293B),
-                                          ),
-                                        ),
-                                        if (t.isAdmin)
-                                          const Text(
-                                            'Organization Administrator',
-                                            style: TextStyle(
-                                              fontSize: 11,
-                                              color: Color(0xFF16A34A),
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                          ),
-                                      ],
-                                    ),
-                                  ),
-                                  if (isSelected)
-                                    const Icon(
-                                      Icons.check_circle_rounded,
-                                      color: Color(0xFF16A34A),
-                                      size: 20,
-                                    ),
-                                ],
-                              ),
-                            ),
-                          );
-                        }),
-
-
-                      ],
-                    ),
-                  ),
                 ],
               ),
-            );
-          },
-        );
-      },
+            ),
+          ],
+        ),
+      ),
     );
   }
 

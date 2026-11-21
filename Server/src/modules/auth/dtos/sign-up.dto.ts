@@ -1,7 +1,26 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsNotEmpty, IsString, MinLength } from 'class-validator';
+import {
+  IsEmail,
+  IsNotEmpty,
+  IsString,
+  Matches,
+  MinLength,
+} from 'class-validator';
 
 export class SignUpDto {
+  @ApiProperty({
+    example: 'johndoe',
+    description: 'Unique global username (letters, numbers, underscore, 3-30 chars)',
+  })
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(3, { message: 'Username must be at least 3 characters long' })
+  @Matches(/^[a-zA-Z0-9_.-]+$/, {
+    message:
+      'Username can only contain alphanumeric characters, underscores, dots, or dashes',
+  })
+  user_name: string;
+
   @ApiProperty({ example: 'John Doe', description: "User's full name" })
   @IsString()
   @IsNotEmpty()
@@ -9,7 +28,7 @@ export class SignUpDto {
 
   @ApiProperty({
     example: 'john.doe@example.com',
-    description: 'Unique login email address',
+    description: 'Email address (can be used across multiple tenant accounts)',
   })
   @IsEmail()
   @IsNotEmpty()
