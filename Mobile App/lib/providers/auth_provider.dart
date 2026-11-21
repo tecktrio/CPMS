@@ -416,6 +416,28 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  Future<List<TenantOption>> refreshAvailableTenants() async {
+    _setLoading(true);
+    try {
+      final profileRes = await apiClient.get(ApiConstants.userProfile);
+      if (profileRes is Map<String, dynamic>) {
+        _user = AuthUser.fromJson(profileRes);
+      }
+      final tenantsRes = await apiClient.get(ApiConstants.tenants);
+      if (tenantsRes is List) {
+        _availableTenants = tenantsRes
+            .map((item) => TenantOption.fromJson(item))
+            .toList();
+      }
+      return _availableTenants;
+    } catch (e) {
+      _errorMessage = e.toString();
+      return _availableTenants;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
   Future<void> signOut() async {
     _token = null;
     _user = null;
