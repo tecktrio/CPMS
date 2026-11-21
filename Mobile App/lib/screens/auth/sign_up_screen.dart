@@ -52,6 +52,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
         context,
         MaterialPageRoute(
           builder: (_) => OtpVerificationScreen(
+            userName: _usernameController.text.trim().toLowerCase(),
             emailAddress: _emailController.text.trim().toLowerCase(),
           ),
         ),

@@ -12,6 +12,9 @@ export class OtpRecord {
   @Prop({ type: String, default: uuidv4, unique: true })
   record_id: string;
 
+  @Prop({ type: String, lowercase: true, trim: true })
+  user_name?: string;
+
   @Prop({ type: String, required: true, lowercase: true, trim: true })
   email_address: string;
 

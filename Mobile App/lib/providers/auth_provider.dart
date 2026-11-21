@@ -160,15 +160,19 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<bool> signIn({
-    required String email,
+    String? username,
+    String? email,
     required String password,
   }) async {
     _setLoading(true);
     _errorMessage = null;
 
+    final identifier = (username ?? email ?? '').trim().toLowerCase();
+
     try {
       final res = await apiClient.post(ApiConstants.signIn, body: {
-        'email_address': email.trim().toLowerCase(),
+        'user_name': identifier,
+        'email_address': identifier,
         'password': password,
       });
 
@@ -208,17 +212,25 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<bool> verifyOtp({
-    required String email,
+    String? userName,
+    String? email,
     required String otpCode,
   }) async {
     _setLoading(true);
     _errorMessage = null;
 
     try {
-      final res = await apiClient.post(ApiConstants.verifyOtp, body: {
-        'email_address': email.trim().toLowerCase(),
+      final body = <String, dynamic>{
         'otp_code': otpCode.trim(),
-      });
+      };
+      if (userName != null && userName.trim().isNotEmpty) {
+        body['user_name'] = userName.trim().toLowerCase();
+      }
+      if (email != null && email.trim().isNotEmpty) {
+        body['email_address'] = email.trim().toLowerCase();
+      }
+
+      final res = await apiClient.post(ApiConstants.verifyOtp, body: body);
 
       if (res is Map<String, dynamic>) {
         _token = res['access_token'];

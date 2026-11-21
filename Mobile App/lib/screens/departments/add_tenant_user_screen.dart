@@ -15,7 +15,7 @@ class AddTenantUserScreen extends StatefulWidget {
 
 class _AddTenantUserScreenState extends State<AddTenantUserScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController();
+  final _usernameController = TextEditingController();
   String? _selectedDepartmentId;
   bool _isSubmitting = false;
 
@@ -25,7 +25,9 @@ class _AddTenantUserScreenState extends State<AddTenantUserScreen> {
   void initState() {
     super.initState();
     if (isEditing) {
-      _emailController.text = widget.existingUser!.emailAddress;
+      _usernameController.text = widget.existingUser!.userName.isNotEmpty
+          ? widget.existingUser!.userName
+          : widget.existingUser!.emailAddress;
       if (widget.existingUser!.departmentIds.isNotEmpty) {
         _selectedDepartmentId = widget.existingUser!.departmentIds.first;
       }
@@ -34,7 +36,7 @@ class _AddTenantUserScreenState extends State<AddTenantUserScreen> {
 
   @override
   void dispose() {
-    _emailController.dispose();
+    _usernameController.dispose();
     super.dispose();
   }
 
@@ -61,18 +63,10 @@ class _AddTenantUserScreenState extends State<AddTenantUserScreen> {
         departmentIds: [_selectedDepartmentId!],
       );
     } else {
-      final input = _emailController.text.trim();
-      if (input.contains('@')) {
-        success = await deptProvider.addTenantUser(
-          emailAddress: input.toLowerCase(),
-          departmentIds: [_selectedDepartmentId!],
-        );
-      } else {
-        success = await deptProvider.addTenantUser(
-          userName: input.toLowerCase(),
-          departmentIds: [_selectedDepartmentId!],
-        );
-      }
+      success = await deptProvider.addTenantUser(
+        userName: _usernameController.text.trim().toLowerCase(),
+        departmentIds: [_selectedDepartmentId!],
+      );
     }
 
     if (!mounted) return;
@@ -84,7 +78,7 @@ class _AddTenantUserScreenState extends State<AddTenantUserScreen> {
           content: Text(
             isEditing
                 ? 'Staff user permissions updated successfully!'
-                : 'Staff user ${_emailController.text.trim()} added successfully!',
+                : 'Staff user @${_usernameController.text.trim()} added successfully!',
           ),
           backgroundColor: const Color(0xFF0F766E),
         ),
@@ -148,21 +142,21 @@ class _AddTenantUserScreenState extends State<AddTenantUserScreen> {
               ),
               const SizedBox(height: 20),
 
-              // Username or Email Address
+              // Username
               TextFormField(
-                controller: _emailController,
+                controller: _usernameController,
                 enabled: !isEditing,
                 keyboardType: TextInputType.text,
                 autocorrect: false,
                 decoration: InputDecoration(
-                  labelText: 'Staff Username or Email *',
-                  hintText: 'username or user@company.com',
-                  prefixIcon: const Icon(Icons.person_outline),
+                  labelText: 'Staff Username (@username) *',
+                  hintText: 'e.g. janedoe',
+                  prefixIcon: const Icon(Icons.alternate_email),
                   filled: isEditing,
                   fillColor: isEditing ? const Color(0xFFF8FAFC) : null,
                 ),
                 validator: (val) {
-                  if (val == null || val.trim().isEmpty) return 'Username or email is required';
+                  if (val == null || val.trim().isEmpty) return 'Username is required';
                   return null;
                 },
               ),

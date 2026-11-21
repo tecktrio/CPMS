@@ -444,23 +444,17 @@ export class TenantsService {
       dto.department_ids,
     );
 
-    const rawUsername = dto.user_name ? dto.user_name.toLowerCase().trim() : undefined;
-    const rawEmail = dto.email_address ? dto.email_address.toLowerCase().trim() : undefined;
+    const rawUsername = dto.user_name?.toLowerCase().trim() ||
+      (!dto.email_address?.includes('@') ? dto.email_address?.toLowerCase().trim() : undefined);
 
-    if (!rawUsername && !rawEmail) {
+    if (!rawUsername) {
       throw new BadRequestException(
-        'Please provide a username or email address for the user',
+        'Please provide the unique username of the user to add to this organization.',
       );
     }
 
-    // Find or automatically provision user profile
-    let targetUser: UserDocument | null = null;
-    if (rawUsername) {
-      targetUser = await this.userModel.findOne({ user_name: rawUsername });
-    }
-    if (!targetUser && rawEmail) {
-      targetUser = await this.userModel.findOne({ email_address: rawEmail });
-    }
+    // Look up target user strictly by unique username
+    let targetUser = await this.userModel.findOne({ user_name: rawUsername });
 
     if (targetUser) {
       // Validate that the user is not already in another tenant
@@ -471,7 +465,7 @@ export class TenantsService {
       });
       if (otherTenantOwned) {
         throw new BadRequestException(
-          `User "${targetUser.user_name || targetUser.email_address}" is the admin of another organization (${otherTenantOwned.company_name}). A user can only belong to 1 organization.`,
+          `User "@${targetUser.user_name}" is the admin of another organization (${otherTenantOwned.company_name}). A user can only belong to 1 organization.`,
         );
       }
 
@@ -485,28 +479,19 @@ export class TenantsService {
           tenant_id: otherMembership.tenant_id,
         });
         throw new BadRequestException(
-          `User "${targetUser.user_name || targetUser.email_address}" is already a member of another organization (${otherTenant?.company_name || 'Organization'}). A user can only belong to 1 organization.`,
+          `User "@${targetUser.user_name}" is already a member of another organization (${otherTenant?.company_name || 'Organization'}). A user can only belong to 1 organization.`,
         );
       }
     } else {
-      // Target user does not exist in system yet: provision a pending activation account
+      // Target user does not exist in system yet: provision a pending activation account with this username
       const salt = await bcrypt.genSalt(10);
       const temporaryHash = await bcrypt.hash(uuidv4(), salt);
-      const emailToUse = rawEmail || `${rawUsername}@cpms.local`;
-      let usernameToUse = rawUsername;
-      if (!usernameToUse) {
-        let base = emailToUse.split('@')[0].replace(/[^a-z0-9]/g, '');
-        if (!base || base.length < 3) base = 'user';
-        usernameToUse = `${base}_${Math.random().toString(36).substring(2, 6)}`;
-        while (await this.userModel.exists({ user_name: usernameToUse })) {
-          usernameToUse = `user_${Math.random().toString(36).substring(2, 8)}`;
-        }
-      }
+      const emailToUse = dto.email_address?.toLowerCase().trim() || `${rawUsername}@cpms.local`;
 
       targetUser = new this.userModel({
         user_id: uuidv4(),
-        user_name: usernameToUse,
-        full_name: rawUsername || emailToUse.split('@')[0],
+        user_name: rawUsername,
+        full_name: rawUsername,
         email_address: emailToUse,
         password_hash: temporaryHash,
         account_status: UserAccountStatus.PENDING_ACTIVATION,

@@ -14,7 +14,7 @@ class AddTenantUserDialog extends StatefulWidget {
 
 class _AddTenantUserDialogState extends State<AddTenantUserDialog> {
   final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController();
+  final _usernameController = TextEditingController();
   String? _selectedDepartmentId;
   bool _isSubmitting = false;
 
@@ -24,7 +24,9 @@ class _AddTenantUserDialogState extends State<AddTenantUserDialog> {
   void initState() {
     super.initState();
     if (isEditing) {
-      _emailController.text = widget.existingUser!.emailAddress;
+      _usernameController.text = widget.existingUser!.userName.isNotEmpty
+          ? widget.existingUser!.userName
+          : widget.existingUser!.emailAddress;
       if (widget.existingUser!.departmentIds.isNotEmpty) {
         _selectedDepartmentId = widget.existingUser!.departmentIds.first;
       }
@@ -33,7 +35,7 @@ class _AddTenantUserDialogState extends State<AddTenantUserDialog> {
 
   @override
   void dispose() {
-    _emailController.dispose();
+    _usernameController.dispose();
     super.dispose();
   }
 
@@ -59,18 +61,10 @@ class _AddTenantUserDialogState extends State<AddTenantUserDialog> {
         departmentIds: [_selectedDepartmentId!],
       );
     } else {
-      final input = _emailController.text.trim();
-      if (input.contains('@')) {
-        success = await deptProvider.addTenantUser(
-          emailAddress: input.toLowerCase(),
-          departmentIds: [_selectedDepartmentId!],
-        );
-      } else {
-        success = await deptProvider.addTenantUser(
-          userName: input.toLowerCase(),
-          departmentIds: [_selectedDepartmentId!],
-        );
-      }
+      success = await deptProvider.addTenantUser(
+        userName: _usernameController.text.trim().toLowerCase(),
+        departmentIds: [_selectedDepartmentId!],
+      );
     }
 
     if (!mounted) return;
@@ -83,7 +77,7 @@ class _AddTenantUserDialogState extends State<AddTenantUserDialog> {
           content: Text(
             isEditing
                 ? 'Staff department assignments updated!'
-                : 'User added to organization departments!',
+                : 'User @${_usernameController.text.trim()} added to organization departments!',
           ),
           backgroundColor: const Color(0xFF0F766E),
         ),
@@ -148,22 +142,22 @@ class _AddTenantUserDialogState extends State<AddTenantUserDialog> {
                 ),
                 const SizedBox(height: 16),
 
-                // Username or Email Address
+                // Staff Username
                 TextFormField(
-                  controller: _emailController,
+                  controller: _usernameController,
                   enabled: !isEditing,
                   keyboardType: TextInputType.text,
                   autocorrect: false,
                   decoration: InputDecoration(
-                    labelText: 'User Username or Email *',
-                    hintText: 'e.g. janedoe or operator@cyanfoods.com',
-                    prefixIcon: const Icon(Icons.person_outline, size: 20),
+                    labelText: 'Staff Username (@username) *',
+                    hintText: 'e.g. janedoe',
+                    prefixIcon: const Icon(Icons.alternate_email, size: 20),
                     filled: isEditing,
                     fillColor: isEditing ? const Color(0xFFF1F5F9) : null,
                   ),
                   validator: (val) {
                     if (val == null || val.trim().isEmpty) {
-                      return 'Enter username or email address';
+                      return 'Username is required';
                     }
                     return null;
                   },

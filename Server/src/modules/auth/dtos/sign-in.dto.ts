@@ -1,14 +1,22 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsString } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class SignInDto {
-  @ApiProperty({
+  @ApiPropertyOptional({
+    example: 'johndoe',
+    description: 'Unique global username',
+  })
+  @IsString()
+  @IsOptional()
+  user_name?: string;
+
+  @ApiPropertyOptional({
     example: 'johndoe or john.doe@example.com',
     description: 'Registered username or email address',
   })
   @IsString()
-  @IsNotEmpty()
-  email_address: string;
+  @IsOptional()
+  email_address?: string;
 
   @ApiProperty({
     example: 'SecurePass123!',

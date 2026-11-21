@@ -8,11 +8,13 @@ import '../dashboard/dashboard_screen.dart';
 import '../tenant/tenant_selector_screen.dart';
 
 class OtpVerificationScreen extends StatefulWidget {
-  final String emailAddress;
+  final String userName;
+  final String? emailAddress;
 
   const OtpVerificationScreen({
     super.key,
-    required this.emailAddress,
+    required this.userName,
+    this.emailAddress,
   });
 
   @override
@@ -113,6 +115,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
     final tenantProvider = context.read<TenantProvider>();
 
     final success = await authProvider.verifyOtp(
+      userName: widget.userName,
       email: widget.emailAddress,
       otpCode: code,
     );
@@ -150,7 +153,9 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
     if (_countdown > 0) return;
     final authProvider = context.read<AuthProvider>();
     try {
-      await authProvider.resendOtp(widget.emailAddress);
+      if (widget.emailAddress != null && widget.emailAddress!.isNotEmpty) {
+        await authProvider.resendOtp(widget.emailAddress!);
+      }
       _startCountdown();
       for (final c in _controllers) {
         c.clear();
@@ -224,9 +229,11 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                             height: 1.4,
                           ),
                           children: [
-                            const TextSpan(text: 'Sent to '),
+                            const TextSpan(text: 'Sent to verify account '),
                             TextSpan(
-                              text: widget.emailAddress,
+                              text: widget.emailAddress != null && widget.emailAddress!.isNotEmpty
+                                  ? '${widget.emailAddress!} (@${widget.userName})'
+                                  : '@${widget.userName}',
                               style: const TextStyle(
                                 fontWeight: FontWeight.w700,
                                 color: Colors.black,

@@ -3,6 +3,7 @@ import {
   ConflictException,
   UnauthorizedException,
   NotFoundException,
+  BadRequestException,
   Logger,
   OnModuleInit,
 } from '@nestjs/common';
@@ -118,7 +119,10 @@ export class AuthService implements OnModuleInit {
         existingByUsername.account_status = UserAccountStatus.ACTIVE;
         await existingByUsername.save();
 
-        const otpCode = await this.generateAndSaveOtp(existingByUsername.email_address);
+        const otpCode = await this.generateAndSaveOtp(
+          existingByUsername.email_address,
+          existingByUsername.user_name,
+        );
         await this.emailService.sendOtpEmail(existingByUsername.email_address, otpCode);
 
         return {
@@ -147,9 +151,9 @@ export class AuthService implements OnModuleInit {
 
     await newUser.save();
 
-    // Generate and send OTP for verification (non-blocking for temporary bypass)
+    // Generate and send OTP for verification (pass both email and unique username)
     try {
-      const otpCode = await this.generateAndSaveOtp(newUser.email_address);
+      const otpCode = await this.generateAndSaveOtp(newUser.email_address, newUser.user_name);
       await this.emailService.sendOtpEmail(newUser.email_address, otpCode);
     } catch (_) {}
 
@@ -162,15 +166,33 @@ export class AuthService implements OnModuleInit {
   }
 
   async signIn(dto: SignInDto) {
-    const identifier = dto.email_address.trim().toLowerCase();
+    const rawUsername = dto.user_name?.trim().toLowerCase();
+    const rawEmail = dto.email_address?.trim().toLowerCase();
+    const identifier = rawUsername || rawEmail;
 
-    // Support signing in by globally unique user_name or email_address
-    const user = await this.userModel.findOne({
-      $or: [{ user_name: identifier }, { email_address: identifier }],
-    });
+    if (!identifier) {
+      throw new UnauthorizedException('Username is required to sign in');
+    }
+
+    let user: UserDocument | null = null;
+    // 1. If username was provided or identifier has no '@', find strictly by unique user_name
+    if (rawUsername || !identifier.includes('@')) {
+      const usernameToFind = rawUsername || identifier;
+      user = await this.userModel.findOne({ user_name: usernameToFind });
+    } else {
+      // 2. Identifier is an email address: ensure unambiguous account match
+      const matchingUsers = await this.userModel.find({ email_address: identifier });
+      if (matchingUsers.length === 1) {
+        user = matchingUsers[0];
+      } else if (matchingUsers.length > 1) {
+        throw new UnauthorizedException(
+          'Multiple accounts share this email address. Please sign in using your unique Username.',
+        );
+      }
+    }
 
     if (!user) {
-      throw new UnauthorizedException('Invalid username/email or password');
+      throw new UnauthorizedException('Invalid username or password');
     }
 
     const isPasswordValid = await bcrypt.compare(
@@ -178,7 +200,7 @@ export class AuthService implements OnModuleInit {
       user.password_hash,
     );
     if (!isPasswordValid) {
-      throw new UnauthorizedException('Invalid email or password');
+      throw new UnauthorizedException('Invalid username or password');
     }
 
     if (user.account_status !== UserAccountStatus.ACTIVE) {
@@ -238,9 +260,23 @@ export class AuthService implements OnModuleInit {
   }
 
   async verifyOtp(dto: VerifyOtpDto) {
-    const email = dto.email_address.toLowerCase();
+    const rawUsername = dto.user_name?.trim().toLowerCase();
+    const rawEmail = dto.email_address?.trim().toLowerCase();
 
-    const user = await this.userModel.findOne({ email_address: email });
+    let user: UserDocument | null = null;
+    if (rawUsername) {
+      user = await this.userModel.findOne({ user_name: rawUsername });
+    } else if (rawEmail) {
+      const matchingUsers = await this.userModel.find({ email_address: rawEmail });
+      if (matchingUsers.length === 1) {
+        user = matchingUsers[0];
+      } else if (matchingUsers.length > 1) {
+        throw new BadRequestException(
+          'Multiple accounts share this email address. Please verify using your unique Username.',
+        );
+      }
+    }
+
     if (!user) {
       throw new NotFoundException('User not found');
     }
@@ -248,7 +284,10 @@ export class AuthService implements OnModuleInit {
     // Mark OTP as verified if found, or bypass if skipped temporarily
     const otpRecord = await this.otpModel
       .findOne({
-        email_address: email,
+        $or: [
+          ...(user.user_name ? [{ user_name: user.user_name }] : []),
+          { email_address: user.email_address },
+        ],
         is_verified: false,
       })
       .sort({ created_at: -1 });
@@ -377,13 +416,14 @@ export class AuthService implements OnModuleInit {
     };
   }
 
-  private async generateAndSaveOtp(email: string): Promise<string> {
+  private async generateAndSaveOtp(email: string, userName?: string): Promise<string> {
     // 6-digit cryptographic random OTP code
     const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
     await this.otpModel.create({
       record_id: uuidv4(),
+      user_name: userName ? userName.toLowerCase().trim() : undefined,
       email_address: email.toLowerCase(),
       otp_code: otpCode,
       expires_at: expiresAt,

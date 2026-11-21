@@ -17,13 +17,13 @@ class SignInScreen extends StatefulWidget {
 
 class _SignInScreenState extends State<SignInScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController();
+  final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
 
   @override
   void dispose() {
-    _emailController.dispose();
+    _usernameController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
@@ -33,7 +33,7 @@ class _SignInScreenState extends State<SignInScreen> {
 
     final authProvider = context.read<AuthProvider>();
     final success = await authProvider.signIn(
-      email: _emailController.text,
+      username: _usernameController.text.trim().toLowerCase(),
       password: _passwordController.text,
     );
 
@@ -64,7 +64,7 @@ class _SignInScreenState extends State<SignInScreen> {
           context,
           MaterialPageRoute(
             builder: (_) => OtpVerificationScreen(
-              emailAddress: _emailController.text.trim().toLowerCase(),
+              userName: _usernameController.text.trim().toLowerCase(),
             ),
           ),
         );
@@ -176,9 +176,9 @@ class _SignInScreenState extends State<SignInScreen> {
                         ),
                         const SizedBox(height: 32),
 
-                        // Username or Email Field
+                        // Username Field
                         const Text(
-                          'USERNAME OR EMAIL',
+                          'USERNAME',
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w800,
@@ -188,7 +188,7 @@ class _SignInScreenState extends State<SignInScreen> {
                         ),
                         const SizedBox(height: 8),
                         TextFormField(
-                          controller: _emailController,
+                          controller: _usernameController,
                           keyboardType: TextInputType.text,
                           autocorrect: false,
                           style: const TextStyle(
@@ -197,16 +197,16 @@ class _SignInScreenState extends State<SignInScreen> {
                             color: Colors.black,
                           ),
                           decoration: _buildInputDecoration(
-                            hintText: 'username or email address',
+                            hintText: 'e.g. johndoe',
                             prefixIcon: const Icon(
-                              Icons.person_outline,
+                              Icons.alternate_email,
                               size: 20,
                               color: Color(0xFF94A3B8),
                             ),
                           ),
                           validator: (val) {
                             if (val == null || val.trim().isEmpty) {
-                              return 'Username or email is required';
+                              return 'Username is required';
                             }
                             return null;
                           },
@@ -273,7 +273,7 @@ class _SignInScreenState extends State<SignInScreen> {
                                 context,
                                 MaterialPageRoute(
                                   builder: (_) => ForgotPasswordScreen(
-                                    initialEmail: _emailController.text.trim(),
+                                    initialEmail: _usernameController.text.trim(),
                                   ),
                                 ),
                               );
