@@ -54,7 +54,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
     _notesCtrl = TextEditingController(text: po?.notes ?? '');
     _poDate = po?.poDate ?? DateTime.now();
     _expectedShippingDate = po?.expectedShippingDate;
-    _status = po?.status ?? 'CONFIRMED';
+    _status = po?.status ?? 'DRAFT';
 
     if (po != null) {
       _orderItems.addAll(po.items);
@@ -385,8 +385,8 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                     child: Container(
                       height: 44,
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF8FAFC),
-                        borderRadius: BorderRadius.circular(4),
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(8),
                         border: Border.all(color: const Color(0xFFE2E8F0)),
                       ),
                       child: Row(
@@ -400,7 +400,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                               controller: searchCtrl,
                               decoration: const InputDecoration(
                                 hintText: 'Search customer...',
-                                hintStyle: TextStyle(fontSize: 13, color: Color(0xFF94A3B8)),
+                                hintStyle: TextStyle(fontSize: 13, color: Color(0xFFCBD5E1)),
                                 border: InputBorder.none,
                                 isDense: true,
                               ),
@@ -730,15 +730,15 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                     Container(
                       height: 44,
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF8FAFC),
-                        borderRadius: BorderRadius.circular(4),
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(8),
                         border: Border.all(color: const Color(0xFFE2E8F0)),
                       ),
                       child: Row(
                         children: [
                           const Padding(
                             padding: EdgeInsets.symmetric(horizontal: 10),
-                            child: Icon(Icons.search, size: 18, color: Color(0xFF64748B)),
+                            child: Icon(Icons.search, size: 18, color: Color(0xFF94A3B8)),
                           ),
                           Expanded(
                             child: TextField(
@@ -746,7 +746,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                               style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
                               decoration: const InputDecoration(
                                 hintText: 'Search SKU or item title...',
-                                hintStyle: TextStyle(fontSize: 13, color: Color(0xFF94A3B8)),
+                                hintStyle: TextStyle(fontSize: 13, color: Color(0xFFCBD5E1)),
                                 border: InputBorder.none,
                                 isDense: true,
                               ),
@@ -1420,7 +1420,9 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                                       foregroundColor: Colors.white,
                                       elevation: 0,
                                       padding: const EdgeInsets.symmetric(horizontal: 18),
-                                      shape: const StadiumBorder(),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
                                     ),
                                     onPressed: _addQuickItemToPo,
                                     icon: const Icon(Icons.add, size: 16),
@@ -1450,7 +1452,9 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                                     foregroundColor: Colors.white,
                                     elevation: 0,
                                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                                    shape: const StadiumBorder(),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
                                   ),
                                   onPressed: _addQuickItemToPo,
                                   icon: const Icon(Icons.add, size: 16),
@@ -1527,11 +1531,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
       return;
     }
 
-    final targetStatus = asDraft
-        ? 'DRAFT'
-        : (_status == 'DRAFT' && widget.existingPo == null
-            ? 'CONFIRMED'
-            : _status);
+    final targetStatus = asDraft ? 'DRAFT' : _status;
 
     setState(() => _isSaving = true);
     final poProv = context.read<PurchaseOrderProvider>();
@@ -1738,7 +1738,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        'EXP. SHIPPING DATE',
+                        'SHIPPING DATE',
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w900,
@@ -2175,8 +2175,8 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
               spacing: 8,
               runSpacing: 8,
               children: [
-                _buildStatusOption('CONFIRMED', 'Confirmed'),
                 _buildStatusOption('DRAFT', 'Draft'),
+                _buildStatusOption('CONFIRMED', 'Confirmed'),
                 _buildStatusOption('IN_PRODUCTION', 'In Production'),
                 _buildStatusOption('SHIPPED', 'Shipped'),
                 _buildStatusOption('DELIVERED', 'Delivered'),
@@ -2221,7 +2221,6 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                 contentPadding: const EdgeInsets.all(12),
               ),
             ),
-            const AppFooter(topPadding: 16, bottomPadding: 24),
           ],
         ),
       ),
@@ -2229,7 +2228,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
   ),
   bottomNavigationBar: SafeArea(
     child: Container(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
       decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(top: BorderSide(color: Color(0xFFE5E5E5))),
@@ -2238,65 +2237,74 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
         heightFactor: 1.0,
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 1100),
-          child: Row(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              // Secondary Outline: Save as Draft
-              Expanded(
-                flex: 4,
-                child: SizedBox(
-                  height: 48,
-                  child: OutlinedButton.icon(
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.black,
-                      side: const BorderSide(color: Color(0xFFE5E5E5)),
-                      shape: const StadiumBorder(),
-                    ),
-                    onPressed: _isSaving ? null : () => _submit(asDraft: true),
-                    icon: const Icon(Icons.edit_note_outlined, size: 18),
-                    label: const Text(
-                      'Save Draft',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
+              Row(
+                children: [
+                  // Secondary Outline: Save as Draft
+                  Expanded(
+                    flex: 4,
+                    child: SizedBox(
+                      height: 48,
+                      child: OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.black,
+                          side: const BorderSide(color: Color(0xFFE2E8F0)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                        ),
+                        onPressed: _isSaving ? null : () => _submit(asDraft: true),
+                        icon: const Icon(Icons.edit_note_outlined, size: 18),
+                        label: const Text(
+                          'Save Draft',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              // Primary Dark Green: Create or Save Changes
-              Expanded(
-                flex: 6,
-                child: SizedBox(
-                  height: 48,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF14532D), // Dark Green
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      shape: const StadiumBorder(),
-                    ),
-                    onPressed: _isSaving ? null : () => _submit(asDraft: false),
-                    child: _isSaving
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              color: Colors.white,
-                              strokeWidth: 2,
-                            ),
-                          )
-                        : Text(
-                            isEdit ? 'Save Changes' : 'Create Purchase Order',
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w800,
-                            ),
+                  const SizedBox(width: 12),
+                  // Primary Dark Green: Create or Save Changes
+                  Expanded(
+                    flex: 6,
+                    child: SizedBox(
+                      height: 48,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF14532D), // Dark Green
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(6),
                           ),
+                        ),
+                        onPressed: _isSaving ? null : () => _submit(asDraft: false),
+                        child: _isSaving
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : Text(
+                                isEdit ? 'Save Changes' : 'Create Purchase Order',
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                      ),
+                    ),
                   ),
-                ),
+                ],
               ),
-              const AppFooter(topPadding: 16, bottomPadding: 24),
+              const AppFooter(topPadding: 12, bottomPadding: 6),
             ],
           ),
         ),

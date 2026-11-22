@@ -294,7 +294,7 @@ class _PurchaseOrderExportScreenState extends State<PurchaseOrderExportScreen> {
                           ),
                           const SizedBox(width: 6),
                           Text(
-                            'Exp. Ship: ${po.expectedShippingDate != null ? _dateFormat.format(po.expectedShippingDate!) : 'Not Specified'}',
+                            'Shipping Date: ${po.expectedShippingDate != null ? _dateFormat.format(po.expectedShippingDate!) : 'Not Specified'}',
                             style: const TextStyle(
                               fontSize: 12,
                               color: Color(0xFF52525B),

@@ -193,7 +193,7 @@ export class PurchaseOrdersService {
       total_cartons: totalCartons,
       total_packets: totalPackets,
       total_items_count: processedItems.length,
-      status: dto.status || PurchaseOrderStatus.CONFIRMED,
+      status: dto.status || PurchaseOrderStatus.DRAFT,
       notes: dto.notes?.trim() || '',
     });
 

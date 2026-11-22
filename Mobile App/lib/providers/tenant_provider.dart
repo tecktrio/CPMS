@@ -62,8 +62,26 @@ class TenantProvider extends ChangeNotifier {
   TenantProvider({required this.apiClient});
 
   TenantOption? get activeTenant => _activeTenant;
+
   String? get selectedDepartmentName {
     if (_activeTenant == null) return null;
+
+    // 1. If user is explicitly marked as Admin or has all departments access
+    if (_activeTenant!.isAdmin || _activeTenant!.hasAllDepartmentsAccess) {
+      return 'Administrator';
+    }
+
+    // 2. Check if the user is assigned the Administrator department
+    for (final assignedId in _activeTenant!.departmentIds) {
+      for (final d in _tenantDepartments) {
+        if (d.departmentId == assignedId &&
+            d.departmentName.toLowerCase() == 'administrator') {
+          return 'Administrator';
+        }
+      }
+    }
+
+    // 3. For operational staff, resolve their assigned department
     if (_activeTenant!.departmentIds.isNotEmpty) {
       for (final assignedId in _activeTenant!.departmentIds) {
         for (final d in _tenantDepartments) {
@@ -73,12 +91,10 @@ class TenantProvider extends ChangeNotifier {
         }
       }
     }
-    if (_activeTenant!.isAdmin) return 'Administrator';
-    if (_tenantDepartments.isNotEmpty) {
-      return _tenantDepartments.first.departmentName;
-    }
+
     return 'Assigned Department';
   }
+
   List<DepartmentModel> get tenantDepartments => _tenantDepartments;
   Set<String> get userPermissions => _userPermissions;
   bool get isLoading => _isLoading;
@@ -86,23 +102,18 @@ class TenantProvider extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
 
   bool get isTenantSelected => _activeTenant != null;
+
   bool get isTenantAdmin {
     if (_activeTenant == null) return false;
-    // Operational staff in specific departments (Sales, Store Room, Supervisor, QC, etc.)
-    // are strictly scoped to their assigned department's permissions.
-    if (_activeTenant!.departmentIds.isNotEmpty) {
-      final deptName = selectedDepartmentName?.toLowerCase() ?? '';
-      if (deptName.isNotEmpty && !deptName.contains('admin')) {
-        return false;
-      }
-    }
-    return _activeTenant?.isAdmin ?? false;
+    if (_activeTenant!.isAdmin || _activeTenant!.hasAllDepartmentsAccess) return true;
+    final dept = selectedDepartmentName?.toLowerCase() ?? '';
+    return dept.contains('admin');
   }
 
   /// Whether the user is in the Administrator department or is a Tenant Admin
   bool get isUserInAdministratorDepartment {
     if (_activeTenant == null) return false;
-    if (_activeTenant!.isAdmin) return true;
+    if (_activeTenant!.isAdmin || _activeTenant!.hasAllDepartmentsAccess) return true;
     final dept = selectedDepartmentName?.toLowerCase() ?? '';
     return dept == 'administrator' || dept.contains('admin');
   }

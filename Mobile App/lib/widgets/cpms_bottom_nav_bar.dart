@@ -49,17 +49,10 @@ class CpmsBottomNavBar extends StatelessWidget {
           alignment: Alignment.bottomCenter,
           heightFactor: 1.0,
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 620),
+            constraints: const BoxConstraints(maxWidth: 520),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _buildNavItem(
-                  context: context,
-                  index: 0,
-                  icon: Icons.search,
-                  label: 'Search',
-                  isActive: currentIndex == 0,
-                ),
                 _buildNavItem(
                   context: context,
                   index: 1,

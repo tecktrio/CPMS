@@ -158,7 +158,7 @@ class PurchaseOrderExportService {
                         pw.SizedBox(height: 4),
                         _buildPdfKeyValue('PO DATE:', poDateStr, fontBold),
                         pw.SizedBox(height: 4),
-                        _buildPdfKeyValue('EXP. SHIPPING:', expDateStr, fontBold),
+                        _buildPdfKeyValue('SHIPPING DATE:', expDateStr, fontBold),
                       ],
                     ),
                   ),
@@ -368,7 +368,7 @@ class PurchaseOrderExportService {
     final buffer = StringBuffer();
     // Headers with short, standard names
     buffer.writeln(
-      'SL,Item Name,SKU,Qty Per Packet,Unit,Packets Per Carton,Cartons,Total Packets,Total Quantity,PO Number,PO Date,Exp Shipping Date,Customer Name,Customer Address,Customer Contact,Status,Notes',
+      'SL,Item Name,SKU,Qty Per Packet,Unit,Packets Per Carton,Cartons,Total Packets,Total Quantity,PO Number,PO Date,Shipping Date,Customer Name,Customer Address,Customer Contact,Status,Notes',
     );
 
     for (int i = 0; i < po.items.length; i++) {

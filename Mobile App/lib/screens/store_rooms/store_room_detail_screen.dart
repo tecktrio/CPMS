@@ -4,8 +4,8 @@ import '../../core/constants/api_constants.dart';
 import '../../core/constants/permissions.dart';
 import '../../providers/inventory_provider.dart';
 import '../../providers/tenant_provider.dart';
-import '../items/item_detail_screen.dart';
 import '../items/create_item_screen.dart';
+import 'store_room_item_detail_screen.dart';
 
 class StoreRoomDetailScreen extends StatefulWidget {
   final StoreRoomModel room;
@@ -1531,38 +1531,17 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                                 ],
                               ),
                               if (canUpdate)
-                                Wrap(
-                                  spacing: 10,
-                                  runSpacing: 8,
-                                  children: [
-                                    FilledButton.icon(
-                                      onPressed: () => _showAddItemToRoomSheet(currentRoom),
-                                      icon: const Icon(Icons.add, size: 16),
-                                      label: const Text('Add Item', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
-                                      style: FilledButton.styleFrom(
-                                        backgroundColor: const Color(0xFF0F172A),
-                                        foregroundColor: Colors.white,
-                                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                        elevation: 0,
-                                      ),
-                                    ),
-                                    OutlinedButton.icon(
-                                      onPressed: () {
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(builder: (c) => const CreateItemScreen()),
-                                        ).then((_) => inventory.loadItems());
-                                      },
-                                      icon: const Icon(Icons.add, size: 16, color: Color(0xFF0F172A)),
-                                      label: const Text('Register New Item', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: Color(0xFF0F172A))),
-                                      style: OutlinedButton.styleFrom(
-                                        side: const BorderSide(color: Color(0xFFE2E8F0)),
-                                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                      ),
-                                    ),
-                                  ],
+                                FilledButton.icon(
+                                  onPressed: () => _showAddItemToRoomSheet(currentRoom),
+                                  icon: const Icon(Icons.add, size: 16),
+                                  label: const Text('Add Item', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+                                  style: FilledButton.styleFrom(
+                                    backgroundColor: const Color(0xFF0F172A),
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                    elevation: 0,
+                                  ),
                                 ),
                             ],
                           ),
@@ -1861,8 +1840,13 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                                 onTap: () {
                                   Navigator.push(
                                     context,
-                                    MaterialPageRoute(builder: (c) => ItemDetailScreen(item: item)),
-                                  ).then((_) => inventory.loadItems());
+                                    MaterialPageRoute(
+                                      builder: (c) => StoreRoomItemDetailScreen(
+                                        storeRoomId: currentRoom.storeRoomId,
+                                        itemId: sri.itemId,
+                                      ),
+                                    ),
+                                  ).then((_) => inventory.loadStoreRooms());
                                 },
                                 child: Padding(
                                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),

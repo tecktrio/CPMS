@@ -173,7 +173,7 @@ class PurchaseOrderModel {
     this.totalQcPassedItems = 0,
     this.totalPackedCartons = 0,
     this.totalShippedCartons = 0,
-    this.status = 'CONFIRMED',
+    this.status = 'DRAFT',
     this.notes = '',
     this.createdAt,
   });
@@ -246,7 +246,7 @@ class PurchaseOrderModel {
       totalQcPassedItems: (json['total_qc_passed_items'] as num?)?.toInt() ?? 0,
       totalPackedCartons: (json['total_packed_cartons'] as num?)?.toInt() ?? 0,
       totalShippedCartons: (json['total_shipped_cartons'] as num?)?.toInt() ?? 0,
-      status: json['status'] ?? 'CONFIRMED',
+      status: json['status'] ?? 'DRAFT',
       notes: json['notes'] ?? '',
       createdAt: created,
     );
@@ -348,7 +348,7 @@ class PurchaseOrderProvider with ChangeNotifier {
     String? customerAddress,
     String? customerContact,
     required List<PurchaseOrderItemModel> items,
-    String status = 'CONFIRMED',
+    String status = 'DRAFT',
     String? notes,
   }) async {
     _isLoading = true;

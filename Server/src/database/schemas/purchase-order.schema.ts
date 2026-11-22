@@ -145,7 +145,7 @@ export class PurchaseOrder {
   @Prop({
     type: String,
     enum: Object.values(PurchaseOrderStatus),
-    default: PurchaseOrderStatus.CONFIRMED,
+    default: PurchaseOrderStatus.DRAFT,
   })
   status: PurchaseOrderStatus;
 

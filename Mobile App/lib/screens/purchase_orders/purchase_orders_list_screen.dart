@@ -468,7 +468,9 @@ class _PurchaseOrdersListScreenState extends State<PurchaseOrdersListScreen> {
               backgroundColor: const Color(0xFF14532D), // Dark Green
               foregroundColor: Colors.white,
               elevation: 2,
-              shape: const StadiumBorder(),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
               icon: const Icon(Icons.add, size: 18),
               label: const Text(
                 'Create PO',

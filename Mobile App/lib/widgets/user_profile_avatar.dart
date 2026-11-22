@@ -131,25 +131,7 @@ class UserProfileAvatar extends StatelessWidget {
   ) {
     final isAdmin = tenant.isTenantAdmin;
     final deptCount = tenant.userDepartmentCount;
-
-    String singleDeptName = 'Assigned Department';
-    if (!isAdmin && deptCount == 1 && activeTenant != null) {
-      final deptId = activeTenant.departmentIds.firstOrNull;
-      final match = tenant.tenantDepartments.firstWhere(
-        (d) => d.departmentId == deptId,
-        orElse: () => DepartmentModel(
-          departmentId: '',
-          tenantId: '',
-          departmentName: 'Assigned Department',
-          description: '',
-          permissionIds: [],
-          isActive: true,
-        ),
-      );
-      if (match.departmentName.isNotEmpty) {
-        singleDeptName = match.departmentName;
-      }
-    }
+    final singleDeptName = tenant.selectedDepartmentName ?? 'Assigned Department';
 
     showModalBottomSheet(
       context: context,

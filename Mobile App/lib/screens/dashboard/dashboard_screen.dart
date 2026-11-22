@@ -41,7 +41,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   // Universal Search State
   final TextEditingController _searchController = TextEditingController();
   String _universalSearchQuery = '';
-  String _selectedSearchModule = 'ALL'; // 'ALL', 'ITEMS', 'STORE_ROOMS', 'DEPARTMENTS', 'STAFF'
+  String _selectedSearchModule = 'ALL'; // 'ALL', 'ITEMS', 'STORE_ROOMS'
 
   // Alerts View State
   String _selectedAlertFilter = 'ALL'; // 'ALL', 'CRITICAL', 'RESOLVED'
@@ -867,29 +867,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
           r.divisions.any((div) => div.toLowerCase().contains(query));
     }).toList();
 
-    // Filter Departments
-    final matchingDepts = tenant.tenantDepartments.where((d) {
-      if (query.isEmpty) return true;
-      return d.departmentName.toLowerCase().contains(query) ||
-          d.description.toLowerCase().contains(query);
-    }).toList();
-
-    // Filter Staff Members
-    final matchingStaff = deptProvider.tenantUsers.where((u) {
-      if (query.isEmpty) return true;
-      return u.fullName.toLowerCase().contains(query) ||
-          u.emailAddress.toLowerCase().contains(query);
-    }).toList();
-
     final showItems = _selectedSearchModule == 'ALL' || _selectedSearchModule == 'ITEMS';
     final showRooms = _selectedSearchModule == 'ALL' || _selectedSearchModule == 'STORE_ROOMS';
-    final showDepts = _selectedSearchModule == 'ALL' || _selectedSearchModule == 'USERS_DEPTS';
-    final showStaff = _selectedSearchModule == 'ALL' || _selectedSearchModule == 'USERS_DEPTS';
 
     final totalResults = (showItems ? matchingItems.length : 0) +
-        (showRooms ? matchingRooms.length : 0) +
-        (showDepts ? matchingDepts.length : 0) +
-        (showStaff ? matchingStaff.length : 0);
+        (showRooms ? matchingRooms.length : 0);
 
     return Center(
       child: ConstrainedBox(
@@ -941,12 +923,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     label: 'Store Rooms',
                     icon: Icons.inbox_outlined,
                   ),
-                  const SizedBox(width: 8),
-                  _buildSearchFilterPill(
-                    id: 'USERS_DEPTS',
-                    label: 'Users & Departments',
-                    icon: Icons.people_outline,
-                  ),
                 ],
               ),
             ),
@@ -973,7 +949,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   const SizedBox(height: 12),
                                   Text(
                                     query.isEmpty
-                                        ? 'Type a keyword above to search across items, store rooms, departments, and staff.'
+                                        ? 'Type a keyword above to search across items, products, and store rooms.'
                                         : 'No matching results found for "$query".',
                                     textAlign: TextAlign.center,
                                     style: const TextStyle(
@@ -1061,56 +1037,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           const SizedBox(height: 16),
                         ],
 
-                        // SECTION: DEPARTMENTS
-                        if (showDepts && matchingDepts.isNotEmpty) ...[
-                          _buildSearchSectionHeader('DEPARTMENTS'),
-                          ...matchingDepts.map((dept) {
-                            return _buildSearchResultCard(
-                              leadingIcon: Icons.apartment,
-                              title: dept.departmentName,
-                              subtitleLine1: dept.description.isNotEmpty
-                                  ? dept.description
-                                  : 'Operational Unit',
-                              subtitleLine2: '${dept.permissionIds.length} Permissions configured',
-                              badgeText: 'Assigned',
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) =>
-                                        const DepartmentsListScreen(),
-                                  ),
-                                );
-                              },
-                            );
-                          }),
-                          const SizedBox(height: 16),
-                        ],
-
-                        // SECTION: STAFF DIRECTORY
-                        if (showStaff && matchingStaff.isNotEmpty) ...[
-                          _buildSearchSectionHeader('USERS'),
-                          ...matchingStaff.map((staff) {
-                            return _buildSearchResultCard(
-                              leadingIcon: Icons.people_outline,
-                              imageUrl: staff.avatarUrl,
-                              title: staff.fullName.isNotEmpty ? staff.fullName : staff.emailAddress,
-                              subtitleLine1: staff.emailAddress,
-                              subtitleLine2: staff.departmentIds.isNotEmpty ? 'Assigned Department' : 'No Department',
-                              badgeText: staff.accountStatus.toUpperCase(),
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) =>
-                                        const DepartmentsListScreen(),
-                                  ),
-                                );
-                              },
-                            );
-                          }),
-                          const SizedBox(height: 16),
-                        ],
                         const AppFooter(topPadding: 16, bottomPadding: 24),
                       ],
                     ),
