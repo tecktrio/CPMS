@@ -1283,133 +1283,136 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                         ),
                       ],
                     ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Left Room Info
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                children: [
-                                  // Black square badge with room number
-                                  Container(
-                                    width: 44,
-                                    height: 44,
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFF0F172A),
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    alignment: Alignment.center,
-                                    child: Text(
-                                      currentRoom.roomCode.isNotEmpty ? currentRoom.roomCode : '1',
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 20,
-                                        fontWeight: FontWeight.w800,
-                                      ),
+                    child: LayoutBuilder(
+                      builder: (context, heroConstraints) {
+                        final isNarrow = heroConstraints.maxWidth < 640;
+
+                        final leftInfo = Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                // Black square badge with room number
+                                Container(
+                                  width: 44,
+                                  height: 44,
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF0F172A),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  alignment: Alignment.center,
+                                  child: Text(
+                                    currentRoom.roomCode.isNotEmpty ? currentRoom.roomCode : '1',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.w800,
                                     ),
                                   ),
-                                  const SizedBox(width: 16),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          currentRoom.roomName,
-                                          style: const TextStyle(
-                                            fontSize: 22,
-                                            fontWeight: FontWeight.w800,
-                                            color: Color(0xFF0F172A),
-                                            letterSpacing: -0.4,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 2),
-                                        Text(
-                                          'Zone: ${currentRoom.roomCode.isNotEmpty ? 'North Bay • ${currentRoom.roomCode}' : 'North Cold Bay'}',
-                                          style: const TextStyle(
-                                            fontSize: 13,
-                                            color: Color(0xFF64748B),
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 16),
-                              Text(
-                                currentRoom.description.isNotEmpty
-                                    ? currentRoom.description
-                                    : 'Climate-regulated ambient preservation storage unit configured for pallet and container storage.',
-                                style: const TextStyle(
-                                  fontSize: 13.5,
-                                  color: Color(0xFF475569),
-                                  height: 1.45,
                                 ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        currentRoom.roomName,
+                                        style: const TextStyle(
+                                          fontSize: 22,
+                                          fontWeight: FontWeight.w800,
+                                          color: Color(0xFF0F172A),
+                                          letterSpacing: -0.4,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        'Zone: ${currentRoom.roomCode.isNotEmpty ? 'North Bay • ${currentRoom.roomCode}' : 'North Cold Bay'}',
+                                        style: const TextStyle(
+                                          fontSize: 13,
+                                          color: Color(0xFF64748B),
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              currentRoom.description.isNotEmpty
+                                  ? currentRoom.description
+                                  : 'Climate-regulated ambient preservation storage unit configured for pallet and container storage.',
+                              style: const TextStyle(
+                                fontSize: 13.5,
+                                color: Color(0xFF475569),
+                                height: 1.45,
                               ),
-                              const SizedBox(height: 16),
-                              // Pill Badges
-                              Wrap(
-                                spacing: 10,
-                                runSpacing: 8,
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFF1F5F9),
-                                      borderRadius: BorderRadius.circular(6),
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        const Icon(Icons.swap_vert, size: 14, color: Color(0xFF64748B)),
-                                        const SizedBox(width: 6),
-                                        Text(
+                            ),
+                            const SizedBox(height: 16),
+                            // Pill Badges
+                            Wrap(
+                              spacing: 10,
+                              runSpacing: 8,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF1F5F9),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(Icons.swap_vert, size: 14, color: Color(0xFF64748B)),
+                                      const SizedBox(width: 6),
+                                      Flexible(
+                                        child: Text(
                                           '$tempStr (Target ±0.5° tolerance)',
                                           style: const TextStyle(
                                             fontSize: 12,
                                             fontWeight: FontWeight.w500,
                                             color: Color(0xFF334155),
                                           ),
+                                          overflow: TextOverflow.ellipsis,
                                         ),
-                                      ],
-                                    ),
+                                      ),
+                                    ],
                                   ),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFF1F5F9),
-                                      borderRadius: BorderRadius.circular(6),
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        const Icon(Icons.location_on_outlined, size: 14, color: Color(0xFF64748B)),
-                                        const SizedBox(width: 6),
-                                        Text(
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF1F5F9),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(Icons.location_on_outlined, size: 14, color: Color(0xFF64748B)),
+                                      const SizedBox(width: 6),
+                                      Flexible(
+                                        child: Text(
                                           'Bay ${currentRoom.roomCode.isNotEmpty ? currentRoom.roomCode : '1'} • Sector C • North Facility',
                                           style: const TextStyle(
                                             fontSize: 12,
                                             fontWeight: FontWeight.w500,
                                             color: Color(0xFF334155),
                                           ),
+                                          overflow: TextOverflow.ellipsis,
                                         ),
-                                      ],
-                                    ),
+                                      ),
+                                    ],
                                   ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 24),
-                        // Right Metric Card
-                        Container(
-                          width: 170,
+                                ),
+                              ],
+                            ),
+                          ],
+                        );
+
+                        final metricCard = Container(
+                          width: isNarrow ? double.infinity : 170,
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                           decoration: BoxDecoration(
                             color: Colors.white,
@@ -1430,7 +1433,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                               ),
                               const SizedBox(height: 8),
                               Align(
-                                alignment: Alignment.centerRight,
+                                alignment: isNarrow ? Alignment.centerLeft : Alignment.centerRight,
                                 child: Text(
                                   '${roomItems.length}',
                                   style: const TextStyle(
@@ -1442,8 +1445,28 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                               ),
                             ],
                           ),
-                        ),
-                      ],
+                        );
+
+                        if (isNarrow) {
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              leftInfo,
+                              const SizedBox(height: 16),
+                              metricCard,
+                            ],
+                          );
+                        }
+
+                        return Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(child: leftInfo),
+                            const SizedBox(width: 24),
+                            metricCard,
+                          ],
+                        );
+                      },
                     ),
                   ),
 
@@ -1469,66 +1492,78 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                         // Card Header
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-                          child: Row(
+                          child: Wrap(
+                            alignment: WrapAlignment.spaceBetween,
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            spacing: 12,
+                            runSpacing: 10,
                             children: [
-                              const Icon(Icons.inventory_2_outlined, size: 20, color: Color(0xFF0F172A)),
-                              const SizedBox(width: 8),
-                              const Text(
-                                'STORE ROOM ITEMS',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w800,
-                                  color: Color(0xFF0F172A),
-                                  letterSpacing: 0.6,
-                                ),
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.inventory_2_outlined, size: 20, color: Color(0xFF0F172A)),
+                                  const SizedBox(width: 8),
+                                  const Text(
+                                    'STORE ROOM ITEMS',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w800,
+                                      color: Color(0xFF0F172A),
+                                      letterSpacing: 0.6,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF0F172A),
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: Text(
+                                      '${roomItems.length}',
+                                      style: const TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w700,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
-                              const SizedBox(width: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF0F172A),
-                                  borderRadius: BorderRadius.circular(10),
+                              if (canUpdate)
+                                Wrap(
+                                  spacing: 10,
+                                  runSpacing: 8,
+                                  children: [
+                                    FilledButton.icon(
+                                      onPressed: () => _showAddItemToRoomSheet(currentRoom),
+                                      icon: const Icon(Icons.add, size: 16),
+                                      label: const Text('Add Item', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+                                      style: FilledButton.styleFrom(
+                                        backgroundColor: const Color(0xFF0F172A),
+                                        foregroundColor: Colors.white,
+                                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                        elevation: 0,
+                                      ),
+                                    ),
+                                    OutlinedButton.icon(
+                                      onPressed: () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(builder: (c) => const CreateItemScreen()),
+                                        ).then((_) => inventory.loadItems());
+                                      },
+                                      icon: const Icon(Icons.add, size: 16, color: Color(0xFF0F172A)),
+                                      label: const Text('Register New Item', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: Color(0xFF0F172A))),
+                                      style: OutlinedButton.styleFrom(
+                                        side: const BorderSide(color: Color(0xFFE2E8F0)),
+                                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                                child: Text(
-                                  '${roomItems.length}',
-                                  style: const TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w700,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ),
-                              const Spacer(),
-                              if (canUpdate) ...[
-                                FilledButton.icon(
-                                  onPressed: () => _showAddItemToRoomSheet(currentRoom),
-                                  icon: const Icon(Icons.add, size: 16),
-                                  label: const Text('Add Item', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
-                                  style: FilledButton.styleFrom(
-                                    backgroundColor: const Color(0xFF0F172A),
-                                    foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                    elevation: 0,
-                                  ),
-                                ),
-                                const SizedBox(width: 10),
-                                OutlinedButton.icon(
-                                  onPressed: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(builder: (c) => const CreateItemScreen()),
-                                    ).then((_) => inventory.loadItems());
-                                  },
-                                  icon: const Icon(Icons.add, size: 16, color: Color(0xFF0F172A)),
-                                  label: const Text('Register New Item', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: Color(0xFF0F172A))),
-                                  style: OutlinedButton.styleFrom(
-                                    side: const BorderSide(color: Color(0xFFE2E8F0)),
-                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                  ),
-                                ),
-                              ],
                             ],
                           ),
                         ),
@@ -1536,176 +1571,203 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                         // Search and Filter Bar
                         Padding(
                           padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-                          child: Row(
-                            children: [
-                              // Search input
-                              Expanded(
-                                child: SizedBox(
-                                  height: 40,
-                                  child: TextField(
-                                    onChanged: (val) => setState(() => _itemSearchQuery = val),
-                                    decoration: InputDecoration(
-                                      prefixIcon: const Icon(Icons.search, size: 18, color: Color(0xFF94A3B8)),
-                                      suffixIcon: _itemSearchQuery.isNotEmpty
-                                          ? IconButton(
-                                              icon: const Icon(Icons.clear, size: 16, color: Color(0xFF94A3B8)),
-                                              onPressed: () => setState(() => _itemSearchQuery = ''),
-                                            )
-                                          : Container(
-                                              margin: const EdgeInsets.only(right: 8),
-                                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                              decoration: BoxDecoration(
-                                                color: const Color(0xFFF1F5F9),
-                                                borderRadius: BorderRadius.circular(4),
-                                                border: Border.all(color: const Color(0xFFE2E8F0)),
-                                              ),
-                                              child: const Text(
-                                                '⌘K',
-                                                style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8)),
-                                              ),
+                          child: LayoutBuilder(
+                            builder: (context, filterConstraints) {
+                              final isNarrow = filterConstraints.maxWidth < 640;
+
+                              final searchWidget = SizedBox(
+                                height: 40,
+                                child: TextField(
+                                  onChanged: (val) => setState(() => _itemSearchQuery = val),
+                                  decoration: InputDecoration(
+                                    prefixIcon: const Icon(Icons.search, size: 18, color: Color(0xFF94A3B8)),
+                                    suffixIcon: _itemSearchQuery.isNotEmpty
+                                        ? IconButton(
+                                            icon: const Icon(Icons.clear, size: 16, color: Color(0xFF94A3B8)),
+                                            onPressed: () => setState(() => _itemSearchQuery = ''),
+                                          )
+                                        : Container(
+                                            margin: const EdgeInsets.only(right: 8),
+                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFFF1F5F9),
+                                              borderRadius: BorderRadius.circular(4),
+                                              border: Border.all(color: const Color(0xFFE2E8F0)),
                                             ),
-                                      suffixIconConstraints: const BoxConstraints(minWidth: 32, minHeight: 20),
-                                      hintText: 'Search items in ${currentRoom.roomName} by name, code, division...',
-                                      hintStyle: const TextStyle(fontSize: 12.5, color: Color(0xFF94A3B8)),
-                                      contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 12),
-                                      filled: true,
-                                      fillColor: Colors.white,
-                                      enabledBorder: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(8),
-                                        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                                      ),
-                                      focusedBorder: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(8),
-                                        borderSide: const BorderSide(color: Color(0xFF0F172A)),
-                                      ),
+                                            child: const Text(
+                                              '⌘K',
+                                              style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8)),
+                                            ),
+                                          ),
+                                    suffixIconConstraints: const BoxConstraints(minWidth: 32, minHeight: 20),
+                                    hintText: 'Search items in ${currentRoom.roomName}...',
+                                    hintStyle: const TextStyle(fontSize: 12.5, color: Color(0xFF94A3B8)),
+                                    contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 12),
+                                    filled: true,
+                                    fillColor: Colors.white,
+                                    enabledBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                                    ),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                      borderSide: const BorderSide(color: Color(0xFF0F172A)),
                                     ),
                                   ),
                                 ),
-                              ),
-                              const SizedBox(width: 10),
+                              );
 
-                              // Division Filter Popup
-                              PopupMenuButton<String>(
-                                initialValue: _selectedDivisionFilter ?? 'All',
-                                onSelected: (val) {
-                                  if (val == '__manage__') {
-                                    _showAddDivisionDialog(currentRoom);
-                                  } else if (val == '__edit_first__') {
-                                    _showEditDivisionDialog(currentRoom, 0);
-                                  } else {
-                                    setState(() => _selectedDivisionFilter = val == 'All' ? null : val);
-                                  }
-                                },
-                                itemBuilder: (ctx) => [
-                                  ...divisionsList.map((d) => PopupMenuItem<String>(value: d, child: Text(d, style: const TextStyle(fontSize: 13)))),
-                                  if (canUpdate) ...[
-                                    const PopupMenuDivider(),
-                                    const PopupMenuItem<String>(
-                                      value: '__manage__',
-                                      child: Row(
-                                        children: [
-                                          Icon(Icons.add_circle_outline, size: 16, color: Color(0xFF0F172A)),
-                                          SizedBox(width: 8),
-                                          Text('Add Division', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
-                                        ],
-                                      ),
-                                    ),
-                                    if (currentRoom.divisions.isNotEmpty)
+                              final filterButtons = [
+                                // Division Filter Popup
+                                PopupMenuButton<String>(
+                                  initialValue: _selectedDivisionFilter ?? 'All',
+                                  onSelected: (val) {
+                                    if (val == '__manage__') {
+                                      _showAddDivisionDialog(currentRoom);
+                                    } else if (val == '__edit_first__') {
+                                      _showEditDivisionDialog(currentRoom, 0);
+                                    } else {
+                                      setState(() => _selectedDivisionFilter = val == 'All' ? null : val);
+                                    }
+                                  },
+                                  itemBuilder: (ctx) => [
+                                    ...divisionsList.map((d) => PopupMenuItem<String>(value: d, child: Text(d, style: const TextStyle(fontSize: 13)))),
+                                    if (canUpdate) ...[
+                                      const PopupMenuDivider(),
                                       const PopupMenuItem<String>(
-                                        value: '__edit_first__',
+                                        value: '__manage__',
                                         child: Row(
                                           children: [
-                                            Icon(Icons.edit_outlined, size: 16, color: Color(0xFF0F172A)),
+                                            Icon(Icons.add_circle_outline, size: 16, color: Color(0xFF0F172A)),
                                             SizedBox(width: 8),
-                                            Text('Edit Divisions', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+                                            Text('Add Division', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
                                           ],
                                         ),
                                       ),
+                                      if (currentRoom.divisions.isNotEmpty)
+                                        const PopupMenuItem<String>(
+                                          value: '__edit_first__',
+                                          child: Row(
+                                            children: [
+                                              Icon(Icons.edit_outlined, size: 16, color: Color(0xFF0F172A)),
+                                              SizedBox(width: 8),
+                                              Text('Edit Divisions', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+                                            ],
+                                          ),
+                                        ),
+                                    ],
                                   ],
-                                ],
-                                child: Container(
+                                  child: Container(
+                                    height: 40,
+                                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Icon(Icons.local_offer_outlined, size: 15, color: Color(0xFF64748B)),
+                                        const SizedBox(width: 6),
+                                        Text(
+                                          'Division: ${_selectedDivisionFilter ?? 'All'}',
+                                          style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: Color(0xFF334155)),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+
+                                // Type Filter Popup
+                                PopupMenuButton<String>(
+                                  initialValue: _selectedTypeFilter ?? 'All',
+                                  onSelected: (val) => setState(() => _selectedTypeFilter = val == 'All' ? null : val),
+                                  itemBuilder: (ctx) => typeList.map((t) => PopupMenuItem<String>(value: t, child: Text(t, style: const TextStyle(fontSize: 13)))).toList(),
+                                  child: Container(
+                                    height: 40,
+                                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Icon(Icons.filter_alt_outlined, size: 15, color: Color(0xFF64748B)),
+                                        const SizedBox(width: 6),
+                                        Text(
+                                          'Type: ${_selectedTypeFilter ?? 'All'}',
+                                          style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: Color(0xFF334155)),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+
+                                // View Toggle (List / Grid)
+                                Container(
                                   height: 40,
-                                  padding: const EdgeInsets.symmetric(horizontal: 12),
                                   decoration: BoxDecoration(
                                     color: Colors.white,
                                     borderRadius: BorderRadius.circular(8),
                                     border: Border.all(color: const Color(0xFFE2E8F0)),
                                   ),
                                   child: Row(
+                                    mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      const Icon(Icons.local_offer_outlined, size: 15, color: Color(0xFF64748B)),
-                                      const SizedBox(width: 6),
-                                      Text(
-                                        'Division: ${_selectedDivisionFilter ?? 'All'}',
-                                        style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: Color(0xFF334155)),
+                                      IconButton(
+                                        icon: Icon(
+                                          Icons.reorder,
+                                          size: 18,
+                                          color: !_isGridView ? const Color(0xFF0F172A) : const Color(0xFF94A3B8),
+                                        ),
+                                        onPressed: () => setState(() => _isGridView = false),
+                                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                                        constraints: const BoxConstraints(),
+                                      ),
+                                      IconButton(
+                                        icon: Icon(
+                                          Icons.grid_view,
+                                          size: 18,
+                                          color: _isGridView ? const Color(0xFF0F172A) : const Color(0xFF94A3B8),
+                                        ),
+                                        onPressed: () => setState(() => _isGridView = true),
+                                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                                        constraints: const BoxConstraints(),
                                       ),
                                     ],
                                   ),
                                 ),
-                              ),
-                              const SizedBox(width: 8),
+                              ];
 
-                              // Type Filter Popup
-                              PopupMenuButton<String>(
-                                initialValue: _selectedTypeFilter ?? 'All',
-                                onSelected: (val) => setState(() => _selectedTypeFilter = val == 'All' ? null : val),
-                                itemBuilder: (ctx) => typeList.map((t) => PopupMenuItem<String>(value: t, child: Text(t, style: const TextStyle(fontSize: 13)))).toList(),
-                                child: Container(
-                                  height: 40,
-                                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(8),
-                                    border: Border.all(color: const Color(0xFFE2E8F0)),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      const Icon(Icons.filter_alt_outlined, size: 15, color: Color(0xFF64748B)),
-                                      const SizedBox(width: 6),
-                                      Text(
-                                        'Type: ${_selectedTypeFilter ?? 'All'}',
-                                        style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: Color(0xFF334155)),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-
-                              // View Toggle (List / Grid)
-                              Container(
-                                height: 40,
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(color: const Color(0xFFE2E8F0)),
-                                ),
-                                child: Row(
+                              if (isNarrow) {
+                                return Column(
+                                  crossAxisAlignment: CrossAxisAlignment.stretch,
                                   children: [
-                                    IconButton(
-                                      icon: Icon(
-                                        Icons.reorder,
-                                        size: 18,
-                                        color: !_isGridView ? const Color(0xFF0F172A) : const Color(0xFF94A3B8),
+                                    searchWidget,
+                                    const SizedBox(height: 10),
+                                    SingleChildScrollView(
+                                      scrollDirection: Axis.horizontal,
+                                      child: Row(
+                                        children: filterButtons,
                                       ),
-                                      onPressed: () => setState(() => _isGridView = false),
-                                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                                      constraints: const BoxConstraints(),
-                                    ),
-                                    IconButton(
-                                      icon: Icon(
-                                        Icons.grid_view,
-                                        size: 18,
-                                        color: _isGridView ? const Color(0xFF0F172A) : const Color(0xFF94A3B8),
-                                      ),
-                                      onPressed: () => setState(() => _isGridView = true),
-                                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                                      constraints: const BoxConstraints(),
                                     ),
                                   ],
-                                ),
-                              ),
-                            ],
+                                );
+                              }
+
+                              return Row(
+                                children: [
+                                  Expanded(child: searchWidget),
+                                  const SizedBox(width: 10),
+                                  ...filterButtons,
+                                ],
+                              );
+                            },
                           ),
                         ),
 
@@ -1911,13 +1973,16 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                         const Divider(height: 1, color: Color(0xFFE2E8F0)),
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                          child: Row(
+                          child: Wrap(
+                            alignment: WrapAlignment.spaceBetween,
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            spacing: 12,
+                            runSpacing: 8,
                             children: [
                               Text(
                                 'Showing ${filteredItems.length} of ${roomItems.length} items in this store room  •  $totalUnits units total allocated',
                                 style: const TextStyle(fontSize: 12, color: Color(0xFF64748B), fontWeight: FontWeight.w500),
                               ),
-                              const Spacer(),
                               const Text(
                                 'Page 1 of 1',
                                 style: TextStyle(fontSize: 12, color: Color(0xFF94A3B8), fontWeight: FontWeight.w500),
@@ -1932,8 +1997,11 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                   const SizedBox(height: 24),
 
                   // 3. BOTTOM ACTIONS
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
+                  Wrap(
+                    alignment: WrapAlignment.end,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: 12,
+                    runSpacing: 10,
                     children: [
                       if (canDelete)
                         OutlinedButton.icon(
@@ -1947,7 +2015,6 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                           ),
                         ),
-                      const SizedBox(width: 12),
                       if (canUpdate)
                         FilledButton.icon(
                           onPressed: () => _showEditRoomBottomSheet(currentRoom),

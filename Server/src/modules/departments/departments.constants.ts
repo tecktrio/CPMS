@@ -86,6 +86,7 @@ export const FIXED_DEPARTMENTS: FixedDepartmentDefinition[] = [
       'permission.item_category.manage',
       'permission.packaging_material.manage',
       'permission.storeroom.read',
+      'permission.user.read',
       'permission.po.read',
       'permission.batch.create',
       'permission.batch.read',
@@ -105,6 +106,7 @@ export const FIXED_DEPARTMENTS: FixedDepartmentDefinition[] = [
     permission_ids: [
       'permission.item.read',
       'permission.storeroom.read',
+      'permission.user.read',
       'permission.po.read',
       'permission.batch.read',
       'permission.production.read',

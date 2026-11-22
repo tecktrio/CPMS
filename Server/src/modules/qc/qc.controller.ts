@@ -39,7 +39,7 @@ export class QcController {
   @ApiOperation({ summary: 'Submit inspection report for PO item' })
   async createReport(
     @CurrentTenant() tenantId: string,
-    @CurrentUser('id') userId: string,
+    @CurrentUser('user_id') userId: string,
     @Body() dto: CreateQcReportDto,
   ) {
     return this.qcService.createReport(tenantId, userId, dto);

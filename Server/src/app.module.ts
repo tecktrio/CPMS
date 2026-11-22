@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import configuration from './config/configuration';
 import { DatabaseModule } from './database/database.module';
+import { AppController } from './app.controller';
 import { EmailModule } from './modules/email/email.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { TenantsModule } from './modules/tenants/tenants.module';
@@ -37,6 +38,7 @@ import { EmergencyContactsModule } from './modules/emergency-contacts/emergency-
     QcModule,
     EmergencyContactsModule,
   ],
+  controllers: [AppController],
 })
 export class AppModule {}
 

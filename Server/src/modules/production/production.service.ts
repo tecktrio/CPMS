@@ -74,7 +74,7 @@ export class ProductionService {
       assigned_cartons: dto.assigned_cartons,
       completed_cartons: 0,
       status: 'PENDING',
-      assigned_by_user_id: assignedByUserId,
+      assigned_by_user_id: assignedByUserId || supervisor.user_id,
       notes: dto.notes?.trim() || '',
     });
 
@@ -214,6 +214,7 @@ export class ProductionService {
       }
     }
 
+    po.markModified('items');
     await po.save();
   }
 }

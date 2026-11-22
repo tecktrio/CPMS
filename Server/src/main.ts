@@ -27,8 +27,10 @@ async function bootstrap() {
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Tenant-ID'],
   });
 
-  // Global prefix for all API routes
-  app.setGlobalPrefix('api/v1');
+  // Global prefix for all API routes (excluding health and root status checks)
+  app.setGlobalPrefix('api/v1', {
+    exclude: ['/', 'health', 'api/health', 'api/v1/health'],
+  });
 
   // Global validation pipe for all DTOs
   app.useGlobalPipes(

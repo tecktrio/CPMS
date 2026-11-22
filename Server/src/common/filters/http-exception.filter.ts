@@ -38,6 +38,14 @@ export class HttpExceptionFilter implements ExceptionFilter {
       `HTTP ${status} [${request.method}] ${request.url}: ${JSON.stringify(message)}`,
     );
 
+    if (!(exception instanceof HttpException)) {
+      this.logger.error(
+        `Internal error detail on [${request.method}] ${request.url}: ${
+          exception instanceof Error ? exception.stack : String(exception)
+        }`,
+      );
+    }
+
     response.status(status).json({
       success: false,
       statusCode: status,

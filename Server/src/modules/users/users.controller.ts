@@ -92,6 +92,8 @@ export class UsersController {
     'permission.department.create',
     'permission.department.update',
     'permission.department.delete',
+    'permission.production.read',
+    'permission.production.create',
   )
   @ApiHeader({
     name: 'X-Tenant-ID',

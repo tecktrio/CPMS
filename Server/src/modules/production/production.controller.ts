@@ -44,7 +44,7 @@ export class ProductionController {
   @ApiOperation({ summary: 'Assign supervisor to PO item' })
   async createAssignment(
     @CurrentTenant() tenantId: string,
-    @CurrentUser('id') userId: string,
+    @CurrentUser('user_id') userId: string,
     @Body() dto: CreateProductionAssignmentDto,
   ) {
     return this.productionService.createAssignment(tenantId, userId, dto);
@@ -62,7 +62,7 @@ export class ProductionController {
   @ApiOperation({ summary: 'Get current supervisor tasks' })
   async getMyAssignments(
     @CurrentTenant() tenantId: string,
-    @CurrentUser('id') userId: string,
+    @CurrentUser('user_id') userId: string,
   ) {
     return this.productionService.getMyAssignments(tenantId, userId);
   }
@@ -83,7 +83,7 @@ export class ProductionController {
   async updateProgress(
     @CurrentTenant() tenantId: string,
     @Param('id') assignmentId: string,
-    @CurrentUser('id') userId: string,
+    @CurrentUser('user_id') userId: string,
     @Body() dto: UpdateProgressDto,
   ) {
     return this.productionService.updateProgress(
