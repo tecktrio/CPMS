@@ -237,6 +237,7 @@ class _ProductionHubScreenState extends State<ProductionHubScreen> {
                         po,
                         canManageProd: canManageProd,
                         canAssignTask: isSupervisor,
+                        isSupervisor: isSupervisor,
                         canDoQc: canDoQc,
                         canUpdatePacking: canUpdatePacking,
                         canUpdateShipping: canUpdateShipping,
@@ -343,6 +344,7 @@ class _ProductionHubScreenState extends State<ProductionHubScreen> {
     PurchaseOrderModel po, {
     required bool canManageProd,
     required bool canAssignTask,
+    required bool isSupervisor,
     required bool canDoQc,
     required bool canUpdatePacking,
     required bool canUpdateShipping,
@@ -604,14 +606,15 @@ class _ProductionHubScreenState extends State<ProductionHubScreen> {
                         color: Color(0xFF16A34A),
                       ),
                     ),
-                    Text(
-                      'Packed: $totalPacked | Shipped: $totalShipped',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                        color: Color(0xFF64748B),
+                    if (!isSupervisor)
+                      Text(
+                        'Packed: $totalPacked | Shipped: $totalShipped',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          color: Color(0xFF64748B),
+                        ),
                       ),
-                    ),
                   ],
                 ),
               ],
@@ -728,69 +731,199 @@ class _ProductionHubScreenState extends State<ProductionHubScreen> {
                             ),
                             const SizedBox(height: 8),
 
-                            // Stage Badges Row
-                            SingleChildScrollView(
-                              scrollDirection: Axis.horizontal,
-                              child: Row(
+                            // Stage Badges Row / Supervisor Stepper View
+                            if (isSupervisor)
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 6,
+                                crossAxisAlignment: WrapCrossAlignment.center,
                                 children: [
-                                  _buildStageBadge(
-                                    label: 'Produced: ${item.completedCartons}/${item.cartons}',
-                                    color: item.completedCartons >= item.cartons
-                                        ? const Color(0xFF16A34A)
-                                        : const Color(0xFFB45309),
-                                    bgColor: item.completedCartons >= item.cartons
-                                        ? const Color(0xFFF0FDF4)
-                                        : const Color(0xFFFFFBEB),
-                                    borderColor: item.completedCartons >= item.cartons
-                                        ? const Color(0xFFBBF7D0)
-                                        : const Color(0xFFFDE68A),
-                                    icon: Icons.handyman_outlined,
+                                  // Status Badge: PRODUCED / IN PRODUCTION / PENDING
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: item.completedCartons >= item.cartons
+                                          ? const Color(0xFFF0FDF4)
+                                          : item.completedCartons > 0
+                                              ? const Color(0xFFFFFBEB)
+                                              : const Color(0xFFF8FAFC),
+                                      borderRadius: BorderRadius.circular(6),
+                                      border: Border.all(
+                                        color: item.completedCartons >= item.cartons
+                                            ? const Color(0xFFBBF7D0)
+                                            : item.completedCartons > 0
+                                                ? const Color(0xFFFDE68A)
+                                                : const Color(0xFFE2E8F0),
+                                      ),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          item.completedCartons >= item.cartons
+                                              ? Icons.check_circle
+                                              : Icons.handyman_outlined,
+                                          size: 13,
+                                          color: item.completedCartons >= item.cartons
+                                              ? const Color(0xFF16A34A)
+                                              : item.completedCartons > 0
+                                                  ? const Color(0xFFD97706)
+                                                  : const Color(0xFF64748B),
+                                        ),
+                                        const SizedBox(width: 5),
+                                        Text(
+                                          item.completedCartons >= item.cartons
+                                              ? 'PRODUCED'
+                                              : item.completedCartons > 0
+                                                  ? 'IN PRODUCTION'
+                                                  : 'PENDING',
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w700,
+                                            color: item.completedCartons >= item.cartons
+                                                ? const Color(0xFF16A34A)
+                                                : item.completedCartons > 0
+                                                    ? const Color(0xFFB45309)
+                                                    : const Color(0xFF64748B),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
-                                  const SizedBox(width: 8),
-                                  _buildStageBadge(
-                                    label: 'QC: ${item.qcPassed ? 'PASSED' : 'PENDING'}',
-                                    color: item.qcPassed
-                                        ? const Color(0xFF0F766E)
-                                        : const Color(0xFF64748B),
-                                    bgColor: item.qcPassed
-                                        ? const Color(0xFFF0FDFA)
-                                        : const Color(0xFFF8FAFC),
-                                    borderColor: item.qcPassed
-                                        ? const Color(0xFFA7F3D0)
-                                        : const Color(0xFFE2E8F0),
-                                    icon: Icons.check_circle_outline,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  _buildStageBadge(
-                                    label: 'Packed: ${item.packedCartons}/${item.cartons}',
-                                    color: item.packedCartons >= item.cartons
-                                        ? const Color(0xFF2563EB)
-                                        : const Color(0xFF64748B),
-                                    bgColor: item.packedCartons >= item.cartons
-                                        ? const Color(0xFFEFF6FF)
-                                        : const Color(0xFFF8FAFC),
-                                    borderColor: item.packedCartons >= item.cartons
-                                        ? const Color(0xFFBFDBFE)
-                                        : const Color(0xFFE2E8F0),
-                                    icon: Icons.inventory_2_outlined,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  _buildStageBadge(
-                                    label: 'Shipped: ${item.shippedCartons}/${item.cartons}',
-                                    color: item.shippedCartons >= item.cartons
-                                        ? const Color(0xFF2563EB)
-                                        : const Color(0xFF64748B),
-                                    bgColor: item.shippedCartons >= item.cartons
-                                        ? const Color(0xFFEFF6FF)
-                                        : const Color(0xFFF8FAFC),
-                                    borderColor: item.shippedCartons >= item.cartons
-                                        ? const Color(0xFFBFDBFE)
-                                        : const Color(0xFFE2E8F0),
-                                    icon: Icons.local_shipping_outlined,
+
+                                  // Produced Stepper (+ and - buttons)
+                                  Container(
+                                    height: 30,
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(6),
+                                      border: Border.all(color: const Color(0xFFCBD5E1)),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        InkWell(
+                                          borderRadius: const BorderRadius.horizontal(left: Radius.circular(5)),
+                                          onTap: item.completedCartons > 0
+                                              ? () => _updateProducedCount(po, item, item.completedCartons - 1)
+                                              : null,
+                                          child: Padding(
+                                            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+                                            child: Text(
+                                              '−',
+                                              style: TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.w800,
+                                                color: item.completedCartons > 0
+                                                    ? const Color(0xFF0F172A)
+                                                    : const Color(0xFFCBD5E1),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                        Container(height: 18, width: 1, color: const Color(0xFFE2E8F0)),
+                                        InkWell(
+                                          onTap: () => _showEditProducedDialog(po, item),
+                                          child: Padding(
+                                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                                            child: Text(
+                                              '${item.completedCartons} / ${item.cartons} ctns',
+                                              style: const TextStyle(
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w800,
+                                                color: Color(0xFF0F172A),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                        Container(height: 18, width: 1, color: const Color(0xFFE2E8F0)),
+                                        InkWell(
+                                          borderRadius: const BorderRadius.horizontal(right: Radius.circular(5)),
+                                          onTap: item.completedCartons < item.cartons
+                                              ? () => _updateProducedCount(po, item, item.completedCartons + 1)
+                                              : null,
+                                          child: Padding(
+                                            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+                                            child: Text(
+                                              '+',
+                                              style: TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.w800,
+                                                color: item.completedCartons < item.cartons
+                                                    ? const Color(0xFF0F172A)
+                                                    : const Color(0xFFCBD5E1),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ],
+                              )
+                            else
+                              SingleChildScrollView(
+                                scrollDirection: Axis.horizontal,
+                                child: Row(
+                                  children: [
+                                    _buildStageBadge(
+                                      label: 'Produced: ${item.completedCartons}/${item.cartons}',
+                                      color: item.completedCartons >= item.cartons
+                                          ? const Color(0xFF16A34A)
+                                          : const Color(0xFFB45309),
+                                      bgColor: item.completedCartons >= item.cartons
+                                          ? const Color(0xFFF0FDF4)
+                                          : const Color(0xFFFFFBEB),
+                                      borderColor: item.completedCartons >= item.cartons
+                                          ? const Color(0xFFBBF7D0)
+                                          : const Color(0xFFFDE68A),
+                                      icon: Icons.handyman_outlined,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    _buildStageBadge(
+                                      label: 'QC: ${item.qcPassed ? 'PASSED' : 'PENDING'}',
+                                      color: item.qcPassed
+                                          ? const Color(0xFF0F766E)
+                                          : const Color(0xFF64748B),
+                                      bgColor: item.qcPassed
+                                          ? const Color(0xFFF0FDFA)
+                                          : const Color(0xFFF8FAFC),
+                                      borderColor: item.qcPassed
+                                          ? const Color(0xFFA7F3D0)
+                                          : const Color(0xFFE2E8F0),
+                                      icon: Icons.check_circle_outline,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    _buildStageBadge(
+                                      label: 'Packed: ${item.packedCartons}/${item.cartons}',
+                                      color: item.packedCartons >= item.cartons
+                                          ? const Color(0xFF2563EB)
+                                          : const Color(0xFF64748B),
+                                      bgColor: item.packedCartons >= item.cartons
+                                          ? const Color(0xFFEFF6FF)
+                                          : const Color(0xFFF8FAFC),
+                                      borderColor: item.packedCartons >= item.cartons
+                                          ? const Color(0xFFBFDBFE)
+                                          : const Color(0xFFE2E8F0),
+                                      icon: Icons.inventory_2_outlined,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    _buildStageBadge(
+                                      label: 'Shipped: ${item.shippedCartons}/${item.cartons}',
+                                      color: item.shippedCartons >= item.cartons
+                                          ? const Color(0xFF2563EB)
+                                          : const Color(0xFF64748B),
+                                      bgColor: item.shippedCartons >= item.cartons
+                                          ? const Color(0xFFEFF6FF)
+                                          : const Color(0xFFF8FAFC),
+                                      borderColor: item.shippedCartons >= item.cartons
+                                          ? const Color(0xFFBFDBFE)
+                                          : const Color(0xFFE2E8F0),
+                                      icon: Icons.local_shipping_outlined,
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ),
                           ],
                         ),
                       ),
@@ -841,7 +974,7 @@ class _ProductionHubScreenState extends State<ProductionHubScreen> {
                           ),
                         ),
 
-                      if (canDoQc || canUpdatePacking || canUpdateShipping) ...[
+                      if (!isSupervisor && (canDoQc || canUpdatePacking || canUpdateShipping)) ...[
                         const SizedBox(width: 6),
                         PopupMenuButton<String>(
                           icon: const Icon(Icons.more_vert, size: 18, color: Color(0xFF64748B)),
@@ -875,6 +1008,89 @@ class _ProductionHubScreenState extends State<ProductionHubScreen> {
                 );
               },
             ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _updateProducedCount(
+    PurchaseOrderModel po,
+    PurchaseOrderItemModel item,
+    int newCount,
+  ) async {
+    final clamped = newCount.clamp(0, item.cartons);
+    if (clamped == item.completedCartons) return;
+
+    final poProv = context.read<PurchaseOrderProvider>();
+    final success = await poProv.updateItemProduction(
+      poId: po.poId,
+      itemId: item.itemId,
+      completedCartons: clamped,
+    );
+
+    if (!success && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(poProv.errorMessage ?? 'Failed to update produced cartons.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  void _showEditProducedDialog(
+    PurchaseOrderModel po,
+    PurchaseOrderItemModel item,
+  ) {
+    final controller = TextEditingController(text: '${item.completedCartons}');
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        title: Text(
+          'Update Produced: ${item.itemName}',
+          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Total required: ${item.cartons} cartons',
+              style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: controller,
+              keyboardType: TextInputType.number,
+              autofocus: true,
+              decoration: InputDecoration(
+                labelText: 'Produced Cartons',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel', style: TextStyle(color: Color(0xFF64748B))),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF0F172A),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+            ),
+            onPressed: () {
+              final val = int.tryParse(controller.text.trim()) ?? item.completedCartons;
+              Navigator.pop(ctx);
+              _updateProducedCount(po, item, val);
+            },
+            child: const Text('Save'),
+          ),
         ],
       ),
     );

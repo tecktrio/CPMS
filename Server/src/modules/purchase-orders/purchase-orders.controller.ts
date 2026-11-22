@@ -167,6 +167,32 @@ export class PurchaseOrdersController {
     return this.poService.updatePurchaseOrder(tenantId, poId, dto);
   }
 
+  @Patch('purchase-orders/:poId/items/:itemId/production')
+  @RequireAnyPermissions(
+    'permission.production.update',
+    'permission.production.create',
+    'permission.po.update',
+  )
+  @ApiOperation({
+    summary:
+      'Update produced cartons and status for a PO line item (Supervisor role)',
+  })
+  async updateItemProduction(
+    @CurrentTenant() tenantId: string,
+    @Param('poId') poId: string,
+    @Param('itemId') itemId: string,
+    @Body('completed_cartons') completedCartons: number,
+    @Body('item_status') itemStatus?: string,
+  ) {
+    return this.poService.updateItemProduction(
+      tenantId,
+      poId,
+      itemId,
+      Number(completedCartons) || 0,
+      itemStatus,
+    );
+  }
+
   @Patch('purchase-orders/:poId/items/:itemId/packing')
   @RequirePermissions('permission.packing.update')
   @ApiOperation({ summary: 'Update packed cartons for a PO line item (Packer role)' })

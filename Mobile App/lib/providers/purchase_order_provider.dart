@@ -439,6 +439,40 @@ class PurchaseOrderProvider with ChangeNotifier {
     }
   }
 
+  Future<bool> updateItemProduction({
+    required String poId,
+    required String itemId,
+    required int completedCartons,
+    String? itemStatus,
+  }) async {
+    try {
+      final body = <String, dynamic>{'completed_cartons': completedCartons};
+      if (itemStatus != null) body['item_status'] = itemStatus;
+
+      final res = await apiClient.patch(
+        ApiConstants.poItemProduction(poId, itemId),
+        body: body,
+      );
+      if (res is Map && res['po'] != null) {
+        final updatedPo =
+            PurchaseOrderModel.fromJson(Map<String, dynamic>.from(res['po']));
+        final idx = _purchaseOrders.indexWhere((p) => p.poId == poId);
+        if (idx >= 0) {
+          _purchaseOrders[idx] = updatedPo;
+        }
+      } else {
+        await loadPurchaseOrders();
+      }
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _errorMessage = e.toString();
+      debugPrint('Error updating production: $e');
+      notifyListeners();
+      return false;
+    }
+  }
+
   Future<bool> updateItemPacking({
     required String poId,
     required String itemId,

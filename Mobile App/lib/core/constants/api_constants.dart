@@ -79,6 +79,8 @@ class ApiConstants {
   // Purchase Orders & Customers
   static const String purchaseOrders = '/purchase-orders';
   static const String customers = '/customers';
+  static String poItemProduction(String poId, String itemId) =>
+      '/purchase-orders/$poId/items/$itemId/production';
   static String poItemPacking(String poId, String itemId) =>
       '/purchase-orders/$poId/items/$itemId/packing';
   static String poItemShipping(String poId, String itemId) =>

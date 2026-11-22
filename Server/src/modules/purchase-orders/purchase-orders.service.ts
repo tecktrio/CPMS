@@ -309,6 +309,53 @@ export class PurchaseOrdersService {
     return po;
   }
 
+  async updateItemProduction(
+    tenantId: string,
+    poId: string,
+    itemId: string,
+    completedCartons: number,
+    itemStatus?: string,
+  ) {
+    const po = await this.findOnePurchaseOrder(tenantId, poId);
+    const item = po.items.find((it) => it.item_id === itemId);
+    if (!item) {
+      throw new NotFoundException(
+        `Item "${itemId}" not found in PO "${po.po_number}"`,
+      );
+    }
+
+    item.completed_cartons = Math.max(0, completedCartons);
+    if (itemStatus) {
+      item.item_status = itemStatus;
+    } else {
+      if (item.completed_cartons >= item.cartons) {
+        item.item_status = 'PRODUCED';
+      } else if (item.completed_cartons > 0) {
+        item.item_status = 'IN_PRODUCTION';
+      } else {
+        item.item_status = 'PENDING';
+      }
+    }
+
+    po.total_completed_cartons = po.items.reduce(
+      (sum, it) => sum + (it.completed_cartons || 0),
+      0,
+    );
+
+    // If any item is in production, transition PO status if currently CONFIRMED or DRAFT
+    if (
+      po.total_completed_cartons > 0 &&
+      (po.status === PurchaseOrderStatus.CONFIRMED ||
+        po.status === PurchaseOrderStatus.DRAFT)
+    ) {
+      po.status = PurchaseOrderStatus.IN_PRODUCTION;
+    }
+
+    po.markModified('items');
+    await po.save();
+    return { success: true, item, po };
+  }
+
   async updateItemPacking(
     tenantId: string,
     poId: string,
