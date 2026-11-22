@@ -11,7 +11,7 @@ class SignageEmbedBanner extends StatefulWidget {
 
   const SignageEmbedBanner({
     super.key,
-    this.url = 'https://screen.bigburry.com?mirror_name=demo',
+    this.url = 'https://screen.bigburry.com?mirror_name=CPMS%20app%20banner',
     required this.isWide,
   });
 

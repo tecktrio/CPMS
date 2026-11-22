@@ -14,6 +14,7 @@ class TenantSelectorScreen extends StatefulWidget {
 
 class _TenantSelectorScreenState extends State<TenantSelectorScreen> {
   bool _isRefreshing = false;
+  bool _isSelecting = false;
 
   @override
   void initState() {
@@ -21,7 +22,8 @@ class _TenantSelectorScreenState extends State<TenantSelectorScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final auth = context.read<AuthProvider>();
       final tenantProvider = context.read<TenantProvider>();
-      if (auth.availableTenants.isNotEmpty) {
+      if (auth.availableTenants.length == 1) {
+        if (mounted) setState(() => _isSelecting = true);
         tenantProvider.selectTenant(auth.availableTenants.first).then((_) {
           if (mounted) {
             Navigator.pushReplacement(
@@ -53,6 +55,7 @@ class _TenantSelectorScreenState extends State<TenantSelectorScreen> {
           backgroundColor: Color(0xFF04482D),
         ),
       );
+      setState(() => _isSelecting = true);
       await tenantProvider.selectTenant(tenants.first);
       if (!mounted) return;
       Navigator.pushReplacement(
@@ -139,9 +142,44 @@ class _TenantSelectorScreenState extends State<TenantSelectorScreen> {
                         ),
                       ],
                     ),
-                    child: availableTenants.isNotEmpty
-                        ? _buildTenantList(availableTenants, tenantProvider)
-                        : _buildNoOrganizationView(user),
+                    child: _isSelecting
+                        ? const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 40),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                SizedBox(
+                                  width: 38,
+                                  height: 38,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 3,
+                                    valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF0F172A)),
+                                  ),
+                                ),
+                                SizedBox(height: 20),
+                                Text(
+                                  'Loading workspace modules...',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w700,
+                                    color: Color(0xFF0F172A),
+                                    letterSpacing: -0.2,
+                                  ),
+                                ),
+                                SizedBox(height: 6),
+                                Text(
+                                  'Setting up permissions and operational modules',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: Color(0xFF64748B),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        : (availableTenants.isNotEmpty
+                            ? _buildTenantList(availableTenants, tenantProvider)
+                            : _buildNoOrganizationView(user)),
                   ),
                 ),
               ),
@@ -383,6 +421,7 @@ class _TenantSelectorScreenState extends State<TenantSelectorScreen> {
                   : null,
               trailing: const Icon(Icons.chevron_right, color: Color(0xFF94A3B8)),
               onTap: () async {
+                setState(() => _isSelecting = true);
                 await tenantProvider.selectTenant(t);
                 if (!mounted) return;
                 Navigator.pushReplacement(

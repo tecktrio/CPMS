@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../core/constants/api_constants.dart';
@@ -34,6 +35,17 @@ class DepartmentModel {
       isActive: json['is_active'] ?? true,
     );
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'department_id': departmentId,
+      'tenant_id': tenantId,
+      'department_name': departmentName,
+      'description': description,
+      'permission_ids': permissionIds,
+      'is_active': isActive,
+    };
+  }
 }
 
 class TenantProvider extends ChangeNotifier {
@@ -43,7 +55,9 @@ class TenantProvider extends ChangeNotifier {
   List<DepartmentModel> _tenantDepartments = [];
   final Set<String> _userPermissions = {};
   bool _isLoading = false;
+  bool _hasLoadedPermissions = false;
   String? _errorMessage;
+  Future<void>? _inFlightPermissionsFuture;
 
   TenantProvider({required this.apiClient});
 
@@ -51,10 +65,11 @@ class TenantProvider extends ChangeNotifier {
   String? get selectedDepartmentName {
     if (_activeTenant == null) return null;
     if (_activeTenant!.departmentIds.isNotEmpty) {
-      final assignedId = _activeTenant!.departmentIds.first;
-      for (final d in _tenantDepartments) {
-        if (d.departmentId == assignedId) {
-          return d.departmentName;
+      for (final assignedId in _activeTenant!.departmentIds) {
+        for (final d in _tenantDepartments) {
+          if (d.departmentId == assignedId) {
+            return d.departmentName;
+          }
         }
       }
     }
@@ -67,6 +82,7 @@ class TenantProvider extends ChangeNotifier {
   List<DepartmentModel> get tenantDepartments => _tenantDepartments;
   Set<String> get userPermissions => _userPermissions;
   bool get isLoading => _isLoading;
+  bool get hasLoadedPermissions => _hasLoadedPermissions;
   String? get errorMessage => _errorMessage;
 
   bool get isTenantSelected => _activeTenant != null;
@@ -107,6 +123,58 @@ class TenantProvider extends ChangeNotifier {
     return dept.contains('supervisor');
   }
 
+  /// Whether the user is strictly in the Packer department (not Admin, PM, etc.)
+  bool get isUserInPackerDepartment {
+    if (_activeTenant == null) return false;
+    if (isTenantAdmin || isUserInAdministratorDepartment) return false;
+    for (final assignedId in _activeTenant!.departmentIds) {
+      for (final d in _tenantDepartments) {
+        if (d.departmentId == assignedId &&
+            d.departmentName.trim().toLowerCase().contains('pack')) {
+          return true;
+        }
+      }
+    }
+    final dept = selectedDepartmentName?.toLowerCase() ?? '';
+    return dept.contains('pack');
+  }
+
+  /// Whether the user is strictly in the QC department (not Admin, PM, etc.)
+  bool get isUserInQcDepartment {
+    if (_activeTenant == null) return false;
+    if (isTenantAdmin || isUserInAdministratorDepartment) return false;
+    for (final assignedId in _activeTenant!.departmentIds) {
+      for (final d in _tenantDepartments) {
+        if (d.departmentId == assignedId) {
+          final name = d.departmentName.trim().toLowerCase();
+          if (name == 'qc' || name.contains('qc') || name.contains('quality')) {
+            return true;
+          }
+        }
+      }
+    }
+    final dept = selectedDepartmentName?.toLowerCase() ?? '';
+    return dept == 'qc' || dept.contains('qc') || dept.contains('quality');
+  }
+
+  /// Whether the user is strictly in the Export department (not Admin, PM, etc.)
+  bool get isUserInExportDepartment {
+    if (_activeTenant == null) return false;
+    if (isTenantAdmin || isUserInAdministratorDepartment) return false;
+    for (final assignedId in _activeTenant!.departmentIds) {
+      for (final d in _tenantDepartments) {
+        if (d.departmentId == assignedId) {
+          final name = d.departmentName.trim().toLowerCase();
+          if (name == 'export' || name.contains('export') || name.contains('ship')) {
+            return true;
+          }
+        }
+      }
+    }
+    final dept = selectedDepartmentName?.toLowerCase() ?? '';
+    return dept == 'export' || dept.contains('export') || dept.contains('ship');
+  }
+
   /// Returns the number of departments the user has access to in the active organization
   int get userDepartmentCount {
     if (_activeTenant == null) return 0;
@@ -126,12 +194,13 @@ class TenantProvider extends ChangeNotifier {
 
     if (_userPermissions.contains(permissionId)) return true;
 
-    // Check user's assigned single department permissions
+    // Check all user's assigned departments permissions
     if (_activeTenant!.departmentIds.isNotEmpty) {
-      final assignedId = _activeTenant!.departmentIds.first;
-      for (final d in _tenantDepartments) {
-        if (d.departmentId == assignedId) {
-          if (d.permissionIds.contains(permissionId)) return true;
+      for (final assignedId in _activeTenant!.departmentIds) {
+        for (final d in _tenantDepartments) {
+          if (d.departmentId == assignedId) {
+            if (d.permissionIds.contains(permissionId)) return true;
+          }
         }
       }
     }
@@ -145,11 +214,12 @@ class TenantProvider extends ChangeNotifier {
           return true;
         }
         if (_activeTenant!.departmentIds.isNotEmpty) {
-          final assignedId = _activeTenant!.departmentIds.first;
-          for (final d in _tenantDepartments) {
-            if (d.departmentId == assignedId) {
-              if (d.permissionIds.any((p) => p.startsWith(modulePrefix))) {
-                return true;
+          for (final assignedId in _activeTenant!.departmentIds) {
+            for (final d in _tenantDepartments) {
+              if (d.departmentId == assignedId) {
+                if (d.permissionIds.any((p) => p.startsWith(modulePrefix))) {
+                  return true;
+                }
               }
             }
           }
@@ -170,10 +240,13 @@ class TenantProvider extends ChangeNotifier {
     if (_userPermissions.any((p) => p.startsWith(prefix))) return true;
 
     if (_activeTenant!.departmentIds.isNotEmpty) {
-      final assignedId = _activeTenant!.departmentIds.first;
-      for (final d in _tenantDepartments) {
-        if (d.departmentId == assignedId) {
-          return d.permissionIds.any((p) => p.startsWith(prefix));
+      for (final assignedId in _activeTenant!.departmentIds) {
+        for (final d in _tenantDepartments) {
+          if (d.departmentId == assignedId) {
+            if (d.permissionIds.any((p) => p.startsWith(prefix))) {
+              return true;
+            }
+          }
         }
       }
     }
@@ -185,6 +258,24 @@ class TenantProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Instantly restores locally cached permissions and departments for zero-latency dashboard rendering
+  Future<void> _loadCachedPermissions(String tenantId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final cachedPerms = prefs.getStringList('cpms_tenant_permissions_$tenantId');
+      if (cachedPerms != null && cachedPerms.isNotEmpty) {
+        _userPermissions.clear();
+        _userPermissions.addAll(cachedPerms);
+        _hasLoadedPermissions = true;
+      }
+      final cachedDepts = prefs.getString('cpms_tenant_departments_$tenantId');
+      if (cachedDepts != null && cachedDepts.isNotEmpty) {
+        final List decoded = jsonDecode(cachedDepts);
+        _tenantDepartments = decoded.map((item) => DepartmentModel.fromJson(item)).toList();
+      }
+    } catch (_) {}
+  }
+
   Future<void> selectTenant(TenantOption tenant, {String? initialDepartmentName}) async {
     _activeTenant = tenant;
     apiClient.setActiveTenantId(tenant.tenantId);
@@ -192,11 +283,17 @@ class TenantProvider extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('cpms_active_tenant', tenant.tenantId);
 
-    await Future.wait([
-      loadTenantDepartments(),
-      loadTenantPermissions(),
-    ]);
+    // 1. Instantly load cache if available
+    await _loadCachedPermissions(tenant.tenantId);
+
+    // If cache did not have permissions and user is not admin, mark loading so listeners see loading state immediately
+    if (!_hasLoadedPermissions && !tenant.isAdmin) {
+      _setLoading(true);
+    }
     notifyListeners();
+
+    // 2. Fetch fresh permissions and departments from backend before completing selection
+    await loadTenantPermissions();
   }
 
   Future<void> restoreSavedTenant(List<TenantOption> availableTenants) async {
@@ -210,11 +307,16 @@ class TenantProvider extends ChangeNotifier {
       if (match != null) {
         _activeTenant = match;
         apiClient.setActiveTenantId(savedTenantId);
-        await Future.wait([
-          loadTenantDepartments(),
-          loadTenantPermissions(),
-        ]);
+
+        // 1. Instantly restore cached permissions
+        await _loadCachedPermissions(savedTenantId);
+        if (!_hasLoadedPermissions && !match.isAdmin) {
+          _setLoading(true);
+        }
         notifyListeners();
+
+        // 2. Fetch fresh permissions from network
+        await loadTenantPermissions();
       }
     }
   }
@@ -223,46 +325,70 @@ class TenantProvider extends ChangeNotifier {
     _activeTenant = null;
     _tenantDepartments = [];
     _userPermissions.clear();
+    _hasLoadedPermissions = false;
+    _inFlightPermissionsFuture = null;
     apiClient.setActiveTenantId(null);
     notifyListeners();
   }
 
   Future<void> loadTenantPermissions() async {
     if (_activeTenant == null) return;
-    _setLoading(true);
+    if (_inFlightPermissionsFuture != null) {
+      return _inFlightPermissionsFuture!;
+    }
+    _inFlightPermissionsFuture = _performLoadTenantPermissions();
+    try {
+      await _inFlightPermissionsFuture;
+    } finally {
+      _inFlightPermissionsFuture = null;
+    }
+  }
+
+  Future<void> _performLoadTenantPermissions() async {
+    if (_activeTenant == null) return;
+    final tenantId = _activeTenant!.tenantId;
+    apiClient.setActiveTenantId(tenantId);
+
+    // Only set loading if no permissions are currently available
+    if (_userPermissions.isEmpty && _tenantDepartments.isEmpty) {
+      _setLoading(true);
+    }
+    _errorMessage = null;
 
     try {
       dynamic res;
       // 1. Try /tenants/:id/permissions
       try {
         res = await apiClient.get(
-          ApiConstants.tenantPermissions(_activeTenant!.tenantId),
+          ApiConstants.tenantPermissions(tenantId),
         );
       } catch (_) {
         // Fallback 1: try /tenants/:id/my-permissions
         try {
           res = await apiClient.get(
-            ApiConstants.tenantMyPermissions(_activeTenant!.tenantId),
+            ApiConstants.tenantMyPermissions(tenantId),
           );
         } catch (_) {
           // Fallback 2: try /tenants/:id
           try {
             res = await apiClient.get(
-              ApiConstants.tenantById(_activeTenant!.tenantId),
+              ApiConstants.tenantById(tenantId),
             );
-          } catch (_) {}
+          } catch (e) {
+            _errorMessage = e.toString();
+          }
         }
       }
 
       if (res is Map<String, dynamic>) {
+        final Set<String> freshPermissions = {};
         if (res['permissions'] is List) {
-          _userPermissions.clear();
           for (final p in res['permissions']) {
             final s = p.toString();
-            _userPermissions.add(s);
+            freshPermissions.add(s);
             final parts = s.split('.');
             if (parts.length >= 3) {
-              _userPermissions.add('permission.${parts[1]}.read');
+              freshPermissions.add('permission.${parts[1]}.read');
             }
           }
         }
@@ -289,24 +415,40 @@ class TenantProvider extends ChangeNotifier {
           departmentIds: latestDeptIds,
         );
 
+        List<DepartmentModel> freshDepts = [];
         if (res['departments'] is List) {
-          _tenantDepartments = (res['departments'] as List)
+          freshDepts = (res['departments'] as List)
               .map((item) => DepartmentModel.fromJson(item))
               .toList();
         }
-      }
 
-      _setLoading(false);
-      notifyListeners();
+        _userPermissions.clear();
+        _userPermissions.addAll(freshPermissions);
+        _tenantDepartments = freshDepts;
+
+        // Persist to local cache for instant cold starts
+        try {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setStringList('cpms_tenant_permissions_$tenantId', _userPermissions.toList());
+          await prefs.setString(
+            'cpms_tenant_departments_$tenantId',
+            jsonEncode(_tenantDepartments.map((d) => d.toJson()).toList()),
+          );
+        } catch (_) {}
+      }
     } catch (e) {
       _errorMessage = e.toString();
+    } finally {
+      _hasLoadedPermissions = true;
       _setLoading(false);
       notifyListeners();
     }
   }
 
   Future<void> loadTenantDepartments() async {
-    await loadTenantPermissions();
+    if (_tenantDepartments.isEmpty) {
+      await loadTenantPermissions();
+    }
   }
 
   Future<TenantOption?> createTenant(String companyName) async {

@@ -672,9 +672,9 @@ class _PurchaseOrderDetailScreenState extends State<PurchaseOrderDetailScreen> {
 
                         // Table Footer showing TOTAL CARTONS
                         Container(
-                          color: Colors.white,
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                           decoration: const BoxDecoration(
+                            color: Colors.white,
                             border: Border(top: BorderSide(color: Color(0xFFE2E8F0))),
                           ),
                           child: Row(

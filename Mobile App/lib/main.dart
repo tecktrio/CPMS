@@ -118,6 +118,44 @@ class _AuthGateState extends State<AuthGate> {
     }
 
     if (tenant.isTenantSelected) {
+      if ((!tenant.hasLoadedPermissions || tenant.isLoading) && !tenant.isTenantAdmin) {
+        return Scaffold(
+          backgroundColor: Colors.white,
+          body: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const SizedBox(
+                  width: 38,
+                  height: 38,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 3,
+                    valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF0F172A)),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  'Loading workspace modules...',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF0F172A),
+                    letterSpacing: -0.2,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Setting up permissions for ${tenant.activeTenant?.companyName ?? "your organization"}',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: Color(0xFF64748B),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }
       return const DashboardScreen();
     }
 

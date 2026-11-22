@@ -138,6 +138,10 @@ class _ProductionHubScreenState extends State<ProductionHubScreen> {
         tenant.hasPermission(AppPermissions.productionCreate) ||
         tenant.hasPermission(AppPermissions.productionUpdate);
     final isSupervisor = tenant.isUserInSupervisorDepartment;
+    final isPacker = tenant.isUserInPackerDepartment;
+    final isQc = tenant.isUserInQcDepartment;
+    final isExport = tenant.isUserInExportDepartment;
+    final canAssignTask = !isSupervisor && !isPacker && !isQc && !isExport && canManageProd;
     final canDoQc = isAdmin || tenant.hasPermission(AppPermissions.qcCreate);
     final canUpdatePacking =
         isAdmin || tenant.hasPermission(AppPermissions.packingUpdate);
@@ -236,8 +240,11 @@ class _ProductionHubScreenState extends State<ProductionHubScreen> {
                   ...nonDraftOrders.map((po) => _buildProductionOrderCard(
                         po,
                         canManageProd: canManageProd,
-                        canAssignTask: isSupervisor,
+                        canAssignTask: canAssignTask,
                         isSupervisor: isSupervisor,
+                        isPacker: isPacker,
+                        isQc: isQc,
+                        isExport: isExport,
                         canDoQc: canDoQc,
                         canUpdatePacking: canUpdatePacking,
                         canUpdateShipping: canUpdateShipping,
@@ -345,6 +352,9 @@ class _ProductionHubScreenState extends State<ProductionHubScreen> {
     required bool canManageProd,
     required bool canAssignTask,
     required bool isSupervisor,
+    required bool isPacker,
+    required bool isQc,
+    required bool isExport,
     required bool canDoQc,
     required bool canUpdatePacking,
     required bool canUpdateShipping,
@@ -358,6 +368,11 @@ class _ProductionHubScreenState extends State<ProductionHubScreen> {
         po.items.fold<int>(0, (sum, i) => sum + i.shippedCartons);
     final totalCartons = po.totalCartons > 0 ? po.totalCartons : 1;
     final prodProgress = (totalCompleted / totalCartons).clamp(0.0, 1.0);
+    final packingProgress = (totalPacked / totalCartons).clamp(0.0, 1.0);
+    final shippingProgress = (totalShipped / totalCartons).clamp(0.0, 1.0);
+    final totalQcPassed = po.items.where((i) => i.qcPassed).length;
+    final totalItems = po.items.isNotEmpty ? po.items.length : 1;
+    final qcProgress = (totalQcPassed / totalItems).clamp(0.0, 1.0);
 
     String? daysLeftStr;
     Color daysLeftBg = const Color(0xFFFEF3C7);
@@ -587,34 +602,76 @@ class _ProductionHubScreenState extends State<ProductionHubScreen> {
                 ClipRRect(
                   borderRadius: BorderRadius.circular(2),
                   child: LinearProgressIndicator(
-                    value: prodProgress,
+                    value: isPacker
+                        ? packingProgress
+                        : isQc
+                            ? qcProgress
+                            : isExport
+                                ? shippingProgress
+                                : prodProgress,
                     minHeight: 4,
                     backgroundColor: const Color(0xFFF1F5F9),
-                    valueColor: const AlwaysStoppedAnimation<Color>(
-                        Color(0xFF16A34A)),
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      isPacker
+                          ? const Color(0xFF2563EB)
+                          : isQc
+                              ? const Color(0xFF0F766E)
+                              : isExport
+                                  ? const Color(0xFF6366F1)
+                                  : const Color(0xFF16A34A),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 8),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      'Production: $totalCompleted / ${po.totalCartons} ctns (${(prodProgress * 100).toInt()}%)',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF16A34A),
-                      ),
-                    ),
-                    if (!isSupervisor)
+                    if (isPacker)
                       Text(
-                        'Packed: $totalPacked | Shipped: $totalShipped',
+                        'Packing: $totalPacked / ${po.totalCartons} ctns (${(packingProgress * 100).toInt()}%)',
                         style: const TextStyle(
                           fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                          color: Color(0xFF64748B),
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF2563EB),
+                        ),
+                      )
+                    else if (isQc)
+                      Text(
+                        'QC Inspection: $totalQcPassed / ${po.items.length} items passed (${(qcProgress * 100).toInt()}%)',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF0F766E),
+                        ),
+                      )
+                    else if (isExport)
+                      Text(
+                        'Export / Shipped: $totalShipped / ${po.totalCartons} ctns (${(shippingProgress * 100).toInt()}%)',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF6366F1),
+                        ),
+                      )
+                    else ...[
+                      Text(
+                        'Production: $totalCompleted / ${po.totalCartons} ctns (${(prodProgress * 100).toInt()}%)',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF16A34A),
                         ),
                       ),
+                      if (!isSupervisor)
+                        Text(
+                          'Packed: $totalPacked | Shipped: $totalShipped',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: Color(0xFF64748B),
+                          ),
+                        ),
+                    ],
                   ],
                 ),
               ],
@@ -861,6 +918,344 @@ class _ProductionHubScreenState extends State<ProductionHubScreen> {
                                   ),
                                 ],
                               )
+                            else if (isPacker)
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 6,
+                                crossAxisAlignment: WrapCrossAlignment.center,
+                                children: [
+                                  // Status Badge: PACKED / IN PACKING / PENDING
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: item.packedCartons >= item.cartons
+                                          ? const Color(0xFFF0FDF4)
+                                          : item.packedCartons > 0
+                                              ? const Color(0xFFEFF6FF)
+                                              : const Color(0xFFF8FAFC),
+                                      borderRadius: BorderRadius.circular(6),
+                                      border: Border.all(
+                                        color: item.packedCartons >= item.cartons
+                                            ? const Color(0xFFBBF7D0)
+                                            : item.packedCartons > 0
+                                                ? const Color(0xFFBFDBFE)
+                                                : const Color(0xFFE2E8F0),
+                                      ),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          item.packedCartons >= item.cartons
+                                              ? Icons.check_circle
+                                              : Icons.inventory_2_outlined,
+                                          size: 13,
+                                          color: item.packedCartons >= item.cartons
+                                              ? const Color(0xFF16A34A)
+                                              : item.packedCartons > 0
+                                                  ? const Color(0xFF2563EB)
+                                                  : const Color(0xFF64748B),
+                                        ),
+                                        const SizedBox(width: 5),
+                                        Text(
+                                          item.packedCartons >= item.cartons
+                                              ? 'PACKED'
+                                              : item.packedCartons > 0
+                                                  ? 'IN PACKING'
+                                                  : 'PENDING',
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w700,
+                                            color: item.packedCartons >= item.cartons
+                                                ? const Color(0xFF16A34A)
+                                                : item.packedCartons > 0
+                                                    ? const Color(0xFF2563EB)
+                                                    : const Color(0xFF64748B),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+
+                                  // Packed Stepper (+ and - buttons)
+                                  Container(
+                                    height: 30,
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(6),
+                                      border: Border.all(color: const Color(0xFFCBD5E1)),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        InkWell(
+                                          borderRadius: const BorderRadius.horizontal(left: Radius.circular(5)),
+                                          onTap: item.packedCartons > 0
+                                              ? () => _updatePackedCount(po, item, item.packedCartons - 1)
+                                              : null,
+                                          child: Padding(
+                                            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+                                            child: Text(
+                                              '−',
+                                              style: TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.w800,
+                                                color: item.packedCartons > 0
+                                                    ? const Color(0xFF0F172A)
+                                                    : const Color(0xFFCBD5E1),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                        Container(height: 18, width: 1, color: const Color(0xFFE2E8F0)),
+                                        InkWell(
+                                          onTap: () => _showEditPackedDialog(po, item),
+                                          child: Padding(
+                                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                                            child: Text(
+                                              '${item.packedCartons} / ${item.cartons} ctns',
+                                              style: const TextStyle(
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w800,
+                                                color: Color(0xFF0F172A),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                        Container(height: 18, width: 1, color: const Color(0xFFE2E8F0)),
+                                        InkWell(
+                                          borderRadius: const BorderRadius.horizontal(right: Radius.circular(5)),
+                                          onTap: item.packedCartons < item.cartons
+                                              ? () => _updatePackedCount(po, item, item.packedCartons + 1)
+                                              : null,
+                                          child: Padding(
+                                            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+                                            child: Text(
+                                              '+',
+                                              style: TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.w800,
+                                                color: item.packedCartons < item.cartons
+                                                    ? const Color(0xFF0F172A)
+                                                    : const Color(0xFFCBD5E1),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              )
+                            else if (isQc)
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 6,
+                                crossAxisAlignment: WrapCrossAlignment.center,
+                                children: [
+                                  // QC Status Badge
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: item.qcPassed ? const Color(0xFFF0FDF4) : const Color(0xFFFFFBEB),
+                                      borderRadius: BorderRadius.circular(6),
+                                      border: Border.all(
+                                        color: item.qcPassed ? const Color(0xFFBBF7D0) : const Color(0xFFFDE68A),
+                                      ),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          item.qcPassed ? Icons.check_circle : Icons.pending_actions_outlined,
+                                          size: 13,
+                                          color: item.qcPassed ? const Color(0xFF16A34A) : const Color(0xFFD97706),
+                                        ),
+                                        const SizedBox(width: 5),
+                                        Text(
+                                          item.qcPassed ? 'QC: PASSED' : 'QC: PENDING',
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w700,
+                                            color: item.qcPassed ? const Color(0xFF16A34A) : const Color(0xFFB45309),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+
+                                  // Update QC Button
+                                  InkWell(
+                                    onTap: () => ProductionStatusDialogs.showQcInspectionDialog(
+                                      context,
+                                      po,
+                                      item,
+                                      onUpdated: () => context.read<PurchaseOrderProvider>().loadPurchaseOrders(),
+                                    ),
+                                    borderRadius: BorderRadius.circular(6),
+                                    child: Container(
+                                      height: 30,
+                                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                                      decoration: BoxDecoration(
+                                        color: item.qcPassed ? const Color(0xFFF8FAFC) : const Color(0xFF0F766E),
+                                        borderRadius: BorderRadius.circular(6),
+                                        border: Border.all(
+                                          color: item.qcPassed ? const Color(0xFFCBD5E1) : const Color(0xFF0F766E),
+                                        ),
+                                      ),
+                                      alignment: Alignment.center,
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(
+                                            item.qcPassed ? Icons.edit_outlined : Icons.verified_outlined,
+                                            size: 13,
+                                            color: item.qcPassed ? const Color(0xFF334155) : Colors.white,
+                                          ),
+                                          const SizedBox(width: 5),
+                                          Text(
+                                            item.qcPassed ? 'Edit QC' : 'Inspect & Approve',
+                                            style: TextStyle(
+                                              fontSize: 11.5,
+                                              fontWeight: FontWeight.w700,
+                                              color: item.qcPassed ? const Color(0xFF334155) : Colors.white,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              )
+                            else if (isExport)
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 6,
+                                crossAxisAlignment: WrapCrossAlignment.center,
+                                children: [
+                                  // Export / Shipping Status Badge
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: item.shippedCartons >= item.cartons
+                                          ? const Color(0xFFF0FDF4)
+                                          : item.shippedCartons > 0
+                                              ? const Color(0xFFEEF2FF)
+                                              : const Color(0xFFF8FAFC),
+                                      borderRadius: BorderRadius.circular(6),
+                                      border: Border.all(
+                                        color: item.shippedCartons >= item.cartons
+                                            ? const Color(0xFFBBF7D0)
+                                            : item.shippedCartons > 0
+                                                ? const Color(0xFFC7D2FE)
+                                                : const Color(0xFFE2E8F0),
+                                      ),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          item.shippedCartons >= item.cartons
+                                              ? Icons.check_circle
+                                              : Icons.local_shipping_outlined,
+                                          size: 13,
+                                          color: item.shippedCartons >= item.cartons
+                                              ? const Color(0xFF16A34A)
+                                              : item.shippedCartons > 0
+                                                  ? const Color(0xFF4F46E5)
+                                                  : const Color(0xFF64748B),
+                                        ),
+                                        const SizedBox(width: 5),
+                                        Text(
+                                          item.shippedCartons >= item.cartons
+                                              ? 'SHIPPED'
+                                              : item.shippedCartons > 0
+                                                  ? 'IN DISPATCH'
+                                                  : 'PENDING',
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w700,
+                                            color: item.shippedCartons >= item.cartons
+                                                ? const Color(0xFF16A34A)
+                                                : item.shippedCartons > 0
+                                                    ? const Color(0xFF4F46E5)
+                                                    : const Color(0xFF64748B),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+
+                                  // Export Stepper (+ and - buttons)
+                                  Container(
+                                    height: 30,
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(6),
+                                      border: Border.all(color: const Color(0xFFCBD5E1)),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        InkWell(
+                                          borderRadius: const BorderRadius.horizontal(left: Radius.circular(5)),
+                                          onTap: item.shippedCartons > 0
+                                              ? () => _updateShippedCount(po, item, item.shippedCartons - 1)
+                                              : null,
+                                          child: Padding(
+                                            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+                                            child: Text(
+                                              '−',
+                                              style: TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.w800,
+                                                color: item.shippedCartons > 0
+                                                    ? const Color(0xFF0F172A)
+                                                    : const Color(0xFFCBD5E1),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                        Container(height: 18, width: 1, color: const Color(0xFFE2E8F0)),
+                                        InkWell(
+                                          onTap: () => _showEditShippedDialog(po, item),
+                                          child: Padding(
+                                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                                            child: Text(
+                                              '${item.shippedCartons} / ${item.cartons} ctns',
+                                              style: const TextStyle(
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w800,
+                                                color: Color(0xFF0F172A),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                        Container(height: 18, width: 1, color: const Color(0xFFE2E8F0)),
+                                        InkWell(
+                                          borderRadius: const BorderRadius.horizontal(right: Radius.circular(5)),
+                                          onTap: item.shippedCartons < item.cartons
+                                              ? () => _updateShippedCount(po, item, item.shippedCartons + 1)
+                                              : null,
+                                          child: Padding(
+                                            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+                                            child: Text(
+                                              '+',
+                                              style: TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.w800,
+                                                color: item.shippedCartons < item.cartons
+                                                    ? const Color(0xFF0F172A)
+                                                    : const Color(0xFFCBD5E1),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              )
                             else
                               SingleChildScrollView(
                                 scrollDirection: Axis.horizontal,
@@ -952,7 +1347,7 @@ class _ProductionHubScreenState extends State<ProductionHubScreen> {
                       ),
                       const SizedBox(width: 14),
 
-                      // Assign Task Button (only visible for Supervisor department)
+                      // Assign Task Button (hidden for Supervisor, Packer, QC, Export roles)
                       if (canAssignTask)
                         OutlinedButton.icon(
                           onPressed: () => ProductionStatusDialogs
@@ -974,7 +1369,7 @@ class _ProductionHubScreenState extends State<ProductionHubScreen> {
                           ),
                         ),
 
-                      if (!isSupervisor && (canDoQc || canUpdatePacking || canUpdateShipping)) ...[
+                      if (!isSupervisor && !isPacker && !isQc && !isExport && (canDoQc || canUpdatePacking || canUpdateShipping)) ...[
                         const SizedBox(width: 6),
                         PopupMenuButton<String>(
                           icon: const Icon(Icons.more_vert, size: 18, color: Color(0xFF64748B)),
@@ -1088,6 +1483,173 @@ class _ProductionHubScreenState extends State<ProductionHubScreen> {
               final val = int.tryParse(controller.text.trim()) ?? item.completedCartons;
               Navigator.pop(ctx);
               _updateProducedCount(po, item, val);
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _updatePackedCount(
+    PurchaseOrderModel po,
+    PurchaseOrderItemModel item,
+    int newCount,
+  ) async {
+    final clamped = newCount.clamp(0, item.cartons);
+    if (clamped == item.packedCartons) return;
+
+    final poProv = context.read<PurchaseOrderProvider>();
+    final success = await poProv.updateItemPacking(
+      poId: po.poId,
+      itemId: item.itemId,
+      packedCartons: clamped,
+    );
+
+    if (!success && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(poProv.errorMessage ?? 'Failed to update packed cartons.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  void _showEditPackedDialog(
+    PurchaseOrderModel po,
+    PurchaseOrderItemModel item,
+  ) {
+    final controller = TextEditingController(text: '${item.packedCartons}');
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        title: Text(
+          'Update Packed: ${item.itemName}',
+          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Total required: ${item.cartons} cartons | Currently packed: ${item.packedCartons}',
+              style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: controller,
+              keyboardType: TextInputType.number,
+              autofocus: true,
+              decoration: InputDecoration(
+                labelText: 'Packed Cartons',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel', style: TextStyle(color: Color(0xFF64748B))),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF2563EB),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+            ),
+            onPressed: () {
+              final val = int.tryParse(controller.text.trim()) ?? item.packedCartons;
+              Navigator.pop(ctx);
+              _updatePackedCount(po, item, val);
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _updateShippedCount(
+    PurchaseOrderModel po,
+    PurchaseOrderItemModel item,
+    int newCount,
+  ) async {
+    final clamped = newCount.clamp(0, item.cartons);
+    if (clamped == item.shippedCartons) return;
+
+    final poProv = context.read<PurchaseOrderProvider>();
+    final success = await poProv.updateItemShipping(
+      poId: po.poId,
+      itemId: item.itemId,
+      shippedCartons: clamped,
+      itemStatus: clamped >= item.cartons ? 'SHIPPED' : (clamped > 0 ? 'SHIPPING' : 'PENDING'),
+    );
+
+    if (!success && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(poProv.errorMessage ?? 'Failed to update shipped cartons.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  void _showEditShippedDialog(
+    PurchaseOrderModel po,
+    PurchaseOrderItemModel item,
+  ) {
+    final controller = TextEditingController(text: '${item.shippedCartons}');
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        title: Text(
+          'Update Shipped: ${item.itemName}',
+          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Total required: ${item.cartons} cartons | Currently shipped: ${item.shippedCartons}',
+              style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: controller,
+              keyboardType: TextInputType.number,
+              autofocus: true,
+              decoration: InputDecoration(
+                labelText: 'Shipped Cartons',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel', style: TextStyle(color: Color(0xFF64748B))),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF4F46E5),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+            ),
+            onPressed: () {
+              final val = int.tryParse(controller.text.trim()) ?? item.shippedCartons;
+              Navigator.pop(ctx);
+              _updateShippedCount(po, item, val);
             },
             child: const Text('Save'),
           ),

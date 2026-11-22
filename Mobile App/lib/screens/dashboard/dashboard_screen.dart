@@ -76,14 +76,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final tenant = context.read<TenantProvider>();
     final inventory = context.read<InventoryProvider>();
     final dept = context.read<DepartmentProvider>();
-    await Future.wait([
-      tenant.loadTenantPermissions(),
-      tenant.loadTenantDepartments(),
-      dept.loadTenantUsers(),
-      inventory.loadItems(),
-      inventory.loadStoreRooms(),
-      context.read<EmergencyContactsProvider>().loadContacts(),
-    ]);
+    try {
+      await Future.wait([
+        tenant.loadTenantPermissions(),
+        dept.loadTenantUsers(),
+        inventory.loadItems(),
+        inventory.loadStoreRooms(),
+        context.read<EmergencyContactsProvider>().loadContacts(),
+      ]);
+    } catch (_) {}
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   Future<void> _pickAndUploadAvatar(BuildContext context) async {
@@ -322,7 +326,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final hasProductionAccess = isAdmin ||
         tenant.hasPermission(AppPermissions.productionRead) ||
         tenant.hasPermission(AppPermissions.productionCreate) ||
-        tenant.hasPermission(AppPermissions.productionUpdate);
+        tenant.hasPermission(AppPermissions.productionUpdate) ||
+        tenant.hasPermission(AppPermissions.packingUpdate) ||
+        tenant.hasPermission(AppPermissions.exportUpdate) ||
+        tenant.hasPermission(AppPermissions.qcRead) ||
+        tenant.hasPermission(AppPermissions.qcCreate);
 
     final departmentsBadgeCount = tenant.tenantDepartments.isNotEmpty
         ? tenant.tenantDepartments.length
@@ -415,6 +423,46 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     final allowedModules = modules.where((m) => m.isPermitted).toList();
 
+    // Guard: Block displaying the dashboard until operational permissions & modules are fully loaded
+    if ((!tenant.hasLoadedPermissions || tenant.isLoading) && !isAdmin && allowedModules.isEmpty) {
+      return Scaffold(
+        backgroundColor: Colors.white,
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const SizedBox(
+                width: 38,
+                height: 38,
+                child: CircularProgressIndicator(
+                  strokeWidth: 3,
+                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF0F172A)),
+                ),
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'Loading workspace modules...',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF0F172A),
+                  letterSpacing: -0.2,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Setting up permissions for ${activeTenant?.companyName ?? "organization"}',
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: Color(0xFF64748B),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     final tenantDisplayName = activeTenant != null && activeTenant.companyName.isNotEmpty
         ? activeTenant.companyName.toLowerCase()
         : 'organization';
@@ -425,7 +473,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final userInitial = userName.isNotEmpty ? userName[0].toUpperCase() : 'U';
     final userAvatarUrl = ApiConstants.resolveImageUrl(user?.avatarUrl);
 
-    final horizontalPadding = isWide ? 16.0 : 6.0;
+    final horizontalPadding = isWide ? 28.0 : 16.0;
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -655,7 +703,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             physics: const AlwaysScrollableScrollPhysics(),
             padding: EdgeInsets.symmetric(
               horizontal: horizontalPadding,
-              vertical: isWide ? 32 : 16,
+              vertical: isWide ? 28 : 24,
             ),
             children: [
               // 0. High-Tech Factory Banner Ad / Browser View Widget
@@ -684,7 +732,37 @@ class _DashboardScreenState extends State<DashboardScreen> {
               SizedBox(height: isWide ? 28 : 16),
 
               // 2. Apps Launcher Row/Wrap (Responsive: 5 on wide/tablet, 3-4 on mobile)
-              if (allowedModules.isEmpty)
+              if ((tenant.isLoading || !tenant.hasLoadedPermissions) && allowedModules.isEmpty)
+                Container(
+                  padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                  ),
+                  child: const Center(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                        SizedBox(width: 12),
+                        Text(
+                          'Loading operational modules...',
+                          style: TextStyle(
+                            color: Color(0xFF64748B),
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              else if (allowedModules.isEmpty)
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
@@ -692,16 +770,33 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: const Color(0xFFE2E8F0)),
                   ),
-                  child: const Center(
-                    child: Text(
-                      'No operational modules permitted for your current department scope.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Color(0xFF64748B),
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
+                  child: Column(
+                    children: [
+                      const Center(
+                        child: Text(
+                          'No operational modules permitted for your current department scope.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Color(0xFF64748B),
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
                       ),
-                    ),
+                      const SizedBox(height: 12),
+                      OutlinedButton.icon(
+                        onPressed: () {
+                          tenant.loadTenantPermissions();
+                        },
+                        icon: const Icon(Icons.refresh_rounded, size: 16),
+                        label: const Text('Refresh Permissions', style: TextStyle(fontSize: 12)),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: const Color(0xFF0F172A),
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          side: const BorderSide(color: Color(0xFFCBD5E1)),
+                        ),
+                      ),
+                    ],
                   ),
                 )
               else
@@ -1275,7 +1370,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
           constraints: const BoxConstraints(maxWidth: 1100),
           child: ListView(
             physics: const AlwaysScrollableScrollPhysics(),
-            padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: 16),
+            padding: EdgeInsets.symmetric(
+              horizontal: horizontalPadding,
+              vertical: isWide ? 28 : 24,
+            ),
             children: [
             // Header Row: Alerts + [ • 2 Critical ]
             Row(
@@ -1722,7 +1820,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
           constraints: const BoxConstraints(maxWidth: 1100),
           child: ListView(
             physics: const AlwaysScrollableScrollPhysics(),
-            padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: 16),
+            padding: EdgeInsets.symmetric(
+              horizontal: horizontalPadding,
+              vertical: isWide ? 28 : 24,
+            ),
             children: [
             // Page Header
             const Text(

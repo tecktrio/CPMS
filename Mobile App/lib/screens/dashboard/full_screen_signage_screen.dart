@@ -10,11 +10,11 @@ class FullScreenSignageScreen extends StatefulWidget {
 
   const FullScreenSignageScreen({
     super.key,
-    this.url = 'https://screen.bigburry.com?mirror_name=demo',
+    this.url = 'https://screen.bigburry.com?mirror_name=CPMS%20app%20banner',
   });
 
   static Future<void> open(BuildContext context, {String? url}) async {
-    final targetUrl = url ?? 'https://screen.bigburry.com?mirror_name=demo';
+    final targetUrl = url ?? 'https://screen.bigburry.com?mirror_name=CPMS%20app%20banner';
     if (kIsWeb) {
       final uri = Uri.parse(targetUrl);
       if (await canLaunchUrl(uri)) {
