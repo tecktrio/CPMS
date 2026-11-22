@@ -301,7 +301,7 @@ class _SignInScreenState extends State<SignInScreen> {
                         ),
                         const SizedBox(height: 24),
 
-                        // Sign In with Email Button
+                        // Sign In Button
                         SizedBox(
                           width: double.infinity,
                           height: 52,
@@ -325,7 +325,7 @@ class _SignInScreenState extends State<SignInScreen> {
                                     ),
                                   )
                                 : const Text(
-                                    'Sign In with Email',
+                                    'Sign In',
                                     style: TextStyle(
                                       fontWeight: FontWeight.w700,
                                       fontSize: 15,
