@@ -271,29 +271,65 @@ class AuthProvider extends ChangeNotifier {
     });
   }
 
-  Future<bool> requestPasswordReset(String email) async {
+  Map<String, dynamic>? _lastResetInfo;
+  Map<String, dynamic>? get lastResetInfo => _lastResetInfo;
+
+  Future<Map<String, dynamic>?> requestPasswordReset(String usernameOrEmail) async {
     _setLoading(true);
     _errorMessage = null;
 
     try {
-      await apiClient.post(ApiConstants.forgotPassword, body: {
-        'email_address': email.trim().toLowerCase(),
-      });
+      final isEmail = usernameOrEmail.contains('@');
+      final payload = isEmail
+          ? {'email_address': usernameOrEmail.trim().toLowerCase()}
+          : {'user_name': usernameOrEmail.trim().toLowerCase()};
+
+      final response = await apiClient.post(ApiConstants.forgotPassword, body: payload);
       _setLoading(false);
-      return true;
+      if (response is Map<String, dynamic>) {
+        _lastResetInfo = response;
+        return response;
+      }
+      return {'success': true};
     } on ApiException catch (e) {
       _errorMessage = e.message;
       _setLoading(false);
-      return false;
+      return null;
     } catch (e) {
       _errorMessage = e.toString();
       _setLoading(false);
-      return false;
+      return null;
+    }
+  }
+
+  Future<List<Map<String, dynamic>>?> findUsernamesByEmail(String email) async {
+    _setLoading(true);
+    _errorMessage = null;
+
+    try {
+      final response = await apiClient.post(ApiConstants.findUsernames, body: {
+        'email_address': email.trim().toLowerCase(),
+      });
+      _setLoading(false);
+      if (response is Map<String, dynamic>) {
+        final List users = response['users'] ?? [];
+        return users.map((u) => Map<String, dynamic>.from(u as Map)).toList();
+      }
+      return [];
+    } on ApiException catch (e) {
+      _errorMessage = e.message;
+      _setLoading(false);
+      return null;
+    } catch (e) {
+      _errorMessage = e.toString();
+      _setLoading(false);
+      return null;
     }
   }
 
   Future<bool> resetPassword({
-    required String email,
+    required String username,
+    String? email,
     required String otpCode,
     required String newPassword,
   }) async {
@@ -301,11 +337,20 @@ class AuthProvider extends ChangeNotifier {
     _errorMessage = null;
 
     try {
-      await apiClient.post(ApiConstants.resetPassword, body: {
-        'email_address': email.trim().toLowerCase(),
+      final body = <String, dynamic>{
         'otp_code': otpCode.trim(),
         'new_password': newPassword,
-      });
+      };
+      if (username.contains('@')) {
+        body['email_address'] = username.trim().toLowerCase();
+      } else {
+        body['user_name'] = username.trim().toLowerCase();
+        if (email != null && email.isNotEmpty) {
+          body['email_address'] = email.trim().toLowerCase();
+        }
+      }
+
+      await apiClient.post(ApiConstants.resetPassword, body: body);
       _setLoading(false);
       return true;
     } on ApiException catch (e) {

@@ -11,7 +11,7 @@ import '../../providers/inventory_provider.dart';
 import '../../providers/tenant_provider.dart';
 import '../../providers/emergency_contacts_provider.dart';
 import 'manage_emergency_contacts_modal.dart';
-import 'full_screen_signage_screen.dart';
+import 'signage_embed_banner.dart';
 import '../departments/departments_list_screen.dart';
 import '../items/item_detail_screen.dart';
 import '../items/items_list_screen.dart';
@@ -2530,127 +2530,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   // ==========================================
-  // TOP BANNER AD (BROWSER VIEW WIDGET)
+  // TOP BANNER AD (EMBEDDED BROWSER VIEW)
   // ==========================================
   Widget _buildBannerAd({required bool isWide}) {
-    return Container(
-      width: double.infinity,
-      constraints: BoxConstraints(
-        maxHeight: isWide ? 220 : 160,
-      ),
-      child: AspectRatio(
-        aspectRatio: isWide ? (16 / 5.2) : (16 / 6.5),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(16),
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              // 1. High-Tech Media Image
-              Image.asset(
-                'assets/images/banner_ad.jpg',
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    color: const Color(0xFF0F172A),
-                    child: const Center(
-                      child: Icon(
-                        Icons.precision_manufacturing_outlined,
-                        size: 48,
-                        color: Colors.white54,
-                      ),
-                    ),
-                  );
-                },
-              ),
-
-              // 2. Interactive Click Overlay
-              Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: () => FullScreenSignageScreen.open(context),
-                  splashColor: Colors.white.withValues(alpha: 0.15),
-                  highlightColor: Colors.white.withValues(alpha: 0.08),
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Live Ad Badge
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.black.withValues(alpha: 0.6),
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                              color: Colors.white.withValues(alpha: 0.2),
-                              width: 1,
-                            ),
-                          ),
-                          child: const Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.circle,
-                                  size: 7, color: Color(0xFF22C55E)),
-                              SizedBox(width: 6),
-                              Text(
-                                'SCREENPILOT • MEDIA & ADS',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 9.5,
-                                  fontWeight: FontWeight.w800,
-                                  letterSpacing: 0.6,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-
-                        // Bottom Action Row
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 6),
-                              decoration: BoxDecoration(
-                                color: Colors.black.withValues(alpha: 0.65),
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(
-                                  color: Colors.white.withValues(alpha: 0.25),
-                                  width: 1,
-                                ),
-                              ),
-                              child: const Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(Icons.fullscreen,
-                                      color: Colors.white, size: 16),
-                                  SizedBox(width: 5),
-                                  Text(
-                                    'Full Screen',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
+    return SignageEmbedBanner(isWide: isWide);
   }
 
   Widget _buildAppModuleItem(_DashboardModuleItem mod, {required bool isWide}) {

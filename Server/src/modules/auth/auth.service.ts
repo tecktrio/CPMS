@@ -32,6 +32,7 @@ import { SignInDto } from './dtos/sign-in.dto';
 import { VerifyOtpDto } from './dtos/verify-otp.dto';
 import { ForgotPasswordDto } from './dtos/forgot-password.dto';
 import { ResetPasswordDto } from './dtos/reset-password.dto';
+import { FindUsernamesDto } from './dtos/find-usernames.dto';
 
 @Injectable()
 export class AuthService implements OnModuleInit {
@@ -356,38 +357,140 @@ export class AuthService implements OnModuleInit {
     };
   }
 
-  async forgotPassword(dto: ForgotPasswordDto) {
-    const email = dto.email_address.toLowerCase().trim();
-    const user = await this.userModel.findOne({ email_address: email });
+  async findUsernamesByEmail(dto: FindUsernamesDto) {
+    const email = dto.email_address?.toLowerCase().trim();
+    if (!email) {
+      throw new BadRequestException('Email address is required');
+    }
 
-    if (!user) {
-      throw new NotFoundException('No account found with this email address');
+    const users = await this.userModel
+      .find({
+        email_address: email,
+        account_status: { $ne: UserAccountStatus.SUSPENDED },
+      })
+      .select('user_name full_name account_status created_at')
+      .exec();
+
+    if (!users || users.length === 0) {
+      throw new NotFoundException('No active accounts found for this email address');
+    }
+
+    const usernames = users.map((u) => u.user_name);
+    try {
+      await this.emailService.sendUsernamesReminderEmail(email, usernames);
+    } catch (_) {}
+
+    return {
+      message: `Found ${users.length} username(s) associated with this email address.`,
+      email_address: email,
+      count: users.length,
+      usernames,
+      users: users.map((u) => ({
+        user_name: u.user_name,
+        full_name: u.full_name,
+        account_status: u.account_status,
+      })),
+    };
+  }
+
+  async forgotPassword(dto: ForgotPasswordDto) {
+    const rawUsername = dto.user_name?.trim().toLowerCase();
+    const rawEmail = dto.email_address?.trim().toLowerCase();
+
+    let user: UserDocument | null = null;
+
+    if (rawUsername) {
+      user = await this.userModel.findOne({ user_name: rawUsername });
+      if (!user) {
+        throw new NotFoundException(`No account found with username "${dto.user_name}"`);
+      }
+    } else if (rawEmail) {
+      const matchingUsers = await this.userModel.find({ email_address: rawEmail });
+      if (matchingUsers.length === 0) {
+        throw new NotFoundException('No account found with this email address');
+      }
+      if (matchingUsers.length > 1) {
+        throw new BadRequestException(
+          'Multiple accounts share this email address. Please provide your username or use "Find Usernames".',
+        );
+      }
+      user = matchingUsers[0];
+    } else {
+      throw new BadRequestException('Username is required to request a password reset');
     }
 
     if (user.account_status !== UserAccountStatus.ACTIVE) {
       throw new UnauthorizedException(`Account is ${user.account_status.toLowerCase()}`);
     }
 
-    const otpCode = await this.generateAndSaveOtp(user.email_address);
-    await this.emailService.sendPasswordResetOtpEmail(user.email_address, otpCode);
+    const otpCode = await this.generateAndSaveOtp(user.email_address, user.user_name);
+    await this.emailService.sendPasswordResetOtpEmail(user.email_address, otpCode, user.user_name);
+
+    // Mask email for user hint & privacy: j***e@domain.com
+    let maskedEmail = user.email_address;
+    const parts = user.email_address.split('@');
+    if (parts.length === 2) {
+      const local = parts[0];
+      const domain = parts[1];
+      const maskedLocal =
+        local.length > 2
+          ? `${local[0]}***${local[local.length - 1]}`
+          : `${local[0]}*`;
+      maskedEmail = `${maskedLocal}@${domain}`;
+    }
 
     return {
-      message: 'Password reset code has been sent to your email address.',
+      message: `Password reset verification code has been sent to the email address registered with username "${user.user_name}".`,
+      user_name: user.user_name,
       email_address: user.email_address,
+      masked_email: maskedEmail,
     };
   }
 
   async resetPassword(dto: ResetPasswordDto) {
-    const email = dto.email_address.toLowerCase().trim();
+    const rawUsername = dto.user_name?.trim().toLowerCase();
+    const rawEmail = dto.email_address?.trim().toLowerCase();
 
-    // Find the latest unexpired OTP for this email
+    let user: UserDocument | null = null;
+
+    if (rawUsername) {
+      user = await this.userModel.findOne({ user_name: rawUsername });
+      if (!user) {
+        throw new NotFoundException(`Account with username "${dto.user_name}" not found`);
+      }
+    } else if (rawEmail) {
+      const matchingUsers = await this.userModel.find({ email_address: rawEmail });
+      if (matchingUsers.length === 0) {
+        throw new NotFoundException('Account not found');
+      }
+      if (matchingUsers.length > 1) {
+        throw new BadRequestException(
+          'Multiple accounts share this email address. Please specify your username.',
+        );
+      }
+      user = matchingUsers[0];
+    } else {
+      throw new BadRequestException('Username is required to reset password');
+    }
+
+    // Match unexpired OTP code for this user by user_name or email_address
+    const otpQuery: any = {
+      otp_code: dto.otp_code.trim(),
+      expires_at: { $gt: new Date() },
+      is_verified: false,
+    };
+
+    if (user.user_name) {
+      otpQuery.$or = [
+        { user_name: user.user_name },
+        { email_address: user.email_address },
+      ];
+    } else {
+      otpQuery.email_address = user.email_address;
+    }
+
     const otpRecord = await this.otpModel
-      .findOne({
-        email_address: email,
-        otp_code: dto.otp_code.trim(),
-        expires_at: { $gt: new Date() },
-        is_verified: false,
-      })
+      .findOne(otpQuery)
       .sort({ created_at: -1 });
 
     if (!otpRecord) {
@@ -398,11 +501,6 @@ export class AuthService implements OnModuleInit {
     otpRecord.is_verified = true;
     await otpRecord.save();
 
-    const user = await this.userModel.findOne({ email_address: email });
-    if (!user) {
-      throw new NotFoundException('Account not found');
-    }
-
     // Hash the new password
     const saltRounds = 10;
     const newPasswordHash = await bcrypt.hash(dto.new_password, saltRounds);
@@ -412,6 +510,7 @@ export class AuthService implements OnModuleInit {
 
     return {
       message: 'Password has been reset successfully. You can now sign in with your new password.',
+      user_name: user.user_name,
       email_address: user.email_address,
     };
   }

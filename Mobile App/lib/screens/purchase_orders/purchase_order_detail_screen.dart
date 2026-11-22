@@ -7,7 +7,6 @@ import '../../providers/production_provider.dart';
 import '../../providers/purchase_order_provider.dart';
 import '../../providers/tenant_provider.dart';
 import '../../services/purchase_order_export_service.dart';
-import '../../widgets/user_profile_avatar.dart';
 import 'create_purchase_order_screen.dart';
 import 'purchase_order_export_screen.dart';
 
@@ -38,10 +37,10 @@ class _PurchaseOrderDetailScreenState extends State<PurchaseOrderDetailScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         title: const Text(
           'Delete Purchase Order',
-          style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
+          style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18, color: Color(0xFF0F172A)),
         ),
         content: Text(
           'Are you sure you want to delete PO "${po.poNumber}"? This action cannot be undone.',
@@ -49,20 +48,15 @@ class _PurchaseOrderDetailScreenState extends State<PurchaseOrderDetailScreen> {
         ),
         actions: [
           TextButton(
-            style: TextButton.styleFrom(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-            ),
             onPressed: () => Navigator.pop(ctx, false),
             child: const Text('Cancel', style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w600)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFEF4444),
+              backgroundColor: const Color(0xFFDC2626),
               foregroundColor: Colors.white,
               elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(4),
-              ),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
             ),
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('Delete', style: TextStyle(fontWeight: FontWeight.w700)),
@@ -83,7 +77,7 @@ class _PurchaseOrderDetailScreenState extends State<PurchaseOrderDetailScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Purchase order deleted successfully'),
-          backgroundColor: Colors.black,
+          backgroundColor: Color(0xFF0F172A),
         ),
       );
       Navigator.pop(context);
@@ -92,7 +86,7 @@ class _PurchaseOrderDetailScreenState extends State<PurchaseOrderDetailScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(err ?? 'Failed to delete purchase order'),
-          backgroundColor: const Color(0xFFEF4444),
+          backgroundColor: const Color(0xFFDC2626),
         ),
       );
     }
@@ -101,36 +95,54 @@ class _PurchaseOrderDetailScreenState extends State<PurchaseOrderDetailScreen> {
   Color _getStatusBg(String status) {
     switch (status.toUpperCase()) {
       case 'CONFIRMED':
-        return const Color(0xFFECFDF5);
+        return const Color(0xFFF0FDF4);
       case 'IN_PRODUCTION':
-        return const Color(0xFFFEF3C7);
+        return const Color(0xFFFFFBEB);
       case 'SHIPPED':
         return const Color(0xFFEFF6FF);
       case 'DELIVERED':
-        return const Color(0xFFF0FDFA);
+        return const Color(0xFFECFDF5);
       case 'CANCELLED':
         return const Color(0xFFFEF2F2);
       case 'DRAFT':
       default:
-        return const Color(0xFFF1F5F9);
+        return const Color(0xFFF8FAFC);
+    }
+  }
+
+  Color _getStatusBorder(String status) {
+    switch (status.toUpperCase()) {
+      case 'CONFIRMED':
+        return const Color(0xFFBBF7D0);
+      case 'IN_PRODUCTION':
+        return const Color(0xFFFDE68A);
+      case 'SHIPPED':
+        return const Color(0xFFBFDBFE);
+      case 'DELIVERED':
+        return const Color(0xFFA7F3D0);
+      case 'CANCELLED':
+        return const Color(0xFFFECACA);
+      case 'DRAFT':
+      default:
+        return const Color(0xFFE2E8F0);
     }
   }
 
   Color _getStatusTextColor(String status) {
     switch (status.toUpperCase()) {
       case 'CONFIRMED':
-        return const Color(0xFF047857);
+        return const Color(0xFF16A34A);
       case 'IN_PRODUCTION':
-        return const Color(0xFFB45309);
+        return const Color(0xFFD97706);
       case 'SHIPPED':
-        return const Color(0xFF1D4ED8);
+        return const Color(0xFF2563EB);
       case 'DELIVERED':
-        return const Color(0xFF0F766E);
+        return const Color(0xFF059669);
       case 'CANCELLED':
         return const Color(0xFFDC2626);
       case 'DRAFT':
       default:
-        return const Color(0xFF475569);
+        return const Color(0xFF64748B);
     }
   }
 
@@ -142,18 +154,18 @@ class _PurchaseOrderDetailScreenState extends State<PurchaseOrderDetailScreen> {
 
     if (poIndex < 0) {
       return Scaffold(
-        backgroundColor: Colors.white,
+        backgroundColor: const Color(0xFFF8FAFC),
         appBar: AppBar(
           backgroundColor: Colors.white,
           elevation: 0,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.black),
+            icon: const Icon(Icons.arrow_back, color: Color(0xFF0F172A)),
             onPressed: () => Navigator.pop(context),
           ),
-          title: const Text('Purchase Order', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w800)),
+          title: const Text('Purchase Order', style: TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.w800)),
         ),
         body: RefreshIndicator(
-          color: Colors.black,
+          color: const Color(0xFF0F172A),
           onRefresh: () async {
             await poProvider.loadPurchaseOrders();
           },
@@ -175,458 +187,364 @@ class _PurchaseOrderDetailScreenState extends State<PurchaseOrderDetailScreen> {
     final isAdmin = tenant.isTenantAdmin;
     final canUpdatePo = isAdmin || tenant.hasPermission(AppPermissions.poUpdate);
     final canDeletePo = isAdmin || tenant.hasPermission(AppPermissions.poDelete);
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isWide = screenWidth >= 700;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
         backgroundColor: Colors.white,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         scrolledUnderElevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black, size: 24),
+          icon: const Icon(Icons.arrow_back, color: Color(0xFF0F172A), size: 22),
           onPressed: () => Navigator.pop(context),
         ),
-        titleSpacing: 0,
-        title: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 1100),
-            child: Row(
-              children: [
-                Text(
-                  'PO # ${po.poNumber}',
-                  style: const TextStyle(
-                    color: Colors.black,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -0.5,
-                  ),
-                ),
-              ],
-            ),
+        title: Text(
+          'PO # ${po.poNumber}',
+          style: const TextStyle(
+            color: Color(0xFF0F172A),
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
           ),
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.file_upload_outlined, color: Colors.black, size: 20),
-            tooltip: 'Export',
+            icon: const Icon(Icons.refresh, color: Color(0xFF0F172A), size: 20),
+            tooltip: 'Refresh',
             onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => PurchaseOrderExportScreen(po: po),
-                ),
-              );
+              poProvider.loadPurchaseOrders();
             },
           ),
-          if (canUpdatePo)
-            IconButton(
-              icon: const Icon(Icons.edit_outlined, color: Colors.black, size: 20),
-              tooltip: 'Edit PO',
-              onPressed: () async {
-                await Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => CreatePurchaseOrderScreen(existingPo: po),
-                  ),
-                );
-              },
-            ),
-          if (canDeletePo)
-            IconButton(
-              icon: const Icon(Icons.delete_outline, color: Color(0xFFEF4444), size: 20),
-              tooltip: 'Delete PO',
-              onPressed: () => _handleDelete(po),
-            ),
-          const SizedBox(width: 4),
-          const Padding(
-            padding: EdgeInsets.only(right: 12),
-            child: UserProfileAvatar(),
-          ),
         ],
+        bottom: const PreferredSize(
+          preferredSize: Size.fromHeight(1),
+          child: Divider(height: 1, color: Color(0xFFE2E8F0)),
+        ),
       ),
       body: RefreshIndicator(
-        color: Colors.black,
+        color: const Color(0xFF0F172A),
         onRefresh: () async {
           await poProvider.loadPurchaseOrders();
         },
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 1100),
-            child: SingleChildScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: EdgeInsets.symmetric(
-                horizontal: isWide ? 24 : 16,
-                vertical: 16,
-              ),
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1120),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                // Top PO Card - Uber Style
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(4),
-                    border: Border.all(color: const Color(0xFFE5E5E5)),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Header Row: PO # + Status badge
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Row(
-                            children: [
-                              Container(
-                                width: 30,
-                                height: 30,
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFF4F4F5),
-                                  borderRadius: BorderRadius.circular(2),
-                                ),
-                                child: const Icon(
-                                  Icons.assignment_turned_in_outlined,
-                                  size: 16,
-                                  color: Colors.black,
-                                ),
-                              ),
-                              const SizedBox(width: 10),
-                              RichText(
-                                text: TextSpan(
-                                  style: const TextStyle(
-                                    fontSize: 18,
-                                    color: Colors.black,
-                                  ),
-                                  children: [
-                                    const TextSpan(
-                                      text: 'PO # ',
-                                      style: TextStyle(
-                                        color: Color(0xFF71717A),
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 15,
-                                      ),
-                                    ),
-                                    TextSpan(
-                                      text: po.poNumber,
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.w900,
-                                        fontSize: 18,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                          InkWell(
-                            onTap: null,
-                            borderRadius: BorderRadius.circular(2),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: _getStatusBg(po.status),
-                                borderRadius: BorderRadius.circular(2),
-                                border: Border.all(
-                                  color: _getStatusTextColor(po.status).withValues(alpha: 0.25),
-                                  width: 1,
-                                ),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
+                  // 1. TOP PO HERO CARD
+                  Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.02),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Top Row: PO Title + Export + Status
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    po.status.replaceAll('_', ' ').toUpperCase(),
-                                    style: TextStyle(
-                                      fontSize: 11,
+                                    'PO # ${po.poNumber}',
+                                    style: const TextStyle(
+                                      fontSize: 22,
                                       fontWeight: FontWeight.w800,
-                                      color: _getStatusTextColor(po.status),
-                                      letterSpacing: 0.5,
+                                      color: Color(0xFF0F172A),
+                                      letterSpacing: -0.4,
                                     ),
                                   ),
-                                  const SizedBox(width: 4),
-                                  Icon(
-                                    Icons.arrow_drop_down,
-                                    size: 14,
-                                    color: _getStatusTextColor(po.status),
+                                  const SizedBox(height: 6),
+                                  Row(
+                                    children: [
+                                      const Icon(
+                                        Icons.description_outlined,
+                                        size: 15,
+                                        color: Color(0xFF64748B),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        po.customerName.isNotEmpty ? po.customerName : 'kdm',
+                                        style: const TextStyle(
+                                          fontSize: 13.5,
+                                          fontWeight: FontWeight.w600,
+                                          color: Color(0xFF64748B),
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ],
                               ),
                             ),
-                          ),
-                        ],
-                      ),
-
-                      const SizedBox(height: 12),
-
-                      // Consignee Row
-                      Row(
-                        children: [
-                          const Icon(
-                            Icons.business_outlined,
-                            size: 16,
-                            color: Color(0xFF71717A),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              po.customerName,
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w800,
-                                color: Colors.black,
+                            // Export Button
+                            FilledButton.icon(
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => PurchaseOrderExportScreen(po: po),
+                                  ),
+                                );
+                              },
+                              icon: const Icon(Icons.file_upload_outlined, size: 16),
+                              label: const Text('Export', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+                              style: FilledButton.styleFrom(
+                                backgroundColor: const Color(0xFF0F172A),
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                elevation: 0,
                               ),
                             ),
-                          ),
-                        ],
-                      ),
+                            const SizedBox(width: 10),
 
-                      if (po.customerAddress.isNotEmpty) ...[
-                        const SizedBox(height: 6),
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Icon(
-                              Icons.location_on_outlined,
-                              size: 14,
-                              color: Color(0xFF71717A),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                po.customerAddress,
-                                style: const TextStyle(
-                                  fontSize: 13,
-                                  color: Color(0xFF52525B),
+                            // Status Badge / Dropdown
+                            PopupMenuButton<String>(
+                              enabled: canUpdatePo,
+                              onSelected: (newStatus) async {
+                                if (newStatus != po.status) {
+                                  await poProvider.updatePurchaseOrder(
+                                    poId: po.poId,
+                                    status: newStatus,
+                                  );
+                                }
+                              },
+                              itemBuilder: (ctx) => [
+                                'DRAFT',
+                                'CONFIRMED',
+                                'IN_PRODUCTION',
+                                'SHIPPED',
+                                'DELIVERED',
+                                'CANCELLED',
+                              ].map((s) => PopupMenuItem(
+                                value: s,
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      width: 8,
+                                      height: 8,
+                                      decoration: BoxDecoration(
+                                        color: _getStatusTextColor(s),
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      s.replaceAll('_', ' '),
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: s == po.status ? FontWeight.w700 : FontWeight.w500,
+                                        color: const Color(0xFF0F172A),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              )).toList(),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: _getStatusBg(po.status),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: _getStatusBorder(po.status)),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Container(
+                                      width: 6,
+                                      height: 6,
+                                      decoration: BoxDecoration(
+                                        color: _getStatusTextColor(po.status),
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      po.status.replaceAll('_', ' ').toUpperCase(),
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w800,
+                                        color: _getStatusTextColor(po.status),
+                                        letterSpacing: 0.4,
+                                      ),
+                                    ),
+                                    if (canUpdatePo) ...[
+                                      const SizedBox(width: 4),
+                                      Icon(
+                                        Icons.keyboard_arrow_down,
+                                        size: 15,
+                                        color: _getStatusTextColor(po.status),
+                                      ),
+                                    ],
+                                  ],
                                 ),
                               ),
                             ),
                           ],
                         ),
-                      ],
 
-                      if (po.customerContact.isNotEmpty) ...[
-                        const SizedBox(height: 4),
-                        Row(
+                        const SizedBox(height: 20),
+
+                        // Bottom Row inside Top Card: Dates & Counts Strip
+                        Wrap(
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          spacing: 16,
+                          runSpacing: 10,
                           children: [
-                            const Icon(
-                              Icons.phone_outlined,
-                              size: 14,
-                              color: Color(0xFF71717A),
+                            // PO Date
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.calendar_today_outlined, size: 14, color: Color(0xFF94A3B8)),
+                                const SizedBox(width: 6),
+                                const Text('PO Date: ', style: TextStyle(fontSize: 12.5, color: Color(0xFF64748B), fontWeight: FontWeight.w500)),
+                                Text(
+                                  _dateFormat.format(po.poDate),
+                                  style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: Color(0xFF0F172A)),
+                                ),
+                              ],
                             ),
-                            const SizedBox(width: 8),
-                            Text(
-                              po.customerContact,
-                              style: const TextStyle(
-                                fontSize: 13,
-                                color: Color(0xFF52525B),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
 
-                      const SizedBox(height: 12),
+                            Container(width: 1, height: 14, color: const Color(0xFFE2E8F0)),
 
-                      // Dates Strip - Grey Container
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF8FAFC),
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(
-                              Icons.calendar_today_outlined,
-                              size: 14,
-                              color: Color(0xFF71717A),
-                            ),
-                            const SizedBox(width: 6),
-                            const Text(
-                              'PO: ',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Color(0xFF71717A),
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            Text(
-                              _dateFormat.format(po.poDate),
-                              style: const TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w800,
-                                color: Colors.black,
-                              ),
-                            ),
-                            const SizedBox(width: 18),
-                            const Icon(
-                              Icons.local_shipping_outlined,
-                              size: 15,
-                              color: Color(0xFF71717A),
-                            ),
-                            const SizedBox(width: 6),
-                            const Text(
-                              'Exp: ',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Color(0xFF71717A),
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            Text(
-                              po.expectedShippingDate != null
-                                  ? _dateFormat.format(po.expectedShippingDate!)
-                                  : 'Not set',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w800,
-                                color: po.expectedShippingDate != null
-                                    ? Colors.black
-                                    : const Color(0xFF94A3B8),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      if (po.notes.isNotEmpty) ...[
-                        const SizedBox(height: 10),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 8,
-                          ),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFFAFAFA),
-                            borderRadius: BorderRadius.circular(2),
-                            border: Border.all(color: const Color(0xFFF1F5F9)),
-                          ),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Icon(
-                                Icons.notes_outlined,
-                                size: 14,
-                                color: Color(0xFF71717A),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  po.notes,
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    color: Color(0xFF3F3F46),
+                            // Shipping Date
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.calendar_today_outlined, size: 14, color: Color(0xFF94A3B8)),
+                                const SizedBox(width: 6),
+                                const Text('Shipping Date: ', style: TextStyle(fontSize: 12.5, color: Color(0xFF64748B), fontWeight: FontWeight.w500)),
+                                Text(
+                                  po.expectedShippingDate != null
+                                      ? _dateFormat.format(po.expectedShippingDate!)
+                                      : 'Not set',
+                                  style: TextStyle(
+                                    fontSize: 12.5,
+                                    fontWeight: FontWeight.w700,
+                                    color: po.expectedShippingDate != null ? const Color(0xFF0F172A) : const Color(0xFF475569),
                                   ),
                                 ),
-                              ),
-                            ],
-                          ),
+                              ],
+                            ),
+
+                            Container(width: 1, height: 14, color: const Color(0xFFE2E8F0)),
+
+                            // Total Items
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.description_outlined, size: 14, color: Color(0xFF94A3B8)),
+                                const SizedBox(width: 6),
+                                const Text('Total Items: ', style: TextStyle(fontSize: 12.5, color: Color(0xFF64748B), fontWeight: FontWeight.w500)),
+                                Text(
+                                  '${po.items.length}',
+                                  style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: Color(0xFF0F172A)),
+                                ),
+                              ],
+                            ),
+
+                            Container(width: 1, height: 14, color: const Color(0xFFE2E8F0)),
+
+                            // Total Cartons
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.inventory_2_outlined, size: 14, color: Color(0xFF94A3B8)),
+                                const SizedBox(width: 6),
+                                const Text('Total Cartons: ', style: TextStyle(fontSize: 12.5, color: Color(0xFF64748B), fontWeight: FontWeight.w500)),
+                                Text(
+                                  '${po.totalCartons}',
+                                  style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: Color(0xFF0F172A)),
+                                ),
+                              ],
+                            ),
+                          ],
                         ),
                       ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // 2. PRODUCTION & FULFILLMENT STATUS CARD
+                  _buildProductionWorkflowCard(po),
+
+                  const SizedBox(height: 24),
+
+                  // 3. SECTION: ITEMS & CARTON SPECIFICATION
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'ITEMS & CARTON SPECIFICATION',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF475569),
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF1F5F9),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          '${po.items.length} ${po.items.length == 1 ? 'item' : 'items'}',
+                          style: const TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF64748B),
+                          ),
+                        ),
+                      ),
                     ],
                   ),
-                ),
 
-                const SizedBox(height: 14),
+                  const SizedBox(height: 10),
 
-                // Stat Metric Cards - Uber Style
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildMetricCard(
-                        label: 'TOTAL ITEMS',
-                        value: '${po.items.length}',
-                        icon: Icons.description_outlined,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _buildMetricCard(
-                        label: 'TOTAL CARTONS',
-                        value: '${po.totalCartons}',
-                        icon: Icons.inventory_2_outlined,
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 14),
-
-                // Production & Order Lifecycle Progress Card
-                _buildProductionWorkflowCard(po),
-
-                const SizedBox(height: 20),
-
-                // Section Header: ACTIVE ITEMS & CARTON SPECIFICATION
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'ITEMS & CARTON SPECIFICATION',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w800,
-                        color: Color(0xFF71717A),
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                    Text(
-                      '${po.items.length} ${po.items.length == 1 ? 'item' : 'items'}',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Color(0xFF71717A),
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 10),
-
-                // Items list cards - Uber Style
-                if (po.items.isEmpty)
-                  Container(
-                    padding: const EdgeInsets.all(28),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(4),
-                      border: Border.all(color: const Color(0xFFE5E5E5)),
-                    ),
-                    child: const Center(
-                      child: Text(
-                        'No items configured in this purchase order.',
-                        style: TextStyle(color: Color(0xFF94A3B8), fontSize: 13),
-                      ),
-                    ),
-                  )
-                else
+                  // Items Table
                   Container(
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(4),
-                      border: Border.all(color: Colors.black, width: 1.2),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.02),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
                     ),
                     clipBehavior: Clip.antiAlias,
                     child: Column(
                       children: [
-                        // Black Table Header matching Edit PO
+                        // Black Table Header
                         Container(
                           color: Colors.black,
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                           child: const Row(
                             children: [
                               SizedBox(
-                                width: 26,
+                                width: 36,
                                 child: Text(
                                   'SL.',
                                   style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11, color: Colors.white),
@@ -643,16 +561,16 @@ class _PurchaseOrderDetailScreenState extends State<PurchaseOrderDetailScreen> {
                                 flex: 2,
                                 child: Text(
                                   'PKT/CTN',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 10, color: Colors.white),
+                                  textAlign: TextAlign.right,
+                                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11, color: Colors.white),
                                 ),
                               ),
                               Expanded(
                                 flex: 2,
                                 child: Text(
                                   'CTNS',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 10, color: Colors.white),
+                                  textAlign: TextAlign.right,
+                                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11, color: Colors.white),
                                 ),
                               ),
                             ],
@@ -660,149 +578,142 @@ class _PurchaseOrderDetailScreenState extends State<PurchaseOrderDetailScreen> {
                         ),
 
                         // Table rows
-                        ListView.separated(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemCount: po.items.length,
-                          separatorBuilder: (_, _) => const Divider(height: 1, color: Color(0xFFE2E8F0)),
-                          itemBuilder: (context, idx) {
-                            final item = po.items[idx];
-                            final itemDescription = item.specification.isNotEmpty
-                                ? item.specification
-                                : PurchaseOrderExportService.formatQtyPerPacketShort(
-                                    item.quantityPerPacket,
-                                    item.unit,
-                                  );
-                            return Container(
-                              color: idx % 2 == 0 ? Colors.white : const Color(0xFFFAFAFA),
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      SizedBox(
-                                        width: 26,
-                                        child: Text(
-                                          '${idx + 1}',
-                                          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
-                                        ),
-                                      ),
-                                      Expanded(
-                                        flex: 6,
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              item.itemName,
-                                              style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
-                                            ),
-                                            const SizedBox(height: 1),
-                                            if (itemDescription.isNotEmpty)
-                                              Text(
-                                                '$itemDescription per packet',
-                                                style: const TextStyle(fontSize: 10, color: Color(0xFF64748B)),
-                                              ),
-                                          ],
-                                        ),
-                                      ),
-                                      Expanded(
-                                        flex: 2,
-                                        child: Text(
-                                          '${item.packetPerCarton}',
-                                          textAlign: TextAlign.center,
-                                          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
-                                        ),
-                                      ),
-                                      Expanded(
-                                        flex: 2,
-                                        child: Text(
-                                          '${item.cartons}',
-                                          textAlign: TextAlign.center,
-                                          style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 8),
-                                  // Lifecycle Stage Tracking Badges
-                                  SingleChildScrollView(
-                                    scrollDirection: Axis.horizontal,
-                                    child: Row(
-                                      children: [
-                                        const SizedBox(width: 26),
-                                        // Produced badge
-                                        _buildStageBadge(
-                                          label: 'Produced: ${item.completedCartons}/${item.cartons}',
-                                          color: item.completedCartons >= item.cartons
-                                              ? const Color(0xFF15803D)
-                                              : (item.completedCartons > 0 ? const Color(0xFFB45309) : const Color(0xFF64748B)),
-                                          bgColor: item.completedCartons >= item.cartons
-                                              ? const Color(0xFFF0FDF4)
-                                              : (item.completedCartons > 0 ? const Color(0xFFFEF3C7) : const Color(0xFFF1F5F9)),
-                                          icon: Icons.precision_manufacturing_outlined,
-                                        ),
-                                        const SizedBox(width: 6),
-                                        // QC badge
-                                        _buildStageBadge(
-                                          label: item.qcPassed ? 'QC: PASSED' : 'QC: PENDING',
-                                          color: item.qcPassed ? const Color(0xFF0F766E) : const Color(0xFF64748B),
-                                          bgColor: item.qcPassed ? const Color(0xFFF0FDFA) : const Color(0xFFF1F5F9),
-                                          icon: item.qcPassed ? Icons.verified : Icons.verified_outlined,
-                                        ),
-                                        const SizedBox(width: 6),
-                                        // Packed badge
-                                        _buildStageBadge(
-                                          label: 'Packed: ${item.packedCartons}/${item.cartons}',
-                                          color: item.packedCartons >= item.cartons ? const Color(0xFF4338CA) : const Color(0xFF64748B),
-                                          bgColor: item.packedCartons >= item.cartons ? const Color(0xFFEEF2FF) : const Color(0xFFF1F5F9),
-                                          icon: Icons.inventory_2_outlined,
-                                        ),
-                                        const SizedBox(width: 6),
-                                        // Shipped badge
-                                        _buildStageBadge(
-                                          label: 'Shipped: ${item.shippedCartons}/${item.cartons}',
-                                          color: item.shippedCartons >= item.cartons ? const Color(0xFF1D4ED8) : const Color(0xFF64748B),
-                                          bgColor: item.shippedCartons >= item.cartons ? const Color(0xFFEFF6FF) : const Color(0xFFF1F5F9),
-                                          icon: Icons.local_shipping_outlined,
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
+                        if (po.items.isEmpty)
+                          const Padding(
+                            padding: EdgeInsets.all(32),
+                            child: Center(
+                              child: Text(
+                                'No items configured in this purchase order.',
+                                style: TextStyle(color: Color(0xFF94A3B8), fontSize: 13),
                               ),
-                            );
-                          },
-                        ),
+                            ),
+                          )
+                        else
+                          ListView.separated(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: po.items.length,
+                            separatorBuilder: (_, _) => const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                            itemBuilder: (context, idx) {
+                              final item = po.items[idx];
+                              final itemDescription = item.specification.isNotEmpty
+                                  ? item.specification
+                                  : PurchaseOrderExportService.formatQtyPerPacketShort(
+                                      item.quantityPerPacket,
+                                      item.unit,
+                                    );
+                              return Container(
+                                color: Colors.white,
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                child: Row(
+                                  children: [
+                                    SizedBox(
+                                      width: 36,
+                                      child: Text(
+                                        '${idx + 1}',
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 13,
+                                          color: Color(0xFF0F172A),
+                                        ),
+                                      ),
+                                    ),
+                                    Expanded(
+                                      flex: 6,
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            item.itemName,
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.w700,
+                                              fontSize: 13.5,
+                                              color: Color(0xFF0F172A),
+                                            ),
+                                          ),
+                                          const SizedBox(height: 2),
+                                          if (itemDescription.isNotEmpty)
+                                            Text(
+                                              '$itemDescription per packet',
+                                              style: const TextStyle(fontSize: 11.5, color: Color(0xFF64748B)),
+                                            ),
+                                        ],
+                                      ),
+                                    ),
+                                    Expanded(
+                                      flex: 2,
+                                      child: Text(
+                                        '${item.packetPerCarton}',
+                                        textAlign: TextAlign.right,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 13,
+                                          color: Color(0xFF0F172A),
+                                        ),
+                                      ),
+                                    ),
+                                    Expanded(
+                                      flex: 2,
+                                      child: Text(
+                                        '${item.cartons}',
+                                        textAlign: TextAlign.right,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 13,
+                                          color: Color(0xFF0F172A),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                          ),
 
                         // Table Footer showing TOTAL CARTONS
                         Container(
-                          color: const Color(0xFFF1F5F9),
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                          color: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                          decoration: const BoxDecoration(
+                            border: Border(top: BorderSide(color: Color(0xFFE2E8F0))),
+                          ),
                           child: Row(
                             children: [
-                              const SizedBox(width: 26),
+                              const SizedBox(width: 36),
                               const Expanded(
                                 flex: 6,
                                 child: Text(
                                   'TOTAL CARTONS',
-                                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: Colors.black),
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 12.5,
+                                    color: Color(0xFF0F172A),
+                                    letterSpacing: 0.3,
+                                  ),
                                 ),
                               ),
                               Expanded(
                                 flex: 2,
                                 child: Text(
                                   '${po.totalPackets} pkts',
-                                  textAlign: TextAlign.center,
-                                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 11, color: Color(0xFF64748B)),
+                                  textAlign: TextAlign.right,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 13,
+                                    color: Color(0xFF64748B),
+                                  ),
                                 ),
                               ),
                               Expanded(
                                 flex: 2,
                                 child: Text(
                                   '${po.totalCartons}',
-                                  textAlign: TextAlign.center,
-                                  style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: Colors.black),
+                                  textAlign: TextAlign.right,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 14,
+                                    color: Color(0xFF0F172A),
+                                  ),
                                 ),
                               ),
                             ],
@@ -812,183 +723,66 @@ class _PurchaseOrderDetailScreenState extends State<PurchaseOrderDetailScreen> {
                     ),
                   ),
 
-                const SizedBox(height: 24),
+                  const SizedBox(height: 24),
 
-                // Primary Export Button - Solid Black Rectangle
-                SizedBox(
-                  height: 48,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.black,
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                    ),
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => PurchaseOrderExportScreen(po: po),
-                        ),
-                      );
-                    },
-                    child: const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.file_upload_outlined, size: 18),
-                        SizedBox(width: 8),
-                        Text(
-                          'Export',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 0.2,
+                  // 4. BOTTOM ACTION BUTTONS
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      if (canDeletePo)
+                        OutlinedButton.icon(
+                          onPressed: () => _handleDelete(po),
+                          icon: const Icon(Icons.delete_outline, size: 16, color: Color(0xFFDC2626)),
+                          label: const Text('Delete Order', style: TextStyle(color: Color(0xFFDC2626), fontWeight: FontWeight.w700, fontSize: 13)),
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: Color(0xFFFECACA)),
+                            backgroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                           ),
                         ),
-                      ],
-                    ),
+                      const SizedBox(width: 12),
+                      if (canUpdatePo)
+                        OutlinedButton.icon(
+                          onPressed: () async {
+                            await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => CreatePurchaseOrderScreen(existingPo: po),
+                              ),
+                            );
+                          },
+                          icon: const Icon(Icons.edit_outlined, size: 16, color: Color(0xFF0F172A)),
+                          label: const Text('Edit Purchase Order', style: TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.w700, fontSize: 13)),
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: Color(0xFFE2E8F0)),
+                            backgroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                        ),
+                    ],
                   ),
-                ),
 
-                if (canUpdatePo) ...[
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 32),
 
-                  // Edit Action Button - Clean Outline
-                  SizedBox(
-                    height: 44,
-                    child: OutlinedButton(
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.black,
-                        side: const BorderSide(color: Color(0xFFD4D4D8)),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                      ),
-                      onPressed: () async {
-                        await Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => CreatePurchaseOrderScreen(existingPo: po),
-                          ),
-                        );
-                      },
-                      child: const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.edit_outlined, size: 16),
-                          SizedBox(width: 8),
-                          Text(
-                            'Edit Purchase Order',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ],
+                  // 5. COPYRIGHT FOOTER
+                  const Center(
+                    child: Text(
+                      'Developed by Bigburry Hypersystems LLP',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Color(0xFF64748B),
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ),
-
-                  const SizedBox(height: 12),
-
+                  const SizedBox(height: 16),
                 ],
-
-                if (canDeletePo) ...[
-                  const SizedBox(height: 12),
-
-                  // Secondary Delete Button - Clean Outline
-                  SizedBox(
-                    height: 44,
-                    child: OutlinedButton(
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: const Color(0xFFDC2626),
-                        side: const BorderSide(color: Color(0xFFFCA5A5)),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                      ),
-                      onPressed: () => _handleDelete(po),
-                      child: const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.delete_outline, size: 16),
-                          SizedBox(width: 8),
-                          Text(
-                            'Delete Order',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-
-                const SizedBox(height: 32),
-              ],
+              ),
             ),
           ),
         ),
-      ),
-    ),
-    );
-  }
-
-  Widget _buildMetricCard({
-    required String label,
-    required String value,
-    required IconData icon,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: const Color(0xFFE5E5E5)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF71717A),
-              letterSpacing: 0.5,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                value,
-                style: const TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w900,
-                  color: Colors.black,
-                  height: 1.0,
-                ),
-              ),
-              Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF8FAFC),
-                  borderRadius: BorderRadius.circular(2),
-                  border: Border.all(color: const Color(0xFFF1F5F9)),
-                ),
-                child: Icon(icon, size: 16, color: Colors.black87),
-              ),
-            ],
-          ),
-        ],
       ),
     );
   }
@@ -1000,23 +794,30 @@ class _PurchaseOrderDetailScreenState extends State<PurchaseOrderDetailScreen> {
     final qcRatio = po.items.isNotEmpty ? (po.totalQcPassedItems / po.items.length).clamp(0.0, 1.0) : 0.0;
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(4),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: const [
-              Icon(Icons.track_changes, size: 16, color: Color(0xFF0F172A)),
+              Icon(Icons.sync, size: 18, color: Color(0xFF6366F1)),
               SizedBox(width: 8),
               Text(
                 'PRODUCTION & FULFILLMENT STATUS',
                 style: TextStyle(
-                  fontSize: 11,
+                  fontSize: 11.5,
                   fontWeight: FontWeight.w800,
                   color: Color(0xFF475569),
                   letterSpacing: 0.5,
@@ -1024,114 +825,181 @@ class _PurchaseOrderDetailScreenState extends State<PurchaseOrderDetailScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              Expanded(
-                child: _buildStageProgressItem(
-                  stage: '1. Production',
-                  progressText: '${po.totalCompletedCartons}/${po.totalCartons} ctns',
-                  ratio: producedRatio,
-                  color: const Color(0xFF15803D),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildStageProgressItem(
-                  stage: '2. QC Inspection',
-                  progressText: '${po.totalQcPassedItems}/${po.items.length} items',
-                  ratio: qcRatio,
-                  color: const Color(0xFF0F766E),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: _buildStageProgressItem(
-                  stage: '3. Packing',
-                  progressText: '${po.totalPackedCartons}/${po.totalCartons} ctns',
-                  ratio: packedRatio,
-                  color: const Color(0xFF4338CA),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildStageProgressItem(
-                  stage: '4. Shipping',
-                  progressText: '${po.totalShippedCartons}/${po.totalCartons} ctns',
-                  ratio: shippedRatio,
-                  color: const Color(0xFF1D4ED8),
-                ),
-              ),
-            ],
+          const SizedBox(height: 16),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final isWide = constraints.maxWidth >= 650;
+              if (isWide) {
+                return Row(
+                  children: [
+                    Expanded(
+                      child: _buildStageCard(
+                        title: '1. Production',
+                        progressText: '${po.totalCompletedCartons}/${po.totalCartons} ctns',
+                        ratio: producedRatio,
+                        badgeColor: const Color(0xFF16A34A),
+                        badgeBg: const Color(0xFFF0FDF4),
+                        badgeBorder: const Color(0xFFDCFCE7),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildStageCard(
+                        title: '2. QC Inspection',
+                        progressText: '${po.totalQcPassedItems}/${po.items.length} items',
+                        ratio: qcRatio,
+                        badgeColor: const Color(0xFF16A34A),
+                        badgeBg: const Color(0xFFF0FDF4),
+                        badgeBorder: const Color(0xFFDCFCE7),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildStageCard(
+                        title: '3. Packing',
+                        progressText: '${po.totalPackedCartons}/${po.totalCartons} ctns',
+                        ratio: packedRatio,
+                        badgeColor: const Color(0xFF2563EB),
+                        badgeBg: const Color(0xFFEFF6FF),
+                        badgeBorder: const Color(0xFFDBEAFE),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildStageCard(
+                        title: '4. Shipping',
+                        progressText: '${po.totalShippedCartons}/${po.totalCartons} ctns',
+                        ratio: shippedRatio,
+                        badgeColor: const Color(0xFF2563EB),
+                        badgeBg: const Color(0xFFEFF6FF),
+                        badgeBorder: const Color(0xFFDBEAFE),
+                      ),
+                    ),
+                  ],
+                );
+              } else {
+                return Column(
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildStageCard(
+                            title: '1. Production',
+                            progressText: '${po.totalCompletedCartons}/${po.totalCartons} ctns',
+                            ratio: producedRatio,
+                            badgeColor: const Color(0xFF16A34A),
+                            badgeBg: const Color(0xFFF0FDF4),
+                            badgeBorder: const Color(0xFFDCFCE7),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: _buildStageCard(
+                            title: '2. QC Inspection',
+                            progressText: '${po.totalQcPassedItems}/${po.items.length} items',
+                            ratio: qcRatio,
+                            badgeColor: const Color(0xFF16A34A),
+                            badgeBg: const Color(0xFFF0FDF4),
+                            badgeBorder: const Color(0xFFDCFCE7),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildStageCard(
+                            title: '3. Packing',
+                            progressText: '${po.totalPackedCartons}/${po.totalCartons} ctns',
+                            ratio: packedRatio,
+                            badgeColor: const Color(0xFF2563EB),
+                            badgeBg: const Color(0xFFEFF6FF),
+                            badgeBorder: const Color(0xFFDBEAFE),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: _buildStageCard(
+                            title: '4. Shipping',
+                            progressText: '${po.totalShippedCartons}/${po.totalCartons} ctns',
+                            ratio: shippedRatio,
+                            badgeColor: const Color(0xFF2563EB),
+                            badgeBg: const Color(0xFFEFF6FF),
+                            badgeBorder: const Color(0xFFDBEAFE),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                );
+              }
+            },
           ),
         ],
       ),
     );
   }
 
-  Widget _buildStageProgressItem({
-    required String stage,
+  Widget _buildStageCard({
+    required String title,
     required String progressText,
     required double ratio,
-    required Color color,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(stage, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF334155))),
-            Text(progressText, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: color)),
-          ],
-        ),
-        const SizedBox(height: 5),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(2),
-          child: LinearProgressIndicator(
-            value: ratio,
-            minHeight: 6,
-            backgroundColor: const Color(0xFFF1F5F9),
-            valueColor: AlwaysStoppedAnimation<Color>(color),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildStageBadge({
-    required String label,
-    required Color color,
-    required Color bgColor,
-    required IconData icon,
+    required Color badgeColor,
+    required Color badgeBg,
+    required Color badgeBorder,
   }) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(3),
-        border: Border.all(color: color.withValues(alpha: 0.25)),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 10, color: color),
-          const SizedBox(width: 4),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.w700,
-              color: color,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF334155),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: badgeBg,
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(color: badgeBorder),
+                ),
+                child: Text(
+                  progressText,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: badgeColor,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(2),
+            child: LinearProgressIndicator(
+              value: ratio,
+              minHeight: 4,
+              backgroundColor: const Color(0xFFF1F5F9),
+              valueColor: AlwaysStoppedAnimation<Color>(badgeColor),
             ),
           ),
         ],
       ),
     );
   }
-
 }

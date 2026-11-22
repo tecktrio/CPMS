@@ -750,6 +750,10 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
   }
 
   String _itemSearchQuery = '';
+  String? _selectedDivisionFilter;
+  String? _selectedTypeFilter;
+  bool _isGridView = false;
+  bool _sortAscending = true;
 
   void _showAddItemToRoomSheet(StoreRoomModel room) {
     showModalBottomSheet(
@@ -878,6 +882,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
     );
   }
 
+  // ignore: unused_element
   void _showSetMinimumCountDialog(
     ItemModel item,
     StoreRoomItemModel sri,
@@ -935,6 +940,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
     );
   }
 
+  // ignore: unused_element
   void _showMoveDivisionDialog(ItemModel item, StoreRoomModel room) {
     final messenger = ScaffoldMessenger.of(context);
     final inventory = context.read<InventoryProvider>();
@@ -1089,6 +1095,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
     );
   }
 
+  // ignore: unused_element
   void _confirmRemoveItemFromRoom(ItemModel item, StoreRoomModel room) {
     final messenger = ScaffoldMessenger.of(context);
     final inventory = context.read<InventoryProvider>();
@@ -1149,66 +1156,89 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
     final canUpdate = isAdmin || tenant.hasPermission(AppPermissions.storeroomUpdate);
     final canDelete = isAdmin || tenant.hasPermission(AppPermissions.storeroomDelete);
 
-    // Get live store room from provider state
     final currentRoom = inventory.storeRooms.firstWhere(
       (r) => r.storeRoomId == widget.room.storeRoomId,
       orElse: () => widget.room,
     );
 
     final isAmbient = currentRoom.temperature == null;
-    final tempStr =
-        !isAmbient ? '${currentRoom.temperature!.toStringAsFixed(1)} °C' : 'Ambient';
-
-    // Items stored in this store room
+    final tempStr = !isAmbient ? '${currentRoom.temperature!.toStringAsFixed(1)} °C' : 'Ambient';
     final roomItems = currentRoom.items;
 
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isWide = screenWidth >= 700;
+    // Filter items based on search and filters
+    var filteredItems = roomItems.where((sri) {
+      final item = inventory.items.firstWhere(
+        (i) => i.itemId == sri.itemId,
+        orElse: () => ItemModel(
+          itemId: sri.itemId,
+          tenantId: currentRoom.tenantId,
+          sku: '',
+          itemName: sri.itemId,
+          itemType: 'FINISHED GOOD',
+          measurementUnit: 'UNIT',
+          reorderThresholdQuantity: 0,
+          totalAvailableStock: sri.quantity,
+          isBelowReorderThreshold: false,
+          reorderShortfallQuantity: 0,
+          isActive: true,
+        ),
+      );
+
+      if (_itemSearchQuery.isNotEmpty) {
+        final q = _itemSearchQuery.toLowerCase();
+        final matches = item.itemName.toLowerCase().contains(q) ||
+            item.sku.toLowerCase().contains(q) ||
+            item.specification.toLowerCase().contains(q) ||
+            sri.division.toLowerCase().contains(q);
+        if (!matches) return false;
+      }
+
+      if (_selectedDivisionFilter != null && _selectedDivisionFilter != 'All') {
+        if (sri.division != _selectedDivisionFilter) return false;
+      }
+
+      if (_selectedTypeFilter != null && _selectedTypeFilter != 'All') {
+        if (!item.itemType.toLowerCase().contains(_selectedTypeFilter!.toLowerCase())) return false;
+      }
+
+      return true;
+    }).toList();
+
+    // Sort items
+    filteredItems.sort((a, b) {
+      final itemA = inventory.items.firstWhere((i) => i.itemId == a.itemId, orElse: () => ItemModel(itemId: a.itemId, tenantId: '', sku: '', itemName: a.itemId, itemType: '', measurementUnit: '', reorderThresholdQuantity: 0, totalAvailableStock: 0, isBelowReorderThreshold: false, reorderShortfallQuantity: 0, isActive: true));
+      final itemB = inventory.items.firstWhere((i) => i.itemId == b.itemId, orElse: () => ItemModel(itemId: b.itemId, tenantId: '', sku: '', itemName: b.itemId, itemType: '', measurementUnit: '', reorderThresholdQuantity: 0, totalAvailableStock: 0, isBelowReorderThreshold: false, reorderShortfallQuantity: 0, isActive: true));
+      return _sortAscending
+          ? itemA.itemName.compareTo(itemB.itemName)
+          : itemB.itemName.compareTo(itemA.itemName);
+    });
+
+    final totalUnits = roomItems.fold<double>(0, (sum, sri) => sum + sri.quantity).toInt();
+    final divisionsList = ['All', ...currentRoom.divisions];
+    final typeList = ['All', 'Finished Good', 'Raw Material', 'Packaging', 'WIP'];
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
         backgroundColor: Colors.white,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         scrolledUnderElevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black, size: 24),
+          icon: const Icon(Icons.arrow_back, color: Color(0xFF0F172A), size: 22),
           onPressed: () => Navigator.pop(context),
         ),
-        centerTitle: true,
-        title: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 1100),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text(
-                  'FACILITY ZONE 01',
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w800,
-                    color: Color(0xFF94A3B8),
-                    letterSpacing: 0.8,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                const Text(
-                  'Store Room Details',
-                  style: TextStyle(
-                    color: Colors.black,
-                    fontSize: 17,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -0.3,
-                  ),
-                ),
-              ],
-            ),
+        title: Text(
+          currentRoom.roomName,
+          style: const TextStyle(
+            color: Color(0xFF0F172A),
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
           ),
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh, color: Colors.black, size: 22),
+            icon: const Icon(Icons.refresh, color: Color(0xFF0F172A), size: 20),
             tooltip: 'Refresh',
             onPressed: () {
               inventory.loadStoreRooms();
@@ -1218,1239 +1248,741 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
         ],
         bottom: const PreferredSize(
           preferredSize: Size.fromHeight(1),
-          child: Divider(height: 1, color: Color(0xFFF1F5F9)),
+          child: Divider(height: 1, color: Color(0xFFE2E8F0)),
         ),
       ),
       body: RefreshIndicator(
-        color: Colors.black,
+        color: const Color(0xFF0F172A),
         onRefresh: () async {
           await Future.wait([
             inventory.loadStoreRooms(),
             inventory.loadItems(),
           ]);
         },
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 1100),
-            child: SingleChildScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: EdgeInsets.symmetric(
-                horizontal: isWide ? 28 : 16,
-                vertical: 20,
-              ),
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1120),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-            // Summary Metric (Store Room Items Only - Uber Style)
-            Row(
-              children: [
-                Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.all(14),
+                  // 1. TOP HERO CARD
+                  Container(
+                    padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(4),
-                      border: Border.all(color: const Color(0xFFE5E5E5)),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.02),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
                     ),
-                    child: Column(
+                    child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'STORE ROOM ITEMS',
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFF71717A),
-                            letterSpacing: 0.5,
+                        // Left Room Info
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  // Black square badge with room number
+                                  Container(
+                                    width: 44,
+                                    height: 44,
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF0F172A),
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    alignment: Alignment.center,
+                                    child: Text(
+                                      currentRoom.roomCode.isNotEmpty ? currentRoom.roomCode : '1',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          currentRoom.roomName,
+                                          style: const TextStyle(
+                                            fontSize: 22,
+                                            fontWeight: FontWeight.w800,
+                                            color: Color(0xFF0F172A),
+                                            letterSpacing: -0.4,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          'Zone: ${currentRoom.roomCode.isNotEmpty ? 'North Bay • ${currentRoom.roomCode}' : 'North Cold Bay'}',
+                                          style: const TextStyle(
+                                            fontSize: 13,
+                                            color: Color(0xFF64748B),
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                currentRoom.description.isNotEmpty
+                                    ? currentRoom.description
+                                    : 'Climate-regulated ambient preservation storage unit configured for pallet and container storage.',
+                                style: const TextStyle(
+                                  fontSize: 13.5,
+                                  color: Color(0xFF475569),
+                                  height: 1.45,
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              // Pill Badges
+                              Wrap(
+                                spacing: 10,
+                                runSpacing: 8,
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFF1F5F9),
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Icon(Icons.swap_vert, size: 14, color: Color(0xFF64748B)),
+                                        const SizedBox(width: 6),
+                                        Text(
+                                          '$tempStr (Target ±0.5° tolerance)',
+                                          style: const TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w500,
+                                            color: Color(0xFF334155),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFF1F5F9),
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Icon(Icons.location_on_outlined, size: 14, color: Color(0xFF64748B)),
+                                        const SizedBox(width: 6),
+                                        Text(
+                                          'Bay ${currentRoom.roomCode.isNotEmpty ? currentRoom.roomCode : '1'} • Sector C • North Facility',
+                                          style: const TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w500,
+                                            color: Color(0xFF334155),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
                           ),
                         ),
-                        const SizedBox(height: 6),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Text(
-                              '${roomItems.length}',
-                              style: const TextStyle(
-                                fontSize: 26,
-                                fontWeight: FontWeight.w900,
-                                color: Colors.black,
-                                height: 1.0,
+                        const SizedBox(width: 24),
+                        // Right Metric Card
+                        Container(
+                          width: 170,
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: const Color(0xFFE2E8F0)),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'STORE ROOM ITEMS',
+                                style: TextStyle(
+                                  fontSize: 10.5,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF94A3B8),
+                                  letterSpacing: 0.6,
+                                ),
                               ),
-                            ),
-                            Container(
-                              width: 36,
-                              height: 36,
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFF8FAFC),
-                                borderRadius: BorderRadius.circular(2),
-                                border:
-                                    Border.all(color: const Color(0xFFF1F5F9)),
+                              const SizedBox(height: 8),
+                              Align(
+                                alignment: Alignment.centerRight,
+                                child: Text(
+                                  '${roomItems.length}',
+                                  style: const TextStyle(
+                                    fontSize: 28,
+                                    fontWeight: FontWeight.w800,
+                                    color: Color(0xFF0F172A),
+                                  ),
+                                ),
                               ),
-                              child: const Icon(
-                                Icons.inventory_2_outlined,
-                                color: Colors.black87,
-                                size: 18,
-                              ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ],
                     ),
                   ),
-                ),
-              ],
-            ),
 
-            const SizedBox(height: 14),
+                  const SizedBox(height: 24),
 
-            // 1. Store Room Hero Card
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(4),
-                border: Border.all(color: const Color(0xFFE2E8F0)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Black Badge with roomCode / ID
-                      Container(
-                        width: 48,
-                        height: 48,
-                        decoration: BoxDecoration(
-                          color: Colors.black,
-                          borderRadius: BorderRadius.circular(4),
+                  // 2. MAIN STORE ROOM ITEMS CARD
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.02),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
                         ),
-                        alignment: Alignment.center,
-                        child: Text(
-                          currentRoom.roomCode,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Flexible(
-                                  child: Text(
-                                    currentRoom.roomName,
-                                    style: const TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w900,
-                                      color: Colors.black,
-                                      letterSpacing: -0.3,
-                                    ),
-                                    overflow: TextOverflow.ellipsis,
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        // Card Header
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.inventory_2_outlined, size: 20, color: Color(0xFF0F172A)),
+                              const SizedBox(width: 8),
+                              const Text(
+                                'STORE ROOM ITEMS',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w800,
+                                  color: Color(0xFF0F172A),
+                                  letterSpacing: 0.6,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF0F172A),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Text(
+                                  '${roomItems.length}',
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.white,
                                   ),
                                 ),
-                                const SizedBox(width: 6),
-                                Text(
-                                  '#${currentRoom.roomCode}',
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w700,
-                                    color: Color(0xFF94A3B8),
+                              ),
+                              const Spacer(),
+                              if (canUpdate) ...[
+                                FilledButton.icon(
+                                  onPressed: () => _showAddItemToRoomSheet(currentRoom),
+                                  icon: const Icon(Icons.add, size: 16),
+                                  label: const Text('Add Item', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+                                  style: FilledButton.styleFrom(
+                                    backgroundColor: const Color(0xFF0F172A),
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                    elevation: 0,
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                OutlinedButton.icon(
+                                  onPressed: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(builder: (c) => const CreateItemScreen()),
+                                    ).then((_) => inventory.loadItems());
+                                  },
+                                  icon: const Icon(Icons.add, size: 16, color: Color(0xFF0F172A)),
+                                  label: const Text('Register New Item', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: Color(0xFF0F172A))),
+                                  style: OutlinedButton.styleFrom(
+                                    side: const BorderSide(color: Color(0xFFE2E8F0)),
+                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                                   ),
                                 ),
                               ],
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              'Zone: ${currentRoom.roomName.toLowerCase().contains('cold') ? 'North Cold Bay' : 'Central Logistics Zone'}',
-                              style: const TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                                color: Color(0xFF64748B),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      // Active Pill Badge
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                        decoration: BoxDecoration(
-                          color: currentRoom.isActive
-                              ? const Color(0xFFECFDF5)
-                              : const Color(0xFFFEF2F2),
-                          borderRadius: BorderRadius.circular(4),
-                          border: Border.all(
-                            color: currentRoom.isActive
-                                ? const Color(0xFFA7F3D0)
-                                : const Color(0xFFFECACA),
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Container(
-                              width: 6,
-                              height: 6,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: currentRoom.isActive
-                                    ? const Color(0xFF059669)
-                                    : const Color(0xFFDC2626),
-                              ),
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              currentRoom.isActive ? 'Active' : 'Inactive',
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w800,
-                                color: currentRoom.isActive
-                                    ? const Color(0xFF059669)
-                                    : const Color(0xFFDC2626),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 14),
-
-                  // Description paragraph
-                  Text(
-                    (currentRoom.temperature != null && currentRoom.temperature! <= 0)
-                        ? 'Primary sub-zero cold logistics and preservation storage unit configured for pallet storage.'
-                        : 'Climate-regulated ambient preservation storage unit configured for pallet and container storage.',
-                    style: const TextStyle(
-                      fontSize: 13,
-                      color: Color(0xFF475569),
-                      height: 1.4,
-                      fontWeight: FontWeight.w400,
-                    ),
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  // Side-by-Side Metric Boxes
-                  Row(
-                    children: [
-                      // Set Temperature Box
-                      Expanded(
-                        child: Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF8FAFC),
-                            borderRadius: BorderRadius.circular(4),
-                            border: Border.all(color: const Color(0xFFF1F5F9)),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: const [
-                                  Text(
-                                    'SET TEMPERATURE',
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w800,
-                                      color: Color(0xFF64748B),
-                                      letterSpacing: 0.3,
-                                    ),
-                                  ),
-                                  Icon(
-                                    Icons.swap_vert,
-                                    size: 16,
-                                    color: Color(0xFF0284C7),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 6),
-                              Text(
-                                tempStr,
-                                style: const TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w900,
-                                  color: Colors.black,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              const Text(
-                                'Target ±0.5° tolerance',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: Color(0xFF94A3B8),
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
                             ],
                           ),
                         ),
-                      ),
 
-                      const SizedBox(width: 12),
-
-                      // Location Zone Box
-                      Expanded(
-                        child: Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF8FAFC),
-                            borderRadius: BorderRadius.circular(4),
-                            border: Border.all(color: const Color(0xFFF1F5F9)),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: const [
-                                  Text(
-                                    'LOCATION ZONE',
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w800,
-                                      color: Color(0xFF64748B),
-                                      letterSpacing: 0.3,
-                                    ),
-                                  ),
-                                  Icon(
-                                    Icons.location_on,
-                                    size: 15,
-                                    color: Colors.black,
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 6),
-                              Text(
-                                'Bay ${currentRoom.roomCode} • Sector C',
-                                style: const TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w900,
-                                  color: Colors.black,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const SizedBox(height: 2),
-                              const Text(
-                                'North Facility',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: Color(0xFF94A3B8),
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 14),
-
-            // 2. Configured Divisions Card
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(4),
-                border: Border.all(color: const Color(0xFFE2E8F0)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Section Header
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            width: 26,
-                            height: 26,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF1F5F9),
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: const Icon(
-                              Icons.grid_view_outlined,
-                              size: 15,
-                              color: Color(0xFF334155),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          const Text(
-                            'CONFIGURED DIVISIONS',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w800,
-                              color: Colors.black,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                        ],
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: Colors.black,
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          '${currentRoom.divisions.length} Divisions',
-                          style: const TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w800,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 14),
-
-                  // Division Items List
-                  if (currentRoom.divisions.isNotEmpty)
-                    ...List.generate(currentRoom.divisions.length, (idx) {
-                      final divName = currentRoom.divisions[idx];
-                      final itemsInDiv = roomItems.where((i) => i.division == divName).length;
-                      final tag = 'S${idx + 1}';
-                      final subLabel = idx == 0 ? 'Upper Deck' : 'Floor Staging';
-
-                      return InkWell(
-                        onTap: canUpdate
-                            ? () => _showEditDivisionDialog(currentRoom, idx)
-                            : null,
-                        borderRadius: BorderRadius.circular(4),
-                        child: Container(
-                          margin: const EdgeInsets.only(bottom: 10),
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF8FAFC),
-                            borderRadius: BorderRadius.circular(4),
-                            border: Border.all(color: const Color(0xFFF1F5F9)),
-                          ),
+                        // Search and Filter Bar
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
                           child: Row(
                             children: [
-                              Container(
-                                width: 36,
-                                height: 36,
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFE2E8F0),
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                alignment: Alignment.center,
-                                child: Text(
-                                  tag,
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w900,
-                                    color: Colors.black,
+                              // Search input
+                              Expanded(
+                                child: SizedBox(
+                                  height: 40,
+                                  child: TextField(
+                                    onChanged: (val) => setState(() => _itemSearchQuery = val),
+                                    decoration: InputDecoration(
+                                      prefixIcon: const Icon(Icons.search, size: 18, color: Color(0xFF94A3B8)),
+                                      suffixIcon: _itemSearchQuery.isNotEmpty
+                                          ? IconButton(
+                                              icon: const Icon(Icons.clear, size: 16, color: Color(0xFF94A3B8)),
+                                              onPressed: () => setState(() => _itemSearchQuery = ''),
+                                            )
+                                          : Container(
+                                              margin: const EdgeInsets.only(right: 8),
+                                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                              decoration: BoxDecoration(
+                                                color: const Color(0xFFF1F5F9),
+                                                borderRadius: BorderRadius.circular(4),
+                                                border: Border.all(color: const Color(0xFFE2E8F0)),
+                                              ),
+                                              child: const Text(
+                                                '⌘K',
+                                                style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8)),
+                                              ),
+                                            ),
+                                      suffixIconConstraints: const BoxConstraints(minWidth: 32, minHeight: 20),
+                                      hintText: 'Search items in ${currentRoom.roomName} by name, code, division...',
+                                      hintStyle: const TextStyle(fontSize: 12.5, color: Color(0xFF94A3B8)),
+                                      contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 12),
+                                      filled: true,
+                                      fillColor: Colors.white,
+                                      enabledBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                                      ),
+                                      focusedBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                        borderSide: const BorderSide(color: Color(0xFF0F172A)),
+                                      ),
+                                    ),
                                   ),
                                 ),
                               ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        Flexible(
-                                          child: Text(
-                                            divName,
-                                            style: const TextStyle(
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.w800,
-                                              color: Colors.black,
-                                            ),
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                        ),
-                                        if (canUpdate) ...[
-                                          const SizedBox(width: 6),
-                                          const Icon(Icons.edit_outlined, size: 14, color: Color(0xFF64748B)),
+                              const SizedBox(width: 10),
+
+                              // Division Filter Popup
+                              PopupMenuButton<String>(
+                                initialValue: _selectedDivisionFilter ?? 'All',
+                                onSelected: (val) {
+                                  if (val == '__manage__') {
+                                    _showAddDivisionDialog(currentRoom);
+                                  } else if (val == '__edit_first__') {
+                                    _showEditDivisionDialog(currentRoom, 0);
+                                  } else {
+                                    setState(() => _selectedDivisionFilter = val == 'All' ? null : val);
+                                  }
+                                },
+                                itemBuilder: (ctx) => [
+                                  ...divisionsList.map((d) => PopupMenuItem<String>(value: d, child: Text(d, style: const TextStyle(fontSize: 13)))),
+                                  if (canUpdate) ...[
+                                    const PopupMenuDivider(),
+                                    const PopupMenuItem<String>(
+                                      value: '__manage__',
+                                      child: Row(
+                                        children: [
+                                          Icon(Icons.add_circle_outline, size: 16, color: Color(0xFF0F172A)),
+                                          SizedBox(width: 8),
+                                          Text('Add Division', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
                                         ],
-                                      ],
-                                    ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      '$subLabel • $itemsInDiv items allocated',
-                                      style: const TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w500,
-                                        color: Color(0xFF64748B),
                                       ),
+                                    ),
+                                    if (currentRoom.divisions.isNotEmpty)
+                                      const PopupMenuItem<String>(
+                                        value: '__edit_first__',
+                                        child: Row(
+                                          children: [
+                                            Icon(Icons.edit_outlined, size: 16, color: Color(0xFF0F172A)),
+                                            SizedBox(width: 8),
+                                            Text('Edit Divisions', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+                                          ],
+                                        ),
+                                      ),
+                                  ],
+                                ],
+                                child: Container(
+                                  height: 40,
+                                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      const Icon(Icons.local_offer_outlined, size: 15, color: Color(0xFF64748B)),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        'Division: ${_selectedDivisionFilter ?? 'All'}',
+                                        style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: Color(0xFF334155)),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+
+                              // Type Filter Popup
+                              PopupMenuButton<String>(
+                                initialValue: _selectedTypeFilter ?? 'All',
+                                onSelected: (val) => setState(() => _selectedTypeFilter = val == 'All' ? null : val),
+                                itemBuilder: (ctx) => typeList.map((t) => PopupMenuItem<String>(value: t, child: Text(t, style: const TextStyle(fontSize: 13)))).toList(),
+                                child: Container(
+                                  height: 40,
+                                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      const Icon(Icons.filter_alt_outlined, size: 15, color: Color(0xFF64748B)),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        'Type: ${_selectedTypeFilter ?? 'All'}',
+                                        style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: Color(0xFF334155)),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+
+                              // View Toggle (List / Grid)
+                              Container(
+                                height: 40,
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                                ),
+                                child: Row(
+                                  children: [
+                                    IconButton(
+                                      icon: Icon(
+                                        Icons.reorder,
+                                        size: 18,
+                                        color: !_isGridView ? const Color(0xFF0F172A) : const Color(0xFF94A3B8),
+                                      ),
+                                      onPressed: () => setState(() => _isGridView = false),
+                                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                                      constraints: const BoxConstraints(),
+                                    ),
+                                    IconButton(
+                                      icon: Icon(
+                                        Icons.grid_view,
+                                        size: 18,
+                                        color: _isGridView ? const Color(0xFF0F172A) : const Color(0xFF94A3B8),
+                                      ),
+                                      onPressed: () => setState(() => _isGridView = true),
+                                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                                      constraints: const BoxConstraints(),
                                     ),
                                   ],
                                 ),
                               ),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 4,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFE2E8F0),
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                child: Text(
-                                  '$itemsInDiv Items',
-                                  style: const TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w700,
-                                    color: Color(0xFF334155),
+                            ],
+                          ),
+                        ),
+
+                        // Table Divider
+                        const Divider(height: 1, color: Color(0xFFE2E8F0)),
+
+                        // Table Header
+                        Container(
+                          color: const Color(0xFFF8FAFC),
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                          child: Row(
+                            children: [
+                              // Name
+                              Expanded(
+                                child: InkWell(
+                                  onTap: () => setState(() => _sortAscending = !_sortAscending),
+                                  child: Row(
+                                    children: [
+                                      const Text(
+                                        'Name',
+                                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF475569)),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Icon(_sortAscending ? Icons.keyboard_arrow_down : Icons.keyboard_arrow_up, size: 14, color: const Color(0xFF475569)),
+                                    ],
                                   ),
                                 ),
                               ),
-                              const SizedBox(width: 4),
-                              Icon(
-                                canUpdate ? Icons.edit_note : Icons.chevron_right,
-                                size: 18,
-                                color: const Color(0xFF94A3B8),
+                              const SizedBox(width: 12),
+                              // In-Stock Qty
+                              const SizedBox(
+                                width: 120,
+                                child: Align(
+                                  alignment: Alignment.centerRight,
+                                  child: Text('In-Stock Qty', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF475569))),
+                                ),
                               ),
                             ],
                           ),
                         ),
-                      );
-                    }),
 
-                  const SizedBox(height: 4),
+                        const Divider(height: 1, color: Color(0xFFE2E8F0)),
 
-                  // Add Division Button (Dashed border box)
-                  if (canUpdate)
-                    InkWell(
-                      onTap: () => _showAddDivisionDialog(currentRoom),
-                      borderRadius: BorderRadius.circular(4),
-                      child: Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(4),
-                          border: Border.all(
-                            color: const Color(0xFFCBD5E1),
-                            style: BorderStyle.solid,
-                          ),
-                        ),
-                        alignment: Alignment.center,
-                        child: const Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.add, size: 16, color: Colors.black),
-                            SizedBox(width: 6),
-                            Text(
-                              'Add Division',
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w800,
-                                color: Colors.black,
+                        // Table Content
+                        if (filteredItems.isEmpty)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 40),
+                            child: Center(
+                              child: Column(
+                                children: [
+                                  Icon(Icons.inventory_2_outlined, size: 40, color: Colors.grey.shade400),
+                                  const SizedBox(height: 12),
+                                  Text(
+                                    _itemSearchQuery.isNotEmpty
+                                        ? 'No items matching "$_itemSearchQuery"'
+                                        : 'No items currently in this store room',
+                                    style: const TextStyle(fontSize: 14, color: Color(0xFF64748B), fontWeight: FontWeight.w500),
+                                  ),
+                                ],
                               ),
                             ),
-                          ],
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-
-              const SizedBox(height: 14),
-
-            // 4. Store Room Items Card
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(4),
-                border: Border.all(color: const Color(0xFFE2E8F0)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Section Header Row
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            width: 26,
-                            height: 26,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF1F5F9),
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: const Icon(
-                              Icons.inventory_2_outlined,
-                              size: 15,
-                              color: Color(0xFF334155),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          const Text(
-                            'STORE ROOM ITEMS',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w800,
-                              color: Colors.black,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                            decoration: BoxDecoration(
-                              color: Colors.black,
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Text(
-                              '${roomItems.length}',
-                              style: const TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w800,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      if (canUpdate)
-                        InkWell(
-                          onTap: () => _showAddItemToRoomSheet(currentRoom),
-                          borderRadius: BorderRadius.circular(4),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: Colors.black,
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: const Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.add, size: 14, color: Colors.white),
-                                SizedBox(width: 4),
-                                Text(
-                                  'Add Item',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w800,
-                                    color: Colors.white,
-                                    letterSpacing: 0.2,
-                                  ),
+                          )
+                        else
+                          ListView.separated(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: filteredItems.length,
+                            separatorBuilder: (c, i) => const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                            itemBuilder: (ctx, index) {
+                              final sri = filteredItems[index];
+                              final item = inventory.items.firstWhere(
+                                (i) => i.itemId == sri.itemId,
+                                orElse: () => ItemModel(
+                                  itemId: sri.itemId,
+                                  tenantId: currentRoom.tenantId,
+                                  sku: '',
+                                  itemName: sri.itemId,
+                                  itemType: 'FINISHED GOOD',
+                                  measurementUnit: 'UNIT',
+                                  reorderThresholdQuantity: 0,
+                                  totalAvailableStock: sri.quantity,
+                                  isBelowReorderThreshold: false,
+                                  reorderShortfallQuantity: 0,
+                                  isActive: true,
                                 ),
-                              ],
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
+                              );
 
-                  const SizedBox(height: 12),
+                              final isOrange = index % 2 == 0;
 
-                  // Search within room items if there are any & Register Item link
-                  if (roomItems.isNotEmpty) ...[
-                    Container(
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF8FAFC),
-                        borderRadius: BorderRadius.circular(4),
-                        border: Border.all(color: const Color(0xFFE2E8F0)),
-                      ),
-                      child: TextField(
-                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-                        decoration: InputDecoration(
-                          hintText: 'Search items in ${currentRoom.roomName}...',
-                          hintStyle: const TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
-                          prefixIcon: const Icon(Icons.search, size: 18, color: Color(0xFF94A3B8)),
-                          border: InputBorder.none,
-                          contentPadding: const EdgeInsets.symmetric(vertical: 10),
-                        ),
-                        onChanged: (val) => setState(() => _itemSearchQuery = val.trim()),
-                      ),
-                    ),
-                    if (canUpdate) ...[
-                      const SizedBox(height: 8),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: GestureDetector(
-                          onTap: () async {
-                            await Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const CreateItemScreen(),
-                              ),
-                            );
-                            if (mounted) setState(() {});
-                          },
-                          child: const Text(
-                            '+ Register New Item',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.black,
-                              decoration: TextDecoration.underline,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                    const SizedBox(height: 12),
-                  ],
-
-                  // Items List or Empty State
-                  if (roomItems.isEmpty)
-                    Container(
-                      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF8FAFC),
-                        borderRadius: BorderRadius.circular(4),
-                        border: Border.all(color: const Color(0xFFE2E8F0)),
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.inventory_2_outlined, size: 36, color: Colors.grey.shade400),
-                          const SizedBox(height: 10),
-                          const Text(
-                            'No items assigned to this store room',
-                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Colors.black),
-                          ),
-                          const SizedBox(height: 4),
-                          const Text(
-                            'Search your catalog and assign items to this room, or register a new item.',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
-                          ),
-                          if (canUpdate) ...[
-                            const SizedBox(height: 14),
-                            Wrap(
-                              alignment: WrapAlignment.center,
-                              spacing: 10,
-                              runSpacing: 8,
-                              children: [
-                                ElevatedButton.icon(
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.black,
-                                    foregroundColor: Colors.white,
-                                    elevation: 0,
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                                  ),
-                                  icon: const Icon(Icons.search, size: 16),
-                                  label: const Text('Search & Add Items', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
-                                  onPressed: () => _showAddItemToRoomSheet(currentRoom),
-                                ),
-                                TextButton.icon(
-                                  onPressed: () async {
-                                    await Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (_) => const CreateItemScreen(),
-                                      ),
-                                    );
-                                    if (mounted) setState(() {});
-                                  },
-                                  icon: const Icon(Icons.add, size: 15, color: Colors.black),
-                                  label: const Text(
-                                    'Register New Item',
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w700,
-                                      color: Colors.black,
-                                      decoration: TextDecoration.underline,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ],
-                      ),
-                    )
-                  else ...[
-                    ...roomItems.where((sri) {
-                      if (_itemSearchQuery.isEmpty) return true;
-                      final q = _itemSearchQuery.toLowerCase();
-                      final item = inventory.items.firstWhere(
-                        (i) => i.itemId == sri.itemId,
-                        orElse: () => ItemModel(
-                          itemId: sri.itemId,
-                          tenantId: currentRoom.tenantId,
-                          sku: '',
-                          itemName: sri.itemId,
-                          itemType: '',
-                          measurementUnit: 'UNIT',
-                          reorderThresholdQuantity: 0,
-                          totalAvailableStock: sri.quantity,
-                          isBelowReorderThreshold: false,
-                          reorderShortfallQuantity: 0,
-                          isActive: true,
-                        ),
-                      );
-                      return item.itemName.toLowerCase().contains(q) ||
-                          item.sku.toLowerCase().contains(q) ||
-                          item.specification.toLowerCase().contains(q) ||
-                          sri.division.toLowerCase().contains(q);
-                    }).map((sri) {
-                      final item = inventory.items.firstWhere(
-                        (i) => i.itemId == sri.itemId,
-                        orElse: () => ItemModel(
-                          itemId: sri.itemId,
-                          tenantId: currentRoom.tenantId,
-                          sku: '',
-                          itemName: sri.itemId,
-                          itemType: '',
-                          measurementUnit: 'UNIT',
-                          reorderThresholdQuantity: 0,
-                          totalAvailableStock: sri.quantity,
-                          isBelowReorderThreshold: false,
-                          reorderShortfallQuantity: 0,
-                          isActive: true,
-                        ),
-                      );
-                      final resolvedImg = ApiConstants.resolveImageUrl(item.imageUrl);
-                      final divText = sri.division.isNotEmpty
-                          ? sri.division
-                          : 'General Section';
-
-                      return Container(
-                        margin: const EdgeInsets.only(bottom: 12),
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(4),
-                          border: Border.all(color: const Color(0xFFE5E5E5)),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Top Row: Item Picture + Title + SKU & Division badges + Popup Menu
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                // Thumbnail
-                                ClipRRect(
-                                  borderRadius: BorderRadius.circular(4),
-                                  child: Container(
-                                    width: 52,
-                                    height: 52,
-                                    decoration: BoxDecoration(
-                                      color: Colors.black,
-                                      borderRadius: BorderRadius.circular(4),
-                                    ),
-                                    child: resolvedImg != null
-                                        ? Image.network(
-                                            resolvedImg,
-                                            width: 52,
-                                            height: 52,
-                                            fit: BoxFit.cover,
-                                            errorBuilder: (context, error, stackTrace) => const Icon(
-                                              Icons.inventory_2_outlined,
-                                              color: Colors.white,
-                                              size: 22,
-                                            ),
-                                          )
-                                        : const Icon(
-                                            Icons.inventory_2_outlined,
-                                            color: Colors.white,
-                                            size: 22,
-                                          ),
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                // Details: Title, SKU, Division, Description
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                              return InkWell(
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(builder: (c) => ItemDetailScreen(item: item)),
+                                  ).then((_) => inventory.loadItems());
+                                },
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                                  child: Row(
                                     children: [
-                                      Text(
-                                        item.itemName,
-                                        style: const TextStyle(
-                                          fontSize: 15,
-                                          fontWeight: FontWeight.w800,
-                                          color: Colors.black,
+                                      // Icon + Name
+                                      Expanded(
+                                        child: Row(
+                                          children: [
+                                            Container(
+                                              width: 34,
+                                              height: 34,
+                                              decoration: BoxDecoration(
+                                                color: isOrange ? const Color(0xFFFEF3C7) : const Color(0xFFDCFCE7),
+                                                borderRadius: BorderRadius.circular(8),
+                                              ),
+                                              alignment: Alignment.center,
+                                              child: Icon(
+                                                Icons.description_outlined,
+                                                size: 18,
+                                                color: isOrange ? const Color(0xFFD97706) : const Color(0xFF16A34A),
+                                              ),
+                                            ),
+                                            const SizedBox(width: 12),
+                                            Expanded(
+                                              child: Column(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                    item.itemName,
+                                                    style: const TextStyle(
+                                                      fontSize: 13.5,
+                                                      fontWeight: FontWeight.w700,
+                                                      color: Color(0xFF0F172A),
+                                                    ),
+                                                  ),
+                                                  const SizedBox(height: 2),
+                                                  Text(
+                                                    'Section: ${item.specification.isNotEmpty ? item.specification : sri.division.isNotEmpty ? sri.division : 'Standard'} • Packets Per Carton: ${item.reorderThresholdQuantity > 0 ? item.reorderThresholdQuantity.toInt() : 14}',
+                                                    style: const TextStyle(
+                                                      fontSize: 11.5,
+                                                      color: Color(0xFF64748B),
+                                                    ),
+                                                    maxLines: 1,
+                                                    overflow: TextOverflow.ellipsis,
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ],
                                         ),
                                       ),
-                                      const SizedBox(height: 5),
-                                      Wrap(
-                                        spacing: 6,
-                                        runSpacing: 4,
-                                        crossAxisAlignment: WrapCrossAlignment.center,
-                                        children: [
-                                          if (item.sku.isNotEmpty)
-                                            Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                              decoration: BoxDecoration(
-                                                color: const Color(0xFFF1F5F9),
-                                                borderRadius: BorderRadius.circular(2),
-                                              ),
-                                              child: Text(
-                                                item.sku,
-                                                style: const TextStyle(
-                                                  fontSize: 11,
-                                                  fontWeight: FontWeight.w800,
-                                                  color: Color(0xFF334155),
-                                                  letterSpacing: 0.3,
-                                                ),
-                                              ),
-                                            ),
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                      const SizedBox(width: 12),
+
+                                      // In-Stock Qty (Stepper)
+                                      SizedBox(
+                                        width: 120,
+                                        child: Align(
+                                          alignment: Alignment.centerRight,
+                                          child: Container(
+                                            height: 30,
                                             decoration: BoxDecoration(
-                                              color: const Color(0xFFF0FDF4),
-                                              borderRadius: BorderRadius.circular(2),
-                                              border: Border.all(color: const Color(0xFFBBF7D0)),
-                                            ),
-                                            child: Text(
-                                              item.specification,
-                                              style: const TextStyle(
-                                                fontSize: 11,
-                                                fontWeight: FontWeight.w800,
-                                                color: Color(0xFF15803D),
-                                                letterSpacing: 0.3,
-                                              ),
-                                            ),
-                                          ),
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                            decoration: BoxDecoration(
-                                              color: const Color(0xFFEEF2FF),
-                                              borderRadius: BorderRadius.circular(2),
+                                              color: Colors.white,
+                                              borderRadius: BorderRadius.circular(6),
+                                              border: Border.all(color: const Color(0xFFE2E8F0)),
                                             ),
                                             child: Row(
                                               mainAxisSize: MainAxisSize.min,
                                               children: [
-                                                const Icon(Icons.meeting_room_outlined, size: 11, color: Color(0xFF4338CA)),
-                                                const SizedBox(width: 3),
-                                                Text(
-                                                  divText,
-                                                  style: const TextStyle(
-                                                    fontSize: 11,
-                                                    fontWeight: FontWeight.w700,
-                                                    color: Color(0xFF4338CA),
+                                                InkWell(
+                                                  onTap: canUpdate
+                                                      ? () => _showEditItemQuantityDialog(item, sri, currentRoom)
+                                                      : null,
+                                                  child: const Padding(
+                                                    padding: EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                                                    child: Text('−', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF64748B))),
+                                                  ),
+                                                ),
+                                                Padding(
+                                                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                                                  child: Text(
+                                                    '${sri.quantity.toInt()}',
+                                                    style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+                                                  ),
+                                                ),
+                                                InkWell(
+                                                  onTap: canUpdate
+                                                      ? () => _showEditItemQuantityDialog(item, sri, currentRoom)
+                                                      : null,
+                                                  child: const Padding(
+                                                    padding: EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                                                    child: Text('+', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF64748B))),
                                                   ),
                                                 ),
                                               ],
                                             ),
                                           ),
-                                        ],
-                                      ),
-                                      if (item.description.isNotEmpty) ...[
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          item.description,
-                                          maxLines: 2,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: const TextStyle(
-                                            fontSize: 12,
-                                            color: Color(0xFF64748B),
-                                          ),
-                                        ),
-                                      ],
-                                    ],
-                                  ),
-                                ),
-                                const SizedBox(width: 6),
-                                // Actions Menu
-                                PopupMenuButton<String>(
-                                  icon: const Icon(Icons.more_vert, size: 20, color: Color(0xFF71717A)),
-                                  padding: EdgeInsets.zero,
-                                  constraints: const BoxConstraints(),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-                                  onSelected: (val) {
-                                    if (val == 'view') {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (_) => ItemDetailScreen(item: item),
-                                        ),
-                                      );
-                                    } else if (val == 'move') {
-                                      _showMoveDivisionDialog(item, currentRoom);
-                                    } else if (val == 'minimum') {
-                                      _showSetMinimumCountDialog(item, sri, currentRoom);
-                                    } else if (val == 'remove') {
-                                      _confirmRemoveItemFromRoom(item, currentRoom);
-                                    }
-                                  },
-                                  itemBuilder: (ctx) => [
-                                    const PopupMenuItem(
-                                      value: 'view',
-                                      child: Row(
-                                        children: [
-                                          Icon(Icons.visibility_outlined, size: 18),
-                                          SizedBox(width: 8),
-                                          Text('View Item Details', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                                        ],
-                                      ),
-                                    ),
-                                    if (canUpdate)
-                                      const PopupMenuItem(
-                                        value: 'minimum',
-                                        child: Row(
-                                          children: [
-                                            Icon(Icons.inventory_2_outlined, size: 18),
-                                            SizedBox(width: 8),
-                                            Text('Set Minimum Count', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                                          ],
-                                        ),
-                                      ),
-                                    if (canUpdate && currentRoom.divisions.length > 1)
-                                      const PopupMenuItem(
-                                        value: 'move',
-                                        child: Row(
-                                          children: [
-                                            Icon(Icons.swap_horiz, size: 18),
-                                            SizedBox(width: 8),
-                                            Text('Change Division', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                                          ],
-                                        ),
-                                      ),
-                                    if (canUpdate)
-                                      const PopupMenuItem(
-                                        value: 'remove',
-                                        child: Row(
-                                          children: [
-                                            Icon(Icons.delete_outline, size: 18, color: Color(0xFFDC2626)),
-                                            SizedBox(width: 8),
-                                            Text('Remove from Room', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFFDC2626))),
-                                          ],
-                                        ),
-                                      ),
-                                  ],
-                                ),
-                              ],
-                            ),
-
-                            const SizedBox(height: 12),
-                            const Divider(height: 1, color: Color(0xFFF1F5F9)),
-                            const SizedBox(height: 10),
-
-                            // Bottom Row: Quantity Stepper & Label below picture, title & description
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              children: [
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Text(
-                                      'MINIMUM STOCK REQUIRED',
-                                      style: TextStyle(
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.w800,
-                                        color: Color(0xFF71717A),
-                                        letterSpacing: 0.3,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      sri.minCount > 0
-                                          ? sri.minCount.toStringAsFixed(sri.minCount.truncateToDouble() == sri.minCount ? 0 : 2)
-                                          : 'Not set',
-                                      style: const TextStyle(
-                                        fontSize: 11,
-                                        color: Color(0xFF64748B),
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                if (canUpdate)
-                                  Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      InkWell(
-                                        onTap: sri.quantity > 0
-                                            ? () {
-                                                final newQty = (sri.quantity - 1.0).clamp(0.0, 99999999.0);
-                                                inventory.updateStoreRoomItemQuantity(
-                                                  storeRoomId: currentRoom.storeRoomId,
-                                                  itemId: item.itemId,
-                                                  quantity: newQty,
-                                                );
-                                              }
-                                            : null,
-                                        borderRadius: BorderRadius.circular(4),
-                                        child: Container(
-                                          width: 32,
-                                          height: 32,
-                                          decoration: BoxDecoration(
-                                            color: Colors.white,
-                                            borderRadius: BorderRadius.circular(4),
-                                            border: Border.all(color: const Color(0xFFCBD5E1)),
-                                          ),
-                                          alignment: Alignment.center,
-                                          child: const Icon(Icons.remove, size: 16, color: Colors.black),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      InkWell(
-                                        onTap: () => _showEditItemQuantityDialog(
-                                          item,
-                                          sri,
-                                          currentRoom,
-                                        ),
-                                        borderRadius: BorderRadius.circular(4),
-                                        child: Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-                                          decoration: BoxDecoration(
-                                            color: Colors.black,
-                                            borderRadius: BorderRadius.circular(4),
-                                          ),
-                                          child: Text(
-                                            sri.quantity.toStringAsFixed(sri.quantity.truncateToDouble() == sri.quantity ? 0 : 1),
-                                            style: const TextStyle(
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.w800,
-                                              color: Colors.white,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      InkWell(
-                                        onTap: () {
-                                          final newQty = sri.quantity + 1.0;
-                                          inventory.updateStoreRoomItemQuantity(
-                                            storeRoomId: currentRoom.storeRoomId,
-                                            itemId: item.itemId,
-                                            quantity: newQty,
-                                          );
-                                        },
-                                        borderRadius: BorderRadius.circular(4),
-                                        child: Container(
-                                          width: 32,
-                                          height: 32,
-                                          decoration: BoxDecoration(
-                                            color: Colors.white,
-                                            borderRadius: BorderRadius.circular(4),
-                                            border: Border.all(color: const Color(0xFFCBD5E1)),
-                                          ),
-                                          alignment: Alignment.center,
-                                          child: const Icon(Icons.add, size: 16, color: Colors.black),
                                         ),
                                       ),
                                     ],
-                                  )
-                                else
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-                                    decoration: BoxDecoration(
-                                      color: Colors.black,
-                                      borderRadius: BorderRadius.circular(4),
-                                    ),
-                                    child: Text(
-                                      sri.quantity.toStringAsFixed(sri.quantity.truncateToDouble() == sri.quantity ? 0 : 1),
-                                      style: const TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w800,
-                                        color: Colors.white,
-                                      ),
-                                    ),
                                   ),
-                              ],
-                            ),
-                          ],
+                                ),
+                              );
+                            },
+                          ),
+
+                        // Table Footer
+                        const Divider(height: 1, color: Color(0xFFE2E8F0)),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                          child: Row(
+                            children: [
+                              Text(
+                                'Showing ${filteredItems.length} of ${roomItems.length} items in this store room  •  $totalUnits units total allocated',
+                                style: const TextStyle(fontSize: 12, color: Color(0xFF64748B), fontWeight: FontWeight.w500),
+                              ),
+                              const Spacer(),
+                              const Text(
+                                'Page 1 of 1',
+                                style: TextStyle(fontSize: 12, color: Color(0xFF94A3B8), fontWeight: FontWeight.w500),
+                              ),
+                            ],
+                          ),
                         ),
-                      );
-                    }),
-                  ],
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // 3. BOTTOM ACTIONS
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      if (canDelete)
+                        OutlinedButton.icon(
+                          onPressed: () => _confirmDeleteRoom(currentRoom),
+                          icon: const Icon(Icons.delete_outline, size: 16, color: Color(0xFFDC2626)),
+                          label: const Text('Delete Store Room', style: TextStyle(color: Color(0xFFDC2626), fontWeight: FontWeight.w700, fontSize: 13)),
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: Color(0xFFFECACA)),
+                            backgroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                        ),
+                      const SizedBox(width: 12),
+                      if (canUpdate)
+                        FilledButton.icon(
+                          onPressed: () => _showEditRoomBottomSheet(currentRoom),
+                          icon: const Icon(Icons.edit_outlined, size: 16, color: Colors.white),
+                          label: const Text('Edit Store Room Details', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13)),
+                          style: FilledButton.styleFrom(
+                            backgroundColor: const Color(0xFF0F172A),
+                            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            elevation: 0,
+                          ),
+                        ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 32),
+
+                  // 4. COPYRIGHT FOOTER
+                  const Center(
+                    child: Text(
+                      'Developed by Bigburry Hypersystems LLP',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Color(0xFF64748B),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
                 ],
               ),
             ),
-
-            const SizedBox(height: 20),
-
-            // 5. Action Buttons
-            if (canUpdate) ...[
-              SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.black,
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                  ),
-                  icon: const Icon(Icons.edit_outlined, size: 18),
-                  label: const Text(
-                    'Edit Store Room Details',
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800),
-                  ),
-                  onPressed: () => _showEditRoomBottomSheet(currentRoom),
-                ),
-              ),
-              const SizedBox(height: 10),
-            ],
-
-            if (canDelete) ...[
-              SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: OutlinedButton.icon(
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFFEF4444),
-                    backgroundColor: Colors.white,
-                    elevation: 0,
-                    side: const BorderSide(color: Color(0xFFFEE2E2)),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                  ),
-                  icon: const Icon(Icons.delete_outline, size: 18, color: Color(0xFFEF4444)),
-                  label: const Text(
-                    'Delete Store Room',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w800,
-                      color: Color(0xFFEF4444),
-                    ),
-                  ),
-                  onPressed: () => _confirmDeleteRoom(currentRoom),
-                ),
-              ),
-            ],
-
-            const SizedBox(height: 28),
-
-            // Footer
-            const Center(
-              child: Text(
-                'DEVELOPED BY BIGBURRY HYPERSYSTEMS LLP',
-                style: TextStyle(
-                  fontSize: 10,
-                  color: Color(0xFF94A3B8),
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.8,
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-          ],
+          ),
         ),
       ),
-    ),
-  ),
-),
     );
   }
 }

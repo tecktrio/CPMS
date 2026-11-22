@@ -20,6 +20,7 @@ import { SignInDto } from './dtos/sign-in.dto';
 import { VerifyOtpDto } from './dtos/verify-otp.dto';
 import { ForgotPasswordDto } from './dtos/forgot-password.dto';
 import { ResetPasswordDto } from './dtos/reset-password.dto';
+import { FindUsernamesDto } from './dtos/find-usernames.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 
@@ -80,14 +81,28 @@ export class AuthController {
     return this.authService.resendOtp(emailAddress);
   }
 
+  @Post('find-usernames')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Find usernames assigned to an email address',
+    description:
+      'Looks up all active accounts registered with the given email address and emails a reminder.',
+  })
+  @ApiResponse({ status: 200, description: 'Usernames found and returned' })
+  @ApiResponse({ status: 404, description: 'No accounts found for this email address' })
+  async findUsernames(@Body() dto: FindUsernamesDto) {
+    return this.authService.findUsernamesByEmail(dto);
+  }
+
   @Post('forgot-password')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
-    summary: 'Request password reset OTP',
-    description: 'Generates a 6-digit password reset OTP and emails it to the user.',
+    summary: 'Request password reset OTP by username',
+    description:
+      'Generates a 6-digit password reset OTP and emails it to the user associated with the username.',
   })
   @ApiResponse({ status: 200, description: 'Reset OTP dispatched to email' })
-  @ApiResponse({ status: 404, description: 'Email address not registered' })
+  @ApiResponse({ status: 404, description: 'Username not registered' })
   async forgotPassword(@Body() dto: ForgotPasswordDto) {
     return this.authService.forgotPassword(dto);
   }
@@ -95,7 +110,7 @@ export class AuthController {
   @Post('reset-password')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
-    summary: 'Verify OTP and set new password',
+    summary: 'Verify OTP and set new password for username',
     description: 'Verifies the 6-digit OTP code and updates the account password.',
   })
   @ApiResponse({ status: 200, description: 'Password reset successfully' })

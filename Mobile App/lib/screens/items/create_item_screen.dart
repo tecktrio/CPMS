@@ -140,6 +140,18 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
       }
     }
 
+    if (finalItemName.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please provide an item name or select a packing material.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      setState(() => _isSubmitting = false);
+      return;
+    }
+
     final success = await inventory.createItem(
       itemName: finalItemName,
       itemType: _selectedItemType,
@@ -402,7 +414,9 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
               const SizedBox(height: 24),
 
               // Item Name
-              _buildFieldLabel('ITEM NAME *'),
+              _buildFieldLabel(_selectedItemType == 'PACKAGING'
+                  ? 'ITEM NAME (PACKING MATERIAL) *'
+                  : 'ITEM NAME *'),
               TextFormField(
                 controller: _nameController,
                 style: const TextStyle(
@@ -418,6 +432,14 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
                   ),
                 ),
                 validator: (val) {
+                  if (_selectedItemType == 'PACKAGING') {
+                    if (_selectedPackageMaterial == 'Custom' &&
+                        _customPackageMaterialController.text.trim().isEmpty &&
+                        (val == null || val.trim().isEmpty)) {
+                      return 'Custom packing material name is required';
+                    }
+                    return null;
+                  }
                   if (val == null || val.trim().isEmpty) {
                     return 'Item name is required';
                   }
@@ -518,6 +540,7 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
                   }
 
                   return DropdownButtonFormField<String>(
+                    key: ValueKey('item_type_$_selectedItemType'),
                     initialValue: _selectedItemType,
                     icon: const Icon(
                       Icons.keyboard_arrow_down,
@@ -556,7 +579,18 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
                         .toList(),
                     onChanged: (val) {
                       if (val != null) {
-                        setState(() => _selectedItemType = val);
+                        setState(() {
+                          _selectedItemType = val;
+                          if (val == 'PACKAGING') {
+                            if (_selectedPackageMaterial == 'Custom') {
+                              if (_customPackageMaterialController.text.trim().isNotEmpty) {
+                                _nameController.text = _customPackageMaterialController.text.trim();
+                              }
+                            } else {
+                              _nameController.text = _selectedPackageMaterial;
+                            }
+                          }
+                        });
                       }
                     },
                   );
@@ -610,7 +644,9 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
                   final materialOptions = <String>[];
                   if (inventory.packagingMaterials.isNotEmpty) {
                     for (final m in inventory.packagingMaterials) {
-                      materialOptions.add(m.name);
+                      if (!materialOptions.contains(m.name)) {
+                        materialOptions.add(m.name);
+                      }
                     }
                   } else {
                     materialOptions.addAll([
@@ -634,6 +670,7 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       DropdownButtonFormField<String>(
+                        key: ValueKey('pkg_mat_$_selectedPackageMaterial'),
                         initialValue: _selectedPackageMaterial,
                         icon: const Icon(
                           Icons.keyboard_arrow_down,
@@ -673,7 +710,20 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
                             .toList(),
                         onChanged: (val) {
                           if (val != null) {
-                            setState(() => _selectedPackageMaterial = val);
+                            setState(() {
+                              _selectedPackageMaterial = val;
+                              if (_selectedItemType == 'PACKAGING') {
+                                if (val == 'Custom') {
+                                  _nameController.text = _customPackageMaterialController.text.trim();
+                                } else {
+                                  _nameController.text = val;
+                                }
+                              } else if (_nameController.text.trim().isEmpty) {
+                                if (val != 'Custom') {
+                                  _nameController.text = val;
+                                }
+                              }
+                            });
                           }
                         },
                       ),
@@ -694,6 +744,11 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
                               color: Color(0xFF94A3B8),
                             ),
                           ),
+                          onChanged: (text) {
+                            if (_selectedPackageMaterial == 'Custom' && _selectedItemType == 'PACKAGING') {
+                              _nameController.text = text.trim();
+                            }
+                          },
                           validator: (val) {
                             if (_selectedPackageMaterial == 'Custom' &&
                                 (val == null || val.trim().isEmpty)) {
@@ -758,6 +813,7 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
                       children: [
                         _buildFieldLabel('UNIT *'),
                         DropdownButtonFormField<String>(
+                          key: ValueKey('unit_$_selectedUnit'),
                           initialValue: _selectedUnit,
                           icon: const Icon(
                             Icons.keyboard_arrow_down,

@@ -274,7 +274,7 @@ class _SignInScreenState extends State<SignInScreen> {
                                 context,
                                 MaterialPageRoute(
                                   builder: (_) => ForgotPasswordScreen(
-                                    initialEmail: _usernameController.text.trim(),
+                                    initialUsername: _usernameController.text.trim(),
                                   ),
                                 ),
                               );

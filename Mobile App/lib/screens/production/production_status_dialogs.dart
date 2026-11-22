@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../providers/department_provider.dart';
 import '../../providers/production_provider.dart';
 import '../../providers/purchase_order_provider.dart';
+import '../../providers/tenant_provider.dart';
 
 class ProductionStatusDialogs {
   /// Assign supervisor to a PO line item
@@ -13,8 +14,20 @@ class ProductionStatusDialogs {
     VoidCallback? onUpdated,
   }) {
     final deptProv = context.read<DepartmentProvider>();
-    final users = deptProv.tenantUsers;
-    String? selectedUserId = users.isNotEmpty ? users.first.userId : null;
+    final tenantProv = context.read<TenantProvider>();
+
+    // Resolve the Supervisor department IDs
+    final supervisorDeptIds = tenantProv.tenantDepartments
+        .where((d) => d.departmentName.trim().toLowerCase() == 'supervisor' || d.departmentName.trim().toLowerCase().contains('supervisor'))
+        .map((d) => d.departmentId)
+        .toSet();
+
+    // Filter to only users who belong to the Supervisor department
+    final supervisorUsers = deptProv.tenantUsers.where((u) {
+      return u.departmentIds.any((id) => supervisorDeptIds.contains(id));
+    }).toList();
+
+    String? selectedUserId = supervisorUsers.isNotEmpty ? supervisorUsers.first.userId : null;
     final remainingCartons = item.cartons - item.completedCartons > 0
         ? item.cartons - item.completedCartons
         : item.cartons;
@@ -62,32 +75,54 @@ class ProductionStatusDialogs {
                         fontWeight: FontWeight.w700,
                         color: Color(0xFF334155))),
                 const SizedBox(height: 6),
-                DropdownButtonFormField<String>(
-                  initialValue: selectedUserId,
-                  isExpanded: true,
-                  decoration: InputDecoration(
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(6)),
-                    contentPadding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                if (supervisorUsers.isEmpty)
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFEF2F2),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: const Color(0xFFFECACA)),
+                    ),
+                    child: const Row(
+                      children: [
+                        Icon(Icons.info_outline, size: 18, color: Color(0xFFDC2626)),
+                        SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'No users currently assigned to the Supervisor department.',
+                            style: TextStyle(fontSize: 12, color: Color(0xFFDC2626), fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                else
+                  DropdownButtonFormField<String>(
+                    initialValue: selectedUserId,
+                    isExpanded: true,
+                    decoration: InputDecoration(
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(6)),
+                      contentPadding:
+                          const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    ),
+                    items: supervisorUsers.map((u) {
+                      final display = u.fullName.isNotEmpty
+                          ? '${u.fullName} (@${u.userName})'
+                          : u.emailAddress;
+                      return DropdownMenuItem(
+                        value: u.userId,
+                        child: Text(display,
+                            style: const TextStyle(fontSize: 13),
+                            overflow: TextOverflow.ellipsis),
+                      );
+                    }).toList(),
+                    onChanged: (val) {
+                      if (val != null) {
+                        setDialogState(() => selectedUserId = val);
+                      }
+                    },
                   ),
-                  items: users.map((u) {
-                    final display = u.fullName.isNotEmpty
-                        ? '${u.fullName} (@${u.userName})'
-                        : u.emailAddress;
-                    return DropdownMenuItem(
-                      value: u.userId,
-                      child: Text(display,
-                          style: const TextStyle(fontSize: 13),
-                          overflow: TextOverflow.ellipsis),
-                    );
-                  }).toList(),
-                  onChanged: (val) {
-                    if (val != null) {
-                      setDialogState(() => selectedUserId = val);
-                    }
-                  },
-                ),
                 const SizedBox(height: 14),
                 const Text('Assigned Cartons',
                     style: TextStyle(
@@ -142,11 +177,19 @@ class ProductionStatusDialogs {
               ),
               onPressed: () async {
                 final qty = int.tryParse(cartonsController.text.trim()) ?? 0;
-                if (selectedUserId == null || qty <= 0) {
+                if (selectedUserId == null) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                         content: Text(
-                            'Please select a supervisor and valid carton count.')),
+                            'Please select a user in the Supervisor department.')),
+                  );
+                  return;
+                }
+                if (qty <= 0) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                        content: Text(
+                            'Please enter a valid carton count greater than 0.')),
                   );
                   return;
                 }

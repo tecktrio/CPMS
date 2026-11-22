@@ -96,7 +96,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         title: Text(
           'Delete Item: ${item.sku}?',
           style: const TextStyle(
@@ -132,7 +132,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
               elevation: 0,
               padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(4),
+                borderRadius: BorderRadius.circular(8),
               ),
             ),
             onPressed: () async {
@@ -164,6 +164,85 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
     );
   }
 
+  String _resolveItemType(ItemModel item) {
+    if (item.itemType == 'FINISHED_GOOD') return 'Finished Unit';
+    if (item.itemType == 'RAW_MATERIAL') return 'Raw Material';
+    if (item.itemType == 'PACKAGING') return 'Packing Material';
+    return item.itemType.replaceAll('_', ' ');
+  }
+
+  String _resolveQuantity(ItemModel item) {
+    return item.quantity.toStringAsFixed(
+        item.quantity.truncateToDouble() == item.quantity ? 0 : 2);
+  }
+
+  String _resolveUnit(ItemModel item) {
+    if (item.specification.isNotEmpty) {
+      return item.specification;
+    }
+    final u = item.measurementUnit.toUpperCase();
+    if (u == 'KILOGRAM' || u == 'KG') return 'kg';
+    if (u == 'GRAM' || u == 'G') return 'g';
+    if (u == 'LITRE' || u == 'LITER' || u == 'L') return 'L';
+    if (u == 'MILLILITRE' || u == 'MILLILITER' || u == 'ML') return 'ml';
+    if (u == 'PIECE' || u == 'PC') return 'pcs';
+    return item.measurementUnit.toLowerCase();
+  }
+
+  String _resolvePackingMaterial(ItemModel item) {
+    if (item.itemType == 'PACKAGING') {
+      return item.itemName;
+    }
+    // Check if description has "Packing Material: <val>"
+    final desc = item.description;
+    final regex = RegExp(r'Packing Material:\s*([^\s•,]+)', caseSensitive: false);
+    final match = regex.firstMatch(desc);
+    if (match != null && match.group(1) != null) {
+      return match.group(1)!;
+    }
+    // Check if itemName contains known materials in parentheses or words
+    final knownMaterials = [
+      'Pouches with rider',
+      'Pouches',
+      'Duplex',
+      'Rider',
+      'Bucket',
+      'Tub',
+    ];
+    for (final mat in knownMaterials) {
+      if (item.itemName.toLowerCase().contains(mat.toLowerCase())) {
+        return mat;
+      }
+    }
+    return '-';
+  }
+
+  Widget _buildMetaStat(String label, String value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+            color: Color(0xFF94A3B8),
+            letterSpacing: 0.5,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w700,
+            color: Color(0xFF0F172A),
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final inventory = context.watch<InventoryProvider>();
@@ -183,8 +262,167 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
     final screenWidth = MediaQuery.of(context).size.width;
     final isWide = screenWidth >= 700;
 
+    // Photo Box Widget
+    final photoBox = hasImage
+        ? Container(
+            width: isWide ? 160 : double.infinity,
+            height: 160,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+            ),
+            child: Stack(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(13),
+                  child: Image.network(
+                    ApiConstants.resolveImageUrl(currentItem.imageUrl)!,
+                    width: double.infinity,
+                    height: double.infinity,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) => const Center(
+                      child: Icon(
+                        Icons.broken_image_outlined,
+                        color: Color(0xFF94A3B8),
+                        size: 36,
+                      ),
+                    ),
+                  ),
+                ),
+                if (canUpdate)
+                  Positioned(
+                    bottom: 8,
+                    right: 8,
+                    child: Material(
+                      color: Colors.black.withValues(alpha: 0.7),
+                      borderRadius: BorderRadius.circular(6),
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(6),
+                        onTap: _isUploadingImage
+                            ? null
+                            : () => _updateItemImage(currentItem.itemId),
+                        child: const Padding(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.camera_alt,
+                                  color: Colors.white, size: 12),
+                              SizedBox(width: 4),
+                              Text(
+                                'Edit',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          )
+        : InkWell(
+            onTap: canUpdate && !_isUploadingImage
+                ? () => _updateItemImage(currentItem.itemId)
+                : null,
+            borderRadius: BorderRadius.circular(14),
+            child: CustomPaint(
+              painter: DashedBorderPainter(
+                color: const Color(0xFFCBD5E1),
+                strokeWidth: 1.5,
+                radius: 14,
+              ),
+              child: Container(
+                width: isWide ? 160 : double.infinity,
+                height: 160,
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 16, vertical: 20),
+                alignment: Alignment.center,
+                child: _isUploadingImage
+                    ? const SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.black,
+                        ),
+                      )
+                    : Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            width: 42,
+                            height: 42,
+                            decoration: const BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Color(0xFFF1F5F9),
+                            ),
+                            alignment: Alignment.center,
+                            child: const Icon(
+                              Icons.camera_alt_outlined,
+                              color: Color(0xFF64748B),
+                              size: 20,
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          const Text(
+                            'Add Item Photo',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF0F172A),
+                            ),
+                          ),
+                          const SizedBox(height: 3),
+                          const Text(
+                            'JPEG, PNG up to 10MB',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w500,
+                              color: Color(0xFF94A3B8),
+                            ),
+                          ),
+                        ],
+                      ),
+              ),
+            ),
+          );
+
+    // Metadata Stats Row Widget
+    final statsRow = isWide
+        ? Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _buildMetaStat('ITEM TYPE', _resolveItemType(currentItem)),
+              _buildMetaStat('QUANTITY', _resolveQuantity(currentItem)),
+              _buildMetaStat('UNIT', _resolveUnit(currentItem)),
+              _buildMetaStat(
+                  'PACKING MATERIAL', _resolvePackingMaterial(currentItem)),
+            ],
+          )
+        : Wrap(
+            spacing: 24,
+            runSpacing: 14,
+            children: [
+              _buildMetaStat('ITEM TYPE', _resolveItemType(currentItem)),
+              _buildMetaStat('QUANTITY', _resolveQuantity(currentItem)),
+              _buildMetaStat('UNIT', _resolveUnit(currentItem)),
+              _buildMetaStat(
+                  'PACKING MATERIAL', _resolvePackingMaterial(currentItem)),
+            ],
+          );
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
         backgroundColor: Colors.white,
         surfaceTintColor: Colors.transparent,
@@ -197,7 +435,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
         centerTitle: true,
         title: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 1100),
+            constraints: const BoxConstraints(maxWidth: 1000),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -240,693 +478,537 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
         },
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 1100),
+            constraints: const BoxConstraints(maxWidth: 1000),
             child: SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
               padding: EdgeInsets.symmetric(
                 horizontal: isWide ? 28 : 16,
-                vertical: 20,
+                vertical: 24,
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-            // 1. Item Header Card
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(4),
-                border: Border.all(color: const Color(0xFFE2E8F0)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Item Photo Box / Area
-                  if (hasImage)
-                    Stack(
-                      children: [
-                        ClipRRect(
-                          borderRadius: const BorderRadius.vertical(
-                            top: Radius.circular(16),
+                  // 1. Top Hero Card
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.02),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: isWide
+                        ? Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              photoBox,
+                              const SizedBox(width: 28),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      currentItem.itemName,
+                                      style: const TextStyle(
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.w800,
+                                        color: Color(0xFF0F172A),
+                                        letterSpacing: -0.5,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 24),
+                                    statsRow,
+                                  ],
+                                ),
+                              ),
+                            ],
+                          )
+                        : Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Center(child: photoBox),
+                              const SizedBox(height: 20),
+                              Text(
+                                currentItem.itemName,
+                                style: const TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w800,
+                                  color: Color(0xFF0F172A),
+                                  letterSpacing: -0.5,
+                                ),
+                              ),
+                              const SizedBox(height: 18),
+                              statsRow,
+                            ],
                           ),
-                          child: Image.network(
-                            ApiConstants.resolveImageUrl(currentItem.imageUrl)!,
-                            width: double.infinity,
-                            height: 200,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) =>
-                                Container(
-                              height: 150,
-                              color: const Color(0xFFF8FAFC),
-                              alignment: Alignment.center,
-                              child: const Icon(
-                                Icons.broken_image_outlined,
-                                size: 40,
-                                color: Color(0xFF94A3B8),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // 2. Description Card
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.02),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Row(
+                          children: [
+                            Icon(
+                              Icons.description_outlined,
+                              size: 18,
+                              color: Color(0xFF64748B),
+                            ),
+                            SizedBox(width: 8),
+                            Text(
+                              'DESCRIPTION',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w800,
+                                color: Color(0xFF334155),
+                                letterSpacing: 0.5,
                               ),
                             ),
+                          ],
+                        ),
+                        const SizedBox(height: 14),
+                        Text(
+                          currentItem.description.isNotEmpty
+                              ? currentItem.description
+                              : 'No description provided.',
+                          style: TextStyle(
+                            fontSize: 14,
+                            height: 1.5,
+                            color: currentItem.description.isNotEmpty
+                                ? const Color(0xFF334155)
+                                : const Color(0xFF94A3B8),
+                            fontWeight: currentItem.description.isNotEmpty
+                                ? FontWeight.w500
+                                : FontWeight.w400,
                           ),
                         ),
-                        if (canUpdate)
-                          Positioned(
-                            top: 12,
-                            right: 12,
-                            child: Material(
-                              color: Colors.black.withValues(alpha: 0.65),
-                              borderRadius: BorderRadius.circular(4),
-                              child: InkWell(
-                                borderRadius: BorderRadius.circular(4),
-                                onTap: _isUploadingImage
-                                    ? null
-                                    : () =>
-                                        _updateItemImage(currentItem.itemId),
-                                child: const Padding(
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 6,
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // 3. Ingredients Card
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.02),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Row(
+                              children: [
+                                Icon(
+                                  Icons.science_outlined,
+                                  size: 18,
+                                  color: Color(0xFF64748B),
+                                ),
+                                SizedBox(width: 8),
+                                Text(
+                                  'INGREDIENTS',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w800,
+                                    color: Color(0xFF334155),
+                                    letterSpacing: 0.5,
                                   ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
+                                ),
+                              ],
+                            ),
+                            if (currentItem.hasIngredients)
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFF0FDFA),
+                                  borderRadius: BorderRadius.circular(4),
+                                  border: Border.all(
+                                      color: const Color(0xFF99F6E4)),
+                                ),
+                                child: Text(
+                                  '${currentItem.ingredients.length} ${currentItem.ingredients.length == 1 ? 'Raw Material' : 'Raw Materials'}',
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w800,
+                                    color: Color(0xFF0F766E),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 14),
+                        if (!currentItem.hasIngredients)
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF8FAFC),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                  color: const Color(0xFFE2E8F0)),
+                            ),
+                            child: const Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Icon(
+                                  Icons.info_outline,
+                                  size: 20,
+                                  color: Color(0xFF94A3B8),
+                                ),
+                                SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
-                                      Icon(
-                                        Icons.camera_alt,
-                                        color: Colors.white,
-                                        size: 14,
-                                      ),
-                                      SizedBox(width: 6),
                                       Text(
-                                        'Change Photo',
+                                        'This item does not contain ingredients (Standalone / Raw Material).',
                                         style: TextStyle(
-                                          color: Colors.white,
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w600,
+                                          color: Color(0xFF475569),
+                                        ),
+                                      ),
+                                      SizedBox(height: 3),
+                                      Text(
+                                        'No bill of materials (BOM) or ingredient formulations are attached to this item profile.',
+                                        style: TextStyle(
                                           fontSize: 12,
-                                          fontWeight: FontWeight.w700,
+                                          fontWeight: FontWeight.w400,
+                                          color: Color(0xFF94A3B8),
                                         ),
                                       ),
                                     ],
                                   ),
                                 ),
-                              ),
+                              ],
                             ),
-                          ),
-                      ],
-                    )
-                  else
-                    InkWell(
-                      onTap: canUpdate && !_isUploadingImage
-                          ? () => _updateItemImage(currentItem.itemId)
-                          : null,
-                      borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(16),
-                      ),
-                      child: Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(vertical: 28),
-                        decoration: const BoxDecoration(
-                          color: Color(0xFFFAFAFA),
-                          borderRadius: BorderRadius.vertical(
-                            top: Radius.circular(16),
-                          ),
-                        ),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Container(
-                              width: 52,
-                              height: 52,
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(4),
-                                border:
-                                    Border.all(color: const Color(0xFFE2E8F0)),
-                              ),
-                              alignment: Alignment.center,
-                              child: _isUploadingImage
-                                  ? const SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        color: Colors.black,
-                                      ),
-                                    )
-                                  : const Icon(
-                                      Icons.camera_alt_outlined,
-                                      size: 24,
-                                      color: Colors.black,
-                                    ),
-                            ),
-                            const SizedBox(height: 12),
-                            const Text(
-                              'Add Item Photo',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w800,
-                                color: Colors.black,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            const Text(
-                              'JPEG, PNG up to 10MB',
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w500,
-                                color: Color(0xFF94A3B8),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-
-                  // Divider between image and details
-                  const Divider(height: 1, color: Color(0xFFF1F5F9)),
-
-                  // Card Content
-                  Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Badges Row
-                        Row(
-                          children: [
-                            // Item Type Badge
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 6,
-                              ),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFF1F5F9),
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: Text(
-                                currentItem.itemType
-                                    .replaceAll('_', ' ')
-                                    .toUpperCase(),
-                                style: const TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w800,
-                                  color: Color(0xFF475569),
-                                  letterSpacing: 0.3,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-
-                            // Specification Badge
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 6,
-                              ),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFF0FDF4),
-                                borderRadius: BorderRadius.circular(4),
-                                border: Border.all(color: const Color(0xFFBBF7D0)),
-                              ),
-                              child: Text(
-                                currentItem.specification,
-                                style: const TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w800,
-                                  color: Color(0xFF15803D),
-                                  letterSpacing: 0.3,
-                                ),
-                              ),
-                            ),
-
-                            const Spacer(),
-
-                            // Active / Inactive Badge
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 5,
-                              ),
-                              decoration: BoxDecoration(
-                                color: currentItem.isActive
-                                    ? const Color(0xFFECFDF5)
-                                    : const Color(0xFFFEF2F2),
-                                borderRadius: BorderRadius.circular(4),
-                                border: Border.all(
-                                  color: currentItem.isActive
-                                      ? const Color(0xFFA7F3D0)
-                                      : const Color(0xFFFECACA),
-                                ),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Container(
-                                    width: 6,
-                                    height: 6,
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      color: currentItem.isActive
-                                          ? const Color(0xFF059669)
-                                          : const Color(0xFFDC2626),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    currentItem.isActive
-                                        ? 'ACTIVE'
-                                        : 'INACTIVE',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w800,
-                                      color: currentItem.isActive
-                                          ? const Color(0xFF059669)
-                                          : const Color(0xFFDC2626),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-
-                        const SizedBox(height: 14),
-
-                        // Item Name
-                        Text(
-                          currentItem.itemName,
-                          style: const TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w900,
-                            color: Colors.black,
-                            letterSpacing: -0.5,
-                          ),
-                        ),
-
-                        const SizedBox(height: 6),
-
-                        // Measurement Unit & Quantity Specification
-                        RichText(
-                          text: TextSpan(
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: Color(0xFF64748B),
-                              letterSpacing: 0.5,
-                            ),
-                            children: [
-                              const TextSpan(
-                                text: 'SPECIFICATION: ',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                              TextSpan(
-                                text:
-                                    '${currentItem.quantity.toStringAsFixed(currentItem.quantity.truncateToDouble() == currentItem.quantity ? 0 : 2)} ${currentItem.measurementUnit.toUpperCase()}',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w900,
-                                  color: Colors.black,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 14),
-
-            // 2. Description Card
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(4),
-                border: Border.all(color: const Color(0xFFE2E8F0)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        width: 26,
-                        height: 26,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF1F5F9),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: const Icon(
-                          Icons.description_outlined,
-                          size: 15,
-                          color: Color(0xFF334155),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      const Text(
-                        'DESCRIPTION',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w800,
-                          color: Colors.black,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    currentItem.description.isNotEmpty
-                        ? currentItem.description
-                        : 'No description provided.',
-                    style: TextStyle(
-                      fontSize: 14,
-                      height: 1.5,
-                      color: currentItem.description.isNotEmpty
-                          ? Colors.black87
-                          : const Color(0xFF94A3B8),
-                      fontWeight: currentItem.description.isNotEmpty
-                          ? FontWeight.w500
-                          : FontWeight.w400,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 14),
-
-            // 3. Ingredients Card
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(4),
-                border: Border.all(color: const Color(0xFFE2E8F0)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        children: [
+                          )
+                        else if (currentItem.ingredients.isEmpty)
                           Container(
-                            width: 26,
-                            height: 26,
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(14),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFF1F5F9),
-                              borderRadius: BorderRadius.circular(4),
+                              color: const Color(0xFFF8FAFC),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                  color: const Color(0xFFE2E8F0)),
                             ),
-                            child: const Icon(
-                              Icons.science_outlined,
-                              size: 15,
-                              color: Color(0xFF334155),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          const Text(
-                            'INGREDIENTS',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w800,
-                              color: Colors.black,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                        ],
-                      ),
-                      if (currentItem.hasIngredients)
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF0FDFA),
-                            borderRadius: BorderRadius.circular(4),
-                            border: Border.all(color: const Color(0xFF99F6E4)),
-                          ),
-                          child: Text(
-                            '${currentItem.ingredients.length} ${currentItem.ingredients.length == 1 ? 'Raw Material' : 'Raw Materials'}',
-                            style: const TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w800,
-                              color: Color(0xFF0F766E),
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  if (!currentItem.hasIngredients)
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF8FAFC),
-                        borderRadius: BorderRadius.circular(4),
-                        border: Border.all(color: const Color(0xFFF1F5F9)),
-                      ),
-                      child: const Row(
-                        children: [
-                          Icon(Icons.info_outline, size: 18, color: Color(0xFF94A3B8)),
-                          SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              'This item does not contain ingredients (Standalone / Raw Material).',
+                            child: const Text(
+                              'No raw materials assigned as ingredients yet. Tap Edit Item Details to select ingredients.',
                               style: TextStyle(
                                 fontSize: 12,
                                 color: Color(0xFF64748B),
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
-                          ),
-                        ],
-                      ),
-                    )
-                  else if (currentItem.ingredients.isEmpty)
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF8FAFC),
-                        borderRadius: BorderRadius.circular(4),
-                        border: Border.all(color: const Color(0xFFF1F5F9)),
-                      ),
-                      child: const Text(
-                        'No raw materials assigned as ingredients yet. Tap Edit Item to select ingredients.',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Color(0xFF64748B),
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    )
-                  else
-                    ...currentItem.ingredients.map((ing) {
-                      final match = inventory.items.where((i) => i.itemId == ing.itemId);
-                      final ingItem = match.isNotEmpty ? match.first : null;
-                      final ingName = ingItem != null ? ingItem.itemName : 'Unknown Raw Material';
-                      final ingSku = ingItem != null ? ingItem.sku : ing.itemId;
-                      final ingSpecification = ingItem?.specification ?? '';
-                      final ingUnit = ing.unit.isNotEmpty
-                          ? ing.unit.toUpperCase()
-                          : (ingItem != null ? ingItem.measurementUnit.toUpperCase() : '');
-                      final formattedQty = ing.quantity.toStringAsFixed(
-                          ing.quantity.truncateToDouble() == ing.quantity ? 0 : 2);
+                          )
+                        else
+                          ...currentItem.ingredients.map((ing) {
+                            final match = inventory.items
+                                .where((i) => i.itemId == ing.itemId);
+                            final ingItem =
+                                match.isNotEmpty ? match.first : null;
+                            final ingName = ingItem != null
+                                ? ingItem.itemName
+                                : 'Unknown Raw Material';
+                            final ingSku =
+                                ingItem != null ? ingItem.sku : ing.itemId;
+                            final ingSpecification =
+                                ingItem?.specification ?? '';
+                            final ingUnit = ing.unit.isNotEmpty
+                                ? ing.unit.toUpperCase()
+                                : (ingItem != null
+                                    ? ingItem.measurementUnit.toUpperCase()
+                                    : '');
+                            final formattedQty = ing.quantity.toStringAsFixed(
+                                ing.quantity.truncateToDouble() ==
+                                        ing.quantity
+                                    ? 0
+                                    : 2);
 
-                      return Container(
-                        margin: const EdgeInsets.only(bottom: 8),
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFAFAFA),
-                          borderRadius: BorderRadius.circular(4),
-                          border: Border.all(color: const Color(0xFFF1F5F9)),
-                        ),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 36,
-                              height: 36,
+                            return Container(
+                              margin: const EdgeInsets.only(bottom: 8),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 14, vertical: 12),
                               decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(4),
-                                border: Border.all(color: const Color(0xFFE2E8F0)),
+                                color: const Color(0xFFFAFAFA),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                    color: const Color(0xFFF1F5F9)),
                               ),
-                              alignment: Alignment.center,
-                              child: const Icon(Icons.eco_outlined, size: 18, color: Color(0xFF0F766E)),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                              child: Row(
                                 children: [
-                                  Text(
-                                    ingName,
-                                    style: const TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w800,
-                                      color: Colors.black,
+                                  Container(
+                                    width: 36,
+                                    height: 36,
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius:
+                                          BorderRadius.circular(6),
+                                      border: Border.all(
+                                          color: const Color(0xFFE2E8F0)),
+                                    ),
+                                    alignment: Alignment.center,
+                                    child: const Icon(
+                                      Icons.eco_outlined,
+                                      size: 18,
+                                      color: Color(0xFF0F766E),
                                     ),
                                   ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    ingSpecification.isNotEmpty
-                                        ? '$ingSku • $ingSpecification'
-                                        : ingSku,
-                                    style: const TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w600,
-                                      color: Color(0xFF64748B),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          ingName,
+                                          style: const TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w800,
+                                            color: Colors.black,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          ingSpecification.isNotEmpty
+                                              ? '$ingSku • $ingSpecification'
+                                              : ingSku,
+                                          style: const TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w600,
+                                            color: Color(0xFF64748B),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 10, vertical: 5),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius:
+                                          BorderRadius.circular(4),
+                                      border: Border.all(
+                                          color: const Color(0xFFE2E8F0)),
+                                    ),
+                                    child: Text(
+                                      '$formattedQty $ingUnit',
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w800,
+                                        color: Colors.black,
+                                      ),
                                     ),
                                   ),
                                 ],
                               ),
-                            ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(4),
-                                border: Border.all(color: const Color(0xFFE2E8F0)),
-                              ),
-                              child: Text(
-                                '$formattedQty $ingUnit',
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w800,
-                                  color: Colors.black,
+                            );
+                          }),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // 4. Management Actions
+                  if (canUpdate || canDelete) ...[
+                    const Text(
+                      'MANAGEMENT ACTIONS',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF64748B),
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+
+                    // Buttons Row Aligned to Right
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Wrap(
+                          alignment: WrapAlignment.end,
+                          spacing: 12,
+                          runSpacing: 10,
+                          children: [
+                            if (canUpdate)
+                              ElevatedButton.icon(
+                                icon: const Icon(
+                                  Icons.edit_outlined,
+                                  size: 16,
+                                  color: Colors.white,
                                 ),
+                                label: const Text(
+                                  'Edit Item Details',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF0F172A),
+                                  foregroundColor: Colors.white,
+                                  elevation: 0,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 20,
+                                    vertical: 14,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                ),
+                                onPressed: () async {
+                                  final inv = context.read<InventoryProvider>();
+                                  final updated = await Navigator.push<bool>(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) =>
+                                          EditItemScreen(item: currentItem),
+                                    ),
+                                  );
+                                  if (updated == true) {
+                                    inv.loadItems(silent: true);
+                                  }
+                                },
                               ),
-                            ),
+                            if (canDelete)
+                              OutlinedButton.icon(
+                                icon: const Icon(
+                                  Icons.delete_outline,
+                                  size: 16,
+                                  color: Color(0xFFEF4444),
+                                ),
+                                label: const Text(
+                                  'Delete Item',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
+                                    color: Color(0xFFEF4444),
+                                  ),
+                                ),
+                                style: OutlinedButton.styleFrom(
+                                  backgroundColor: Colors.white,
+                                  foregroundColor: const Color(0xFFEF4444),
+                                  elevation: 0,
+                                  side: const BorderSide(
+                                    color: Color(0xFFFECACA),
+                                  ),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 20,
+                                    vertical: 14,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                ),
+                                onPressed: () => _confirmDelete(currentItem),
+                              ),
                           ],
                         ),
-                      );
-                    }),
+                      ],
+                    ),
+                    const SizedBox(height: 32),
+                  ],
                 ],
               ),
             ),
-
-            const SizedBox(height: 20),
-
-            // 4. Management Actions
-            if (canUpdate || canDelete) ...[
-              const Text(
-                'MANAGEMENT ACTIONS',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w800,
-                  color: Color(0xFF94A3B8),
-                  letterSpacing: 0.5,
-                ),
-              ),
-              const SizedBox(height: 12),
-
-              // Edit Item Details Button
-              if (canUpdate) ...[
-                SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.black,
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                    ),
-                    onPressed: () async {
-                      final inv = context.read<InventoryProvider>();
-                      final updated = await Navigator.push<bool>(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => EditItemScreen(item: currentItem),
-                        ),
-                      );
-                      if (updated == true) {
-                        inv.loadItems(silent: true);
-                      }
-                    },
-                    child: const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.edit_outlined,
-                            size: 18, color: Colors.white),
-                        SizedBox(width: 8),
-                        Text(
-                          'Edit Item Details',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 10),
-              ],
-
-              // Delete Item Button
-              if (canDelete) ...[
-                SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: OutlinedButton(
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: const Color(0xFFEF4444),
-                      backgroundColor: Colors.white,
-                      elevation: 0,
-                      side: const BorderSide(color: Color(0xFFFEE2E2)),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                    ),
-                    onPressed: () => _confirmDelete(currentItem),
-                    child: const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.delete_outline,
-                            size: 18, color: Color(0xFFEF4444)),
-                        SizedBox(width: 8),
-                        Text(
-                          'Delete Item',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFFEF4444),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-
-              const SizedBox(height: 28),
-
-              // Footer
-              const Center(
-                child: Text(
-                  'Developed by Bigburry Hypersystems LLP',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: Color(0xFF94A3B8),
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-            ],
-          ],
+          ),
         ),
       ),
-    ),
-  ),
-),
     );
   }
+}
+
+class DashedBorderPainter extends CustomPainter {
+  final Color color;
+  final double strokeWidth;
+  final double gap;
+  final double dash;
+  final double radius;
+
+  DashedBorderPainter({
+    this.color = const Color(0xFFCBD5E1),
+    this.strokeWidth = 1.5,
+    this.dash = 6,
+    this.gap = 4,
+    this.radius = 16,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = strokeWidth
+      ..style = PaintingStyle.stroke;
+
+    final rrect = RRect.fromRectAndRadius(
+      Rect.fromLTWH(
+        strokeWidth / 2,
+        strokeWidth / 2,
+        size.width - strokeWidth,
+        size.height - strokeWidth,
+      ),
+      Radius.circular(radius),
+    );
+    final path = Path()..addRRect(rrect);
+
+    final metrics = path.computeMetrics();
+    for (final metric in metrics) {
+      double distance = 0.0;
+      while (distance < metric.length) {
+        final len = (distance + dash <= metric.length)
+            ? dash
+            : metric.length - distance;
+        final extractPath = metric.extractPath(distance, distance + len);
+        canvas.drawPath(extractPath, paint);
+        distance += dash + gap;
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant DashedBorderPainter oldDelegate) =>
+      color != oldDelegate.color || radius != oldDelegate.radius;
 }

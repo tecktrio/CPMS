@@ -1,13 +1,20 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsNotEmpty } from 'class-validator';
+import { ApiPropertyOptional } from '@nestjs/swagger';
+import { IsEmail, IsOptional, IsString } from 'class-validator';
 
 export class ForgotPasswordDto {
-  @ApiProperty({
-    description: 'Registered user email address to receive password reset OTP',
+  @ApiPropertyOptional({
+    description: 'Registered username of the account to reset password for',
+    example: 'johndoe',
+  })
+  @IsOptional()
+  @IsString()
+  user_name?: string;
+
+  @ApiPropertyOptional({
+    description: 'Registered user email address (fallback)',
     example: 'john.doe@example.com',
   })
+  @IsOptional()
   @IsEmail({}, { message: 'Must be a valid email address' })
-  @IsNotEmpty({ message: 'Email address is required' })
-  email_address: string;
+  email_address?: string;
 }
-

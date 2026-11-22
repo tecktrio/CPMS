@@ -83,6 +83,17 @@ class _CreateItemDialogState extends State<CreateItemDialog> {
       }
     }
 
+    if (finalItemName.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please provide an item name or select a packing material.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      setState(() => _isSubmitting = false);
+      return;
+    }
+
     final success = await inventory.createItem(
       itemName: finalItemName,
       itemType: _selectedItemType,
@@ -153,11 +164,21 @@ class _CreateItemDialogState extends State<CreateItemDialog> {
                 // Item Name
                 TextFormField(
                   controller: _nameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Item Name / Description *',
-                    prefixIcon: Icon(Icons.label_outline, size: 20),
+                  decoration: InputDecoration(
+                    labelText: _selectedItemType == 'PACKAGING'
+                        ? 'Item Name (Packing Material) *'
+                        : 'Item Name / Description *',
+                    prefixIcon: const Icon(Icons.label_outline, size: 20),
                   ),
                   validator: (val) {
+                    if (_selectedItemType == 'PACKAGING') {
+                      if (_selectedPackageMaterial == 'Custom' &&
+                          _customPackageMaterialController.text.trim().isEmpty &&
+                          (val == null || val.trim().isEmpty)) {
+                        return 'Custom packing material name is required';
+                      }
+                      return null;
+                    }
                     if (val == null || val.trim().isEmpty) {
                       return 'Item name is required';
                     }
@@ -222,6 +243,7 @@ class _CreateItemDialogState extends State<CreateItemDialog> {
                     }
 
                     return DropdownButtonFormField<String>(
+                      key: ValueKey('dialog_item_type_$_selectedItemType'),
                       initialValue: _selectedItemType,
                       decoration: const InputDecoration(
                         contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
@@ -236,7 +258,20 @@ class _CreateItemDialogState extends State<CreateItemDialog> {
                         );
                       }).toList(),
                       onChanged: (val) {
-                        if (val != null) setState(() => _selectedItemType = val);
+                        if (val != null) {
+                          setState(() {
+                            _selectedItemType = val;
+                            if (val == 'PACKAGING') {
+                              if (_selectedPackageMaterial == 'Custom') {
+                                if (_customPackageMaterialController.text.trim().isNotEmpty) {
+                                  _nameController.text = _customPackageMaterialController.text.trim();
+                                }
+                              } else {
+                                _nameController.text = _selectedPackageMaterial;
+                              }
+                            }
+                          });
+                        }
                       },
                     );
                   },
@@ -285,7 +320,9 @@ class _CreateItemDialogState extends State<CreateItemDialog> {
                     final materialOptions = <String>[];
                     if (inventory.packagingMaterials.isNotEmpty) {
                       for (final m in inventory.packagingMaterials) {
-                        materialOptions.add(m.name);
+                        if (!materialOptions.contains(m.name)) {
+                          materialOptions.add(m.name);
+                        }
                       }
                     } else {
                       materialOptions.addAll([
@@ -302,13 +339,14 @@ class _CreateItemDialogState extends State<CreateItemDialog> {
                     }
 
                     if (!materialOptions.contains(_selectedPackageMaterial)) {
-                      _selectedPackageMaterial = materialOptions.first;
+                      _selectedPackageMaterial = materialOptions.contains('Custom') ? 'Custom' : materialOptions.first;
                     }
 
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         DropdownButtonFormField<String>(
+                          key: ValueKey('dialog_pkg_mat_$_selectedPackageMaterial'),
                           initialValue: _selectedPackageMaterial,
                           decoration: const InputDecoration(
                             contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
@@ -321,7 +359,20 @@ class _CreateItemDialogState extends State<CreateItemDialog> {
                           }).toList(),
                           onChanged: (val) {
                             if (val != null) {
-                              setState(() => _selectedPackageMaterial = val);
+                              setState(() {
+                                _selectedPackageMaterial = val;
+                                if (_selectedItemType == 'PACKAGING') {
+                                  if (val == 'Custom') {
+                                    _nameController.text = _customPackageMaterialController.text.trim();
+                                  } else {
+                                    _nameController.text = val;
+                                  }
+                                } else if (_nameController.text.trim().isEmpty) {
+                                  if (val != 'Custom') {
+                                    _nameController.text = val;
+                                  }
+                                }
+                              });
                             }
                           },
                         ),
@@ -333,6 +384,11 @@ class _CreateItemDialogState extends State<CreateItemDialog> {
                               labelText: 'Custom Packing Material *',
                               prefixIcon: Icon(Icons.edit_note, size: 20),
                             ),
+                            onChanged: (text) {
+                              if (_selectedPackageMaterial == 'Custom' && _selectedItemType == 'PACKAGING') {
+                                _nameController.text = text.trim();
+                              }
+                            },
                             validator: (val) {
                               if (_selectedPackageMaterial == 'Custom' &&
                                   (val == null || val.trim().isEmpty)) {
@@ -370,6 +426,7 @@ class _CreateItemDialogState extends State<CreateItemDialog> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: DropdownButtonFormField<String>(
+                        key: ValueKey('dialog_unit_$_selectedUnit'),
                         initialValue: _selectedUnit,
                         decoration: const InputDecoration(
                           labelText: 'Measurement Unit',

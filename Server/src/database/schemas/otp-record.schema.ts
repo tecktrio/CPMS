@@ -30,5 +30,6 @@ export class OtpRecord {
 
 export const OtpRecordSchema = SchemaFactory.createForClass(OtpRecord);
 OtpRecordSchema.index({ email_address: 1 });
+OtpRecordSchema.index({ user_name: 1 });
 OtpRecordSchema.index({ expires_at: 1 }, { expireAfterSeconds: 0 }); // MongoDB TTL auto-cleanup
 

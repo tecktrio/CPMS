@@ -36,6 +36,7 @@ class ApiConstants {
   static const String resendOtp = '/auth/resend-otp';
   static const String forgotPassword = '/auth/forgot-password';
   static const String resetPassword = '/auth/reset-password';
+  static const String findUsernames = '/auth/find-usernames';
   static const String userProfile = '/auth/me';
 
   // Tenant endpoints
