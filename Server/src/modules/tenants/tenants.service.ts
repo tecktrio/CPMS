@@ -783,7 +783,6 @@ export class TenantsService {
       this.storeRoomModel.deleteMany({ tenant_id: tenantId }),
       this.stockBatchModel.deleteMany({ tenant_id: tenantId }),
       this.purchaseOrderModel.deleteMany({ tenant_id: tenantId }),
-      this.departmentModel.deleteMany({ tenant_id: tenantId }),
       this.customerModel.deleteMany({ tenant_id: tenantId }),
       this.membershipModel.deleteMany({ tenant_id: tenantId }),
       this.tenantModel.deleteOne({ tenant_id: tenantId }),

@@ -5,6 +5,7 @@ import '../../providers/purchase_order_provider.dart';
 import '../../services/purchase_order_export_service.dart';
 import '../../utils/file_downloader/file_downloader.dart';
 import '../../widgets/user_profile_avatar.dart';
+import '../../widgets/app_footer.dart';
 
 enum ExportFormat { pdf, csv }
 
@@ -519,6 +520,7 @@ class _PurchaseOrderExportScreenState extends State<PurchaseOrderExportScreen> {
                     ],
                   ),
                 ),
+                const AppFooter(topPadding: 16, bottomPadding: 24),
               ],
             ),
           ),

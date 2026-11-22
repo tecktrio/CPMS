@@ -9,6 +9,7 @@ import '../../providers/inventory_provider.dart';
 import '../../providers/tenant_provider.dart';
 import '../../widgets/user_profile_avatar.dart';
 import '../../widgets/success_screen.dart';
+import '../../widgets/cpms_search_bar.dart';
 import 'manage_item_categories_modal.dart';
 import 'manage_packaging_materials_modal.dart';
 
@@ -377,7 +378,7 @@ class _EditItemScreenState extends State<EditItemScreen> {
     return InputDecoration(
       hintText: hintText,
       hintStyle: const TextStyle(
-        color: Color(0xFF94A3B8),
+        color: Color(0xFFCBD5E1),
         fontSize: 14,
         fontWeight: FontWeight.w400,
       ),
@@ -822,10 +823,10 @@ class _EditItemScreenState extends State<EditItemScreen> {
                   // Page Footer
                   const Center(
                     child: Text(
-                      'Developed by Bigburry Hypersystems LLP',
+                      'Developed by Bigburry Hypersystems',
                       style: TextStyle(
                         fontSize: 11,
-                        color: Color(0xFF64748B),
+                        color: Color(0xFF94A3B8),
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -1376,15 +1377,15 @@ class _EditItemScreenState extends State<EditItemScreen> {
           const SizedBox(height: 12),
 
           // Search Field
-          TextFormField(
+          CpmsSearchBar(
             controller: _ingredientSearchController,
-            style: const TextStyle(fontSize: 13),
-            decoration: _buildInputDecoration(
-              hintText: 'Search raw materials by name or SKU...',
-              prefixIcon: const Icon(Icons.search, size: 18),
-            ),
+            hintText: 'Search raw materials by name or SKU...',
             onChanged: (val) =>
                 setState(() => _ingredientSearchQuery = val.trim()),
+            onClear: () {
+              _ingredientSearchController.clear();
+              setState(() => _ingredientSearchQuery = '');
+            },
           ),
           const SizedBox(height: 12),
 

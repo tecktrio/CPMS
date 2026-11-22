@@ -7,6 +7,8 @@ import '../../providers/inventory_provider.dart';
 import '../../providers/tenant_provider.dart';
 import '../../widgets/user_profile_avatar.dart';
 import '../../widgets/success_screen.dart';
+import '../../widgets/cpms_search_bar.dart';
+import '../../widgets/app_footer.dart';
 import 'manage_item_categories_modal.dart';
 import 'manage_packaging_materials_modal.dart';
 
@@ -1001,43 +1003,16 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
                       const SizedBox(height: 10),
 
                       // Search Bar
-                      Container(
-                        height: 44,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF8FAFC),
-                          borderRadius: BorderRadius.circular(4),
-                          border: Border.all(color: const Color(0xFFE2E8F0)),
-                        ),
-                        child: Row(
-                          children: [
-                            const Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 10),
-                              child: Icon(Icons.search, size: 18, color: Color(0xFF64748B)),
-                            ),
-                            Expanded(
-                              child: TextField(
-                                controller: _ingredientSearchController,
-                                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-                                decoration: const InputDecoration(
-                                  border: InputBorder.none,
-                                  isDense: true,
-                                  contentPadding: EdgeInsets.zero,
-                                ),
-                                onChanged: (val) {
-                                  setState(() => _ingredientSearchQuery = val);
-                                },
-                              ),
-                            ),
-                            if (_ingredientSearchQuery.isNotEmpty)
-                              IconButton(
-                                icon: const Icon(Icons.close, size: 16, color: Color(0xFF94A3B8)),
-                                onPressed: () {
-                                  _ingredientSearchController.clear();
-                                  setState(() => _ingredientSearchQuery = '');
-                                },
-                              ),
-                          ],
-                        ),
+                      CpmsSearchBar(
+                        controller: _ingredientSearchController,
+                        hintText: 'Search raw materials by name or SKU...',
+                        onChanged: (val) {
+                          setState(() => _ingredientSearchQuery = val);
+                        },
+                        onClear: () {
+                          _ingredientSearchController.clear();
+                          setState(() => _ingredientSearchQuery = '');
+                        },
                       ),
                       const SizedBox(height: 10),
 
@@ -1210,7 +1185,7 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
                 ),
               ],
 
-              const SizedBox(height: 32),
+              const AppFooter(topPadding: 16, bottomPadding: 24),
             ],
           ),
         ),

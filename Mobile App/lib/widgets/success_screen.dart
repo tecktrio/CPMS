@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'app_footer.dart';
 import 'package:flutter/services.dart';
 
 Future<void> showSuccessScreen(
@@ -130,6 +131,7 @@ class _SuccessScreenState extends State<SuccessScreen>
                   ),
                 ),
               ),
+              const AppFooter(topPadding: 16, bottomPadding: 16),
             ],
           ),
         ),

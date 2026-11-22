@@ -5,6 +5,8 @@ import '../../core/constants/permissions.dart';
 import '../../providers/purchase_order_provider.dart';
 import '../../providers/tenant_provider.dart';
 import '../../widgets/user_profile_avatar.dart';
+import '../../widgets/cpms_search_bar.dart';
+import '../../widgets/app_footer.dart';
 import 'create_purchase_order_screen.dart';
 import 'purchase_order_detail_screen.dart';
 
@@ -437,7 +439,7 @@ class _PurchaseOrdersListScreenState extends State<PurchaseOrdersListScreen> {
                                       padding: const EdgeInsets.only(bottom: 96),
                                       physics:
                                           const AlwaysScrollableScrollPhysics(),
-                                      itemCount: filteredOrders.length,
+                                      itemCount: filteredOrders.length + 1,
                                       separatorBuilder: (_, _) =>
                                           const Divider(
                                         height: 1,
@@ -445,6 +447,9 @@ class _PurchaseOrdersListScreenState extends State<PurchaseOrdersListScreen> {
                                         color: Color(0xFFF1F5F9),
                                       ),
                                       itemBuilder: (context, idx) {
+                                        if (idx == filteredOrders.length) {
+                                          return const AppFooter(topPadding: 16, bottomPadding: 24);
+                                        }
                                         final po = filteredOrders[idx];
                                         return _buildDriveRowPo(context, po, isWide: isWide);
                                       },
@@ -483,51 +488,20 @@ class _PurchaseOrdersListScreenState extends State<PurchaseOrdersListScreen> {
   }
 
   Widget _buildSearchBar() {
-    return Container(
-      height: 44,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: const Color(0xFFE5E5E5)),
-      ),
-      child: Row(
-        children: [
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 12),
-            child: Icon(Icons.search, color: Color(0xFF71717A), size: 18),
-          ),
-          Expanded(
-            child: TextField(
-              controller: _searchController,
-              onChanged: (val) {
-                setState(() {
-                  _searchQuery = val.trim();
-                });
-              },
-              decoration: const InputDecoration(
-                hintText: 'Search PO number or customer...',
-                hintStyle: TextStyle(
-                  color: Color(0xFF71717A),
-                  fontSize: 13,
-                  fontWeight: FontWeight.w400,
-                ),
-                border: InputBorder.none,
-                isDense: true,
-              ),
-            ),
-          ),
-          if (_searchQuery.isNotEmpty)
-            IconButton(
-              icon: const Icon(Icons.clear, color: Color(0xFF71717A), size: 16),
-              onPressed: () {
-                _searchController.clear();
-                setState(() {
-                  _searchQuery = '';
-                });
-              },
-            ),
-        ],
-      ),
+    return CpmsSearchBar(
+      controller: _searchController,
+      hintText: 'Search PO number or customer...',
+      onChanged: (val) {
+        setState(() {
+          _searchQuery = val.trim();
+        });
+      },
+      onClear: () {
+        _searchController.clear();
+        setState(() {
+          _searchQuery = '';
+        });
+      },
     );
   }
 

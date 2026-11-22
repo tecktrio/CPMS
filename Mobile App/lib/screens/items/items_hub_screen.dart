@@ -5,6 +5,7 @@ import '../../providers/tenant_provider.dart';
 import 'items_list_screen.dart';
 import 'create_item_screen.dart';
 import '../../widgets/user_profile_avatar.dart';
+import '../../widgets/app_footer.dart';
 
 class ItemsHubScreen extends StatelessWidget {
   const ItemsHubScreen({super.key});
@@ -104,6 +105,7 @@ class ItemsHubScreen extends StatelessWidget {
                 ),
               ),
             ),
+          const AppFooter(topPadding: 16, bottomPadding: 24),
         ],
       ),
     ),

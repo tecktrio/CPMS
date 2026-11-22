@@ -95,7 +95,6 @@ export class PermissionsGuard implements CanActivate {
 
     // 3. Retrieve all active departments the user is assigned to
     let departments = await this.departmentModel.find({
-      tenant_id: tenantId,
       department_id: { $in: membership.department_ids || [] },
       is_active: true,
     });
@@ -103,13 +102,11 @@ export class PermissionsGuard implements CanActivate {
     // Self-healing: If user has no active departments found (due to legacy department IDs), auto-resolve to active fixed departments
     if (departments.length === 0) {
       const fixedDepts = await this.departmentModel.find({
-        tenant_id: tenantId,
         is_active: true,
       });
 
       if (fixedDepts.length > 0) {
         const oldDepts = await this.departmentModel.find({
-          tenant_id: tenantId,
           department_id: { $in: membership.department_ids || [] },
         });
 

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/inventory_provider.dart';
 import '../../widgets/user_profile_avatar.dart';
+import '../../widgets/app_footer.dart';
 
 class CreateStoreRoomScreen extends StatefulWidget {
   const CreateStoreRoomScreen({super.key});
@@ -659,7 +660,7 @@ class _CreateStoreRoomScreenState extends State<CreateStoreRoomScreen> {
                     );
                   }),
 
-                  const SizedBox(height: 32),
+                  const AppFooter(topPadding: 16, bottomPadding: 24),
                 ],
               ),
             ),

@@ -22,6 +22,8 @@ import '../store_rooms/store_room_detail_screen.dart';
 import '../../utils/app_update_helper.dart';
 import '../../widgets/sync_status_indicator.dart';
 import '../../widgets/cpms_bottom_nav_bar.dart';
+import '../../widgets/cpms_search_bar.dart';
+import '../../widgets/app_footer.dart';
 
 class DashboardScreen extends StatefulWidget {
   final int initialNavIndex;
@@ -51,6 +53,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
   String _selectedTimezone = 'English (US) — UTC-5 EST';
   bool _settingsInitialized = false;
   bool _isSavingSettings = false;
+
+  /// Temporary flag to hide emergency contacts section
+  static const bool _showEmergencyContacts = false;
 
   @override
   void initState() {
@@ -273,6 +278,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     Navigator.pop(ctx);
                     tenant.clear();
                     context.read<InventoryProvider>().clear();
+                    context.read<DepartmentProvider>().clear();
                     await auth.signOut();
                     if (!mounted) return;
                     navigator.pushNamedAndRemoveUntil(
@@ -331,13 +337,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
         tenant.hasPermission(AppPermissions.exportUpdate) ||
         tenant.hasPermission(AppPermissions.qcRead) ||
         tenant.hasPermission(AppPermissions.qcCreate);
-
-    final departmentsBadgeCount = tenant.tenantDepartments.isNotEmpty
-        ? tenant.tenantDepartments.length
-        : 8;
-    final staffBadgeCount = deptProvider.tenantUsers.isNotEmpty
-        ? deptProvider.tenantUsers.length
-        : 184;
 
     final modules = <_DashboardModuleItem>[
       _DashboardModuleItem(
@@ -405,7 +404,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
       _DashboardModuleItem(
         title: 'Users &\nDepts',
         subtitle: 'Staff, Structure & RBAC',
-        badgeText: staffBadgeCount > 0 ? '$staffBadgeCount' : (departmentsBadgeCount > 0 ? '$departmentsBadgeCount' : '184'),
         icon: Icons.people_outline_rounded,
         iconColor: const Color(0xFF0D9488),
         bgColor: const Color(0xFFF0FDFA),
@@ -825,12 +823,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   },
                 ),
 
-              SizedBox(height: isWide ? 36 : 24),
+              // 3. Emergency Contacts Section (temporarily hidden)
+              if (_showEmergencyContacts) ...[
+                SizedBox(height: isWide ? 36 : 24),
+                _buildEmergencyContactsSection(isWide: isWide),
+              ],
 
-              // 3. Emergency Contacts Section
-              _buildEmergencyContactsSection(isWide: isWide),
-
-              SizedBox(height: isWide ? 36 : 24),
+              const AppFooter(topPadding: 16, bottomPadding: 24),
             ],
           ),
         ),
@@ -900,44 +899,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
             // Search Input Field
             Padding(
               padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: 8),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(4),
-                  border: Border.all(color: const Color(0xFFE5E7EB), width: 1.5),
-                ),
-                child: TextField(
-                  controller: _searchController,
-                  autofocus: false,
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                  decoration: InputDecoration(
-                    hintText: 'Search across all modules...',
-                    hintStyle: const TextStyle(
-                      color: Color(0xFF94A3B8),
-                      fontSize: 15,
-                      fontWeight: FontWeight.normal,
-                    ),
-                    prefixIcon: const Icon(Icons.search, size: 22, color: Colors.black),
-                    suffixIcon: _searchController.text.isNotEmpty
-                        ? IconButton(
-                            icon: const Icon(Icons.cancel, size: 20, color: Color(0xFF64748B)),
-                            onPressed: () {
-                              _searchController.clear();
-                              setState(() {
-                                _universalSearchQuery = '';
-                              });
-                            },
-                          )
-                        : null,
-                    border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(vertical: 14),
-                  ),
-                  onChanged: (val) {
-                    setState(() {
-                      _universalSearchQuery = val;
-                    });
-                  },
-                ),
+              child: CpmsSearchBar(
+                controller: _searchController,
+                hintText: 'Search across all modules...',
+                onChanged: (val) {
+                  setState(() {
+                    _universalSearchQuery = val;
+                  });
+                },
+                onClear: () {
+                  _searchController.clear();
+                  setState(() {
+                    _universalSearchQuery = '';
+                  });
+                },
               ),
             ),
 
@@ -1136,6 +1111,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           }),
                           const SizedBox(height: 16),
                         ],
+                        const AppFooter(topPadding: 16, bottomPadding: 24),
                       ],
                     ),
               ),
@@ -1720,6 +1696,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                 );
               }),
+            const AppFooter(topPadding: 16, bottomPadding: 24),
           ],
         ),
       ),
@@ -2576,6 +2553,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 onPressed: () async {
                   tenant.clear();
                   inventory.clear();
+                  context.read<DepartmentProvider>().clear();
                   await auth.signOut();
                   if (mounted) {
                     Navigator.pushNamedAndRemoveUntil(
@@ -2622,7 +2600,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ],
               ),
             ),
-            const SizedBox(height: 20),
+            const AppFooter(topPadding: 16, bottomPadding: 24),
           ],
         ),
       ),
@@ -2678,33 +2656,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       color: mod.iconColor,
                     ),
                   ),
-                  if (mod.badgeText != null)
-                    Positioned(
-                      top: isWide ? -6 : -4,
-                      right: isWide ? -8 : -5,
-                      child: Container(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: isWide ? 7 : 4,
-                          vertical: isWide ? 2 : 1,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFEF4444),
-                          borderRadius: BorderRadius.circular(isWide ? 10 : 8),
-                          border: Border.all(
-                            color: Colors.white,
-                            width: isWide ? 2.0 : 1.5,
-                          ),
-                        ),
-                        child: Text(
-                          mod.badgeText!,
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: isWide ? 10.5 : 8.5,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                      ),
-                    ),
                 ],
               ),
               SizedBox(height: isWide ? 12 : 6),
@@ -3014,7 +2965,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
 class _DashboardModuleItem {
   final String title;
   final String subtitle;
-  final String? badgeText;
   final IconData icon;
   final Color iconColor;
   final Color bgColor;
@@ -3025,7 +2975,6 @@ class _DashboardModuleItem {
   _DashboardModuleItem({
     required this.title,
     required this.subtitle,
-    this.badgeText,
     required this.icon,
     required this.iconColor,
     required this.bgColor,

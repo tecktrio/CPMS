@@ -5,6 +5,7 @@ import '../../providers/tenant_provider.dart';
 import 'store_rooms_list_screen.dart';
 import 'create_store_room_screen.dart';
 import '../../widgets/user_profile_avatar.dart';
+import '../../widgets/app_footer.dart';
 
 class StoreRoomsHubScreen extends StatelessWidget {
   const StoreRoomsHubScreen({super.key});
@@ -104,6 +105,7 @@ class StoreRoomsHubScreen extends StatelessWidget {
                 ),
               ),
             ),
+          const AppFooter(topPadding: 16, bottomPadding: 24),
         ],
       ),
     ),

@@ -209,12 +209,23 @@ class DepartmentProvider extends ChangeNotifier {
       if (res is List) {
         _tenantUsers =
             res.map((item) => TenantUserModel.fromJson(item)).toList();
+      } else {
+        _tenantUsers = [];
       }
       _setLoading(false);
     } catch (e) {
+      _tenantUsers = [];
       _errorMessage = e.toString();
       _setLoading(false);
     }
+  }
+
+  void clear() {
+    _tenantUsers = [];
+    _systemPermissions = [];
+    _permissionsByModule.clear();
+    _errorMessage = null;
+    notifyListeners();
   }
 
   Future<List<GlobalUserSuggestion>> searchGlobalUsers(String query) async {

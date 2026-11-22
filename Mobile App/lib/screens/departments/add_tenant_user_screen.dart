@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../providers/department_provider.dart';
 import '../../providers/tenant_provider.dart';
 import '../../widgets/user_profile_avatar.dart';
+import '../../widgets/app_footer.dart';
 
 class AddTenantUserScreen extends StatefulWidget {
   final TenantUserModel? existingUser;
@@ -627,6 +628,7 @@ class _AddTenantUserScreenState extends State<AddTenantUserScreen> {
                   onPressed: _isSubmitting ? null : _submit,
                 ),
               ),
+              const AppFooter(topPadding: 16, bottomPadding: 24),
             ],
           ),
         ),

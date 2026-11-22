@@ -5,6 +5,7 @@ import '../../providers/tenant_provider.dart';
 import 'departments_list_screen.dart';
 import 'add_tenant_user_screen.dart';
 import '../../widgets/user_profile_avatar.dart';
+import '../../widgets/app_footer.dart';
 
 class DepartmentsHubScreen extends StatelessWidget {
   const DepartmentsHubScreen({super.key});
@@ -125,6 +126,7 @@ class DepartmentsHubScreen extends StatelessWidget {
                 ),
               ),
             ),
+          const AppFooter(topPadding: 16, bottomPadding: 24),
         ],
       ),
     ),

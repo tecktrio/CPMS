@@ -2035,10 +2035,10 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                   // 4. COPYRIGHT FOOTER
                   const Center(
                     child: Text(
-                      'Developed by Bigburry Hypersystems LLP',
+                      'Developed by Bigburry Hypersystems',
                       style: TextStyle(
                         fontSize: 11,
-                        color: Color(0xFF64748B),
+                        color: Color(0xFF94A3B8),
                         fontWeight: FontWeight.w500,
                       ),
                     ),

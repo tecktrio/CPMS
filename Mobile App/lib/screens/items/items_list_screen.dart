@@ -5,6 +5,8 @@ import '../../core/constants/permissions.dart';
 import '../../providers/inventory_provider.dart';
 import '../../providers/tenant_provider.dart';
 import '../../widgets/user_profile_avatar.dart';
+import '../../widgets/cpms_search_bar.dart';
+import '../../widgets/app_footer.dart';
 import 'create_item_screen.dart';
 import 'item_detail_screen.dart';
 import 'manage_item_categories_modal.dart';
@@ -397,15 +399,19 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
                                       return Padding(
                                         padding: const EdgeInsets.symmetric(
                                             vertical: 20),
-                                        child: Center(
-                                          child: Text(
-                                            'All $totalFiltered items loaded',
-                                            style: const TextStyle(
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.w600,
-                                              color: Color(0xFF94A3B8),
+                                        child: Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Text(
+                                              'All $totalFiltered items loaded',
+                                              style: const TextStyle(
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w600,
+                                                color: Color(0xFF94A3B8),
+                                              ),
                                             ),
-                                          ),
+                                            const AppFooter(topPadding: 16, bottomPadding: 16),
+                                          ],
                                         ),
                                       );
                                     },
@@ -446,68 +452,22 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
   }
 
   Widget _buildSearchBar() {
-    return Container(
-      height: 48,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x04000000),
-            blurRadius: 4,
-            offset: Offset(0, 1),
-          ),
-        ],
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 14),
-            child: Icon(Icons.search, color: Colors.black87, size: 20),
-          ),
-          Expanded(
-            child: TextField(
-              controller: _searchController,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: Colors.black,
-              ),
-              decoration: const InputDecoration(
-                hintText: 'Search items or materials...',
-                hintStyle: TextStyle(
-                  color: Color(0xFF94A3B8),
-                  fontSize: 14,
-                  fontWeight: FontWeight.w400,
-                ),
-                border: InputBorder.none,
-                isDense: true,
-                contentPadding: EdgeInsets.symmetric(vertical: 14),
-              ),
-              onChanged: (val) {
-                setState(() {
-                  _searchQuery = val.trim();
-                  _displayedCount = 30;
-                });
-              },
-            ),
-          ),
-          if (_searchQuery.isNotEmpty)
-            IconButton(
-              icon: const Icon(Icons.clear, color: Color(0xFF64748B), size: 18),
-              splashRadius: 18,
-              onPressed: () {
-                _searchController.clear();
-                setState(() {
-                  _searchQuery = '';
-                  _displayedCount = 30;
-                });
-              },
-            ),
-        ],
-      ),
+    return CpmsSearchBar(
+      controller: _searchController,
+      hintText: 'Search items or materials...',
+      onChanged: (val) {
+        setState(() {
+          _searchQuery = val.trim();
+          _displayedCount = 30;
+        });
+      },
+      onClear: () {
+        _searchController.clear();
+        setState(() {
+          _searchQuery = '';
+          _displayedCount = 30;
+        });
+      },
     );
   }
 

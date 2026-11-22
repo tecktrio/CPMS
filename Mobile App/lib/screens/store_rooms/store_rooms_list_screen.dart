@@ -4,6 +4,7 @@ import '../../core/constants/permissions.dart';
 import '../../providers/inventory_provider.dart';
 import '../../providers/tenant_provider.dart';
 import '../../widgets/user_profile_avatar.dart';
+import '../../widgets/app_footer.dart';
 import 'create_store_room_screen.dart';
 import 'store_room_detail_screen.dart';
 
@@ -386,19 +387,7 @@ class _StoreRoomsListScreenState extends State<StoreRoomsListScreen> {
                               ),
                               itemBuilder: (context, index) {
                                 if (index == inventory.storeRooms.length) {
-                                  return const Padding(
-                                    padding: EdgeInsets.symmetric(vertical: 24),
-                                    child: Center(
-                                      child: Text(
-                                        'Developed by Bigburry Hypersystems LLP',
-                                        style: TextStyle(
-                                          fontSize: 11,
-                                          color: Color(0xFF94A3B8),
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                    ),
-                                  );
+                                  return const AppFooter(topPadding: 16, bottomPadding: 24);
                                 }
 
                                 return _buildDriveRowStoreRoom(

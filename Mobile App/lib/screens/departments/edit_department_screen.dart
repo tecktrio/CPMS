@@ -667,12 +667,11 @@ class _EditDepartmentScreenState extends State<EditDepartmentScreen> {
               // 8. Footer
               const Center(
                 child: Text(
-                  'DEVELOPED BY BIGBURRY HYPERSYSTEMS LLP',
+                  'Developed by Bigburry Hypersystems',
                   style: TextStyle(
-                    fontSize: 10,
+                    fontSize: 11,
                     color: Color(0xFF94A3B8),
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.8,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ),

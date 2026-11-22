@@ -15,7 +15,7 @@ class DepartmentModel {
 
   DepartmentModel({
     required this.departmentId,
-    required this.tenantId,
+    this.tenantId = '',
     required this.departmentName,
     required this.description,
     required this.permissionIds,
@@ -277,6 +277,9 @@ class TenantProvider extends ChangeNotifier {
   }
 
   Future<void> selectTenant(TenantOption tenant, {String? initialDepartmentName}) async {
+    _tenantDepartments = [];
+    _userPermissions.clear();
+    _hasLoadedPermissions = false;
     _activeTenant = tenant;
     apiClient.setActiveTenantId(tenant.tenantId);
 
@@ -445,8 +448,17 @@ class TenantProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> loadTenantDepartments() async {
-    if (_tenantDepartments.isEmpty) {
+  Future<void> loadTenantDepartments({bool force = false}) async {
+    if (_tenantDepartments.isEmpty || force) {
+      try {
+        final res = await apiClient.get(ApiConstants.departments);
+        if (res is List) {
+          _tenantDepartments =
+              res.map((item) => DepartmentModel.fromJson(item)).toList();
+          notifyListeners();
+          return;
+        }
+      } catch (_) {}
       await loadTenantPermissions();
     }
   }

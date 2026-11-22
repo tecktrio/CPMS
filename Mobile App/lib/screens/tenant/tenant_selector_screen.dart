@@ -3,7 +3,10 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/tenant_provider.dart';
+import '../../providers/department_provider.dart';
+import '../../providers/inventory_provider.dart';
 import '../dashboard/dashboard_screen.dart';
+import '../../widgets/app_footer.dart';
 
 class TenantSelectorScreen extends StatefulWidget {
   const TenantSelectorScreen({super.key});
@@ -110,6 +113,8 @@ class _TenantSelectorScreenState extends State<TenantSelectorScreen> {
             icon: const Icon(Icons.logout, color: Color(0xFFDC2626)),
             onPressed: () async {
               tenantProvider.clear();
+              context.read<DepartmentProvider>().clear();
+              context.read<InventoryProvider>().clear();
               await authProvider.signOut();
               if (!context.mounted) return;
               Navigator.pushNamedAndRemoveUntil(context, '/signin', (route) => false);
@@ -128,58 +133,64 @@ class _TenantSelectorScreenState extends State<TenantSelectorScreen> {
               child: Center(
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 460),
-                  child: Container(
-                    padding: const EdgeInsets.all(28),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: const Color(0xFFE2E8F0)),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.04),
-                          blurRadius: 16,
-                          offset: const Offset(0, 6),
-                        ),
-                      ],
-                    ),
-                    child: _isSelecting
-                        ? const Padding(
-                            padding: EdgeInsets.symmetric(vertical: 40),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                SizedBox(
-                                  width: 38,
-                                  height: 38,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 3,
-                                    valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF0F172A)),
-                                  ),
-                                ),
-                                SizedBox(height: 20),
-                                Text(
-                                  'Loading workspace modules...',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w700,
-                                    color: Color(0xFF0F172A),
-                                    letterSpacing: -0.2,
-                                  ),
-                                ),
-                                SizedBox(height: 6),
-                                Text(
-                                  'Setting up permissions and operational modules',
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    color: Color(0xFF64748B),
-                                  ),
-                                ),
-                              ],
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(28),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.04),
+                              blurRadius: 16,
+                              offset: const Offset(0, 6),
                             ),
-                          )
-                        : (availableTenants.isNotEmpty
-                            ? _buildTenantList(availableTenants, tenantProvider)
-                            : _buildNoOrganizationView(user)),
+                          ],
+                        ),
+                        child: _isSelecting
+                            ? const Padding(
+                                padding: EdgeInsets.symmetric(vertical: 40),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    SizedBox(
+                                      width: 38,
+                                      height: 38,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 3,
+                                        valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF0F172A)),
+                                      ),
+                                    ),
+                                    SizedBox(height: 20),
+                                    Text(
+                                      'Loading workspace modules...',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w700,
+                                        color: Color(0xFF0F172A),
+                                        letterSpacing: -0.2,
+                                      ),
+                                    ),
+                                    SizedBox(height: 6),
+                                    Text(
+                                      'Setting up permissions and operational modules',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        color: Color(0xFF64748B),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              )
+                            : (availableTenants.isNotEmpty
+                                ? _buildTenantList(availableTenants, tenantProvider)
+                                : _buildNoOrganizationView(user)),
+                      ),
+                      const AppFooter(topPadding: 16, bottomPadding: 16),
+                    ],
                   ),
                 ),
               ),
@@ -355,6 +366,8 @@ class _TenantSelectorScreenState extends State<TenantSelectorScreen> {
               final authProvider = context.read<AuthProvider>();
               final tenantProvider = context.read<TenantProvider>();
               tenantProvider.clear();
+              context.read<DepartmentProvider>().clear();
+              context.read<InventoryProvider>().clear();
               await authProvider.signOut();
               if (!mounted) return;
               Navigator.pushNamedAndRemoveUntil(context, '/signin', (route) => false);

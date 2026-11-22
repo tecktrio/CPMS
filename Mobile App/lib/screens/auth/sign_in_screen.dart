@@ -375,7 +375,7 @@ class _SignInScreenState extends State<SignInScreen> {
                               ),
                               const SizedBox(height: 12),
                               const Text(
-                                'Developed by Bigburry Hypersystems LLP',
+                                'Developed by Bigburry Hypersystems',
                                 style: TextStyle(
                                   fontSize: 11,
                                   color: Color(0xFF94A3B8),

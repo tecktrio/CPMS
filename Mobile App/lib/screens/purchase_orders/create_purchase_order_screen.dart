@@ -6,6 +6,7 @@ import '../../providers/purchase_order_provider.dart';
 import '../../services/purchase_order_export_service.dart';
 import '../items/create_item_screen.dart';
 import '../../widgets/success_screen.dart';
+import '../../widgets/app_footer.dart';
 
 class CreatePurchaseOrderScreen extends StatefulWidget {
   final PurchaseOrderModel? existingPo;
@@ -1065,10 +1066,10 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(4),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: _quickSelectedItem != null ? Colors.black : const Color(0xFFE5E5E5),
-          width: _quickSelectedItem != null ? 1.5 : 1.0,
+          color: _quickSelectedItem != null ? const Color(0xFF0F172A) : const Color(0xFFE2E8F0),
+          width: _quickSelectedItem != null ? 1.5 : 1.2,
         ),
       ),
       child: Column(
@@ -1079,7 +1080,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
             child: Row(
               children: [
-                const Icon(Icons.search, size: 20, color: Colors.black),
+                const Icon(Icons.search, size: 20, color: Color(0xFF94A3B8)),
                 const SizedBox(width: 10),
                 Expanded(
                   child: TextField(
@@ -1096,10 +1097,14 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                           : 'Search item title, SKU or specification to add...',
                       hintStyle: TextStyle(
                         fontSize: 13,
-                        color: _quickSelectedItem != null ? Colors.black : const Color(0xFFA1A1AA),
-                        fontWeight: _quickSelectedItem != null ? FontWeight.w700 : FontWeight.w500,
+                        color: _quickSelectedItem != null ? Colors.black : const Color(0xFFCBD5E1),
+                        fontWeight: _quickSelectedItem != null ? FontWeight.w700 : FontWeight.w400,
                       ),
                       border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      disabledBorder: InputBorder.none,
+                      errorBorder: InputBorder.none,
                       isDense: true,
                       contentPadding: const EdgeInsets.symmetric(vertical: 12),
                     ),
@@ -2216,6 +2221,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                 contentPadding: const EdgeInsets.all(12),
               ),
             ),
+            const AppFooter(topPadding: 16, bottomPadding: 24),
           ],
         ),
       ),
@@ -2290,6 +2296,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                   ),
                 ),
               ),
+              const AppFooter(topPadding: 16, bottomPadding: 24),
             ],
           ),
         ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
+import '../../widgets/app_footer.dart';
 
 enum ForgotPasswordStep {
   enterUsername,
@@ -211,21 +212,27 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             child: Center(
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 440),
-                child: Container(
-                  padding: const EdgeInsets.all(28),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: const Color(0xFFE2E8F0)),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.03),
-                        blurRadius: 16,
-                        offset: const Offset(0, 4),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(28),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.03),
+                            blurRadius: 16,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                  child: _buildCurrentStep(auth),
+                      child: _buildCurrentStep(auth),
+                    ),
+                    const AppFooter(topPadding: 16, bottomPadding: 16),
+                  ],
                 ),
               ),
             ),

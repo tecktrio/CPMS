@@ -62,21 +62,26 @@ class AppTheme {
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: Colors.white,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        hintStyle: const TextStyle(
+          color: Color(0xFFCBD5E1),
+          fontSize: 14,
+          fontWeight: FontWeight.w400,
+        ),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(28), // Oval input field
-          borderSide: const BorderSide(color: Color(0xFFE5E5E5)),
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(28),
-          borderSide: const BorderSide(color: Color(0xFFE5E5E5)),
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
         ),
         focusedBorder: const OutlineInputBorder(
-          borderRadius: BorderRadius.all(Radius.circular(28)),
-          borderSide: BorderSide(color: darkGreen, width: 1.5),
+          borderRadius: BorderRadius.all(Radius.circular(8)),
+          borderSide: BorderSide(color: Color(0xFF0F172A), width: 1.5),
         ),
         errorBorder: const OutlineInputBorder(
-          borderRadius: BorderRadius.all(Radius.circular(28)),
+          borderRadius: BorderRadius.all(Radius.circular(8)),
           borderSide: BorderSide(color: dangerRed),
         ),
       ),

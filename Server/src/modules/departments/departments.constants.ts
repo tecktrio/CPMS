@@ -1,4 +1,5 @@
 export interface FixedDepartmentDefinition {
+  department_id: string;
   code: string;
   name: string;
   description: string;
@@ -7,6 +8,7 @@ export interface FixedDepartmentDefinition {
 
 export const FIXED_DEPARTMENTS: FixedDepartmentDefinition[] = [
   {
+    department_id: '5f3f8ae5-bdaa-47df-b6fb-2918d8893eb9',
     code: 'ADMINISTRATOR',
     name: 'Administrator',
     description: 'Full access to all operational modules, settings, and team delegations.',
@@ -46,6 +48,7 @@ export const FIXED_DEPARTMENTS: FixedDepartmentDefinition[] = [
     ],
   },
   {
+    department_id: 'f1f3b89c-0320-453f-a100-011442c87571',
     code: 'SALES',
     name: 'Sales',
     description: 'Manages purchase orders, customer registries, and delivery requests.',
@@ -58,6 +61,7 @@ export const FIXED_DEPARTMENTS: FixedDepartmentDefinition[] = [
     ],
   },
   {
+    department_id: '5f07bdca-bcda-488f-99e7-c17a22f46c21',
     code: 'STORE_ROOM',
     name: 'Store Room',
     description: 'Manages store rooms, cold chain locations, storage divisions, and stock batches.',
@@ -75,6 +79,7 @@ export const FIXED_DEPARTMENTS: FixedDepartmentDefinition[] = [
     ],
   },
   {
+    department_id: '5e73e183-49bf-4b9b-b7cf-d99b7ab01b09',
     code: 'PRODUCTION_MANAGER',
     name: 'Production Manager',
     description: 'Oversees product master, materials, and assigns supervisors to PO line items.',
@@ -100,6 +105,7 @@ export const FIXED_DEPARTMENTS: FixedDepartmentDefinition[] = [
     ],
   },
   {
+    department_id: '82e9f288-4412-4086-b2d1-a56634af7839',
     code: 'SUPERVISOR',
     name: 'Supervisor',
     description: 'Executes allocated production lines, assigns tasks, and logs real-time completed carton counts.',
@@ -116,6 +122,7 @@ export const FIXED_DEPARTMENTS: FixedDepartmentDefinition[] = [
     ],
   },
   {
+    department_id: 'a7aef526-f95c-4848-8fe0-8d2e51ead5c6',
     code: 'QC',
     name: 'QC',
     description: 'Inspects produced items, performs test audits, and files inspection reports.',
@@ -131,6 +138,7 @@ export const FIXED_DEPARTMENTS: FixedDepartmentDefinition[] = [
     ],
   },
   {
+    department_id: '0ae4396a-1a13-4c5a-8c73-4c2c421bc0b8',
     code: 'PACKER',
     name: 'Packer',
     description: 'Packages goods into cartons, applies packaging specifications, and updates packed counts.',
@@ -141,6 +149,7 @@ export const FIXED_DEPARTMENTS: FixedDepartmentDefinition[] = [
     ],
   },
   {
+    department_id: '652199a0-4718-446c-b9ab-28a91fff04e3',
     code: 'EXPORT',
     name: 'Export',
     description: 'Handles dispatch logistics, container allocation, and records shipped cartons.',
@@ -153,6 +162,7 @@ export const FIXED_DEPARTMENTS: FixedDepartmentDefinition[] = [
     ],
   },
   {
+    department_id: '943dc46e-b312-4641-bcfa-d531bc06db47',
     code: 'ACCOUNTS',
     name: 'Accounts',
     description: 'Audits purchase order volumes, line shipments, and inventory valuation.',

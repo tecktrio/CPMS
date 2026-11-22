@@ -6,6 +6,8 @@ import '../../providers/auth_provider.dart';
 import '../../providers/department_provider.dart';
 import '../../providers/tenant_provider.dart';
 import '../../widgets/user_profile_avatar.dart';
+import '../../widgets/cpms_search_bar.dart';
+import '../../widgets/app_footer.dart';
 import 'update_user_departments_screen.dart';
 
 class DepartmentsListScreen extends StatefulWidget {
@@ -38,7 +40,7 @@ class _DepartmentsListScreenState extends State<DepartmentsListScreen> {
     final tenant = context.read<TenantProvider>();
     final dept = context.read<DepartmentProvider>();
     await Future.wait([
-      tenant.loadTenantDepartments(),
+      tenant.loadTenantDepartments(force: true),
       dept.loadTenantUsers(),
       dept.loadSystemPermissions(),
     ]);
@@ -272,44 +274,16 @@ class _DepartmentsListScreenState extends State<DepartmentsListScreen> {
                 const SizedBox(height: 14),
 
                 // Search Bar
-                Container(
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: const Color(0xFFE2E8F0)),
-                  ),
-                  child: TextField(
-                    controller: _searchController,
-                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-                    decoration: InputDecoration(
-                      hintText: 'Search staff by username, email, or department...',
-                      hintStyle: const TextStyle(
-                        color: Color(0xFF94A3B8),
-                        fontSize: 13,
-                        fontWeight: FontWeight.w400,
-                      ),
-                      prefixIcon: const Icon(
-                        Icons.search,
-                        size: 18,
-                        color: Color(0xFF94A3B8),
-                      ),
-                      suffixIcon: _searchQuery.isNotEmpty
-                          ? IconButton(
-                              icon: const Icon(Icons.clear, size: 16, color: Color(0xFF94A3B8)),
-                              onPressed: () {
-                                _searchController.clear();
-                                setState(() => _searchQuery = '');
-                              },
-                            )
-                          : null,
-                      border: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                    ),
-                    onChanged: (val) {
-                      setState(() => _searchQuery = val.trim());
-                    },
-                  ),
+                CpmsSearchBar(
+                  controller: _searchController,
+                  hintText: 'Search staff by username, email, or department...',
+                  onChanged: (val) {
+                    setState(() => _searchQuery = val.trim());
+                  },
+                  onClear: () {
+                    _searchController.clear();
+                    setState(() => _searchQuery = '');
+                  },
                 ),
 
                 const SizedBox(height: 14),
@@ -394,16 +368,7 @@ class _DepartmentsListScreenState extends State<DepartmentsListScreen> {
                   }),
 
                 const SizedBox(height: 24),
-                const Center(
-                  child: Text(
-                    'Cyan CPMS • Preset Department Management',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: Color(0xFF94A3B8),
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
+                const AppFooter(topPadding: 16, bottomPadding: 24),
               ],
             ),
           ),
@@ -425,13 +390,16 @@ class _DepartmentsListScreenState extends State<DepartmentsListScreen> {
         orElse: () => DepartmentModel(
           departmentId: deptId,
           tenantId: '',
-          departmentName: deptId,
+          departmentName: '',
           description: '',
           permissionIds: [],
           isActive: true,
         ),
       );
-      return found.departmentName;
+      if (found.departmentName.isNotEmpty) {
+        return found.departmentName;
+      }
+      return 'Department (${deptId.length > 8 ? deptId.substring(0, 8) : deptId})';
     }).toList();
 
     String userInitials = 'U';

@@ -6,6 +6,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/tenant_provider.dart';
 import '../dashboard/dashboard_screen.dart';
 import '../tenant/tenant_selector_screen.dart';
+import '../../widgets/app_footer.dart';
 
 class OtpVerificationScreen extends StatefulWidget {
   final String userName;
@@ -414,7 +415,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                                 ),
                         ),
                       ),
-                      const SizedBox(height: 12),
+                      const AppFooter(topPadding: 16, bottomPadding: 16),
                     ],
                   ),
                 ),

@@ -6,6 +6,7 @@ import '../../core/constants/api_constants.dart';
 import '../../core/constants/permissions.dart';
 import '../../providers/inventory_provider.dart';
 import '../../providers/tenant_provider.dart';
+import '../../widgets/app_footer.dart';
 import 'edit_item_screen.dart';
 
 class ItemDetailScreen extends StatefulWidget {
@@ -949,8 +950,9 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 16),
                   ],
+                  const AppFooter(topPadding: 16, bottomPadding: 24),
                 ],
               ),
             ),

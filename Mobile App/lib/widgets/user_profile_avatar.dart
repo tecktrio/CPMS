@@ -5,6 +5,7 @@ import '../core/constants/api_constants.dart';
 import '../providers/auth_provider.dart';
 import '../providers/tenant_provider.dart';
 import '../providers/inventory_provider.dart';
+import '../providers/department_provider.dart';
 import '../utils/app_update_helper.dart';
 
 class UserProfileAvatar extends StatelessWidget {
@@ -374,6 +375,7 @@ class UserProfileAvatar extends StatelessWidget {
                       Navigator.pop(ctx);
                       context.read<TenantProvider>().clear();
                       context.read<InventoryProvider>().clear();
+                      context.read<DepartmentProvider>().clear();
                       await auth.signOut();
                       if (!context.mounted) return;
                       Navigator.pushNamedAndRemoveUntil(context, '/signin', (route) => false);

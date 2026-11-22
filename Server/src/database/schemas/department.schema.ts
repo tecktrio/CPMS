@@ -19,10 +19,7 @@ export class Department {
   @Prop({ type: String, default: uuidv4, unique: true })
   department_id: string;
 
-  @Prop({ type: String, required: true, index: true })
-  tenant_id: string;
-
-  @Prop({ type: String, required: true, trim: true })
+  @Prop({ type: String, required: true, trim: true, unique: true })
   department_name: string;
 
   @Prop({ type: String, default: '', trim: true })
@@ -36,6 +33,6 @@ export class Department {
 }
 
 export const DepartmentSchema = SchemaFactory.createForClass(Department);
-DepartmentSchema.index({ tenant_id: 1, department_name: 1 }, { unique: true });
-DepartmentSchema.index({ tenant_id: 1, is_active: 1 });
+DepartmentSchema.index({ department_name: 1 }, { unique: true });
+DepartmentSchema.index({ is_active: 1 });
 

@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../providers/department_provider.dart';
 import '../../providers/tenant_provider.dart';
 import '../../widgets/user_profile_avatar.dart';
+import '../../widgets/cpms_search_bar.dart';
 
 class UpdateUserDepartmentsScreen extends StatefulWidget {
   final TenantUserModel? existingUser;
@@ -510,7 +511,7 @@ class _UpdateUserDepartmentsScreenState
                   decoration: InputDecoration(
                     hintText: 'Search by @username or user@example.com',
                     hintStyle: const TextStyle(
-                      color: Color(0xFF94A3B8),
+                      color: Color(0xFFCBD5E1),
                       fontSize: 14,
                       fontWeight: FontWeight.w400,
                     ),
@@ -519,15 +520,15 @@ class _UpdateUserDepartmentsScreenState
                     contentPadding: const EdgeInsets.symmetric(
                         horizontal: 14, vertical: 14),
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(8),
                       borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                     ),
                     enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(8),
                       borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                     ),
                     focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(8),
                       borderSide:
                           const BorderSide(color: Colors.black, width: 1.5),
                     ),
@@ -756,35 +757,16 @@ class _UpdateUserDepartmentsScreenState
               const SizedBox(height: 12),
 
               // 4. Search Departments Input
-              Container(
-                height: 44,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF8FAFC),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFF1F5F9)),
-                ),
-                child: TextField(
-                  controller: _searchController,
-                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-                  decoration: const InputDecoration(
-                    hintText: 'Search departments...',
-                    hintStyle: TextStyle(
-                      color: Color(0xFF94A3B8),
-                      fontSize: 13,
-                      fontWeight: FontWeight.w400,
-                    ),
-                    prefixIcon: Icon(
-                      Icons.search,
-                      size: 18,
-                      color: Color(0xFF94A3B8),
-                    ),
-                    border: InputBorder.none,
-                    contentPadding: EdgeInsets.symmetric(vertical: 12),
-                  ),
-                  onChanged: (val) {
-                    setState(() => _searchQuery = val.trim());
-                  },
-                ),
+              CpmsSearchBar(
+                controller: _searchController,
+                hintText: 'Search departments...',
+                onChanged: (val) {
+                  setState(() => _searchQuery = val.trim());
+                },
+                onClear: () {
+                  _searchController.clear();
+                  setState(() => _searchQuery = '');
+                },
               ),
 
               const SizedBox(height: 14),
@@ -967,12 +949,11 @@ class _UpdateUserDepartmentsScreenState
               // 8. Footer
               const Center(
                 child: Text(
-                  'DEVELOPED BY BIGBURRY HYPERSYSTEMS LLP',
+                  'Developed by Bigburry Hypersystems',
                   style: TextStyle(
-                    fontSize: 10,
+                    fontSize: 11,
                     color: Color(0xFF94A3B8),
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.8,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ),

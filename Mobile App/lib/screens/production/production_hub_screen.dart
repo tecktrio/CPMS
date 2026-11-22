@@ -5,6 +5,8 @@ import '../../core/constants/permissions.dart';
 import '../../providers/department_provider.dart';
 import '../../providers/purchase_order_provider.dart';
 import '../../providers/tenant_provider.dart';
+import '../../widgets/cpms_search_bar.dart';
+import '../../widgets/app_footer.dart';
 import 'production_status_dialogs.dart';
 
 class ProductionHubScreen extends StatefulWidget {
@@ -249,6 +251,7 @@ class _ProductionHubScreenState extends State<ProductionHubScreen> {
                         canUpdatePacking: canUpdatePacking,
                         canUpdateShipping: canUpdateShipping,
                       )),
+                const AppFooter(topPadding: 16, bottomPadding: 24),
               ],
             ),
           ),
@@ -262,40 +265,16 @@ class _ProductionHubScreenState extends State<ProductionHubScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Search bar
-        Container(
-          height: 44,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: const Color(0xFFE2E8F0)),
-          ),
-          child: TextField(
-            controller: _searchController,
-            decoration: InputDecoration(
-              hintText: 'Search by PO number or customer...',
-              hintStyle:
-                  const TextStyle(fontSize: 13, color: Color(0xFF94A3B8)),
-              prefixIcon:
-                  const Icon(Icons.search, size: 20, color: Color(0xFF94A3B8)),
-              suffixIcon: _searchQuery.isNotEmpty
-                  ? IconButton(
-                      icon: const Icon(Icons.clear, size: 18, color: Color(0xFF94A3B8)),
-                      onPressed: () {
-                        setState(() {
-                          _searchController.clear();
-                          _searchQuery = '';
-                        });
-                      },
-                    )
-                  : null,
-              border: InputBorder.none,
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            ),
-            onChanged: (val) {
-              setState(() => _searchQuery = val.trim());
-            },
-          ),
+        CpmsSearchBar(
+          controller: _searchController,
+          hintText: 'Search by PO number or customer...',
+          onChanged: (val) {
+            setState(() => _searchQuery = val.trim());
+          },
+          onClear: () {
+            _searchController.clear();
+            setState(() => _searchQuery = '');
+          },
         ),
         const SizedBox(height: 12),
 
