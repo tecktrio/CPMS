@@ -2,9 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../core/constants/permissions.dart';
-import '../../models/production_assignment_model.dart';
 import '../../providers/department_provider.dart';
-import '../../providers/production_provider.dart';
 import '../../providers/purchase_order_provider.dart';
 import '../../providers/tenant_provider.dart';
 import 'production_status_dialogs.dart';
@@ -16,9 +14,7 @@ class ProductionHubScreen extends StatefulWidget {
   State<ProductionHubScreen> createState() => _ProductionHubScreenState();
 }
 
-class _ProductionHubScreenState extends State<ProductionHubScreen>
-    with SingleTickerProviderStateMixin {
-  late TabController _tabController;
+class _ProductionHubScreenState extends State<ProductionHubScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   String _statusFilter = 'ALL';
@@ -28,7 +24,6 @@ class _ProductionHubScreenState extends State<ProductionHubScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadData();
     });
@@ -36,7 +31,6 @@ class _ProductionHubScreenState extends State<ProductionHubScreen>
 
   Future<void> _loadData() async {
     await Future.wait([
-      context.read<ProductionProvider>().loadMyAssignments(),
       context.read<PurchaseOrderProvider>().loadPurchaseOrders(),
       context.read<DepartmentProvider>().loadTenantUsers(),
       context.read<TenantProvider>().loadTenantDepartments(),
@@ -45,7 +39,6 @@ class _ProductionHubScreenState extends State<ProductionHubScreen>
 
   @override
   void dispose() {
-    _tabController.dispose();
     _searchController.dispose();
     super.dispose();
   }
@@ -104,116 +97,6 @@ class _ProductionHubScreenState extends State<ProductionHubScreen>
     }
   }
 
-  void _showProgressDialog(
-      BuildContext context, ProductionAssignmentModel assignment) {
-    final controller = TextEditingController(
-      text: assignment.completedCartons.toString(),
-    );
-
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        title: Text(
-          'Update Progress: ${assignment.itemName}',
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'PO: ${assignment.poNumber}',
-              style: const TextStyle(
-                fontSize: 13,
-                color: Color(0xFF64748B),
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Assigned to you: ${assignment.assignedCartons} cartons',
-              style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-                color: Color(0xFF0F172A),
-              ),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Completed Cartons:',
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
-            ),
-            const SizedBox(height: 6),
-            TextField(
-              controller: controller,
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(
-                hintText: '0 to ${assignment.assignedCartons}',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel',
-                style: TextStyle(color: Color(0xFF64748B))),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF0F172A),
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(6),
-              ),
-            ),
-            onPressed: () async {
-              final val = int.tryParse(controller.text.trim());
-              if (val == null || val < 0 || val > assignment.assignedCartons) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      'Please enter a valid count between 0 and ${assignment.assignedCartons}',
-                    ),
-                    backgroundColor: Colors.red,
-                  ),
-                );
-                return;
-              }
-
-              Navigator.pop(ctx);
-              final ok = await context
-                  .read<ProductionProvider>()
-                  .updateProgress(
-                    assignmentId: assignment.assignmentId,
-                    completedCartons: val,
-                  );
-
-              if (context.mounted && ok) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content:
-                        Text('Production progress updated successfully!'),
-                    backgroundColor: Color(0xFF16A34A),
-                  ),
-                );
-                await context.read<PurchaseOrderProvider>().loadPurchaseOrders();
-              }
-            },
-            child: const Text('Save Progress'),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildStageBadge({
     required String label,
     required Color color,
@@ -249,12 +132,12 @@ class _ProductionHubScreenState extends State<ProductionHubScreen>
   @override
   Widget build(BuildContext context) {
     final tenant = context.watch<TenantProvider>();
-    final prod = context.watch<ProductionProvider>();
     final poProvider = context.watch<PurchaseOrderProvider>();
     final isAdmin = tenant.isTenantAdmin;
     final canManageProd = isAdmin ||
         tenant.hasPermission(AppPermissions.productionCreate) ||
         tenant.hasPermission(AppPermissions.productionUpdate);
+    final isSupervisor = tenant.isUserInSupervisorDepartment;
     final canDoQc = isAdmin || tenant.hasPermission(AppPermissions.qcCreate);
     final canUpdatePacking =
         isAdmin || tenant.hasPermission(AppPermissions.packingUpdate);
@@ -291,318 +174,75 @@ class _ProductionHubScreenState extends State<ProductionHubScreen>
             letterSpacing: -0.4,
           ),
         ),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(49),
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 1120),
-              child: Column(
-                children: [
-                  TabBar(
-                    controller: _tabController,
-                    indicatorColor: const Color(0xFF0F172A),
-                    indicatorWeight: 2.5,
-                    labelColor: const Color(0xFF0F172A),
-                    unselectedLabelColor: const Color(0xFF64748B),
-                    labelStyle:
-                        const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
-                    tabs: [
-                      Tab(
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.precision_manufacturing_outlined,
-                                size: 16),
-                            const SizedBox(width: 6),
-                            const Text('Active Orders'),
-                            const SizedBox(width: 6),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 6, vertical: 1),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFF1F5F9),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: Text(
-                                '${nonDraftOrders.length}',
-                                style: const TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w800,
-                                  color: Color(0xFF0F172A),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Tab(
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.assignment_ind_outlined, size: 16),
-                            const SizedBox(width: 6),
-                            const Text('My Line Tasks'),
-                            const SizedBox(width: 6),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 6, vertical: 1),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFF1F5F9),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: Text(
-                                '${prod.myAssignments.length}',
-                                style: const TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w800,
-                                  color: Color(0xFF0F172A),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const Divider(height: 1, color: Color(0xFFE2E8F0)),
-                ],
-              ),
-            ),
-          ),
+        bottom: const PreferredSize(
+          preferredSize: Size.fromHeight(1),
+          child: Divider(height: 1, color: Color(0xFFE2E8F0)),
         ),
       ),
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 1120),
-          child: TabBarView(
-            controller: _tabController,
-            children: [
-              // TAB 1: ACTIVE PRODUCTION ORDERS (NON-DRAFT)
-              RefreshIndicator(
-                color: const Color(0xFF0F172A),
-                onRefresh: _loadData,
-                child: ListView(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-                  children: [
-                    // Search and Filter Bar
-                    _buildOrdersFilterBar(),
-                    const SizedBox(height: 18),
+          child: RefreshIndicator(
+            color: const Color(0xFF0F172A),
+            onRefresh: _loadData,
+            child: ListView(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+              children: [
+                // Search and Filter Bar
+                _buildOrdersFilterBar(),
+                const SizedBox(height: 18),
 
-                    if (poProvider.isLoading && nonDraftOrders.isEmpty)
-                      const Center(
-                        child: Padding(
-                          padding: EdgeInsets.all(40),
-                          child: CircularProgressIndicator(
-                              color: Color(0xFF0F172A)),
-                        ),
-                      )
-                    else if (nonDraftOrders.isEmpty)
-                      Container(
-                        padding: const EdgeInsets.all(32),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: const Color(0xFFE2E8F0)),
-                        ),
-                        child: Column(
-                          children: [
-                            Icon(Icons.inventory_2_outlined,
-                                size: 48, color: Colors.grey.shade400),
-                            const SizedBox(height: 12),
-                            const Text(
-                              'No active production orders found',
-                              style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w800,
-                                color: Color(0xFF0F172A),
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            const Text(
-                              'Purchase Orders will automatically appear here once confirmed or moved to production stage.',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Color(0xFF64748B),
-                              ),
-                            ),
-                          ],
-                        ),
-                      )
-                    else
-                      ...nonDraftOrders.map((po) => _buildProductionOrderCard(
-                            po,
-                            canManageProd: canManageProd,
-                            canDoQc: canDoQc,
-                            canUpdatePacking: canUpdatePacking,
-                            canUpdateShipping: canUpdateShipping,
-                          )),
-                  ],
-                ),
-              ),
-
-              // TAB 2: MY LINE TASKS
-              RefreshIndicator(
-                color: const Color(0xFF0F172A),
-                onRefresh: _loadData,
-                child: ListView(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-                  children: [
-                    if (prod.isLoading && prod.myAssignments.isEmpty)
-                      const Center(
-                        child: Padding(
-                          padding: EdgeInsets.all(40),
-                          child: CircularProgressIndicator(
-                              color: Color(0xFF0F172A)),
-                        ),
-                      )
-                    else if (prod.myAssignments.isEmpty)
-                      Container(
-                        padding: const EdgeInsets.all(32),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: const Color(0xFFE2E8F0)),
-                        ),
-                        child: Column(
-                          children: [
-                            Icon(Icons.assignment_outlined,
-                                size: 48, color: Colors.grey.shade400),
-                            const SizedBox(height: 12),
-                            const Text(
-                              'No lines assigned to you',
-                              style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w800,
-                                color: Color(0xFF0F172A),
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            const Text(
-                              'When a production manager assigns tasks to your supervisor account, they will display here.',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Color(0xFF64748B),
-                              ),
-                            ),
-                          ],
-                        ),
-                      )
-                    else
-                      ...prod.myAssignments.map((a) {
-                        final pct = a.assignedCartons > 0
-                            ? (a.completedCartons / a.assignedCartons)
-                                .clamp(0.0, 1.0)
-                            : 0.0;
-                        return Card(
-                          margin: const EdgeInsets.only(bottom: 12),
-                          elevation: 0,
-                          color: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                            side: const BorderSide(color: Color(0xFFE2E8F0)),
+                if (poProvider.isLoading && nonDraftOrders.isEmpty)
+                  const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(40),
+                      child: CircularProgressIndicator(color: Color(0xFF0F172A)),
+                    ),
+                  )
+                else if (nonDraftOrders.isEmpty)
+                  Container(
+                    padding: const EdgeInsets.all(32),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                    ),
+                    child: Column(
+                      children: [
+                        Icon(Icons.inventory_2_outlined,
+                            size: 48, color: Colors.grey.shade400),
+                        const SizedBox(height: 12),
+                        const Text(
+                          'No active production orders found',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFF0F172A),
                           ),
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(10),
-                            onTap: () => _showProgressDialog(context, a),
-                            child: Padding(
-                              padding: const EdgeInsets.all(16),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Expanded(
-                                        child: Text(
-                                          a.itemName,
-                                          style: const TextStyle(
-                                            fontSize: 15,
-                                            fontWeight: FontWeight.w800,
-                                            color: Color(0xFF0F172A),
-                                          ),
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 8, vertical: 3),
-                                        decoration: BoxDecoration(
-                                          color: a.status == 'COMPLETED'
-                                              ? const Color(0xFFF0FDF4)
-                                              : const Color(0xFFFFFBEB),
-                                          borderRadius:
-                                              BorderRadius.circular(12),
-                                          border: Border.all(
-                                            color: a.status == 'COMPLETED'
-                                                ? const Color(0xFFBBF7D0)
-                                                : const Color(0xFFFDE68A),
-                                          ),
-                                        ),
-                                        child: Text(
-                                          a.status,
-                                          style: TextStyle(
-                                            fontSize: 10,
-                                            fontWeight: FontWeight.w800,
-                                            color: a.status == 'COMPLETED'
-                                                ? const Color(0xFF16A34A)
-                                                : const Color(0xFFD97706),
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 6),
-                                  Text(
-                                    'PO #${a.poNumber} • ${a.completedCartons} of ${a.assignedCartons} Cartons Done',
-                                    style: const TextStyle(
-                                      fontSize: 12.5,
-                                      color: Color(0xFF64748B),
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 12),
-                                  ClipRRect(
-                                    borderRadius: BorderRadius.circular(4),
-                                    child: LinearProgressIndicator(
-                                      value: pct,
-                                      minHeight: 6,
-                                      backgroundColor: const Color(0xFFF1F5F9),
-                                      valueColor: AlwaysStoppedAnimation<Color>(
-                                        a.status == 'COMPLETED'
-                                            ? const Color(0xFF16A34A)
-                                            : const Color(0xFF0F172A),
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 10),
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.end,
-                                    children: const [
-                                      Text(
-                                        'Tap to log progress →',
-                                        style: TextStyle(
-                                          fontSize: 11.5,
-                                          fontWeight: FontWeight.w700,
-                                          color: Color(0xFF0F172A),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
+                        ),
+                        const SizedBox(height: 4),
+                        const Text(
+                          'Purchase Orders will automatically appear here once confirmed or moved to production stage.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF64748B),
                           ),
-                        );
-                      }),
-                  ],
-                ),
-              ),
-            ],
+                        ),
+                      ],
+                    ),
+                  )
+                else
+                  ...nonDraftOrders.map((po) => _buildProductionOrderCard(
+                        po,
+                        canManageProd: canManageProd,
+                        canAssignTask: isSupervisor,
+                        canDoQc: canDoQc,
+                        canUpdatePacking: canUpdatePacking,
+                        canUpdateShipping: canUpdateShipping,
+                      )),
+              ],
+            ),
           ),
         ),
       ),
@@ -702,6 +342,7 @@ class _ProductionHubScreenState extends State<ProductionHubScreen>
   Widget _buildProductionOrderCard(
     PurchaseOrderModel po, {
     required bool canManageProd,
+    required bool canAssignTask,
     required bool canDoQc,
     required bool canUpdatePacking,
     required bool canUpdateShipping,
@@ -1178,8 +819,8 @@ class _ProductionHubScreenState extends State<ProductionHubScreen>
                       ),
                       const SizedBox(width: 14),
 
-                      // Assign Task Button (with quick action menu for other roles)
-                      if (canManageProd)
+                      // Assign Task Button (only visible for Supervisor department)
+                      if (canAssignTask)
                         OutlinedButton.icon(
                           onPressed: () => ProductionStatusDialogs
                               .showAssignSupervisorsDialog(

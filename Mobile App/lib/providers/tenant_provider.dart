@@ -91,6 +91,22 @@ class TenantProvider extends ChangeNotifier {
     return dept == 'administrator' || dept.contains('admin');
   }
 
+  /// Whether the user is strictly in the Supervisor department (not Admin, Sales, PM, etc.)
+  bool get isUserInSupervisorDepartment {
+    if (_activeTenant == null) return false;
+    if (isTenantAdmin || isUserInAdministratorDepartment) return false;
+    for (final assignedId in _activeTenant!.departmentIds) {
+      for (final d in _tenantDepartments) {
+        if (d.departmentId == assignedId &&
+            d.departmentName.trim().toLowerCase().contains('supervisor')) {
+          return true;
+        }
+      }
+    }
+    final dept = selectedDepartmentName?.toLowerCase() ?? '';
+    return dept.contains('supervisor');
+  }
+
   /// Returns the number of departments the user has access to in the active organization
   int get userDepartmentCount {
     if (_activeTenant == null) return 0;

@@ -101,14 +101,16 @@ export const FIXED_DEPARTMENTS: FixedDepartmentDefinition[] = [
   {
     code: 'SUPERVISOR',
     name: 'Supervisor',
-    description: 'Executes allocated production lines and logs real-time completed carton counts.',
+    description: 'Executes allocated production lines, assigns tasks, and logs real-time completed carton counts.',
     permission_ids: [
       'permission.item.read',
       'permission.storeroom.read',
       'permission.po.read',
       'permission.batch.read',
       'permission.production.read',
+      'permission.production.create',
       'permission.production.update',
+      'permission.production.delete',
     ],
   },
   {
