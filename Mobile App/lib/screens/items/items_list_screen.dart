@@ -5,6 +5,7 @@ import '../../core/constants/permissions.dart';
 import '../../providers/inventory_provider.dart';
 import '../../providers/tenant_provider.dart';
 import '../../widgets/user_profile_avatar.dart';
+import '../../widgets/country_picker_modal.dart';
 import '../../widgets/cpms_search_bar.dart';
 import '../../widgets/app_footer.dart';
 import 'create_item_screen.dart';
@@ -24,6 +25,7 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
   final ScrollController _scrollController = ScrollController();
   String _searchQuery = '';
   String _selectedCategory = 'ALL';
+  String _selectedCountry = 'ALL';
 
   // Infinite Scroll Pagination state
   int _displayedCount = 30;
@@ -58,10 +60,15 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
               .toLowerCase()
               .contains(_searchQuery.toLowerCase()) ||
           item.sku.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-          item.specification.toLowerCase().contains(_searchQuery.toLowerCase());
+          item.specification.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+          item.country.toLowerCase().contains(_searchQuery.toLowerCase());
       final matchesCat =
           _selectedCategory == 'ALL' || item.itemType == _selectedCategory;
-      return matchesSearch && matchesCat;
+      final matchesCountry = _selectedCountry == 'ALL' ||
+          (_selectedCountry == 'GLOBAL'
+              ? item.country.isEmpty
+              : item.country.toLowerCase() == _selectedCountry.toLowerCase());
+      return matchesSearch && matchesCat && matchesCountry;
     }).length;
 
     if (_displayedCount < filteredCount) {
@@ -107,10 +114,15 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
               .toLowerCase()
               .contains(_searchQuery.toLowerCase()) ||
           item.sku.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-          item.specification.toLowerCase().contains(_searchQuery.toLowerCase());
+          item.specification.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+          item.country.toLowerCase().contains(_searchQuery.toLowerCase());
       final matchesCat =
           _selectedCategory == 'ALL' || item.itemType == _selectedCategory;
-      return matchesSearch && matchesCat;
+      final matchesCountry = _selectedCountry == 'ALL' ||
+          (_selectedCountry == 'GLOBAL'
+              ? item.country.isEmpty
+              : item.country.toLowerCase() == _selectedCountry.toLowerCase());
+      return matchesSearch && matchesCat && matchesCountry;
     }).toList();
 
     final totalFiltered = filteredItems.length;
@@ -530,6 +542,66 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
             ),
           );
         }),
+        // Country Filter Chip
+        Padding(
+          padding: const EdgeInsets.only(right: 8),
+          child: InkWell(
+            onTap: () {
+              CountryPickerModal.show(
+                context,
+                currentCountry: _selectedCountry == 'ALL' ? '' : _selectedCountry,
+                onSelected: (c) {
+                  setState(() {
+                    _selectedCountry = c.isEmpty ? 'ALL' : c;
+                    _displayedCount = 30;
+                  });
+                },
+              );
+            },
+            borderRadius: BorderRadius.circular(2),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: _selectedCountry != 'ALL' ? const Color(0xFF0F172A) : Colors.white,
+                borderRadius: BorderRadius.circular(2),
+                border: Border.all(
+                  color: _selectedCountry != 'ALL' ? const Color(0xFF0F172A) : const Color(0xFFE5E5E5),
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.public,
+                    size: 14,
+                    color: _selectedCountry != 'ALL' ? Colors.white : const Color(0xFF64748B),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    _selectedCountry == 'ALL' ? 'Country: All' : 'Country: $_selectedCountry',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: _selectedCountry != 'ALL' ? FontWeight.w800 : FontWeight.w600,
+                      color: _selectedCountry != 'ALL' ? Colors.white : Colors.black,
+                    ),
+                  ),
+                  if (_selectedCountry != 'ALL') ...[
+                    const SizedBox(width: 4),
+                    GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          _selectedCountry = 'ALL';
+                          _displayedCount = 30;
+                        });
+                      },
+                      child: const Icon(Icons.close, size: 14, color: Colors.white),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ),
         if (canManage)
           Padding(
             padding: const EdgeInsets.only(right: 8),
@@ -723,7 +795,7 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
                           if (!isWide) ...[
                             const SizedBox(height: 2),
                             Text(
-                              '${item.itemType.replaceAll('_', ' ')} • ${item.specification}',
+                              '${item.itemType.replaceAll('_', ' ')} • ${item.specification}${item.country.isNotEmpty ? ' • 🌐 ${item.country}' : ''}',
                               style: const TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w400,

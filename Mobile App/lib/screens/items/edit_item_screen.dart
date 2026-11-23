@@ -12,6 +12,7 @@ import '../../widgets/success_screen.dart';
 import '../../widgets/cpms_search_bar.dart';
 import 'manage_item_categories_modal.dart';
 import 'manage_packaging_materials_modal.dart';
+import '../../widgets/country_picker_modal.dart';
 
 class EditItemScreen extends StatefulWidget {
   final ItemModel item;
@@ -50,6 +51,7 @@ class _EditItemScreenState extends State<EditItemScreen> {
 
   late String _selectedItemType;
   late String _selectedUnit;
+  late String _selectedCountry;
   bool _isSaving = false;
 
   XFile? _newPickedImage;
@@ -74,6 +76,7 @@ class _EditItemScreenState extends State<EditItemScreen> {
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.item.itemName);
+    _selectedCountry = widget.item.country;
     final q = widget.item.quantity;
     _quantityController = TextEditingController(
       text: q.toStringAsFixed(q.truncateToDouble() == q ? 0 : 2),
@@ -240,6 +243,7 @@ class _EditItemScreenState extends State<EditItemScreen> {
         quantity: double.tryParse(_quantityController.text.trim()) ?? 1.0,
         reorderThreshold: widget.item.reorderThresholdQuantity,
         description: _descriptionController.text.trim(),
+        country: _selectedCountry.trim(),
         hasIngredients: _hasIngredients,
         ingredients: _hasIngredients ? ingredientsPayload : [],
         imageUrl: finalImageUrl,
@@ -590,6 +594,11 @@ class _EditItemScreenState extends State<EditItemScreen> {
                                     _buildCustomPackagingMaterialField(),
                                   ],
                                 ),
+
+                              const SizedBox(height: 18),
+
+                              // Country Selector
+                              _buildCountrySelector(),
 
                               const SizedBox(height: 18),
 
@@ -1253,6 +1262,113 @@ class _EditItemScreenState extends State<EditItemScreen> {
             }
             return null;
           },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCountrySelector() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            _buildFieldLabel('TARGET COUNTRY'),
+            InkWell(
+              onTap: () async {
+                final newCountry =
+                    await CountryPickerModal.showAddNewCountryDialog(context);
+                if (newCountry != null && newCountry.isNotEmpty && mounted) {
+                  setState(() => _selectedCountry = newCountry);
+                }
+              },
+              borderRadius: BorderRadius.circular(4),
+              child: const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.add,
+                      size: 14,
+                      color: Color(0xFF0F766E),
+                    ),
+                    SizedBox(width: 4),
+                    Text(
+                      '+ Add New Country',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF0F766E),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+        InkWell(
+          onTap: () {
+            CountryPickerModal.show(
+              context,
+              currentCountry: _selectedCountry,
+              onSelected: (val) {
+                setState(() => _selectedCountry = val);
+              },
+            );
+          },
+          borderRadius: BorderRadius.circular(4),
+          child: Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 14,
+              vertical: 14,
+            ),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(4),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+            ),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.public,
+                  size: 20,
+                  color: Color(0xFF94A3B8),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    _selectedCountry.isNotEmpty
+                        ? _selectedCountry
+                        : 'Select country (e.g. India, United States)...',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: _selectedCountry.isNotEmpty
+                          ? const Color(0xFF0F172A)
+                          : const Color(0xFF94A3B8),
+                    ),
+                  ),
+                ),
+                if (_selectedCountry.isNotEmpty)
+                  GestureDetector(
+                    onTap: () => setState(() => _selectedCountry = ''),
+                    child: const Icon(
+                      Icons.clear,
+                      size: 18,
+                      color: Color(0xFF94A3B8),
+                    ),
+                  )
+                else
+                  const Icon(
+                    Icons.arrow_drop_down,
+                    color: Color(0xFF64748B),
+                  ),
+              ],
+            ),
+          ),
         ),
       ],
     );

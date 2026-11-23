@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../core/constants/api_constants.dart';
 import '../core/network/api_client.dart';
 import '../core/sync/sync_manager.dart';
+import '../utils/country_helper.dart';
 
 class StoreRoomItemModel {
   final String itemId;
@@ -206,6 +207,7 @@ class ItemModel {
   final String? imageUrl;
   final bool isActive;
   final String description;
+  final String country;
   final bool hasIngredients;
   final List<ItemIngredientModel> ingredients;
 
@@ -228,6 +230,7 @@ class ItemModel {
     this.imageUrl,
     required this.isActive,
     this.description = '',
+    this.country = '',
     this.hasIngredients = false,
     this.ingredients = const [],
   }) : minimumStockCount = minimumStockCount ?? reorderThresholdQuantity;
@@ -251,6 +254,7 @@ class ItemModel {
     String? imageUrl,
     bool? isActive,
     String? description,
+    String? country,
     bool? hasIngredients,
     List<ItemIngredientModel>? ingredients,
     bool clearStoreRoom = false,
@@ -281,7 +285,8 @@ class ItemModel {
       imageUrl: imageUrl ?? this.imageUrl,
       isActive: isActive ?? this.isActive,
       description: description ?? this.description,
-      hasIngredients: hasIngredients ?? this.hasIngredients,
+      country: country ?? this.country,
+      hasIngredients: hasIngredients ?? false,
       ingredients: ingredients ?? this.ingredients,
     );
   }
@@ -309,6 +314,7 @@ class ItemModel {
         'image_url': imageUrl,
         'is_active': isActive,
         'description': description,
+        'country': country,
         'has_ingredients': hasIngredients,
         'ingredients': ingredients.map((i) => i.toJson()).toList(),
       };
@@ -360,6 +366,7 @@ class ItemModel {
       imageUrl: json['image_url'],
       isActive: json['is_active'] ?? true,
       description: json['description'] ?? '',
+      country: json['country']?.toString() ?? '',
       hasIngredients: json['has_ingredients'] == true,
       ingredients: parsedIngredients,
     );
@@ -592,6 +599,31 @@ class InventoryProvider extends ChangeNotifier {
   List<StockBatchModel> get expiringSoonBatches => _expiringSoonBatches;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
+
+  final Set<String> _customCountries = {};
+
+  List<String> get availableCountries {
+    final set = <String>{};
+    for (final item in _items) {
+      final c = item.country.trim();
+      if (c.isNotEmpty) {
+        set.add(c);
+      }
+    }
+    set.addAll(_customCountries);
+    set.addAll(CountryHelper.defaultCountries);
+    final list = set.toList();
+    list.sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+    return list;
+  }
+
+  void addCustomCountry(String country) {
+    final c = country.trim();
+    if (c.isNotEmpty) {
+      _customCountries.add(c);
+      notifyListeners();
+    }
+  }
 
   void clear() {
     _storeRooms = [];
@@ -862,10 +894,12 @@ class InventoryProvider extends ChangeNotifier {
     double reorderThreshold = 0.0,
     String? imageUrl,
     String? description,
+    String? country,
     bool? hasIngredients,
     List<ItemIngredientModel>? ingredients,
   }) async {
     final cleanName = itemName.trim();
+    final cleanCountry = country?.trim() ?? '';
     final cleanSku = (sku != null && sku.trim().isNotEmpty)
         ? sku.trim().toUpperCase()
         : 'ITEM-${DateTime.now().millisecondsSinceEpoch}';
@@ -887,6 +921,7 @@ class InventoryProvider extends ChangeNotifier {
       imageUrl: imageUrl,
       isActive: true,
       description: description ?? '',
+      country: cleanCountry,
       hasIngredients: hasIngredients ?? false,
       ingredients: ingredients ?? [],
     );
@@ -903,6 +938,7 @@ class InventoryProvider extends ChangeNotifier {
       'measurement_unit': measurementUnit,
       'quantity': quantity,
       'reorder_threshold_quantity': reorderThreshold,
+      if (cleanCountry.isNotEmpty) 'country': cleanCountry,
     };
 
     if (description != null) body['description'] = description;
@@ -935,6 +971,7 @@ class InventoryProvider extends ChangeNotifier {
     double? reorderThreshold,
     String? imageUrl,
     String? description,
+    String? country,
     bool? hasIngredients,
     List<ItemIngredientModel>? ingredients,
   }) async {
@@ -950,6 +987,7 @@ class InventoryProvider extends ChangeNotifier {
         reorderThresholdQuantity: reorderThreshold,
         imageUrl: imageUrl,
         description: description,
+        country: country?.trim(),
         hasIngredients: hasIngredients,
         ingredients: ingredients,
       );
@@ -965,6 +1003,7 @@ class InventoryProvider extends ChangeNotifier {
     if (quantity != null) body['quantity'] = quantity;
     if (reorderThreshold != null) body['reorder_threshold_quantity'] = reorderThreshold;
     if (description != null) body['description'] = description;
+    if (country != null) body['country'] = country.trim();
     if (hasIngredients != null) body['has_ingredients'] = hasIngredients;
     if (ingredients != null) {
       body['ingredients'] = ingredients.map((i) => i.toJson()).toList();

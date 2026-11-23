@@ -11,6 +11,7 @@ import '../../widgets/cpms_search_bar.dart';
 import '../../widgets/app_footer.dart';
 import 'manage_item_categories_modal.dart';
 import 'manage_packaging_materials_modal.dart';
+import '../../widgets/country_picker_modal.dart';
 
 class CreateItemScreen extends StatefulWidget {
   const CreateItemScreen({super.key});
@@ -45,6 +46,7 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
 
   String _selectedItemType = 'RAW_MATERIAL';
   String _selectedUnit = 'KILOGRAM';
+  String _selectedCountry = '';
   bool _isSubmitting = false;
 
   XFile? _selectedImage;
@@ -161,6 +163,7 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
       quantity: double.tryParse(_quantityController.text.trim()) ?? 1.0,
       reorderThreshold: 0.0,
       description: _descriptionController.text.trim(),
+      country: _selectedCountry.trim(),
       hasIngredients: _hasIngredients,
       ingredients: _hasIngredients ? ingredientsPayload : [],
       imageUrl: uploadedImageUrl,
@@ -763,6 +766,108 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
                     ],
                   );
                 },
+              ),
+
+              const SizedBox(height: 18),
+
+              // Target Country Row with '+ Add New Country'
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  _buildFieldLabel('TARGET COUNTRY'),
+                  InkWell(
+                    onTap: () async {
+                      final newCountry =
+                          await CountryPickerModal.showAddNewCountryDialog(context);
+                      if (newCountry != null && newCountry.isNotEmpty && mounted) {
+                        setState(() => _selectedCountry = newCountry);
+                      }
+                    },
+                    borderRadius: BorderRadius.circular(4),
+                    child: const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.add,
+                            size: 14,
+                            color: Color(0xFF0F766E),
+                          ),
+                          SizedBox(width: 4),
+                          Text(
+                            '+ Add New Country',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF0F766E),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              InkWell(
+                onTap: () {
+                  CountryPickerModal.show(
+                    context,
+                    currentCountry: _selectedCountry,
+                    onSelected: (val) {
+                      setState(() => _selectedCountry = val);
+                    },
+                  );
+                },
+                borderRadius: BorderRadius.circular(4),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 14,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.public,
+                        size: 20,
+                        color: Color(0xFF94A3B8),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          _selectedCountry.isNotEmpty
+                              ? _selectedCountry
+                              : 'Select country (e.g. India, United States)...',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: _selectedCountry.isNotEmpty
+                                ? Colors.black
+                                : const Color(0xFF94A3B8),
+                          ),
+                        ),
+                      ),
+                      if (_selectedCountry.isNotEmpty)
+                        GestureDetector(
+                          onTap: () => setState(() => _selectedCountry = ''),
+                          child: const Icon(
+                            Icons.clear,
+                            size: 18,
+                            color: Color(0xFF94A3B8),
+                          ),
+                        )
+                      else
+                        const Icon(
+                          Icons.arrow_drop_down,
+                          color: Color(0xFF64748B),
+                        ),
+                    ],
+                  ),
+                ),
               ),
 
               const SizedBox(height: 18),

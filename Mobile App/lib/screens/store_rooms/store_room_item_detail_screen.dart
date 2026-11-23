@@ -757,6 +757,22 @@ class _StoreRoomItemDetailScreenState extends State<StoreRoomItemDetailScreen> {
                                     ),
                                   ),
                                 ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 3),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFFEF3C7),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Text(
+                                    '🌐 ${item.country.isNotEmpty ? item.country : "Global"}',
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                      color: Color(0xFFB45309),
+                                    ),
+                                  ),
+                                ),
                               ],
                             ),
                           ],
