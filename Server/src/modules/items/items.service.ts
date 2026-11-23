@@ -677,5 +677,30 @@ export class ItemsService {
       name: material.name,
     };
   }
+
+  async reassignCountry(
+    tenantId: string,
+    fromCountry: string,
+    toCountry?: string,
+  ) {
+    const cleanFrom = fromCountry.trim();
+    const cleanTo = (toCountry || '').trim();
+
+    const result = await this.itemModel.updateMany(
+      {
+        tenant_id: tenantId,
+        country: { $regex: new RegExp(`^${cleanFrom}$`, 'i') },
+      },
+      {
+        $set: { country: cleanTo },
+      },
+    );
+
+    return {
+      from_country: cleanFrom,
+      to_country: cleanTo,
+      modified_count: result.modifiedCount,
+    };
+  }
 }
 

@@ -11,6 +11,7 @@ import '../../widgets/app_footer.dart';
 import 'create_item_screen.dart';
 import 'item_detail_screen.dart';
 import 'manage_item_categories_modal.dart';
+import 'manage_countries_modal.dart';
 
 class ItemsListScreen extends StatefulWidget {
   final bool manageMode;
@@ -602,7 +603,43 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
             ),
           ),
         ),
-        if (canManage)
+        if (canManage) ...[
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: InkWell(
+              onTap: () => ManageCountriesModal.show(context),
+              borderRadius: BorderRadius.circular(2),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF0FDFA),
+                  borderRadius: BorderRadius.circular(2),
+                  border: Border.all(
+                    color: const Color(0xFF99F6E4),
+                  ),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.public,
+                      size: 14,
+                      color: Color(0xFF0F766E),
+                    ),
+                    SizedBox(width: 4),
+                    Text(
+                      'Manage Countries',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF0F766E),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
           Padding(
             padding: const EdgeInsets.only(right: 8),
             child: InkWell(
@@ -639,6 +676,7 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
               ),
             ),
           ),
+        ],
       ],
     );
   }

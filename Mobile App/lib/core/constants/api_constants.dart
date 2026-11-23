@@ -71,6 +71,7 @@ class ApiConstants {
   static const String packagingMaterialBase = '/items/packaging-materials';
   static String packagingMaterialItemsCount(String idOrName) => '/items/packaging-materials/$idOrName/items-count';
   static String packagingMaterialDetail(String idOrName) => '/items/packaging-materials/$idOrName';
+  static const String reassignCountry = '/items/countries/reassign';
   static const String stockBatches = '/stock-batches';
   static const String expiringSoonBatches = '/stock-batches/expiring-soon';
   static const String suggestFefo = '/stock-batches/suggest-fefo';

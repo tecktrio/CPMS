@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/inventory_provider.dart';
+import '../screens/items/manage_countries_modal.dart';
 import 'cpms_search_bar.dart';
 
 /// Modal bottom sheet and dialog for searching, selecting, and adding target countries.
@@ -197,24 +198,30 @@ class _CountryPickerModalState extends State<CountryPickerModal> {
                       ),
                     ),
                     InkWell(
-                      onTap: () async {
-                        final nav = Navigator.of(context);
-                        final added = await CountryPickerModal.showAddNewCountryDialog(context);
-                        if (added != null && added.isNotEmpty && mounted) {
-                          widget.onSelected(added);
-                          nav.pop();
-                        }
+                      onTap: () {
+                        ManageCountriesModal.show(context);
                       },
+                      borderRadius: BorderRadius.circular(4),
                       child: const Padding(
                         padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                        child: Text(
-                          '+ Add New Country',
-                          style: TextStyle(
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFF0F766E),
-                            decoration: TextDecoration.underline,
-                          ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.settings_outlined,
+                              size: 14,
+                              color: Color(0xFF0F766E),
+                            ),
+                            SizedBox(width: 4),
+                            Text(
+                              'Manage Countries',
+                              style: TextStyle(
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF0F766E),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),

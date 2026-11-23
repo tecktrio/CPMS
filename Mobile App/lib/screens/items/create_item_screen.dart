@@ -11,6 +11,7 @@ import '../../widgets/cpms_search_bar.dart';
 import '../../widgets/app_footer.dart';
 import 'manage_item_categories_modal.dart';
 import 'manage_packaging_materials_modal.dart';
+import 'manage_countries_modal.dart';
 import '../../widgets/country_picker_modal.dart';
 
 class CreateItemScreen extends StatefulWidget {
@@ -770,32 +771,26 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
 
               const SizedBox(height: 18),
 
-              // Target Country Row with '+ Add New Country'
+              // Target Country Row with 'Manage Countries'
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   _buildFieldLabel('TARGET COUNTRY'),
                   InkWell(
-                    onTap: () async {
-                      final newCountry =
-                          await CountryPickerModal.showAddNewCountryDialog(context);
-                      if (newCountry != null && newCountry.isNotEmpty && mounted) {
-                        setState(() => _selectedCountry = newCountry);
-                      }
-                    },
+                    onTap: () => ManageCountriesModal.show(context),
                     borderRadius: BorderRadius.circular(4),
                     child: const Padding(
                       padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                       child: Row(
                         children: [
                           Icon(
-                            Icons.add,
+                            Icons.settings_outlined,
                             size: 14,
                             color: Color(0xFF0F766E),
                           ),
                           SizedBox(width: 4),
                           Text(
-                            '+ Add New Country',
+                            'Manage Countries',
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w700,

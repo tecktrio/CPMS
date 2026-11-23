@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../core/constants/api_constants.dart';
 import '../core/network/api_client.dart';
 import '../core/sync/sync_manager.dart';
@@ -601,28 +602,148 @@ class InventoryProvider extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
 
   final Set<String> _customCountries = {};
+  final Set<String> _hiddenCountries = {};
 
   List<String> get availableCountries {
     final set = <String>{};
     for (final item in _items) {
       final c = item.country.trim();
-      if (c.isNotEmpty) {
+      if (c.isNotEmpty && !_hiddenCountries.contains(c.toLowerCase())) {
         set.add(c);
       }
     }
-    set.addAll(_customCountries);
-    set.addAll(CountryHelper.defaultCountries);
+    for (final c in _customCountries) {
+      if (c.isNotEmpty && !_hiddenCountries.contains(c.toLowerCase())) {
+        set.add(c);
+      }
+    }
+    for (final c in CountryHelper.defaultCountries) {
+      if (c.isNotEmpty && !_hiddenCountries.contains(c.toLowerCase())) {
+        set.add(c);
+      }
+    }
     final list = set.toList();
     list.sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
     return list;
   }
 
-  void addCustomCountry(String country) {
+  int getCountryItemsCount(String country) {
+    final target = country.trim().toLowerCase();
+    return _items.where((i) => i.country.trim().toLowerCase() == target).length;
+  }
+
+  Future<void> _restoreCountryPreferences() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final custom = prefs.getStringList('cpms_custom_countries') ?? [];
+      final hidden = prefs.getStringList('cpms_hidden_countries') ?? [];
+      _customCountries.addAll(custom);
+      _hiddenCountries.addAll(hidden);
+      notifyListeners();
+    } catch (_) {}
+  }
+
+  Future<void> _saveCountryPreferences() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setStringList(
+          'cpms_custom_countries', _customCountries.toList());
+      await prefs.setStringList(
+          'cpms_hidden_countries', _hiddenCountries.toList());
+    } catch (_) {}
+  }
+
+  Future<void> addCustomCountry(String country) async {
     final c = country.trim();
     if (c.isNotEmpty) {
       _customCountries.add(c);
+      _hiddenCountries.remove(c.toLowerCase());
+      await _saveCountryPreferences();
       notifyListeners();
     }
+  }
+
+  Future<bool> renameCountry({
+    required String oldName,
+    required String newName,
+  }) async {
+    final cleanOld = oldName.trim();
+    final cleanNew = newName.trim();
+    if (cleanOld.isEmpty || cleanNew.isEmpty) return false;
+    if (cleanOld.toLowerCase() == cleanNew.toLowerCase()) return true;
+
+    // 1. Optimistically update all matching items in local memory
+    for (int i = 0; i < _items.length; i++) {
+      if (_items[i].country.trim().toLowerCase() == cleanOld.toLowerCase()) {
+        _items[i] = _items[i].copyWith(country: cleanNew);
+      }
+    }
+    _persistItemsLocally();
+
+    // 2. Update collections
+    _customCountries.removeWhere(
+        (c) => c.toLowerCase() == cleanOld.toLowerCase());
+    _customCountries.add(cleanNew);
+    _hiddenCountries.add(cleanOld.toLowerCase());
+    _hiddenCountries.remove(cleanNew.toLowerCase());
+    await _saveCountryPreferences();
+    notifyListeners();
+
+    // 3. Sync to backend API
+    try {
+      await apiClient.put(
+        ApiConstants.reassignCountry,
+        body: {
+          'from_country': cleanOld,
+          'to_country': cleanNew,
+        },
+      );
+    } catch (e) {
+      debugPrint('Failed to sync country rename: $e');
+    }
+    return true;
+  }
+
+  Future<bool> deleteCountry(
+    String country, {
+    String reassignTo = '',
+  }) async {
+    final cleanTarget = country.trim();
+    final cleanReassign = reassignTo.trim();
+    if (cleanTarget.isEmpty) return false;
+
+    // 1. Optimistically update or clear matching items
+    for (int i = 0; i < _items.length; i++) {
+      if (_items[i].country.trim().toLowerCase() == cleanTarget.toLowerCase()) {
+        _items[i] = _items[i].copyWith(country: cleanReassign);
+      }
+    }
+    _persistItemsLocally();
+
+    // 2. Hide / remove country from active list
+    _customCountries.removeWhere(
+        (c) => c.toLowerCase() == cleanTarget.toLowerCase());
+    _hiddenCountries.add(cleanTarget.toLowerCase());
+    if (cleanReassign.isNotEmpty) {
+      _customCountries.add(cleanReassign);
+      _hiddenCountries.remove(cleanReassign.toLowerCase());
+    }
+    await _saveCountryPreferences();
+    notifyListeners();
+
+    // 3. Sync reassign to backend API
+    try {
+      await apiClient.put(
+        ApiConstants.reassignCountry,
+        body: {
+          'from_country': cleanTarget,
+          'to_country': cleanReassign,
+        },
+      );
+    } catch (e) {
+      debugPrint('Failed to sync country deletion/reassign: $e');
+    }
+    return true;
   }
 
   void clear() {
@@ -653,6 +774,7 @@ class InventoryProvider extends ChangeNotifier {
       _items = cachedItems.map((json) => ItemModel.fromJson(json)).toList();
       notifyListeners();
     }
+    await _restoreCountryPreferences();
   }
 
   void _persistItemsLocally() {

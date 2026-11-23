@@ -12,6 +12,7 @@ import '../../widgets/success_screen.dart';
 import '../../widgets/cpms_search_bar.dart';
 import 'manage_item_categories_modal.dart';
 import 'manage_packaging_materials_modal.dart';
+import 'manage_countries_modal.dart';
 import '../../widgets/country_picker_modal.dart';
 
 class EditItemScreen extends StatefulWidget {
@@ -1276,13 +1277,7 @@ class _EditItemScreenState extends State<EditItemScreen> {
           children: [
             _buildFieldLabel('TARGET COUNTRY'),
             InkWell(
-              onTap: () async {
-                final newCountry =
-                    await CountryPickerModal.showAddNewCountryDialog(context);
-                if (newCountry != null && newCountry.isNotEmpty && mounted) {
-                  setState(() => _selectedCountry = newCountry);
-                }
-              },
+              onTap: () => ManageCountriesModal.show(context),
               borderRadius: BorderRadius.circular(4),
               child: const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
@@ -1290,13 +1285,13 @@ class _EditItemScreenState extends State<EditItemScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
-                      Icons.add,
+                      Icons.settings_outlined,
                       size: 14,
                       color: Color(0xFF0F766E),
                     ),
                     SizedBox(width: 4),
                     Text(
-                      '+ Add New Country',
+                      'Manage Countries',
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
