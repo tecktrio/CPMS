@@ -97,12 +97,4 @@ export class CreateItemDto {
   @IsString()
   @IsOptional()
   image_url?: string;
-
-  @ApiPropertyOptional({
-    example: 'India',
-    description: 'Specific target country for this item',
-  })
-  @IsString()
-  @IsOptional()
-  country?: string;
 }

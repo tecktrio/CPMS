@@ -20,8 +20,8 @@ class _CreateStoreRoomScreenState extends State<CreateStoreRoomScreen> {
   final _divisionCountController = TextEditingController(text: '2');
 
   final List<TextEditingController> _divisionControllers = [
-    TextEditingController(text: 'Section A'),
-    TextEditingController(text: 'Section B'),
+    TextEditingController(text: 'Division - section 1'),
+    TextEditingController(text: 'Division - section 2'),
   ];
 
   bool _isSubmitting = false;
@@ -47,7 +47,7 @@ class _CreateStoreRoomScreenState extends State<CreateStoreRoomScreen> {
       }
       _divisionControllers.clear();
       for (int i = 1; i <= count; i++) {
-        _divisionControllers.add(TextEditingController(text: 'Section $i'));
+        _divisionControllers.add(TextEditingController(text: 'Division - section $i'));
       }
     });
   }
@@ -55,7 +55,7 @@ class _CreateStoreRoomScreenState extends State<CreateStoreRoomScreen> {
   void _addDivision() {
     setState(() {
       final nextNum = _divisionControllers.length + 1;
-      _divisionControllers.add(TextEditingController(text: 'Section $nextNum'));
+      _divisionControllers.add(TextEditingController(text: 'Division - section $nextNum'));
       _divisionCountController.text = _divisionControllers.length.toString();
     });
   }

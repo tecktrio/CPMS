@@ -408,8 +408,6 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
               _buildMetaStat('UNIT', _resolveUnit(currentItem)),
               _buildMetaStat(
                   'PACKING MATERIAL', _resolvePackingMaterial(currentItem)),
-              _buildMetaStat('TARGET COUNTRY',
-                  currentItem.country.isNotEmpty ? currentItem.country : 'Global'),
             ],
           )
         : Wrap(
@@ -421,8 +419,6 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
               _buildMetaStat('UNIT', _resolveUnit(currentItem)),
               _buildMetaStat(
                   'PACKING MATERIAL', _resolvePackingMaterial(currentItem)),
-              _buildMetaStat('TARGET COUNTRY',
-                  currentItem.country.isNotEmpty ? currentItem.country : 'Global'),
             ],
           );
 

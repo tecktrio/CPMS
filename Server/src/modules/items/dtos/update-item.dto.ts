@@ -71,11 +71,6 @@ export class UpdateItemDto {
   @IsOptional()
   image_url?: string;
 
-  @ApiPropertyOptional({ example: 'India' })
-  @IsString()
-  @IsOptional()
-  country?: string;
-
   @ApiPropertyOptional({ example: true })
   @IsBoolean()
   @IsOptional()

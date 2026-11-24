@@ -560,7 +560,7 @@ class _PurchaseOrderDetailScreenState extends State<PurchaseOrderDetailScreen> {
                               Expanded(
                                 flex: 2,
                                 child: Text(
-                                  'PKT/CTN',
+                                  'PKT / CTN BOX',
                                   textAlign: TextAlign.right,
                                   style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11, color: Colors.white),
                                 ),

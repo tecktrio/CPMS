@@ -127,6 +127,8 @@ export class StoreRoomsController {
       dto.item_id,
       dto.division,
       dto.quantity,
+      dto.min_count,
+      dto.division_id,
     );
   }
 
@@ -143,6 +145,7 @@ export class StoreRoomsController {
     @Body('quantity') quantity: number,
     @Body('division') division?: string,
     @Body('min_count') minCount?: number,
+    @Body('division_id') divisionId?: string,
   ) {
     return this.storeRoomsService.updateItemQuantity(
       tenantId,
@@ -151,6 +154,7 @@ export class StoreRoomsController {
       quantity,
       division,
       minCount,
+      divisionId,
     );
   }
 

@@ -16,15 +16,47 @@ class ProductionStatusDialogs {
     final deptProv = context.read<DepartmentProvider>();
     final tenantProv = context.read<TenantProvider>();
 
-    // Resolve the Supervisor department IDs
+    // Resolve the Supervisor & Admin department IDs
     final supervisorDeptIds = tenantProv.tenantDepartments
-        .where((d) => d.departmentName.trim().toLowerCase() == 'supervisor' || d.departmentName.trim().toLowerCase().contains('supervisor'))
+        .where((d) =>
+            d.departmentName.trim().toLowerCase() == 'supervisor' ||
+            d.departmentName.trim().toLowerCase().contains('supervisor'))
         .map((d) => d.departmentId)
         .toSet();
 
-    // Filter to only users who belong to the Supervisor department
+    final adminDeptIds = tenantProv.tenantDepartments
+        .where((d) =>
+            d.departmentName.trim().toLowerCase() == 'administrator' ||
+            d.departmentName.trim().toLowerCase().contains('admin'))
+        .map((d) => d.departmentId)
+        .toSet();
+
+    final totalDepartmentsCount = tenantProv.tenantDepartments.length;
+
+    // Filter to only users who strictly belong to the Supervisor department
+    // Exclude administrators, tenant owners, or users with access to all departments
     final supervisorUsers = deptProv.tenantUsers.where((u) {
-      return u.departmentIds.any((id) => supervisorDeptIds.contains(id));
+      if (u.accountStatus.isNotEmpty &&
+          u.accountStatus.toUpperCase() != 'ACTIVE') {
+        return false;
+      }
+
+      final hasSupervisorDept =
+          u.departmentIds.any((id) => supervisorDeptIds.contains(id));
+      if (!hasSupervisorDept) return false;
+
+      // Exclude users assigned to the Administrator department
+      final hasAdminDept =
+          u.departmentIds.any((id) => adminDeptIds.contains(id));
+      if (hasAdminDept) return false;
+
+      // Exclude users assigned to all departments (e.g. tenant creator/owner)
+      if (totalDepartmentsCount > 1 &&
+          u.departmentIds.length >= totalDepartmentsCount) {
+        return false;
+      }
+
+      return true;
     }).toList();
 
     String? selectedUserId = supervisorUsers.isNotEmpty ? supervisorUsers.first.userId : null;
@@ -89,7 +121,7 @@ class ProductionStatusDialogs {
                         SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            'No users currently assigned to the Supervisor department.',
+                            'Your tenant has no supervisors to assign.',
                             style: TextStyle(fontSize: 12, color: Color(0xFFDC2626), fontWeight: FontWeight.w600),
                           ),
                         ),
@@ -107,9 +139,20 @@ class ProductionStatusDialogs {
                           const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     ),
                     items: supervisorUsers.map((u) {
-                      final display = u.fullName.isNotEmpty
-                          ? '${u.fullName} (@${u.userName})'
-                          : u.emailAddress;
+                      final dept = tenantProv.tenantDepartments.firstWhere(
+                        (d) => u.departmentIds.contains(d.departmentId),
+                        orElse: () => DepartmentModel(
+                          departmentId: '',
+                          tenantId: '',
+                          departmentName: 'Supervisor',
+                          description: '',
+                          permissionIds: [],
+                          isActive: true,
+                        ),
+                      );
+                      final name = u.fullName.isNotEmpty ? u.fullName : u.userName;
+                      final username = u.userName.isNotEmpty ? '(@${u.userName})' : '';
+                      final display = '$name $username • ${dept.departmentName}'.trim();
                       return DropdownMenuItem(
                         value: u.userId,
                         child: Text(display,
@@ -170,21 +213,25 @@ class ProductionStatusDialogs {
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.black,
+                backgroundColor: supervisorUsers.isEmpty
+                    ? const Color(0xFF94A3B8)
+                    : Colors.black,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(6)),
               ),
-              onPressed: () async {
-                final qty = int.tryParse(cartonsController.text.trim()) ?? 0;
-                if (selectedUserId == null) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                        content: Text(
-                            'Please select a user in the Supervisor department.')),
-                  );
-                  return;
-                }
+              onPressed: supervisorUsers.isEmpty
+                  ? null
+                  : () async {
+                      final qty = int.tryParse(cartonsController.text.trim()) ?? 0;
+                      if (selectedUserId == null) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                              content: Text(
+                                  'Your tenant has no supervisors to assign.')),
+                        );
+                        return;
+                      }
                 if (qty <= 0) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(

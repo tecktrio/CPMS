@@ -56,7 +56,7 @@ class _StoreRoomItemDetailScreenState extends State<StoreRoomItemDetailScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Stored in ${room.roomName} (${sri.division})',
+                  'Stored in ${room.roomName} (${room.resolveFormattedDivisionName(sri)})',
                   style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
                 ),
                 const SizedBox(height: 14),
@@ -359,11 +359,13 @@ class _StoreRoomItemDetailScreenState extends State<StoreRoomItemDetailScreen> {
                     if (target.isEmpty) return;
                   }
                   Navigator.pop(ctx);
+                  final divId = room.getDivisionId(target);
                   await inventory.updateStoreRoomItemQuantity(
                     storeRoomId: room.storeRoomId,
                     itemId: item.itemId,
                     quantity: sri.quantity,
                     division: target,
+                    divisionId: divId,
                     minCount: sri.minCount,
                   );
                 },
@@ -529,7 +531,7 @@ class _StoreRoomItemDetailScreenState extends State<StoreRoomItemDetailScreen> {
               ),
             ),
             Text(
-              '${currentRoom.roomName} • ${sri.division}',
+              '${currentRoom.roomName} • ${currentRoom.resolveFormattedDivisionName(sri)}',
               style: const TextStyle(
                 color: Color(0xFF64748B),
                 fontSize: 12,
@@ -749,27 +751,11 @@ class _StoreRoomItemDetailScreenState extends State<StoreRoomItemDetailScreen> {
                                     borderRadius: BorderRadius.circular(6),
                                   ),
                                   child: Text(
-                                    '📍 ${sri.division}',
+                                    '📍 ${currentRoom.resolveFormattedDivisionName(sri)}',
                                     style: const TextStyle(
                                       fontSize: 11,
                                       fontWeight: FontWeight.w700,
                                       color: Color(0xFF2563EB),
-                                    ),
-                                  ),
-                                ),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 8, vertical: 3),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFFEF3C7),
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  child: Text(
-                                    '🌐 ${item.country.isNotEmpty ? item.country : "Global"}',
-                                    style: const TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w700,
-                                      color: Color(0xFFB45309),
                                     ),
                                   ),
                                 ),
@@ -1180,7 +1166,7 @@ class _StoreRoomItemDetailScreenState extends State<StoreRoomItemDetailScreen> {
                       _buildInfoRow(
                         icon: Icons.grid_view,
                         label: 'Storage Section / Division',
-                        value: sri.division,
+                        value: currentRoom.resolveFormattedDivisionName(sri),
                         trailing: canUpdate
                             ? TextButton(
                                 onPressed: () => _showMoveDivisionDialog(

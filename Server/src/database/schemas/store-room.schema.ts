@@ -1,15 +1,29 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
+import { Document, Schema as MongooseSchema } from 'mongoose';
 import { v4 as uuidv4 } from 'uuid';
 
 export type StoreRoomDocument = StoreRoom & Document;
+
+@Schema({ _id: false })
+export class StoreRoomDivision {
+  @Prop({ type: String, default: uuidv4 })
+  division_id: string;
+
+  @Prop({ type: String, required: true, trim: true })
+  name: string;
+}
+export const StoreRoomDivisionSchema =
+  SchemaFactory.createForClass(StoreRoomDivision);
 
 @Schema({ _id: false })
 export class StoreRoomItem {
   @Prop({ type: String, required: true })
   item_id: string;
 
-  @Prop({ type: String, default: 'Default Section', trim: true })
+  @Prop({ type: String, default: '', trim: true })
+  division_id?: string;
+
+  @Prop({ type: String, default: 'Division - section 1', trim: true })
   division: string;
 
   @Prop({ type: Number, default: 0, min: 0 })
@@ -53,8 +67,8 @@ export class StoreRoom {
   @Prop({ type: Number, required: false, default: 0, min: 0 })
   total_capacity_units?: number;
 
-  @Prop({ type: [String], default: [] })
-  divisions: string[]; // Divisions / sections / areas inside this store room
+  @Prop({ type: [MongooseSchema.Types.Mixed], default: [] })
+  divisions: any[]; // Supports both { division_id: string, name: string } and string names
 
   @Prop({ type: [StoreRoomItemSchema], default: [] })
   items: StoreRoomItem[];

@@ -1995,7 +1995,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                           Expanded(
                             flex: 2,
                             child: Text(
-                              'PKT/CTN',
+                              'PKT / CTN BOX',
                               textAlign: TextAlign.center,
                               style: TextStyle(fontWeight: FontWeight.w900, fontSize: 10, color: Colors.white),
                             ),

@@ -19,7 +19,7 @@ class StoreRoomDetailScreen extends StatefulWidget {
 class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
   void _showAddDivisionDialog(StoreRoomModel room) {
     final divController = TextEditingController(
-      text: 'Section ${room.divisions.length + 1}',
+      text: 'Division - section ${room.divisions.length + 1}',
     );
 
     showDialog(
@@ -247,13 +247,20 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                         divisions: updatedDivs,
                       );
 
-                      // Ensure item assignments sync if name changed
+                      // Ensure item assignments sync if name changed using division_id
+                      final divId = room.divisionObjects.length > index
+                          ? room.divisionObjects[index].divisionId
+                          : room.getDivisionId(currentDivName);
+
                       for (final it in room.items) {
-                        if (it.division == currentDivName) {
+                        if ((it.divisionId.isNotEmpty && it.divisionId == divId) ||
+                            it.division == currentDivName ||
+                            room.resolveFormattedDivisionName(it) == currentDivName) {
                           await inventory.updateStoreRoomItemDivision(
                             storeRoomId: room.storeRoomId,
                             itemId: it.itemId,
                             division: updatedName,
+                            divisionId: divId,
                           );
                         }
                       }
@@ -339,7 +346,11 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
               Navigator.pop(ctx);
               final inventory = context.read<InventoryProvider>();
               final updatedDivs = List<String>.from(room.divisions)..removeAt(index);
-              final fallbackDiv = updatedDivs.isNotEmpty ? updatedDivs[0] : 'Default Section';
+              final divId = room.divisionObjects.length > index
+                  ? room.divisionObjects[index].divisionId
+                  : room.getDivisionId(divToDelete);
+              final fallbackDiv = updatedDivs.isNotEmpty ? updatedDivs[0] : 'Division - section 1';
+              final fallbackDivId = room.getDivisionId(fallbackDiv);
 
               final ok = await inventory.updateStoreRoom(
                 storeRoomId: room.storeRoomId,
@@ -350,11 +361,14 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
 
               // Reassign any orphaned items
               for (final it in room.items) {
-                if (it.division == divToDelete) {
+                if ((it.divisionId.isNotEmpty && it.divisionId == divId) ||
+                    it.division == divToDelete ||
+                    room.resolveFormattedDivisionName(it) == divToDelete) {
                   await inventory.updateStoreRoomItemDivision(
                     storeRoomId: room.storeRoomId,
                     itemId: it.itemId,
                     division: fallbackDiv,
+                    divisionId: fallbackDivId,
                   );
                 }
               }
@@ -565,7 +579,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                                     setSheetState(() {
                                       divisionCtrls.add(
                                         TextEditingController(
-                                          text: 'Section ${divisionCtrls.length + 1}',
+                                          text: 'Division - section ${divisionCtrls.length + 1}',
                                         ),
                                       );
                                     });
@@ -797,7 +811,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Stored in ${room.roomName} (${sri.division})',
+                'Stored in ${room.roomName} (${room.resolveFormattedDivisionName(sri)})',
                 style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
               ),
               if (item.quantity > 1) ...[
@@ -1069,11 +1083,13 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                   Navigator.pop(ctx);
                   final finalDiv = (selected == '+ Custom Division' && customCtrl.text.trim().isNotEmpty)
                       ? customCtrl.text.trim()
-                      : (selected == '+ Custom Division' ? 'Default Section' : selected);
+                      : (selected == '+ Custom Division' ? 'Division - section 1' : selected);
+                  final divId = room.getDivisionId(finalDiv);
                   final ok = await inventory.updateStoreRoomItemDivision(
                     storeRoomId: room.storeRoomId,
                     itemId: item.itemId,
                     division: finalDiv,
+                    divisionId: divId,
                   );
                   if (mounted) {
                     messenger.showSnackBar(
@@ -1186,15 +1202,23 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
 
       if (_itemSearchQuery.isNotEmpty) {
         final q = _itemSearchQuery.toLowerCase();
+        final divName = currentRoom.resolveFormattedDivisionName(sri);
         final matches = item.itemName.toLowerCase().contains(q) ||
             item.sku.toLowerCase().contains(q) ||
             item.specification.toLowerCase().contains(q) ||
+            divName.toLowerCase().contains(q) ||
             sri.division.toLowerCase().contains(q);
         if (!matches) return false;
       }
 
       if (_selectedDivisionFilter != null && _selectedDivisionFilter != 'All') {
-        if (sri.division != _selectedDivisionFilter) return false;
+        final divName = currentRoom.resolveFormattedDivisionName(sri);
+        final selectedFilter = _selectedDivisionFilter!;
+        if (divName != selectedFilter &&
+            sri.division != selectedFilter &&
+            sri.divisionId != currentRoom.getDivisionId(selectedFilter)) {
+          return false;
+        }
       }
 
       if (_selectedTypeFilter != null && _selectedTypeFilter != 'All') {
@@ -1885,7 +1909,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                                                   ),
                                                   const SizedBox(height: 2),
                                                   Text(
-                                                    'Section: ${item.specification.isNotEmpty ? item.specification : sri.division.isNotEmpty ? sri.division : 'Standard'} • Packets Per Carton: ${item.reorderThresholdQuantity > 0 ? item.reorderThresholdQuantity.toInt() : 14}',
+                                                    '${currentRoom.resolveFormattedDivisionName(sri)} • Packets Per Carton: ${item.reorderThresholdQuantity > 0 ? item.reorderThresholdQuantity.toInt() : 14}',
                                                     style: const TextStyle(
                                                       fontSize: 11.5,
                                                       color: Color(0xFF64748B),
@@ -2412,7 +2436,7 @@ class _AddItemToRoomModalState extends State<_AddItemToRoomModal> {
                                     borderRadius: BorderRadius.circular(4),
                                   ),
                                   child: Text(
-                                    'In this room (${matchInThisRoom.first.division})',
+                                    'In this room (${widget.room.resolveFormattedDivisionName(matchInThisRoom.first)})',
                                     style: const TextStyle(
                                       fontSize: 10,
                                       fontWeight: FontWeight.w700,
@@ -2778,12 +2802,13 @@ class _AddItemToRoomModalState extends State<_AddItemToRoomModal> {
                       final targetDiv = isCustom
                           ? (_customDivCtrl.text.trim().isNotEmpty
                               ? _customDivCtrl.text.trim()
-                              : 'Default Section')
+                              : 'Division - section 1')
                           : (_selectedDivision ??
                               (widget.room.divisions.isNotEmpty
                                   ? widget.room.divisions.first
-                                  : 'Default Section'));
+                                  : 'Division - section 1'));
                       final qty = double.tryParse(_initialQtyCtrl.text.trim()) ?? 0.0;
+                      final targetDivId = widget.room.getDivisionId(targetDiv);
 
                       final messenger = ScaffoldMessenger.of(context);
                       final navigator = Navigator.of(context);
@@ -2792,6 +2817,7 @@ class _AddItemToRoomModalState extends State<_AddItemToRoomModal> {
                         storeRoomId: widget.room.storeRoomId,
                         itemId: item.itemId,
                         division: targetDiv,
+                        divisionId: targetDivId,
                         quantity: qty,
                       );
 

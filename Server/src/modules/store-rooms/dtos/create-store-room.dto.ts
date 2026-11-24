@@ -48,14 +48,12 @@ export class CreateStoreRoomDto {
   total_capacity_units?: number;
 
   @ApiPropertyOptional({
-    example: ['Section A', 'Section B', 'Rack 1'],
+    example: ['Division - section 1', 'Division - section 2'],
     description: 'Divisions or sections inside this store room',
-    type: [String],
   })
   @IsArray()
-  @IsString({ each: true })
   @IsOptional()
-  divisions?: string[];
+  divisions?: any[];
 
   @ApiPropertyOptional({
     example: true,

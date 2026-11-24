@@ -17,7 +17,12 @@ export class StoreRoomItemDto {
   @IsNotEmpty()
   item_id: string;
 
-  @ApiPropertyOptional({ example: 'Section 1' })
+  @ApiPropertyOptional({ example: 'div-001' })
+  @IsString()
+  @IsOptional()
+  division_id?: string;
+
+  @ApiPropertyOptional({ example: 'Division - section 1' })
   @IsString()
   @IsOptional()
   division?: string;
@@ -63,14 +68,12 @@ export class UpdateStoreRoomDto {
   total_capacity_units?: number;
 
   @ApiPropertyOptional({
-    example: ['Section A', 'Section B'],
+    example: ['Division - section 1', 'Division - section 2'],
     description: 'Divisions or sections inside this store room',
-    type: [String],
   })
   @IsArray()
-  @IsString({ each: true })
   @IsOptional()
-  divisions?: string[];
+  divisions?: any[];
 
   @ApiPropertyOptional({ type: [StoreRoomItemDto] })
   @IsArray()

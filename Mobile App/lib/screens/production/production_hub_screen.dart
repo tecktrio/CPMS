@@ -706,66 +706,164 @@ class _ProductionHubScreenState extends State<ProductionHubScreen> {
 
           // Line Items List
           if (!isCollapsed)
-            ListView.separated(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: po.items.length,
-              separatorBuilder: (_, _) =>
-                  const Divider(height: 1, color: Color(0xFFF1F5F9)),
-              itemBuilder: (context, idx) {
-                final item = po.items[idx];
-                final unitSubtitle = item.specification.isNotEmpty
-                    ? item.specification
-                    : (item.unit.isNotEmpty ? item.unit.toUpperCase() : '454 GRAM');
+            LayoutBuilder(
+              builder: (context, constraints) {
+                const minTableWidth = 640.0;
+                final needsHorizontalScroll = constraints.maxWidth < minTableWidth;
 
-                return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
+                final tableContent = SizedBox(
+                  width: needsHorizontalScroll ? minTableWidth : constraints.maxWidth,
+                  child: Column(
                     children: [
-                      // Index Number Badge
+                      // Table Column Header Bar
                       Container(
-                        width: 28,
-                        height: 28,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF8FAFC),
-                          borderRadius: BorderRadius.circular(6),
-                          border: Border.all(color: const Color(0xFFE2E8F0)),
-                        ),
-                        alignment: Alignment.center,
-                        child: Text(
-                          '${idx + 1}',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFF64748B),
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFF8FAFC),
+                          border: Border(
+                            top: BorderSide(color: Color(0xFFF1F5F9)),
+                            bottom: BorderSide(color: Color(0xFFE2E8F0)),
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 14),
-
-                      // Item Details & Badges
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                        child: Row(
                           children: [
-                            Text(
-                              item.itemName,
-                              style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w800,
-                                color: Color(0xFF0F172A),
+                            const SizedBox(
+                              width: 38,
+                              child: Text(
+                                'SL.',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w800,
+                                  color: Color(0xFF64748B),
+                                  letterSpacing: 0.5,
+                                ),
                               ),
                             ),
-                            const SizedBox(height: 2),
-                            Text(
-                              unitSubtitle,
-                              style: const TextStyle(
-                                fontSize: 11.5,
-                                color: Color(0xFF64748B),
+                            const Expanded(
+                              child: Text(
+                                'ITEM DETAILS',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w800,
+                                  color: Color(0xFF64748B),
+                                  letterSpacing: 0.5,
+                                ),
                               ),
                             ),
-                            const SizedBox(height: 8),
+                            const SizedBox(width: 14),
+                            const SizedBox(
+                              width: 95,
+                              child: Text(
+                                'PKT / CTN BOX',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w800,
+                                  color: Color(0xFF64748B),
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 14),
+                            const SizedBox(
+                              width: 90,
+                              child: Text(
+                                'TOTAL CTNS',
+                                textAlign: TextAlign.right,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w800,
+                                  color: Color(0xFF64748B),
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ),
+                            if (canAssignTask || (!isSupervisor && !isPacker && !isQc && !isExport && (canDoQc || canUpdatePacking || canUpdateShipping))) ...[
+                              const SizedBox(width: 14),
+                              SizedBox(
+                                width: canAssignTask ? 145 : 36,
+                                child: const Text(
+                                  'ACTION',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w800,
+                                    color: Color(0xFF64748B),
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+
+                      // Line Items Rows
+                      ListView.separated(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: po.items.length,
+                        separatorBuilder: (_, _) =>
+                            const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                        itemBuilder: (context, idx) {
+                          final item = po.items[idx];
+                          final unitSubtitle = item.specification.isNotEmpty
+                              ? item.specification
+                              : (item.unit.isNotEmpty ? item.unit.toUpperCase() : '454 GRAM');
+
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                // Index Number Badge
+                                SizedBox(
+                                  width: 38,
+                                  child: Align(
+                                    alignment: Alignment.centerLeft,
+                                    child: Container(
+                                      width: 28,
+                                      height: 28,
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFF8FAFC),
+                                        borderRadius: BorderRadius.circular(6),
+                                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                                      ),
+                                      alignment: Alignment.center,
+                                      child: Text(
+                                        '${idx + 1}',
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w700,
+                                          color: Color(0xFF64748B),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+
+                                // Item Details & Badges
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        item.itemName,
+                                        style: const TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w800,
+                                          color: Color(0xFF0F172A),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        unitSubtitle,
+                                        style: const TextStyle(
+                                          fontSize: 11.5,
+                                          color: Color(0xFF64748B),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
 
                             // Stage Badges Row / Supervisor Stepper View
                             if (isSupervisor)
@@ -1301,85 +1399,149 @@ class _ProductionHubScreenState extends State<ProductionHubScreen> {
                           ],
                         ),
                       ),
-                      const SizedBox(width: 16),
+                                const SizedBox(width: 14),
 
-                      // Quantity + Assign Task Button
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Text(
-                            '${item.cartons} ctns',
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w800,
-                              color: Color(0xFF0F172A),
+                                // No of Pkt in 1 Carton Box Column
+                                SizedBox(
+                                  width: 95,
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.center,
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFF1F5F9),
+                                          borderRadius: BorderRadius.circular(6),
+                                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                                        ),
+                                        child: Text(
+                                          '${item.packetPerCarton}',
+                                          style: const TextStyle(
+                                            fontSize: 13.5,
+                                            fontWeight: FontWeight.w800,
+                                            color: Color(0xFF0F172A),
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 3),
+                                      const Text(
+                                        'pkts / ctn',
+                                        style: TextStyle(
+                                          fontSize: 10.5,
+                                          fontWeight: FontWeight.w600,
+                                          color: Color(0xFF64748B),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 14),
+
+                                // Total Cartons Column
+                                SizedBox(
+                                  width: 90,
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Text(
+                                        '${item.cartons} ctns',
+                                        style: const TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w800,
+                                          color: Color(0xFF0F172A),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        '${item.packetPerCarton * item.cartons} pkts',
+                                        style: const TextStyle(
+                                          fontSize: 11.5,
+                                          color: Color(0xFF94A3B8),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+
+                                // Actions (Assign Task + menu)
+                                if (canAssignTask || (!isSupervisor && !isPacker && !isQc && !isExport && (canDoQc || canUpdatePacking || canUpdateShipping))) ...[
+                                  const SizedBox(width: 14),
+                                  SizedBox(
+                                    width: canAssignTask ? 145 : 36,
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.end,
+                                      children: [
+                                        if (canAssignTask)
+                                          OutlinedButton.icon(
+                                            onPressed: () => ProductionStatusDialogs
+                                                .showAssignSupervisorsDialog(
+                                              context,
+                                              po,
+                                              item,
+                                              onUpdated: () => context
+                                                  .read<PurchaseOrderProvider>()
+                                                  .loadPurchaseOrders(),
+                                            ),
+                                            icon: const Icon(Icons.person_add_alt_1_outlined, size: 14, color: Color(0xFF0F172A)),
+                                            label: const Text('Assign Task', style: TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.w600, fontSize: 12)),
+                                            style: OutlinedButton.styleFrom(
+                                              side: const BorderSide(color: Color(0xFFCBD5E1)),
+                                              backgroundColor: const Color(0xFFF8FAFC),
+                                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                                            ),
+                                          ),
+                                        if (!isSupervisor && !isPacker && !isQc && !isExport && (canDoQc || canUpdatePacking || canUpdateShipping)) ...[
+                                          const SizedBox(width: 4),
+                                          PopupMenuButton<String>(
+                                            icon: const Icon(Icons.more_vert, size: 18, color: Color(0xFF64748B)),
+                                            onSelected: (val) {
+                                              if (val == 'qc') {
+                                                ProductionStatusDialogs.showQcInspectionDialog(
+                                                  context, po, item, onUpdated: () => context.read<PurchaseOrderProvider>().loadPurchaseOrders(),
+                                                );
+                                              } else if (val == 'pack') {
+                                                ProductionStatusDialogs.showPackingDialog(
+                                                  context, po, item, onUpdated: () => context.read<PurchaseOrderProvider>().loadPurchaseOrders(),
+                                                );
+                                              } else if (val == 'ship') {
+                                                ProductionStatusDialogs.showShippingDialog(
+                                                  context, po, item, onUpdated: () => context.read<PurchaseOrderProvider>().loadPurchaseOrders(),
+                                                );
+                                              }
+                                            },
+                                            itemBuilder: (ctx) => [
+                                              if (canDoQc)
+                                                const PopupMenuItem(value: 'qc', child: Text('QC Inspect', style: TextStyle(fontSize: 13))),
+                                              if (canUpdatePacking)
+                                                const PopupMenuItem(value: 'pack', child: Text('Pack Line Item', style: TextStyle(fontSize: 13))),
+                                              if (canUpdateShipping)
+                                                const PopupMenuItem(value: 'ship', child: Text('Ship Line Item', style: TextStyle(fontSize: 13))),
+                                            ],
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ],
                             ),
-                          ),
-                          Text(
-                            '${item.packetPerCarton * item.cartons} pkts',
-                            style: const TextStyle(
-                              fontSize: 11.5,
-                              color: Color(0xFF94A3B8),
-                            ),
-                          ),
-                        ],
+                          );
+                        },
                       ),
-                      const SizedBox(width: 14),
-
-                      // Assign Task Button (hidden for Supervisor, Packer, QC, Export roles)
-                      if (canAssignTask)
-                        OutlinedButton.icon(
-                          onPressed: () => ProductionStatusDialogs
-                              .showAssignSupervisorsDialog(
-                            context,
-                            po,
-                            item,
-                            onUpdated: () => context
-                                .read<PurchaseOrderProvider>()
-                                .loadPurchaseOrders(),
-                          ),
-                          icon: const Icon(Icons.person_add_alt_1_outlined, size: 14, color: Color(0xFF0F172A)),
-                          label: const Text('Assign Task', style: TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.w600, fontSize: 12)),
-                          style: OutlinedButton.styleFrom(
-                            side: const BorderSide(color: Color(0xFFCBD5E1)),
-                            backgroundColor: const Color(0xFFF8FAFC),
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                          ),
-                        ),
-
-                      if (!isSupervisor && !isPacker && !isQc && !isExport && (canDoQc || canUpdatePacking || canUpdateShipping)) ...[
-                        const SizedBox(width: 6),
-                        PopupMenuButton<String>(
-                          icon: const Icon(Icons.more_vert, size: 18, color: Color(0xFF64748B)),
-                          onSelected: (val) {
-                            if (val == 'qc') {
-                              ProductionStatusDialogs.showQcInspectionDialog(
-                                context, po, item, onUpdated: () => context.read<PurchaseOrderProvider>().loadPurchaseOrders(),
-                              );
-                            } else if (val == 'pack') {
-                              ProductionStatusDialogs.showPackingDialog(
-                                context, po, item, onUpdated: () => context.read<PurchaseOrderProvider>().loadPurchaseOrders(),
-                              );
-                            } else if (val == 'ship') {
-                              ProductionStatusDialogs.showShippingDialog(
-                                context, po, item, onUpdated: () => context.read<PurchaseOrderProvider>().loadPurchaseOrders(),
-                              );
-                            }
-                          },
-                          itemBuilder: (ctx) => [
-                            if (canDoQc)
-                              const PopupMenuItem(value: 'qc', child: Text('QC Inspect', style: TextStyle(fontSize: 13))),
-                            if (canUpdatePacking)
-                              const PopupMenuItem(value: 'pack', child: Text('Pack Line Item', style: TextStyle(fontSize: 13))),
-                            if (canUpdateShipping)
-                              const PopupMenuItem(value: 'ship', child: Text('Ship Line Item', style: TextStyle(fontSize: 13))),
-                          ],
-                        ),
-                      ],
                     ],
                   ),
                 );
+
+                if (needsHorizontalScroll) {
+                  return SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: tableContent,
+                  );
+                }
+                return tableContent;
               },
             ),
         ],

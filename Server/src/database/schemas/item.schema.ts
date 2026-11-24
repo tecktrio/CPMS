@@ -77,9 +77,6 @@ export class Item {
   @Prop({ type: String, default: null })
   image_url: string | null;
 
-  @Prop({ type: String, default: '', trim: true })
-  country: string;
-
   @Prop({ type: Boolean, default: true })
   is_active: boolean;
 }

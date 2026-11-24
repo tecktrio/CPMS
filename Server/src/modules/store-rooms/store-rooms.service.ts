@@ -19,6 +19,42 @@ import {
 import { CreateStoreRoomDto } from './dtos/create-store-room.dto';
 import { UpdateStoreRoomDto } from './dtos/update-store-room.dto';
 
+export function normalizeDivisionName(name: string): string {
+  const clean = (name || '').trim();
+  if (!clean) return 'Division - section 1';
+  if (clean.toLowerCase().startsWith('division')) return clean;
+  return `Division - ${clean}`;
+}
+
+export function normalizeDivisions(
+  divisions: any[],
+): { division_id: string; name: string }[] {
+  if (!divisions || !Array.isArray(divisions)) return [];
+  return divisions.map((d, index) => {
+    if (typeof d === 'string') {
+      const formatted = normalizeDivisionName(d);
+      return {
+        division_id: `div_${index + 1}_${formatted.toLowerCase().replace(/[^a-z0-9]/g, '_')}`,
+        name: formatted,
+      };
+    } else if (d && typeof d === 'object') {
+      const rawName = (d.name || d.division || `section ${index + 1}`).trim();
+      const formatted = normalizeDivisionName(rawName);
+      return {
+        division_id:
+          d.division_id ||
+          d.divisionId ||
+          `div_${index + 1}_${formatted.toLowerCase().replace(/[^a-z0-9]/g, '_')}`,
+        name: formatted,
+      };
+    }
+    return {
+      division_id: `div_${index + 1}`,
+      name: `Division - section ${index + 1}`,
+    };
+  });
+}
+
 @Injectable()
 export class StoreRoomsService {
   constructor(
@@ -40,6 +76,14 @@ export class StoreRoomsService {
       );
     }
 
+    const divisions =
+      dto.divisions && dto.divisions.length > 0
+        ? normalizeDivisions(dto.divisions)
+        : [
+            { division_id: 'div_1', name: 'Division - section 1' },
+            { division_id: 'div_2', name: 'Division - section 2' },
+          ];
+
     const room = new this.storeRoomModel({
       store_room_id: uuidv4(),
       tenant_id: tenantId,
@@ -48,7 +92,7 @@ export class StoreRoomsService {
       description: dto.description?.trim() || '',
       temperature: dto.temperature ?? null,
       total_capacity_units: dto.total_capacity_units ?? 0,
-      divisions: dto.divisions || [],
+      divisions,
       is_active: dto.is_active ?? true,
     });
 
@@ -80,8 +124,34 @@ export class StoreRoomsService {
         );
         const allocatedUnits = Math.max(batchUnits, itemUnits);
 
+        const normDivs = normalizeDivisions(room.divisions || []);
+        const mappedItems = (room.items || []).map((it) => {
+          let matched = normDivs.find((d) => d.division_id === it.division_id);
+          if (!matched && it.division) {
+            matched = normDivs.find(
+              (d) =>
+                d.name.toLowerCase() === it.division.toLowerCase() ||
+                d.name.toLowerCase() ===
+                  normalizeDivisionName(it.division).toLowerCase(),
+            );
+          }
+          return {
+            item_id: it.item_id,
+            division_id: matched
+              ? matched.division_id
+              : it.division_id || (normDivs.length > 0 ? normDivs[0].division_id : 'div_1'),
+            division: matched
+              ? matched.name
+              : normalizeDivisionName(it.division),
+            quantity: it.quantity,
+            min_count: it.min_count,
+          };
+        });
+
         return {
           ...room.toObject(),
+          divisions: normDivs,
+          items: mappedItems,
           allocated_units: allocatedUnits,
           available_capacity_units: Math.max(
             0,
@@ -131,8 +201,34 @@ export class StoreRoomsService {
     );
     const allocatedUnits = Math.max(batchUnits, itemUnits);
 
+    const normDivs = normalizeDivisions(room.divisions || []);
+    const mappedItems = (room.items || []).map((it) => {
+      let matched = normDivs.find((d) => d.division_id === it.division_id);
+      if (!matched && it.division) {
+        matched = normDivs.find(
+          (d) =>
+            d.name.toLowerCase() === it.division.toLowerCase() ||
+            d.name.toLowerCase() ===
+              normalizeDivisionName(it.division).toLowerCase(),
+        );
+      }
+      return {
+        item_id: it.item_id,
+        division_id: matched
+          ? matched.division_id
+          : it.division_id || (normDivs.length > 0 ? normDivs[0].division_id : 'div_1'),
+        division: matched
+          ? matched.name
+          : normalizeDivisionName(it.division),
+        quantity: it.quantity,
+        min_count: it.min_count,
+      };
+    });
+
     return {
       ...room.toObject(),
+      divisions: normDivs,
+      items: mappedItems,
       allocated_units: allocatedUnits,
       available_capacity_units: Math.max(
         0,
@@ -167,7 +263,6 @@ export class StoreRoomsService {
     }
 
     if (dto.total_capacity_units !== undefined) {
-      // Check current allocations to prevent capacity underflow
       const batches = await this.batchModel.find({
         tenant_id: tenantId,
         store_room_id: storeRoomId,
@@ -189,16 +284,63 @@ export class StoreRoomsService {
     if (dto.room_name !== undefined) room.room_name = dto.room_name.trim();
     if (dto.description !== undefined) room.description = dto.description.trim();
     if (dto.temperature !== undefined) room.temperature = dto.temperature;
-    if (dto.divisions !== undefined) room.divisions = dto.divisions;
     if (dto.is_active !== undefined) room.is_active = dto.is_active;
 
+    if (dto.divisions !== undefined) {
+      const newDivs = normalizeDivisions(dto.divisions);
+      room.divisions = newDivs;
+
+      // Re-map items if division name or division_id changed
+      if (room.items && room.items.length > 0) {
+        room.items = room.items.map((it) => {
+          let matched = newDivs.find((d) => d.division_id === it.division_id);
+          if (!matched && it.division) {
+            matched = newDivs.find(
+              (d) =>
+                d.name.toLowerCase() === it.division.toLowerCase() ||
+                d.name.toLowerCase() ===
+                  normalizeDivisionName(it.division).toLowerCase(),
+            );
+          }
+          return {
+            item_id: it.item_id,
+            division_id: matched
+              ? matched.division_id
+              : it.division_id || (newDivs.length > 0 ? newDivs[0].division_id : 'div_1'),
+            division: matched
+              ? matched.name
+              : normalizeDivisionName(it.division),
+            quantity: it.quantity,
+            min_count: it.min_count,
+          };
+        });
+      }
+    }
+
     if (dto.items !== undefined) {
-      room.items = dto.items.map((it) => ({
-        item_id: it.item_id,
-        division: it.division || 'Default Section',
-        quantity: Math.max(0, it.quantity || 0),
-        min_count: Math.max(0, it.min_count || 0),
-      }));
+      const normDivs = normalizeDivisions(room.divisions);
+      room.items = dto.items.map((it) => {
+        let matched = normDivs.find((d) => d.division_id === it.division_id);
+        if (!matched && it.division) {
+          matched = normDivs.find(
+            (d) =>
+              d.name.toLowerCase() === it.division.toLowerCase() ||
+              d.name.toLowerCase() ===
+                normalizeDivisionName(it.division).toLowerCase(),
+          );
+        }
+        return {
+          item_id: it.item_id,
+          division_id: matched
+            ? matched.division_id
+            : it.division_id || (normDivs.length > 0 ? normDivs[0].division_id : 'div_1'),
+          division: matched
+            ? matched.name
+            : normalizeDivisionName(it.division || 'section 1'),
+          quantity: Math.max(0, it.quantity || 0),
+          min_count: Math.max(0, it.min_count || 0),
+        };
+      });
       room.item_ids = Array.from(new Set(room.items.map((it) => it.item_id)));
     } else if (dto.item_ids !== undefined) {
       room.item_ids = dto.item_ids;
@@ -215,6 +357,7 @@ export class StoreRoomsService {
     division?: string,
     quantity?: number,
     minCount?: number,
+    divisionId?: string,
   ) {
     const room = await this.storeRoomModel.findOne({
       tenant_id: tenantId,
@@ -222,18 +365,41 @@ export class StoreRoomsService {
     });
     if (!room) throw new NotFoundException('Store room not found');
 
-    const targetDivision = division?.trim() || (room.divisions.length > 0 ? room.divisions[0] : 'Default Section');
+    const divisions = normalizeDivisions(room.divisions);
+    let matchedDiv = divisions.find((d) => d.division_id === divisionId);
+    if (!matchedDiv && division) {
+      matchedDiv = divisions.find(
+        (d) =>
+          d.name.toLowerCase() === division.trim().toLowerCase() ||
+          d.name.toLowerCase() === normalizeDivisionName(division).toLowerCase(),
+      );
+    }
+    if (!matchedDiv && divisions.length > 0) {
+      matchedDiv = divisions[0];
+    }
+
+    const targetDivId = matchedDiv
+      ? matchedDiv.division_id
+      : divisionId || 'div_1';
+    const targetDivision = matchedDiv
+      ? matchedDiv.name
+      : normalizeDivisionName(division || 'section 1');
     const targetQty = Math.max(0, quantity ?? 0);
 
     const existingIdx = room.items.findIndex(
-      (it) => it.item_id === itemId && it.division === targetDivision,
+      (it) =>
+        it.item_id === itemId &&
+        (it.division_id === targetDivId || it.division === targetDivision),
     );
 
     if (existingIdx !== -1) {
       room.items[existingIdx].quantity += targetQty;
+      room.items[existingIdx].division_id = targetDivId;
+      room.items[existingIdx].division = targetDivision;
     } else {
       room.items.push({
         item_id: itemId,
+        division_id: targetDivId,
         division: targetDivision,
         quantity: targetQty,
         min_count: Math.max(0, minCount ?? 0),
@@ -252,6 +418,7 @@ export class StoreRoomsService {
     quantity: number,
     division?: string,
     minCount?: number,
+    divisionId?: string,
   ) {
     const room = await this.storeRoomModel.findOne({
       tenant_id: tenantId,
@@ -259,7 +426,27 @@ export class StoreRoomsService {
     });
     if (!room) throw new NotFoundException('Store room not found');
 
+    const divisions = normalizeDivisions(room.divisions);
+    let matchedDiv = divisions.find((d) => d.division_id === divisionId);
+    if (!matchedDiv && division) {
+      matchedDiv = divisions.find(
+        (d) =>
+          d.name.toLowerCase() === division.trim().toLowerCase() ||
+          d.name.toLowerCase() === normalizeDivisionName(division).toLowerCase(),
+      );
+    }
+
+    const targetDivId = matchedDiv ? matchedDiv.division_id : divisionId;
+    const targetDivision = matchedDiv
+      ? matchedDiv.name
+      : division
+        ? normalizeDivisionName(division)
+        : undefined;
+
     const matchIdx = room.items.findIndex((it) => {
+      if (divisionId && it.division_id) {
+        return it.item_id === itemId && it.division_id === divisionId;
+      }
       if (division) {
         return it.item_id === itemId && it.division === division;
       }
@@ -269,7 +456,14 @@ export class StoreRoomsService {
     if (matchIdx === -1) {
       room.items.push({
         item_id: itemId,
-        division: division?.trim() || (room.divisions.length > 0 ? room.divisions[0] : 'Default Section'),
+        division_id:
+          targetDivId ||
+          (divisions.length > 0 ? divisions[0].division_id : 'div_1'),
+        division:
+          targetDivision ||
+          (divisions.length > 0
+            ? divisions[0].name
+            : 'Division - section 1'),
         quantity: Math.max(0, quantity),
         min_count: Math.max(0, minCount ?? 0),
       });
@@ -278,8 +472,11 @@ export class StoreRoomsService {
       if (minCount !== undefined) {
         room.items[matchIdx].min_count = Math.max(0, minCount);
       }
-      if (division) {
-        room.items[matchIdx].division = division.trim();
+      if (targetDivision) {
+        room.items[matchIdx].division = targetDivision;
+      }
+      if (targetDivId) {
+        room.items[matchIdx].division_id = targetDivId;
       }
     }
 

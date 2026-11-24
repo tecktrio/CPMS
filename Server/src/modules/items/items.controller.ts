@@ -31,7 +31,6 @@ import {
   CreatePackagingMaterialDto,
   UpdatePackagingMaterialDto,
 } from './dtos/packaging-material.dto';
-import { ReassignCountryDto } from './dtos/reassign-country.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { TenantGuard } from '../../common/guards/tenant.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
@@ -291,27 +290,5 @@ export class ItemsController {
     @Param('id') id: string,
   ) {
     return this.itemsService.deletePackagingMaterial(tenantId, id);
-  }
-
-  // --- COUNTRY REASSIGN / RENAME ---
-
-  @Put('countries/reassign')
-  @RequireAnyPermissions('permission.item.update', 'permission.item_category.manage')
-  @ApiOperation({
-    summary: 'Reassign or rename country for all matching items in tenant',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Items country reassigned successfully',
-  })
-  async reassignCountry(
-    @CurrentTenant() tenantId: string,
-    @Body() dto: ReassignCountryDto,
-  ) {
-    return this.itemsService.reassignCountry(
-      tenantId,
-      dto.from_country,
-      dto.to_country,
-    );
   }
 }

@@ -92,7 +92,6 @@ export class ItemsService {
       quantity: dto.quantity ?? 1,
       reorder_threshold_quantity: dto.reorder_threshold_quantity ?? 0,
       description: dto.description || '',
-      country: dto.country?.trim() || '',
       has_ingredients: dto.has_ingredients ?? false,
       ingredients: normalizeIngredients(dto.ingredients),
       image_url: dto.image_url || null,
@@ -276,7 +275,6 @@ export class ItemsService {
       item.image_url = dto.image_url;
     }
     if (dto.is_active !== undefined) item.is_active = dto.is_active;
-    if (dto.country !== undefined) item.country = dto.country.trim();
     if (dto.description !== undefined) item.description = dto.description;
     if (dto.has_ingredients !== undefined) item.has_ingredients = dto.has_ingredients;
     if (dto.ingredients !== undefined) item.ingredients = normalizeIngredients(dto.ingredients);
@@ -675,31 +673,6 @@ export class ItemsService {
       message: `Packaging material "${material.name}" and ${itemIds.length} item(s) deleted successfully`,
       deleted_items_count: itemIds.length,
       name: material.name,
-    };
-  }
-
-  async reassignCountry(
-    tenantId: string,
-    fromCountry: string,
-    toCountry?: string,
-  ) {
-    const cleanFrom = fromCountry.trim();
-    const cleanTo = (toCountry || '').trim();
-
-    const result = await this.itemModel.updateMany(
-      {
-        tenant_id: tenantId,
-        country: { $regex: new RegExp(`^${cleanFrom}$`, 'i') },
-      },
-      {
-        $set: { country: cleanTo },
-      },
-    );
-
-    return {
-      from_country: cleanFrom,
-      to_country: cleanTo,
-      modified_count: result.modifiedCount,
     };
   }
 }
