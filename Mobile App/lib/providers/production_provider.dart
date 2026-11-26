@@ -9,6 +9,7 @@ class ProductionProvider extends ChangeNotifier {
 
   List<ProductionAssignmentModel> _myAssignments = [];
   List<ProductionAssignmentModel> _poAssignments = [];
+  List<ProductionAssignmentModel> _allAssignments = [];
   List<QcReportModel> _poQcReports = [];
   bool _isLoading = false;
   String? _errorMessage;
@@ -17,9 +18,36 @@ class ProductionProvider extends ChangeNotifier {
 
   List<ProductionAssignmentModel> get myAssignments => _myAssignments;
   List<ProductionAssignmentModel> get poAssignments => _poAssignments;
+  List<ProductionAssignmentModel> get allAssignments => _allAssignments;
   List<QcReportModel> get poQcReports => _poQcReports;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
+
+  List<ProductionAssignmentModel> assignmentsForItem(
+      String poId, String itemId) {
+    final source = _allAssignments.isNotEmpty ? _allAssignments : _poAssignments;
+    return source
+        .where((a) =>
+            a.poId == poId &&
+            a.itemId == itemId &&
+            a.status.toUpperCase() != 'CANCELLED')
+        .toList();
+  }
+
+  Future<void> loadAllAssignments() async {
+    try {
+      final res = await apiClient.get(ApiConstants.productionAssignments);
+      if (res is List) {
+        _allAssignments = res
+            .map((e) =>
+                ProductionAssignmentModel.fromJson(Map<String, dynamic>.from(e)))
+            .toList();
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('Error loading all assignments: $e');
+    }
+  }
 
   Future<void> loadMyAssignments() async {
     _isLoading = true;
@@ -71,6 +99,7 @@ class ProductionProvider extends ChangeNotifier {
     required String supervisorUserId,
     required int assignedCartons,
     String? notes,
+    DateTime? targetDate,
   }) async {
     _isLoading = true;
     _errorMessage = null;
@@ -83,6 +112,7 @@ class ProductionProvider extends ChangeNotifier {
         'supervisor_user_id': supervisorUserId,
         'assigned_cartons': assignedCartons,
         if (notes != null && notes.isNotEmpty) 'notes': notes,
+        if (targetDate != null) 'target_date': targetDate.toIso8601String(),
       };
 
       final res = await apiClient.post(
@@ -93,6 +123,7 @@ class ProductionProvider extends ChangeNotifier {
       final newModel =
           ProductionAssignmentModel.fromJson(Map<String, dynamic>.from(res));
       _poAssignments.insert(0, newModel);
+      _allAssignments.insert(0, newModel);
       notifyListeners();
       return true;
     } catch (e) {
@@ -127,6 +158,10 @@ class ProductionProvider extends ChangeNotifier {
           _poAssignments.indexWhere((a) => a.assignmentId == assignmentId);
       if (poIdx >= 0) _poAssignments[poIdx] = updated;
 
+      final allIdx =
+          _allAssignments.indexWhere((a) => a.assignmentId == assignmentId);
+      if (allIdx >= 0) _allAssignments[allIdx] = updated;
+
       notifyListeners();
       return true;
     } catch (e) {
@@ -137,11 +172,56 @@ class ProductionProvider extends ChangeNotifier {
     }
   }
 
+  Future<bool> updateAssignment({
+    required String assignmentId,
+    String? supervisorUserId,
+    int? assignedCartons,
+    String? notes,
+    DateTime? targetDate,
+  }) async {
+    _errorMessage = null;
+    try {
+      final body = <String, dynamic>{
+        'supervisor_user_id': ?supervisorUserId,
+        'assigned_cartons': ?assignedCartons,
+        'notes': ?notes,
+        if (targetDate != null) 'target_date': targetDate.toIso8601String(),
+      };
+      final res = await apiClient.patch(
+        ApiConstants.productionAssignmentCancel(assignmentId),
+        body: body,
+      );
+      final updated =
+          ProductionAssignmentModel.fromJson(Map<String, dynamic>.from(res));
+
+      final myIdx =
+          _myAssignments.indexWhere((a) => a.assignmentId == assignmentId);
+      if (myIdx >= 0) _myAssignments[myIdx] = updated;
+
+      final poIdx =
+          _poAssignments.indexWhere((a) => a.assignmentId == assignmentId);
+      if (poIdx >= 0) _poAssignments[poIdx] = updated;
+
+      final allIdx =
+          _allAssignments.indexWhere((a) => a.assignmentId == assignmentId);
+      if (allIdx >= 0) _allAssignments[allIdx] = updated;
+
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _errorMessage = e.toString();
+      debugPrint('Error updating assignment: $e');
+      notifyListeners();
+      return false;
+    }
+  }
+
   Future<bool> cancelAssignment(String assignmentId) async {
     try {
       await apiClient.delete(ApiConstants.productionAssignmentCancel(assignmentId));
       _poAssignments.removeWhere((a) => a.assignmentId == assignmentId);
       _myAssignments.removeWhere((a) => a.assignmentId == assignmentId);
+      _allAssignments.removeWhere((a) => a.assignmentId == assignmentId);
       notifyListeners();
       return true;
     } catch (e) {

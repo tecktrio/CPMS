@@ -368,7 +368,7 @@ class PurchaseOrderExportService {
     final buffer = StringBuffer();
     // Headers with short, standard names
     buffer.writeln(
-      'SL,Item Name,SKU,Qty Per Packet,Unit,Packets Per Carton,Cartons,Total Packets,Total Quantity,PO Number,PO Date,Shipping Date,Customer Name,Customer Address,Customer Contact,Status,Notes',
+      'SL,Item Name,Qty Per Packet,Unit,Packets Per Carton,Cartons,Total Packets,Total Quantity,PO Number,PO Date,Shipping Date,Customer Name,Customer Address,Customer Contact,Status,Notes',
     );
 
     for (int i = 0; i < po.items.length; i++) {
@@ -376,7 +376,6 @@ class PurchaseOrderExportService {
       final row = [
         (i + 1).toString(),
         '"${it.itemName.replaceAll('"', '""')}"',
-        '"${it.sku.replaceAll('"', '""')}"',
         formatQtyValue(it.quantityPerPacket),
         '"${formatShortUnit(it.unit)}"',
         it.packetPerCarton.toString(),

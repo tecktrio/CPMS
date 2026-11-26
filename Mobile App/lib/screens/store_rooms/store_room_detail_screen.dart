@@ -4,6 +4,8 @@ import '../../core/constants/api_constants.dart';
 import '../../core/constants/permissions.dart';
 import '../../providers/inventory_provider.dart';
 import '../../providers/tenant_provider.dart';
+import '../../services/data_export_service.dart';
+import '../../widgets/export_options_dialog.dart';
 import '../items/create_item_screen.dart';
 import 'store_room_item_detail_screen.dart';
 
@@ -318,7 +320,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
             const SizedBox(height: 8),
             if (itemsInDiv > 0)
               Text(
-                'Warning: $itemsInDiv items are currently allocated to this division. They will be reassigned to the default section.',
+                'Warning: $itemsInDiv items are currently allocated to this division. They will be unassigned from this section.',
                 style: const TextStyle(fontSize: 12, color: Color(0xFFDC2626), fontWeight: FontWeight.w600),
               )
             else
@@ -349,7 +351,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
               final divId = room.divisionObjects.length > index
                   ? room.divisionObjects[index].divisionId
                   : room.getDivisionId(divToDelete);
-              final fallbackDiv = updatedDivs.isNotEmpty ? updatedDivs[0] : 'Division - section 1';
+              final fallbackDiv = updatedDivs.isNotEmpty ? updatedDivs[0] : '';
               final fallbackDivId = room.getDivisionId(fallbackDiv);
 
               final ok = await inventory.updateStoreRoom(
@@ -962,11 +964,6 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
     final List<String> availableDivisions = [];
     if (room.divisions.isNotEmpty) {
       availableDivisions.addAll(room.divisions);
-      if (!availableDivisions.contains('Default Section')) {
-        availableDivisions.add('Default Section');
-      }
-    } else {
-      availableDivisions.addAll(['Default Section', 'Section 1', 'Section 2', 'Section 3']);
     }
     if (!availableDivisions.contains('+ Custom Division')) {
       availableDivisions.add('+ Custom Division');
@@ -1083,7 +1080,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                   Navigator.pop(ctx);
                   final finalDiv = (selected == '+ Custom Division' && customCtrl.text.trim().isNotEmpty)
                       ? customCtrl.text.trim()
-                      : (selected == '+ Custom Division' ? 'Division - section 1' : selected);
+                      : (selected == '+ Custom Division' ? '' : selected);
                   final divId = room.getDivisionId(finalDiv);
                   final ok = await inventory.updateStoreRoomItemDivision(
                     storeRoomId: room.storeRoomId,
@@ -1261,6 +1258,29 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
           ),
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.file_download_outlined, color: Color(0xFF0F172A), size: 20),
+            tooltip: 'Export Room Inventory',
+            onPressed: () {
+              final safeName = currentRoom.roomName.replaceAll(RegExp(r'[^a-zA-Z0-9_-]'), '_');
+              ExportOptionsDialog.show(
+                context,
+                title: 'Export ${currentRoom.roomName}',
+                subtitle: 'Export ${filteredItems.length} item(s) in this store room as PDF, CSV, or print.',
+                baseFileName: 'CPMS-StoreRoom-$safeName',
+                onGeneratePdf: () => DataExportService.generateStoreRoomPdf(
+                  room: currentRoom,
+                  roomItems: filteredItems,
+                  allItems: inventory.items,
+                ),
+                onGenerateCsv: () async => DataExportService.generateStoreRoomCsvBytes(
+                  room: currentRoom,
+                  roomItems: filteredItems,
+                  allItems: inventory.items,
+                ),
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.refresh, color: Color(0xFF0F172A), size: 20),
             tooltip: 'Refresh',
@@ -2241,7 +2261,7 @@ class _AddItemToRoomModalState extends State<_AddItemToRoomModal> {
               controller: _searchCtrl,
               style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
               decoration: InputDecoration(
-                hintText: 'Search items by name, SKU...',
+                hintText: 'Search items by name...',
                 hintStyle: const TextStyle(fontSize: 13, color: Color(0xFF94A3B8)),
                 prefixIcon: const Icon(Icons.search, size: 18, color: Color(0xFF94A3B8)),
                 suffixIcon: _searchQuery.isNotEmpty
@@ -2404,7 +2424,7 @@ class _AddItemToRoomModalState extends State<_AddItemToRoomModal> {
                                   borderRadius: BorderRadius.circular(4),
                                 ),
                                 child: Text(
-                                  item.sku,
+                                  item.itemType.replaceAll('_', ' '),
                                   style: const TextStyle(
                                     fontSize: 10,
                                     fontWeight: FontWeight.w800,
@@ -2494,11 +2514,10 @@ class _AddItemToRoomModalState extends State<_AddItemToRoomModal> {
                             backgroundColor: isAlreadyInRoom ? const Color(0xFFF1F5F9) : Colors.black,
                             foregroundColor: isAlreadyInRoom ? const Color(0xFF475569) : Colors.white,
                             elevation: 0,
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                            minimumSize: Size.zero,
-                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 13),
+                            minimumSize: const Size(88, 42),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(4),
+                              borderRadius: BorderRadius.circular(6),
                             ),
                           ),
                           onPressed: () {
@@ -2510,14 +2529,14 @@ class _AddItemToRoomModalState extends State<_AddItemToRoomModal> {
                               } else {
                                 _selectedDivision = widget.room.divisions.isNotEmpty
                                     ? widget.room.divisions.first
-                                    : 'Default Section';
+                                    : '+ Custom Division';
                                 _initialQtyCtrl.text = '0';
                               }
                             });
                           },
                           child: Text(
                             isAlreadyInRoom ? 'Change' : '+ Add',
-                            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800),
+                            style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w800),
                           ),
                         ),
                       ),
@@ -2601,7 +2620,7 @@ class _AddItemToRoomModalState extends State<_AddItemToRoomModal> {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        'SKU: ${item.sku} • ${item.specification} • Stock: ${item.totalAvailableStock.toStringAsFixed(1)} ${item.measurementUnit}',
+                        '${item.specification.isNotEmpty ? '${item.specification} • ' : ''}Stock: ${item.totalAvailableStock.toStringAsFixed(1)} ${item.measurementUnit}',
                         style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
                       ),
                     ],
@@ -2629,11 +2648,6 @@ class _AddItemToRoomModalState extends State<_AddItemToRoomModal> {
               final List<String> availableDivisions = [];
               if (widget.room.divisions.isNotEmpty) {
                 availableDivisions.addAll(widget.room.divisions);
-                if (!availableDivisions.contains('Default Section')) {
-                  availableDivisions.add('Default Section');
-                }
-              } else {
-                availableDivisions.addAll(['Default Section', 'Section 1', 'Section 2', 'Section 3']);
               }
               if (!availableDivisions.contains('+ Custom Division')) {
                 availableDivisions.add('+ Custom Division');
@@ -2800,13 +2814,11 @@ class _AddItemToRoomModalState extends State<_AddItemToRoomModal> {
                       setState(() => _isAssigning = true);
                       final isCustom = _selectedDivision == '+ Custom Division';
                       final targetDiv = isCustom
-                          ? (_customDivCtrl.text.trim().isNotEmpty
-                              ? _customDivCtrl.text.trim()
-                              : 'Division - section 1')
+                          ? _customDivCtrl.text.trim()
                           : (_selectedDivision ??
                               (widget.room.divisions.isNotEmpty
                                   ? widget.room.divisions.first
-                                  : 'Division - section 1'));
+                                  : ''));
                       final qty = double.tryParse(_initialQtyCtrl.text.trim()) ?? 0.0;
                       final targetDivId = widget.room.getDivisionId(targetDiv);
 

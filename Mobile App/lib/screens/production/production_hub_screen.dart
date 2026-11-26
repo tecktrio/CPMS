@@ -3,10 +3,13 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../core/constants/permissions.dart';
 import '../../providers/department_provider.dart';
+import '../../providers/production_provider.dart';
 import '../../providers/purchase_order_provider.dart';
 import '../../providers/tenant_provider.dart';
+import '../../services/data_export_service.dart';
 import '../../widgets/cpms_search_bar.dart';
 import '../../widgets/app_footer.dart';
+import '../../widgets/export_options_dialog.dart';
 import 'production_status_dialogs.dart';
 
 class ProductionHubScreen extends StatefulWidget {
@@ -34,6 +37,7 @@ class _ProductionHubScreenState extends State<ProductionHubScreen> {
   Future<void> _loadData() async {
     await Future.wait([
       context.read<PurchaseOrderProvider>().loadPurchaseOrders(),
+      context.read<ProductionProvider>().loadAllAssignments(),
       context.read<DepartmentProvider>().loadTenantUsers(),
       context.read<TenantProvider>().loadTenantDepartments(),
     ]);
@@ -467,6 +471,75 @@ class _ProductionHubScreenState extends State<ProductionHubScreen> {
                       ),
                     ),
 
+                    // Export Full Production, QA, Supervisors & Users Report Button
+                    OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 8),
+                        backgroundColor: Colors.white,
+                        side: const BorderSide(color: Color(0xFFE2E8F0)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      onPressed: () async {
+                        final prodProv = context.read<ProductionProvider>();
+                        final deptProv = context.read<DepartmentProvider>();
+                        final tenantProv = context.read<TenantProvider>();
+
+                        await Future.wait([
+                          prodProv.loadAssignmentsByPo(po.poId),
+                          prodProv.loadQcReportsByPo(po.poId),
+                        ]);
+
+                        if (!mounted) return;
+                        final assignments = prodProv.poAssignments
+                            .where((a) => a.poId == po.poId)
+                            .toList();
+                        final qcReports = prodProv.poQcReports
+                            .where((q) => q.poId == po.poId)
+                            .toList();
+                        final safePo = po.poNumber
+                            .replaceAll(RegExp(r'[^a-zA-Z0-9_-]'), '_');
+
+                        await ExportOptionsDialog.show(
+                          context,
+                          title: 'Export PO #${po.poNumber} Production Report',
+                          subtitle:
+                              'Includes line items, supervisor assignments, QA reports, export/packing details, and all involved staff.',
+                          baseFileName: 'CPMS-Production-PO-$safePo',
+                          onGeneratePdf: () =>
+                              DataExportService.generatePoProductionPdf(
+                            po: po,
+                            assignments: assignments,
+                            qcReports: qcReports,
+                            tenantUsers: deptProv.tenantUsers,
+                            departments: tenantProv.tenantDepartments,
+                            tenantName: tenantProv.activeTenant?.companyName,
+                          ),
+                          onGenerateCsv: () async =>
+                              DataExportService.generatePoProductionCsvBytes(
+                            po: po,
+                            assignments: assignments,
+                            qcReports: qcReports,
+                            tenantUsers: deptProv.tenantUsers,
+                            departments: tenantProv.tenantDepartments,
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.file_download_outlined,
+                          size: 14, color: Color(0xFF0F172A)),
+                      label: const Text(
+                        'Export',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF0F172A),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+
                     // Update Status Button
                     if (canManageProd)
                       OutlinedButton.icon(
@@ -781,7 +854,7 @@ class _ProductionHubScreenState extends State<ProductionHubScreen> {
                             if (canAssignTask || (!isSupervisor && !isPacker && !isQc && !isExport && (canDoQc || canUpdatePacking || canUpdateShipping))) ...[
                               const SizedBox(width: 14),
                               SizedBox(
-                                width: canAssignTask ? 145 : 36,
+                                width: canAssignTask ? 164 : 40,
                                 child: const Text(
                                   'ACTION',
                                   textAlign: TextAlign.center,
@@ -1396,6 +1469,85 @@ class _ProductionHubScreenState extends State<ProductionHubScreen> {
                                   ],
                                 ),
                               ),
+
+                            // Assigned Supervisors Summary Row
+                            Builder(
+                              builder: (context) {
+                                final itemAssignments = context
+                                    .watch<ProductionProvider>()
+                                    .assignmentsForItem(po.poId, item.itemId);
+                                if (itemAssignments.isEmpty) {
+                                  return const SizedBox.shrink();
+                                }
+                                final totalAssigned = itemAssignments.fold<int>(
+                                    0, (s, a) => s + a.assignedCartons);
+                                final rem = item.cartons - totalAssigned;
+                                return Padding(
+                                  padding: const EdgeInsets.only(top: 8),
+                                  child: Wrap(
+                                    spacing: 6,
+                                    runSpacing: 6,
+                                    children: [
+                                      ...itemAssignments.map((a) {
+                                        final name = a.supervisorName.isNotEmpty
+                                            ? a.supervisorName
+                                            : 'Supervisor';
+                                        return Container(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 8, vertical: 4),
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFFEFF6FF),
+                                            borderRadius:
+                                                BorderRadius.circular(5),
+                                            border: Border.all(
+                                                color: const Color(0xFFBFDBFE)),
+                                          ),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              const Icon(
+                                                Icons.person_outline,
+                                                size: 12,
+                                                color: Color(0xFF1D4ED8),
+                                              ),
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                '$name: ${a.completedCartons}/${a.assignedCartons} ctns${a.targetDate != null ? ' • ${_dateFormat.format(a.targetDate!)}' : ''}',
+                                                style: const TextStyle(
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.w700,
+                                                  color: Color(0xFF1E40AF),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                      }),
+                                      if (rem > 0)
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 8, vertical: 4),
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFFFFFBEB),
+                                            borderRadius:
+                                                BorderRadius.circular(5),
+                                            border: Border.all(
+                                                color: const Color(0xFFFDE68A)),
+                                          ),
+                                          child: Text(
+                                            'Unassigned: $rem ctns',
+                                            style: const TextStyle(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w700,
+                                              color: Color(0xFFB45309),
+                                            ),
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                );
+                              },
+                            ),
                           ],
                         ),
                       ),
@@ -1469,33 +1621,77 @@ class _ProductionHubScreenState extends State<ProductionHubScreen> {
                                 if (canAssignTask || (!isSupervisor && !isPacker && !isQc && !isExport && (canDoQc || canUpdatePacking || canUpdateShipping))) ...[
                                   const SizedBox(width: 14),
                                   SizedBox(
-                                    width: canAssignTask ? 145 : 36,
+                                    width: canAssignTask ? 164 : 40,
                                     child: Row(
                                       mainAxisAlignment: MainAxisAlignment.end,
                                       children: [
                                         if (canAssignTask)
-                                          OutlinedButton.icon(
-                                            onPressed: () => ProductionStatusDialogs
-                                                .showAssignSupervisorsDialog(
-                                              context,
-                                              po,
-                                              item,
-                                              onUpdated: () => context
-                                                  .read<PurchaseOrderProvider>()
-                                                  .loadPurchaseOrders(),
-                                            ),
-                                            icon: const Icon(Icons.person_add_alt_1_outlined, size: 14, color: Color(0xFF0F172A)),
-                                            label: const Text('Assign Task', style: TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.w600, fontSize: 12)),
-                                            style: OutlinedButton.styleFrom(
-                                              side: const BorderSide(color: Color(0xFFCBD5E1)),
-                                              backgroundColor: const Color(0xFFF8FAFC),
-                                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                                            ),
+                                          Builder(
+                                            builder: (context) {
+                                              final existing = context
+                                                  .watch<ProductionProvider>()
+                                                  .assignmentsForItem(
+                                                      po.poId, item.itemId);
+                                              final label = existing.isNotEmpty
+                                                  ? 'Manage'
+                                                  : 'Assign Task';
+                                              return OutlinedButton.icon(
+                                                onPressed: () =>
+                                                    ProductionStatusDialogs
+                                                        .showAssignSupervisorsDialog(
+                                                  context,
+                                                  po,
+                                                  item,
+                                                  onUpdated: () async {
+                                                    await context
+                                                        .read<
+                                                            PurchaseOrderProvider>()
+                                                        .loadPurchaseOrders();
+                                                    if (context.mounted) {
+                                                      await context
+                                                          .read<
+                                                              ProductionProvider>()
+                                                          .loadAllAssignments();
+                                                    }
+                                                  },
+                                                ),
+                                                icon: Icon(
+                                                  existing.isNotEmpty
+                                                      ? Icons.manage_accounts_outlined
+                                                      : Icons.person_add_alt_1_outlined,
+                                                  size: 14,
+                                                  color: const Color(0xFF0F172A),
+                                                ),
+                                                label: Text(
+                                                  label,
+                                                  style: const TextStyle(
+                                                    color: Color(0xFF0F172A),
+                                                    fontWeight: FontWeight.w600,
+                                                    fontSize: 12,
+                                                  ),
+                                                ),
+                                                style: OutlinedButton.styleFrom(
+                                                  side: const BorderSide(
+                                                      color: Color(0xFFCBD5E1)),
+                                                  backgroundColor:
+                                                      const Color(0xFFF8FAFC),
+                                                  padding: const EdgeInsets
+                                                      .symmetric(
+                                                      horizontal: 10,
+                                                      vertical: 8),
+                                                  shape: RoundedRectangleBorder(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              6)),
+                                                ),
+                                              );
+                                            },
                                           ),
                                         if (!isSupervisor && !isPacker && !isQc && !isExport && (canDoQc || canUpdatePacking || canUpdateShipping)) ...[
                                           const SizedBox(width: 4),
                                           PopupMenuButton<String>(
+                                            padding: EdgeInsets.zero,
+                                            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
                                             icon: const Icon(Icons.more_vert, size: 18, color: Color(0xFF64748B)),
                                             onSelected: (val) {
                                               if (val == 'qc') {

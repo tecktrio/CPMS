@@ -66,7 +66,7 @@ class ItemsHubScreen extends StatelessWidget {
           if (canCreate)
             _buildPermissionPageCard(
               context: context,
-              title: 'Register New Item SKU',
+              title: 'Register New Item',
               description: 'Create raw materials, finished goods, and packaging item masters.',
               permissionId: AppPermissions.itemCreate,
               icon: Icons.add_box_outlined,
@@ -83,7 +83,7 @@ class ItemsHubScreen extends StatelessWidget {
             _buildPermissionPageCard(
               context: context,
               title: 'Browse Items & Stock Racks',
-              description: 'Search SKUs, view live on-hand quantities, and monitor reorder levels.',
+              description: 'Search items, view live on-hand quantities, and monitor reorder levels.',
               permissionId: AppPermissions.itemRead,
               icon: Icons.format_list_bulleted,
               color: const Color(0xFF0284C7),

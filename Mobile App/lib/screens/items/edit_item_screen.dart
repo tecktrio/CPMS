@@ -284,7 +284,7 @@ class _EditItemScreenState extends State<EditItemScreen> {
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         title: Text(
-          'Delete Item: ${widget.item.sku}?',
+          'Delete Item: ${widget.item.itemName}?',
           style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
         ),
         content: Text(
@@ -1379,7 +1379,7 @@ class _EditItemScreenState extends State<EditItemScreen> {
           // Search Field
           CpmsSearchBar(
             controller: _ingredientSearchController,
-            hintText: 'Search raw materials by name or SKU...',
+            hintText: 'Search raw materials by name...',
             onChanged: (val) =>
                 setState(() => _ingredientSearchQuery = val.trim()),
             onClear: () {
@@ -1466,7 +1466,7 @@ class _EditItemScreenState extends State<EditItemScreen> {
                               ),
                             ),
                             Text(
-                              '${rm.sku} • Stock: ${rm.totalAvailableStock} ${rm.measurementUnit}',
+                              'Stock: ${rm.totalAvailableStock} ${rm.measurementUnit}',
                               style: const TextStyle(
                                 fontSize: 11,
                                 color: Color(0xFF64748B),

@@ -21,7 +21,7 @@ import { UpdateStoreRoomDto } from './dtos/update-store-room.dto';
 
 export function normalizeDivisionName(name: string): string {
   const clean = (name || '').trim();
-  if (!clean) return 'Division - section 1';
+  if (!clean) return '';
   if (clean.toLowerCase().startsWith('division')) return clean;
   return `Division - ${clean}`;
 }
@@ -79,10 +79,7 @@ export class StoreRoomsService {
     const divisions =
       dto.divisions && dto.divisions.length > 0
         ? normalizeDivisions(dto.divisions)
-        : [
-            { division_id: 'div_1', name: 'Division - section 1' },
-            { division_id: 'div_2', name: 'Division - section 2' },
-          ];
+        : [];
 
     const room = new this.storeRoomModel({
       store_room_id: uuidv4(),
@@ -333,10 +330,10 @@ export class StoreRoomsService {
           item_id: it.item_id,
           division_id: matched
             ? matched.division_id
-            : it.division_id || (normDivs.length > 0 ? normDivs[0].division_id : 'div_1'),
+            : it.division_id || (normDivs.length > 0 ? normDivs[0].division_id : ''),
           division: matched
             ? matched.name
-            : normalizeDivisionName(it.division || 'section 1'),
+            : normalizeDivisionName(it.division || ''),
           quantity: Math.max(0, it.quantity || 0),
           min_count: Math.max(0, it.min_count || 0),
         };
@@ -380,10 +377,10 @@ export class StoreRoomsService {
 
     const targetDivId = matchedDiv
       ? matchedDiv.division_id
-      : divisionId || 'div_1';
+      : divisionId || '';
     const targetDivision = matchedDiv
       ? matchedDiv.name
-      : normalizeDivisionName(division || 'section 1');
+      : normalizeDivisionName(division || '');
     const targetQty = Math.max(0, quantity ?? 0);
 
     const existingIdx = room.items.findIndex(
@@ -458,12 +455,12 @@ export class StoreRoomsService {
         item_id: itemId,
         division_id:
           targetDivId ||
-          (divisions.length > 0 ? divisions[0].division_id : 'div_1'),
+          (divisions.length > 0 ? divisions[0].division_id : ''),
         division:
           targetDivision ||
           (divisions.length > 0
             ? divisions[0].name
-            : 'Division - section 1'),
+            : ''),
         quantity: Math.max(0, quantity),
         min_count: Math.max(0, minCount ?? 0),
       });

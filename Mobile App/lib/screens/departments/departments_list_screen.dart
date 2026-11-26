@@ -8,6 +8,8 @@ import '../../providers/tenant_provider.dart';
 import '../../widgets/user_profile_avatar.dart';
 import '../../widgets/cpms_search_bar.dart';
 import '../../widgets/app_footer.dart';
+import '../../services/data_export_service.dart';
+import '../../widgets/export_options_dialog.dart';
 import 'update_user_departments_screen.dart';
 
 class DepartmentsListScreen extends StatefulWidget {
@@ -213,6 +215,27 @@ class _DepartmentsListScreenState extends State<DepartmentsListScreen> {
           ],
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.file_download_outlined, color: Colors.black, size: 22),
+            tooltip: 'Export Users',
+            onPressed: () {
+              ExportOptionsDialog.show(
+                context,
+                title: 'Export Users Directory',
+                subtitle: 'Export ${filteredUsers.length} user(s) as PDF, CSV, or print.',
+                baseFileName: 'CPMS-Users-${DateTime.now().millisecondsSinceEpoch}',
+                onGeneratePdf: () => DataExportService.generateUsersPdf(
+                  users: filteredUsers,
+                  departments: tenant.tenantDepartments,
+                  tenantName: tenant.activeTenant?.companyName,
+                ),
+                onGenerateCsv: () async => DataExportService.generateUsersCsvBytes(
+                  users: filteredUsers,
+                  departments: tenant.tenantDepartments,
+                ),
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.refresh, color: Colors.black, size: 22),
             tooltip: 'Refresh',

@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../providers/inventory_provider.dart';
 import '../../providers/purchase_order_provider.dart';
 import '../../services/purchase_order_export_service.dart';
+import 'manage_customers_modal.dart';
 import '../items/create_item_screen.dart';
 import '../../widgets/success_screen.dart';
 import '../../widgets/app_footer.dart';
@@ -710,7 +711,9 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
-                                  '${selectedCatalogItem!.sku} • ${selectedCatalogItem!.specification}',
+                                  selectedCatalogItem!.specification.isNotEmpty
+                                      ? selectedCatalogItem!.specification
+                                      : '${selectedCatalogItem!.quantity} ${selectedCatalogItem!.measurementUnit}',
                                   style: const TextStyle(fontSize: 11, color: Color(0xFF0F766E), fontWeight: FontWeight.w700),
                                 ),
                               ],
@@ -745,7 +748,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                               controller: searchCtrl,
                               style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
                               decoration: const InputDecoration(
-                                hintText: 'Search SKU or item title...',
+                                hintText: 'Search item title...',
                                 hintStyle: TextStyle(fontSize: 13, color: Color(0xFFCBD5E1)),
                                 border: InputBorder.none,
                                 isDense: true,
@@ -844,7 +847,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                                     ],
                                   ),
                                   subtitle: Text(
-                                    '${it.sku} • ${it.itemType.replaceAll('_', ' ')}',
+                                    it.itemType.replaceAll('_', ' '),
                                     style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
                                   ),
                                   onTap: () {
@@ -1094,7 +1097,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                     decoration: InputDecoration(
                       hintText: _quickSelectedItem != null
                           ? _quickSelectedItem!.itemName
-                          : 'Search item title, SKU or specification to add...',
+                          : 'Search item title or specification to add...',
                       hintStyle: TextStyle(
                         fontSize: 13,
                         color: _quickSelectedItem != null ? Colors.black : const Color(0xFFCBD5E1),
@@ -1214,7 +1217,9 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                                       ),
                                       const SizedBox(height: 2),
                                       Text(
-                                        '${item.sku} • ${item.specification.isNotEmpty ? item.specification : "${item.quantity} ${item.measurementUnit}"}',
+                                        item.specification.isNotEmpty
+                                            ? item.specification
+                                            : '${item.quantity} ${item.measurementUnit}',
                                         style: const TextStyle(
                                           fontSize: 11,
                                           color: Color(0xFF71717A),
@@ -1256,7 +1261,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                           borderRadius: BorderRadius.circular(2),
                         ),
                         child: Text(
-                          _quickSelectedItem!.sku,
+                          _quickSelectedItem!.itemType.replaceAll('_', ' '),
                           style: const TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.w900,
@@ -1799,11 +1804,19 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                   ),
                 ),
                 InkWell(
-                  onTap: _showAddCustomerDialog,
+                  onTap: () {
+                    ManageCustomersModal.show(
+                      context,
+                      selectedCustomerId: _selectedCustomer?.customerId,
+                      onCustomerSelected: (c) {
+                        setState(() => _selectedCustomer = c);
+                      },
+                    );
+                  },
                   child: const Padding(
                     padding: EdgeInsets.symmetric(vertical: 2),
                     child: Text(
-                      '+ Add New Customer',
+                      'Manage Customer',
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w800,

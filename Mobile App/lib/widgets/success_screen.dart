@@ -1,6 +1,7 @@
+import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
-import 'app_footer.dart';
 import 'package:flutter/services.dart';
+import 'app_footer.dart';
 
 Future<void> showSuccessScreen(
   BuildContext context, {
@@ -40,6 +41,7 @@ class _SuccessScreenState extends State<SuccessScreen>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
   late final Animation<double> _scale;
+  final AudioPlayer _audioPlayer = AudioPlayer();
 
   @override
   void initState() {
@@ -50,12 +52,24 @@ class _SuccessScreenState extends State<SuccessScreen>
     );
     _scale = CurvedAnimation(parent: _controller, curve: Curves.elasticOut);
     _controller.forward();
-    SystemSound.play(SystemSoundType.alert);
+    _playSuccessSound();
+  }
+
+  Future<void> _playSuccessSound() async {
+    try {
+      HapticFeedback.mediumImpact();
+      await _audioPlayer.setPlayerMode(PlayerMode.lowLatency);
+      await _audioPlayer.play(AssetSource('sounds/success.wav'));
+    } catch (_) {
+      // Fallback to system sound if asset audio cannot initialize
+      SystemSound.play(SystemSoundType.click);
+    }
   }
 
   @override
   void dispose() {
     _controller.dispose();
+    _audioPlayer.dispose();
     super.dispose();
   }
 

@@ -316,6 +316,49 @@ class PurchaseOrderProvider with ChangeNotifier {
     }
   }
 
+  Future<CustomerModel?> updateCustomer({
+    required String customerId,
+    required String customerName,
+    String? address,
+    String? contactDetails,
+  }) async {
+    try {
+      final res = await apiClient.put(
+        '${ApiConstants.customers}/$customerId',
+        body: {
+          'customer_name': customerName.trim(),
+          'address': (address ?? '').trim(),
+          'contact_details': (contactDetails ?? '').trim(),
+        },
+      );
+
+      final updated = CustomerModel.fromJson(Map<String, dynamic>.from(res));
+      final idx = _customers.indexWhere((c) => c.customerId == customerId);
+      if (idx >= 0) {
+        _customers[idx] = updated;
+      }
+      notifyListeners();
+      return updated;
+    } catch (e) {
+      _errorMessage = e.toString();
+      debugPrint('Error updating customer: $e');
+      return null;
+    }
+  }
+
+  Future<bool> deleteCustomer(String customerId) async {
+    try {
+      await apiClient.delete('${ApiConstants.customers}/$customerId');
+      _customers.removeWhere((c) => c.customerId == customerId);
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _errorMessage = e.toString();
+      debugPrint('Error deleting customer: $e');
+      return false;
+    }
+  }
+
   // ===================== PURCHASE ORDERS =====================
 
   Future<void> loadPurchaseOrders() async {

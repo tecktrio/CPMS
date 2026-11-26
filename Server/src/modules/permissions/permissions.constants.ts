@@ -13,7 +13,7 @@ export const SYSTEM_PERMISSIONS: SystemPermissionDefinition[] = [
     module: 'Items',
     action: 'CREATE',
     display_name: 'Create Items',
-    description: 'Allows registering raw materials, finished goods, and packaging SKUs.',
+    description: 'Allows registering raw materials, finished goods, and packaging items.',
   },
   {
     permission_id: 'permission.item.read',
@@ -34,7 +34,7 @@ export const SYSTEM_PERMISSIONS: SystemPermissionDefinition[] = [
     module: 'Items',
     action: 'DELETE',
     display_name: 'Deactivate Items',
-    description: 'Allows deactivating or archiving item SKUs.',
+    description: 'Allows deactivating or archiving items.',
   },
   {
     permission_id: 'permission.item_category.manage',

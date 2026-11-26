@@ -18,6 +18,7 @@ import {
 import { User, UserDocument } from '../../database/schemas/user.schema';
 import {
   CreateProductionAssignmentDto,
+  UpdateAssignmentDto,
   UpdateProgressDto,
 } from './dtos/production-assignment.dto';
 
@@ -61,6 +62,24 @@ export class ProductionService {
       );
     }
 
+    // Enforce max cartons = remaining balance on this PO item
+    const existingForItem = await this.assignmentModel.find({
+      tenant_id: tenantId,
+      po_id: po.po_id,
+      item_id: item.item_id,
+      status: { $ne: 'CANCELLED' },
+    });
+    const alreadyAssigned = existingForItem.reduce(
+      (sum, a) => sum + (a.assigned_cartons || 0),
+      0,
+    );
+    const remainingBalance = Math.max(0, item.cartons - alreadyAssigned);
+    if (dto.assigned_cartons > remainingBalance) {
+      throw new BadRequestException(
+        `Assigned cartons (${dto.assigned_cartons}) cannot exceed remaining balance (${remainingBalance} ctns) for "${item.item_name}"`,
+      );
+    }
+
     const newAssignment = new this.assignmentModel({
       assignment_id: uuidv4(),
       tenant_id: tenantId,
@@ -76,6 +95,7 @@ export class ProductionService {
       status: 'PENDING',
       assigned_by_user_id: assignedByUserId || supervisor.user_id,
       notes: dto.notes?.trim() || '',
+      target_date: dto.target_date ? new Date(dto.target_date) : null,
     });
 
     await newAssignment.save();
@@ -158,6 +178,94 @@ export class ProductionService {
     await assignment.save();
 
     // Roll up to PO line item and PO totals
+    await this.recalculatePoTotals(tenantId, assignment.po_id);
+
+    return assignment;
+  }
+
+  async updateAssignment(
+    tenantId: string,
+    assignmentId: string,
+    dto: UpdateAssignmentDto,
+  ) {
+    const assignment = await this.assignmentModel.findOne({
+      tenant_id: tenantId,
+      assignment_id: assignmentId,
+      status: { $ne: 'CANCELLED' },
+    });
+
+    if (!assignment) {
+      throw new NotFoundException('Production assignment not found');
+    }
+
+    if (dto.supervisor_user_id && dto.supervisor_user_id !== assignment.supervisor_user_id) {
+      const supervisor = await this.userModel.findOne({
+        user_id: dto.supervisor_user_id,
+      });
+      if (!supervisor) {
+        throw new NotFoundException(
+          `Supervisor user "${dto.supervisor_user_id}" not found`,
+        );
+      }
+      assignment.supervisor_user_id = supervisor.user_id;
+      assignment.supervisor_name = supervisor.full_name || supervisor.email_address;
+    }
+
+    if (dto.assigned_cartons !== undefined) {
+      if (dto.assigned_cartons < assignment.completed_cartons) {
+        throw new BadRequestException(
+          `Assigned cartons (${dto.assigned_cartons}) cannot be less than already completed cartons (${assignment.completed_cartons})`,
+        );
+      }
+
+      // Check against PO item remaining balance (excluding this assignment's previous qty)
+      const po = await this.poModel.findOne({
+        tenant_id: tenantId,
+        po_id: assignment.po_id,
+      });
+      const item = po?.items.find((it) => it.item_id === assignment.item_id);
+      if (item) {
+        const otherAssignments = await this.assignmentModel.find({
+          tenant_id: tenantId,
+          po_id: assignment.po_id,
+          item_id: assignment.item_id,
+          assignment_id: { $ne: assignment.assignment_id },
+          status: { $ne: 'CANCELLED' },
+        });
+        const otherAssigned = otherAssignments.reduce(
+          (sum, a) => sum + (a.assigned_cartons || 0),
+          0,
+        );
+        const maxAllowed = Math.max(0, item.cartons - otherAssigned);
+        if (dto.assigned_cartons > maxAllowed) {
+          throw new BadRequestException(
+            `Assigned cartons (${dto.assigned_cartons}) cannot exceed remaining PO balance (${maxAllowed} ctns)`,
+          );
+        }
+      }
+
+      assignment.assigned_cartons = dto.assigned_cartons;
+      if (assignment.completed_cartons === 0) {
+        assignment.status = 'PENDING';
+        assignment.completed_at = null;
+      } else if (assignment.completed_cartons >= assignment.assigned_cartons) {
+        assignment.status = 'COMPLETED';
+        assignment.completed_at = new Date();
+      } else {
+        assignment.status = 'IN_PROGRESS';
+        assignment.completed_at = null;
+      }
+    }
+
+    if (dto.notes !== undefined) {
+      assignment.notes = dto.notes.trim();
+    }
+
+    if (dto.target_date !== undefined) {
+      assignment.target_date = dto.target_date ? new Date(dto.target_date) : null;
+    }
+
+    await assignment.save();
     await this.recalculatePoTotals(tenantId, assignment.po_id);
 
     return assignment;

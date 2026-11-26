@@ -985,15 +985,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               ),
                             );
                             final divInfo = item.division != null && item.division!.isNotEmpty
-                                ? item.division!
-                                : 'Default Section';
+                                ? ' • ${item.division!}'
+                                : '';
 
                             return _buildSearchResultCard(
                               leadingIcon: Icons.view_in_ar_outlined,
                               imageUrl: item.imageUrl,
                               title: '${item.itemName} (${item.specification})',
                               subtitleLine1: item.itemType.replaceAll('_', ' '),
-                              subtitleLine2: '${room.roomName} • $divInfo',
+                              subtitleLine2: '${room.roomName}$divInfo',
                               badgeText: '${item.totalAvailableStock.toStringAsFixed(1)} ${item.measurementUnit}',
                               onTap: () {
                                 Navigator.push(
@@ -1498,11 +1498,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                           color: Color(0xFF64748B),
                                         ),
                                         children: [
-                                          const TextSpan(text: 'SKU: '),
                                           TextSpan(
-                                            text: item.sku,
+                                            text: item.specification.isNotEmpty
+                                                ? item.specification
+                                                : item.itemType.replaceAll('_', ' '),
                                             style: const TextStyle(
-                                              fontWeight: FontWeight.w800,
+                                              fontWeight: FontWeight.w700,
                                               color: Colors.black,
                                             ),
                                           ),

@@ -18,6 +18,7 @@ import {
 import { ProductionService } from './production.service';
 import {
   CreateProductionAssignmentDto,
+  UpdateAssignmentDto,
   UpdateProgressDto,
 } from './dtos/production-assignment.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -75,6 +76,17 @@ export class ProductionController {
     @Param('poId') poId: string,
   ) {
     return this.productionService.getAssignmentsByPo(tenantId, poId);
+  }
+
+  @Patch('assignments/:id')
+  @RequirePermissions('permission.production.update')
+  @ApiOperation({ summary: 'Reassign supervisor, update quantity or notes on assignment' })
+  async updateAssignment(
+    @CurrentTenant() tenantId: string,
+    @Param('id') assignmentId: string,
+    @Body() dto: UpdateAssignmentDto,
+  ) {
+    return this.productionService.updateAssignment(tenantId, assignmentId, dto);
   }
 
   @Patch('assignments/:id/progress')

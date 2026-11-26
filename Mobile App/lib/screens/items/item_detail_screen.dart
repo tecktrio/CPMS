@@ -99,7 +99,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
         backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         title: Text(
-          'Delete Item: ${item.sku}?',
+          'Delete Item: ${item.itemName}?',
           style: const TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w800,
@@ -751,8 +751,9 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                             final ingName = ingItem != null
                                 ? ingItem.itemName
                                 : 'Unknown Raw Material';
-                            final ingSku =
-                                ingItem != null ? ingItem.sku : ing.itemId;
+                            final ingType = ingItem != null
+                                ? ingItem.itemType.replaceAll('_', ' ')
+                                : 'RAW MATERIAL';
                             final ingSpecification =
                                 ingItem?.specification ?? '';
                             final ingUnit = ing.unit.isNotEmpty
@@ -812,8 +813,8 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                                         const SizedBox(height: 2),
                                         Text(
                                           ingSpecification.isNotEmpty
-                                              ? '$ingSku • $ingSpecification'
-                                              : ingSku,
+                                              ? '$ingType • $ingSpecification'
+                                              : ingType,
                                           style: const TextStyle(
                                             fontSize: 11,
                                             fontWeight: FontWeight.w600,

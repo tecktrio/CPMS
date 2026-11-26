@@ -253,12 +253,6 @@ class _StoreRoomItemDetailScreenState extends State<StoreRoomItemDetailScreen> {
     final List<String> availableDivisions = [];
     if (room.divisions.isNotEmpty) {
       availableDivisions.addAll(room.divisions);
-      if (!availableDivisions.contains('Default Section')) {
-        availableDivisions.add('Default Section');
-      }
-    } else {
-      availableDivisions.addAll(
-          ['Default Section', 'Section 1', 'Section 2', 'Section 3']);
     }
     if (!availableDivisions.contains('+ Custom Division')) {
       availableDivisions.add('+ Custom Division');
@@ -467,7 +461,7 @@ class _StoreRoomItemDetailScreenState extends State<StoreRoomItemDetailScreen> {
       (it) => it.itemId == widget.itemId,
       orElse: () => StoreRoomItemModel(
         itemId: widget.itemId,
-        division: 'Default Section',
+        division: '',
         quantity: 0.0,
         minCount: 0.0,
       ),
@@ -696,16 +690,6 @@ class _StoreRoomItemDetailScreenState extends State<StoreRoomItemDetailScreen> {
                                 color: Color(0xFF0F172A),
                               ),
                             ),
-                            const SizedBox(height: 4),
-                            if (item.sku.isNotEmpty)
-                              Text(
-                                'SKU: ${item.sku}',
-                                style: const TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                  color: Color(0xFF64748B),
-                                ),
-                              ),
                             const SizedBox(height: 8),
                             Wrap(
                               spacing: 6,

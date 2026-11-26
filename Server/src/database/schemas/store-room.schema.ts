@@ -23,7 +23,7 @@ export class StoreRoomItem {
   @Prop({ type: String, default: '', trim: true })
   division_id?: string;
 
-  @Prop({ type: String, default: 'Division - section 1', trim: true })
+  @Prop({ type: String, default: '', trim: true })
   division: string;
 
   @Prop({ type: Number, default: 0, min: 0 })

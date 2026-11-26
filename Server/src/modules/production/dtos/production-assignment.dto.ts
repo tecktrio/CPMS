@@ -26,6 +26,11 @@ export class CreateProductionAssignmentDto {
   @IsString()
   @IsOptional()
   notes?: string;
+
+  @ApiProperty({ description: 'Target/scheduled date for this assignment (ISO string)', required: false })
+  @IsString()
+  @IsOptional()
+  target_date?: string;
 }
 
 export class UpdateProgressDto {
@@ -33,5 +38,28 @@ export class UpdateProgressDto {
   @IsNumber()
   @Min(0)
   completed_cartons: number;
+}
+
+export class UpdateAssignmentDto {
+  @ApiProperty({ description: 'Reassign to another supervisor user ID', required: false })
+  @IsString()
+  @IsOptional()
+  supervisor_user_id?: string;
+
+  @ApiProperty({ description: 'Updated assigned cartons', minimum: 1, required: false })
+  @IsNumber()
+  @Min(1)
+  @IsOptional()
+  assigned_cartons?: number;
+
+  @ApiProperty({ description: 'Updated operational notes', required: false })
+  @IsString()
+  @IsOptional()
+  notes?: string;
+
+  @ApiProperty({ description: 'Updated target/scheduled date (ISO string)', required: false })
+  @IsString()
+  @IsOptional()
+  target_date?: string;
 }
 

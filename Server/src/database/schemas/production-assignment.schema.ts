@@ -60,6 +60,9 @@ export class ProductionAssignment {
   notes: string;
 
   @Prop({ type: Date, default: null })
+  target_date: Date | null;
+
+  @Prop({ type: Date, default: null })
   completed_at: Date | null;
 }
 

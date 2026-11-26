@@ -17,12 +17,9 @@ class _CreateStoreRoomScreenState extends State<CreateStoreRoomScreen> {
   final _nameController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _tempController = TextEditingController();
-  final _divisionCountController = TextEditingController(text: '2');
+  final _divisionCountController = TextEditingController(text: '0');
 
-  final List<TextEditingController> _divisionControllers = [
-    TextEditingController(text: 'Division - section 1'),
-    TextEditingController(text: 'Division - section 2'),
-  ];
+  final List<TextEditingController> _divisionControllers = [];
 
   bool _isSubmitting = false;
 
@@ -40,7 +37,7 @@ class _CreateStoreRoomScreenState extends State<CreateStoreRoomScreen> {
   }
 
   void _generateDivisions(int count) {
-    if (count <= 0 || count > 50) return;
+    if (count < 0 || count > 50) return;
     setState(() {
       for (final c in _divisionControllers) {
         c.dispose();

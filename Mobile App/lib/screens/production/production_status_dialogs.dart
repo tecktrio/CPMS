@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import '../../models/production_assignment_model.dart';
 import '../../providers/department_provider.dart';
 import '../../providers/production_provider.dart';
 import '../../providers/purchase_order_provider.dart';
@@ -60,53 +62,185 @@ class ProductionStatusDialogs {
     }).toList();
 
     String? selectedUserId = supervisorUsers.isNotEmpty ? supervisorUsers.first.userId : null;
-    final remainingCartons = item.cartons - item.completedCartons > 0
-        ? item.cartons - item.completedCartons
-        : item.cartons;
-    final cartonsController = TextEditingController(text: '$remainingCartons');
+    final prodProvInit = context.read<ProductionProvider>();
+    final initialExisting = prodProvInit.assignmentsForItem(po.poId, item.itemId);
+    final initialAssigned = initialExisting.fold<int>(0, (s, a) => s + a.assignedCartons);
+    final initialRemaining = item.cartons - initialAssigned;
+    final cartonsController = TextEditingController(
+      text: '${initialRemaining > 0 ? initialRemaining : 0}',
+    );
     final notesController = TextEditingController();
+    DateTime selectedTargetDate = po.expectedShippingDate ?? DateTime.now();
+    final dateFmt = DateFormat('dd/MM/yyyy');
 
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) => AlertDialog(
-          backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          title: Row(
-            children: [
-              const Icon(Icons.assignment_ind_outlined,
-                  size: 20, color: Colors.black),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'Assign: ${item.itemName}',
-                  style:
-                      const TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
+        builder: (ctx, setDialogState) {
+          final prodProv = ctx.watch<ProductionProvider>();
+          final existingAssignments = prodProv.assignmentsForItem(po.poId, item.itemId);
+          final totalAssigned = existingAssignments.fold<int>(0, (s, a) => s + a.assignedCartons);
+          final remainingToAssign = (item.cartons - totalAssigned).clamp(0, item.cartons);
+          final canAssignMore = remainingToAssign > 0 && supervisorUsers.isNotEmpty;
+
+          return AlertDialog(
+            backgroundColor: Colors.white,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            title: Row(
               children: [
-                Text(
-                  'Total PO Requirement: ${item.cartons} ctns (${item.completedCartons} produced)',
-                  style: const TextStyle(
-                      fontSize: 12,
-                      color: Color(0xFF64748B),
-                      fontWeight: FontWeight.w500),
+                const Icon(Icons.assignment_ind_outlined,
+                    size: 20, color: Colors.black),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Assign: ${item.itemName}',
+                    style:
+                        const TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
-                const SizedBox(height: 16),
-                const Text('Select Supervisor',
-                    style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF334155))),
-                const SizedBox(height: 6),
+              ],
+            ),
+            content: SizedBox(
+              width: 440,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Summary metrics strip
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 6,
+                      children: [
+                        _summaryChip('PO Requirement: ${item.cartons} ctns', const Color(0xFFF1F5F9), const Color(0xFF334155)),
+                        _summaryChip('Assigned: $totalAssigned ctns', const Color(0xFFEFF6FF), const Color(0xFF1D4ED8)),
+                        _summaryChip(
+                          remainingToAssign > 0 ? 'Remaining: $remainingToAssign ctns' : 'Fully Assigned',
+                          remainingToAssign > 0 ? const Color(0xFFFFFBEB) : const Color(0xFFF0FDF4),
+                          remainingToAssign > 0 ? const Color(0xFFB45309) : const Color(0xFF15803D),
+                        ),
+                      ],
+                    ),
+
+                    if (existingAssignments.isNotEmpty) ...[
+                      const SizedBox(height: 14),
+                      const Text(
+                        'Already Assigned Supervisors',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF0F172A),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      ...existingAssignments.map((a) {
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 8),
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF8FAFC),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: const Color(0xFFE2E8F0)),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.person_outline, size: 18, color: Color(0xFF0F172A)),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      a.supervisorName.isNotEmpty ? a.supervisorName : a.supervisorUserId,
+                                      style: const TextStyle(
+                                        fontSize: 12.5,
+                                        fontWeight: FontWeight.w800,
+                                        color: Color(0xFF0F172A),
+                                      ),
+                                    ),
+                                    Text(
+                                      'Assigned: ${a.assignedCartons} ctns • Produced: ${a.completedCartons}/${a.assignedCartons} (${a.status})${a.targetDate != null ? ' • Date: ${dateFmt.format(a.targetDate!)}' : ''}',
+                                      style: const TextStyle(
+                                        fontSize: 11,
+                                        color: Color(0xFF64748B),
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    if (a.notes.isNotEmpty)
+                                      Text(
+                                        a.notes,
+                                        style: const TextStyle(fontSize: 10.5, color: Color(0xFF94A3B8)),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                  ],
+                                ),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.edit_outlined, size: 17, color: Color(0xFF0F766E)),
+                                tooltip: 'Reassign / Edit Qty',
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
+                                onPressed: () async {
+                                  final poProv = context.read<PurchaseOrderProvider>();
+                                  final prodProvInner = context.read<ProductionProvider>();
+                                  await _showEditAssignmentDialog(
+                                    context,
+                                    assignment: a,
+                                    maxAllowedCartons: item.cartons - (totalAssigned - a.assignedCartons),
+                                    supervisorUsers: supervisorUsers,
+                                    tenantDepartments: tenantProv.tenantDepartments,
+                                    onUpdated: () async {
+                                      await poProv.loadPurchaseOrders();
+                                      await prodProvInner.loadAllAssignments();
+                                      final updatedList = prodProvInner.assignmentsForItem(po.poId, item.itemId);
+                                      final newAssigned = updatedList.fold<int>(0, (s, x) => s + x.assignedCartons);
+                                      final newRem = item.cartons - newAssigned;
+                                      cartonsController.text = '${newRem > 0 ? newRem : 0}';
+                                      onUpdated?.call();
+                                    },
+                                  );
+                                },
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.delete_outline, size: 17, color: Color(0xFFDC2626)),
+                                tooltip: 'Unassign',
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
+                                onPressed: () async {
+                                  final poProv = context.read<PurchaseOrderProvider>();
+                                  final prodProvInner = context.read<ProductionProvider>();
+                                  final ok = await prodProvInner.cancelAssignment(a.assignmentId);
+                                  if (ok) {
+                                    await poProv.loadPurchaseOrders();
+                                    final updatedList = prodProvInner.assignmentsForItem(po.poId, item.itemId);
+                                    final newAssigned = updatedList.fold<int>(0, (s, x) => s + x.assignedCartons);
+                                    final newRem = item.cartons - newAssigned;
+                                    cartonsController.text = '${newRem > 0 ? newRem : 0}';
+                                    onUpdated?.call();
+                                  }
+                                },
+                              ),
+                            ],
+                          ),
+                        );
+                      }),
+                      const Divider(height: 18, color: Color(0xFFE2E8F0)),
+                    ],
+
+                    const SizedBox(height: 6),
+                    Text(
+                      existingAssignments.isNotEmpty
+                          ? 'Assign Another / Additional Supervisor'
+                          : 'Select Supervisor',
+                      style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF334155)),
+                    ),
+                    const SizedBox(height: 6),
                 if (supervisorUsers.isEmpty)
                   Container(
                     padding: const EdgeInsets.all(12),
@@ -167,23 +301,120 @@ class ProductionStatusDialogs {
                     },
                   ),
                 const SizedBox(height: 14),
-                const Text('Assigned Cartons',
-                    style: TextStyle(
-                        fontSize: 12,
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('Assigned Cartons',
+                        style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF334155))),
+                    Text(
+                      'Max available: $remainingToAssign ctns',
+                      style: TextStyle(
+                        fontSize: 11,
                         fontWeight: FontWeight.w700,
-                        color: Color(0xFF334155))),
+                        color: remainingToAssign > 0
+                            ? const Color(0xFF0F766E)
+                            : const Color(0xFFDC2626),
+                      ),
+                    ),
+                  ],
+                ),
                 const SizedBox(height: 6),
                 TextField(
                   controller: cartonsController,
+                  enabled: canAssignMore,
                   keyboardType: TextInputType.number,
                   decoration: InputDecoration(
-                    hintText: 'e.g. 50',
+                    hintText: 'Max $remainingToAssign',
                     border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(6)),
                     contentPadding:
                         const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   ),
                 ),
+                const SizedBox(height: 14),
+                const Text('Target / Assigned Date',
+                    style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF334155))),
+                const SizedBox(height: 6),
+                InkWell(
+                  onTap: canAssignMore
+                      ? () async {
+                          final picked = await showDatePicker(
+                            context: ctx,
+                            initialDate: selectedTargetDate,
+                            firstDate: DateTime(2024),
+                            lastDate: DateTime(2035),
+                          );
+                          if (picked != null) {
+                            setDialogState(() => selectedTargetDate = picked);
+                          }
+                        }
+                      : null,
+                  borderRadius: BorderRadius.circular(6),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: canAssignMore
+                          ? const Color(0xFFF8FAFC)
+                          : const Color(0xFFF1F5F9),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: const Color(0xFFCBD5E1)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.calendar_today_outlined,
+                            size: 16, color: Color(0xFF475569)),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            dateFmt.format(selectedTargetDate),
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF0F172A),
+                            ),
+                          ),
+                        ),
+                        const Icon(Icons.edit_calendar_outlined,
+                            size: 16, color: Color(0xFF64748B)),
+                      ],
+                    ),
+                  ),
+                ),
+                if (remainingToAssign <= 0) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF0FDF4),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: const Color(0xFFBBF7D0)),
+                    ),
+                    child: const Row(
+                      children: [
+                        Icon(Icons.check_circle_outline,
+                            size: 16, color: Color(0xFF15803D)),
+                        SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            '0 cartons left to assign. Edit or unassign an existing supervisor above to free cartons.',
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              color: Color(0xFF15803D),
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 14),
                 const Text('Production Instructions / Notes',
                     style: TextStyle(
@@ -193,6 +424,7 @@ class ProductionStatusDialogs {
                 const SizedBox(height: 6),
                 TextField(
                   controller: notesController,
+                  enabled: canAssignMore,
                   maxLines: 2,
                   decoration: InputDecoration(
                     hintText: 'Target line, specific machinery, shift...',
@@ -200,6 +432,252 @@ class ProductionStatusDialogs {
                         borderRadius: BorderRadius.circular(6)),
                     contentPadding:
                         const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  ),
+                ),
+              ],
+            ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Close',
+                  style: TextStyle(color: Color(0xFF64748B))),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor:
+                    canAssignMore ? Colors.black : const Color(0xFF94A3B8),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(6)),
+              ),
+              onPressed: !canAssignMore
+                  ? null
+                  : () async {
+                      final qty = int.tryParse(cartonsController.text.trim()) ?? 0;
+                      if (selectedUserId == null) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                              content: Text(
+                                  'Your tenant has no supervisors to assign.')),
+                        );
+                        return;
+                      }
+                      if (qty <= 0 || qty > remainingToAssign) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                              content: Text(
+                                  'Please enter a carton count between 1 and $remainingToAssign.')),
+                        );
+                        return;
+                      }
+                      final prodProv = context.read<ProductionProvider>();
+                      final poProv = context.read<PurchaseOrderProvider>();
+                      final success = await prodProv.createAssignment(
+                        poId: po.poId,
+                        itemId: item.itemId,
+                        supervisorUserId: selectedUserId!,
+                        assignedCartons: qty,
+                        notes: notesController.text.trim(),
+                        targetDate: selectedTargetDate,
+                      );
+                      if (success) {
+                        notesController.clear();
+                        await poProv.loadPurchaseOrders();
+                        await prodProv.loadAllAssignments();
+                        final updatedList = prodProv.assignmentsForItem(po.poId, item.itemId);
+                        final newAssigned = updatedList.fold<int>(0, (s, x) => s + x.assignedCartons);
+                        final newRem = item.cartons - newAssigned;
+                        cartonsController.text = '${newRem > 0 ? newRem : 0}';
+                        onUpdated?.call();
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                  'Successfully assigned $qty cartons to supervisor.'),
+                              backgroundColor: const Color(0xFF15803D),
+                            ),
+                          );
+                        }
+                      } else {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(prodProv.errorMessage ??
+                                  'Failed to assign supervisor.'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
+                      }
+                    },
+              child: const Text('Assign Task'),
+            ),
+          ],
+        );
+      },
+    ),
+    );
+  }
+
+  static Widget _summaryChip(String text, Color bg, Color fg) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: fg),
+      ),
+    );
+  }
+
+  static Future<void> _showEditAssignmentDialog(
+    BuildContext context, {
+    required ProductionAssignmentModel assignment,
+    required int maxAllowedCartons,
+    required List<TenantUserModel> supervisorUsers,
+    required List<DepartmentModel> tenantDepartments,
+    required Future<void> Function() onUpdated,
+  }) async {
+    String? editedSupervisorId =
+        supervisorUsers.any((u) => u.userId == assignment.supervisorUserId)
+            ? assignment.supervisorUserId
+            : (supervisorUsers.isNotEmpty ? supervisorUsers.first.userId : null);
+    final qtyCtrl = TextEditingController(text: '${assignment.assignedCartons}');
+    final notesCtrl = TextEditingController(text: assignment.notes);
+    DateTime editedDate = assignment.targetDate ?? DateTime.now();
+    final dateFmt = DateFormat('dd/MM/yyyy');
+
+    await showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDlgState) => AlertDialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          title: const Text(
+            'Reassign / Edit Assignment',
+            style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Produced so far: ${assignment.completedCartons} ctns',
+                  style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                ),
+                const SizedBox(height: 12),
+                const Text('Supervisor',
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                const SizedBox(height: 6),
+                if (supervisorUsers.isNotEmpty)
+                  DropdownButtonFormField<String>(
+                    initialValue: editedSupervisorId,
+                    isExpanded: true,
+                    decoration: InputDecoration(
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(6)),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 8),
+                    ),
+                    items: supervisorUsers.map((u) {
+                      final dept = tenantDepartments.firstWhere(
+                        (d) => u.departmentIds.contains(d.departmentId),
+                        orElse: () => DepartmentModel(
+                          departmentId: '',
+                          tenantId: '',
+                          departmentName: 'Supervisor',
+                          description: '',
+                          permissionIds: [],
+                          isActive: true,
+                        ),
+                      );
+                      final name = u.fullName.isNotEmpty ? u.fullName : u.userName;
+                      final username = u.userName.isNotEmpty ? '(@${u.userName})' : '';
+                      return DropdownMenuItem(
+                        value: u.userId,
+                        child: Text(
+                          '$name $username • ${dept.departmentName}'.trim(),
+                          style: const TextStyle(fontSize: 13),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      );
+                    }).toList(),
+                    onChanged: (v) {
+                      if (v != null) setDlgState(() => editedSupervisorId = v);
+                    },
+                  ),
+                const SizedBox(height: 12),
+                Text('Assigned Cartons (Max: $maxAllowedCartons)',
+                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                const SizedBox(height: 6),
+                TextField(
+                  controller: qtyCtrl,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(6)),
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 8),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                const Text('Target / Assigned Date',
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                const SizedBox(height: 6),
+                InkWell(
+                  onTap: () async {
+                    final picked = await showDatePicker(
+                      context: ctx,
+                      initialDate: editedDate,
+                      firstDate: DateTime(2024),
+                      lastDate: DateTime(2035),
+                    );
+                    if (picked != null) {
+                      setDlgState(() => editedDate = picked);
+                    }
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF8FAFC),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: const Color(0xFFCBD5E1)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.calendar_today_outlined,
+                            size: 16, color: Color(0xFF475569)),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            dateFmt.format(editedDate),
+                            style: const TextStyle(
+                                fontSize: 13, fontWeight: FontWeight.w700),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                const Text('Notes',
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                const SizedBox(height: 6),
+                TextField(
+                  controller: notesCtrl,
+                  maxLines: 2,
+                  decoration: InputDecoration(
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(6)),
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 8),
                   ),
                 ),
               ],
@@ -213,68 +691,45 @@ class ProductionStatusDialogs {
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: supervisorUsers.isEmpty
-                    ? const Color(0xFF94A3B8)
-                    : Colors.black,
+                backgroundColor: Colors.black,
                 foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(6)),
               ),
-              onPressed: supervisorUsers.isEmpty
-                  ? null
-                  : () async {
-                      final qty = int.tryParse(cartonsController.text.trim()) ?? 0;
-                      if (selectedUserId == null) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                              content: Text(
-                                  'Your tenant has no supervisors to assign.')),
-                        );
-                        return;
-                      }
-                if (qty <= 0) {
+              onPressed: () async {
+                final newQty = int.tryParse(qtyCtrl.text.trim()) ?? 0;
+                final minAllowed =
+                    assignment.completedCartons > 0 ? assignment.completedCartons : 1;
+                if (newQty < minAllowed || newQty > maxAllowedCartons) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                        content: Text(
-                            'Please enter a valid carton count greater than 0.')),
+                    SnackBar(
+                      content: Text(
+                        'Assigned cartons must be between $minAllowed and $maxAllowedCartons.',
+                      ),
+                      backgroundColor: Colors.red,
+                    ),
                   );
                   return;
                 }
                 Navigator.pop(ctx);
-                final prodProv = context.read<ProductionProvider>();
-                final poProv = context.read<PurchaseOrderProvider>();
-                final success = await prodProv.createAssignment(
-                  poId: po.poId,
-                  itemId: item.itemId,
-                  supervisorUserId: selectedUserId!,
-                  assignedCartons: qty,
-                  notes: notesController.text.trim(),
-                );
-                if (success) {
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                            'Successfully assigned $qty cartons to supervisor.'),
-                        backgroundColor: const Color(0xFF15803D),
-                      ),
+                final ok = await context.read<ProductionProvider>().updateAssignment(
+                      assignmentId: assignment.assignmentId,
+                      supervisorUserId: editedSupervisorId,
+                      assignedCartons: newQty,
+                      notes: notesCtrl.text.trim(),
+                      targetDate: editedDate,
                     );
-                  }
-                  await poProv.loadPurchaseOrders();
-                  onUpdated?.call();
-                } else {
+                if (ok) {
+                  await onUpdated();
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(prodProv.errorMessage ??
-                            'Failed to assign supervisor.'),
-                        backgroundColor: Colors.red,
+                      const SnackBar(
+                        content: Text('Assignment updated successfully.'),
+                        backgroundColor: Color(0xFF15803D),
                       ),
                     );
                   }
                 }
               },
-              child: const Text('Assign Task'),
+              child: const Text('Save Changes'),
             ),
           ],
         ),

@@ -78,7 +78,7 @@ export class ItemsService {
 
     if (existing) {
       throw new ConflictException(
-        `An item with SKU '${skuNormalized}' already exists in your organization`,
+        `An item with code '${skuNormalized}' already exists in your organization`,
       );
     }
 
@@ -255,7 +255,7 @@ export class ItemsService {
       });
       if (existing) {
         throw new ConflictException(
-          `Item with SKU '${skuNormalized}' already exists`,
+          `Item with code '${skuNormalized}' already exists`,
         );
       }
       item.sku = skuNormalized;

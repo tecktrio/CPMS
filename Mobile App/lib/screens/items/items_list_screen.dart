@@ -7,6 +7,8 @@ import '../../providers/tenant_provider.dart';
 import '../../widgets/user_profile_avatar.dart';
 import '../../widgets/cpms_search_bar.dart';
 import '../../widgets/app_footer.dart';
+import '../../services/data_export_service.dart';
+import '../../widgets/export_options_dialog.dart';
 import 'create_item_screen.dart';
 import 'item_detail_screen.dart';
 import 'manage_item_categories_modal.dart';
@@ -159,8 +161,29 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
             ),
           ),
         ),
-        actions: const [
+        actions: [
           Padding(
+            padding: const EdgeInsets.only(right: 6),
+            child: IconButton(
+              icon: const Icon(Icons.file_download_outlined, color: Colors.black, size: 22),
+              tooltip: 'Export Items',
+              onPressed: () {
+                ExportOptionsDialog.show(
+                  context,
+                  title: 'Export Items List',
+                  subtitle: 'Export ${filteredItems.length} item(s) as PDF, CSV, or print.',
+                  baseFileName: 'CPMS-Items-${DateTime.now().millisecondsSinceEpoch}',
+                  onGeneratePdf: () => DataExportService.generateItemsPdf(
+                    filteredItems,
+                    filterLabel: _selectedCategory == 'ALL' ? null : _selectedCategory,
+                  ),
+                  onGenerateCsv: () async =>
+                      DataExportService.generateItemsCsvBytes(filteredItems),
+                );
+              },
+            ),
+          ),
+          const Padding(
             padding: EdgeInsets.only(right: 12),
             child: UserProfileAvatar(),
           ),

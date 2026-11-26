@@ -13,6 +13,7 @@ class ProductionAssignmentModel {
   final String status;
   final String assignedByUserId;
   final String notes;
+  final DateTime? targetDate;
   final DateTime? completedAt;
   final DateTime? createdAt;
 
@@ -31,6 +32,7 @@ class ProductionAssignmentModel {
     required this.status,
     required this.assignedByUserId,
     this.notes = '',
+    this.targetDate,
     this.completedAt,
     this.createdAt,
   });
@@ -51,6 +53,9 @@ class ProductionAssignmentModel {
       status: json['status'] ?? 'PENDING',
       assignedByUserId: json['assigned_by_user_id'] ?? '',
       notes: json['notes'] ?? '',
+      targetDate: json['target_date'] != null
+          ? DateTime.tryParse(json['target_date'].toString())
+          : null,
       completedAt: json['completed_at'] != null
           ? DateTime.tryParse(json['completed_at'].toString())
           : null,
@@ -75,6 +80,7 @@ class ProductionAssignmentModel {
         'status': status,
         'assigned_by_user_id': assignedByUserId,
         'notes': notes,
+        'target_date': targetDate?.toIso8601String(),
         'completed_at': completedAt?.toIso8601String(),
         'created_at': createdAt?.toIso8601String(),
       };

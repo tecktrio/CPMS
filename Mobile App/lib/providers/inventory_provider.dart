@@ -68,7 +68,7 @@ class StoreRoomItemModel {
   StoreRoomItemModel({
     required this.itemId,
     this.divisionId = '',
-    this.division = 'Division - section 1',
+    this.division = '',
     this.quantity = 0.0,
     this.minCount = 0.0,
   });
@@ -103,7 +103,7 @@ class StoreRoomItemModel {
       divisionId: json['division_id']?.toString() ??
           json['divisionId']?.toString() ??
           '',
-      division: json['division']?.toString() ?? 'Division - section 1',
+      division: json['division']?.toString() ?? '',
       quantity: (json['quantity'] as num?)?.toDouble() ?? 0.0,
       minCount: (json['min_count'] as num?)?.toDouble() ?? 0.0,
     );
@@ -159,11 +159,12 @@ class StoreRoomModel {
       if (matchByName.name.isNotEmpty) return matchByName.name;
       return fallback;
     }
-    return divisions.isNotEmpty ? divisions.first : 'Division - section 1';
+    return divisions.isNotEmpty ? divisions.first : '';
   }
 
   String getDivisionId(String name) {
     final clean = name.trim().toLowerCase();
+    if (clean.isEmpty) return '';
     final match = divisionObjects.firstWhere(
       (d) => d.name.toLowerCase() == clean,
       orElse: () => StoreRoomDivisionModel(divisionId: '', name: ''),
@@ -174,7 +175,7 @@ class StoreRoomModel {
 
   String resolveFormattedDivisionName(StoreRoomItemModel sri) {
     final rawName = getDivisionName(sri.divisionId, fallback: sri.division);
-    if (rawName.isEmpty) return 'Division - section 1';
+    if (rawName.isEmpty) return 'No Section';
     if (rawName.toLowerCase().startsWith('division')) return rawName;
     return 'Division - $rawName';
   }
@@ -1358,9 +1359,7 @@ class InventoryProvider extends ChangeNotifier {
   }) async {
     final qty = quantity < 0 ? 0.0 : quantity;
     final roomIdx = _storeRooms.indexWhere((r) => r.storeRoomId == storeRoomId);
-    String div = division?.trim().isNotEmpty == true
-        ? division!.trim()
-        : 'Division - section 1';
+    String div = division?.trim() ?? '';
     String divId = divisionId?.trim() ?? '';
 
     if (roomIdx != -1) {

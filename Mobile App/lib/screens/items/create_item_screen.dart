@@ -264,7 +264,7 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
             child: Row(
               children: const [
                 Text(
-                  'Register Item SKU',
+                  'Register Item',
                   style: TextStyle(
                     color: Colors.black,
                     fontSize: 20,
@@ -1005,7 +1005,7 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
                       // Search Bar
                       CpmsSearchBar(
                         controller: _ingredientSearchController,
-                        hintText: 'Search raw materials by name or SKU...',
+                        hintText: 'Search raw materials by name...',
                         onChanged: (val) {
                           setState(() => _ingredientSearchQuery = val);
                         },
@@ -1117,7 +1117,9 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
                                               ),
                                               const SizedBox(height: 2),
                                               Text(
-                                                '${raw.sku} • ${raw.specification}',
+                                                raw.specification.isNotEmpty
+                                                    ? raw.specification
+                                                    : '${raw.quantity} ${raw.measurementUnit}',
                                                 style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
                                                 maxLines: 1,
                                                 overflow: TextOverflow.ellipsis,
@@ -1233,7 +1235,7 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
                       Icon(Icons.check, size: 20, color: Colors.white),
                       SizedBox(width: 8),
                       Text(
-                        'Save & Register SKU',
+                        'Save & Register Item',
                         style: TextStyle(
                           fontWeight: FontWeight.w800,
                           fontSize: 15,
