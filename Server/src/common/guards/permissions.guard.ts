@@ -5,7 +5,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { FIXED_DEPARTMENTS } from '../../modules/departments/departments.constants';
+import { FIXED_DEPARTMENTS, QUALITY_DEPARTMENT_NAME } from '../../modules/departments/departments.constants';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import {
@@ -109,6 +109,7 @@ export class PermissionsGuard implements CanActivate {
 
       if (fixedDepts.length > 0) {
         const oldDepts = await this.departmentModel.find({
+          $or: [{ tenant_id: tenantId }, { tenant_id: null }],
           department_id: { $in: membership.department_ids || [] },
         });
 
@@ -118,18 +119,22 @@ export class PermissionsGuard implements CanActivate {
           if (!oldName) continue;
           const mapped = fixedDepts.find((f) => {
             const fName = f.department_name.toLowerCase();
-            return fName === oldName || (fName !== 'administrator' &&
+            return fName === oldName ||
+              (fName === 'qc' && QUALITY_DEPARTMENT_NAME.test(oldName)) ||
+              (fName !== 'administrator' &&
               (fName.includes(oldName) || oldName.includes(fName)));
           });
           if (mapped) recoveredDeptIds.push(mapped.department_id);
         }
 
         const newDeptIds = [...new Set(recoveredDeptIds)];
-        membership.department_ids = newDeptIds;
-        await this.membershipModel.updateOne(
-          { _id: (membership as any)._id },
-          { $set: { department_ids: newDeptIds } },
-        );
+        if (newDeptIds.length > 0) {
+          membership.department_ids = newDeptIds;
+          await this.membershipModel.updateOne(
+            { _id: membership._id },
+            { $set: { department_ids: newDeptIds } },
+          );
+        }
 
         departments = fixedDepts.filter((d) =>
           newDeptIds.includes(d.department_id),
@@ -146,7 +151,8 @@ export class PermissionsGuard implements CanActivate {
     request.department_codes = FIXED_DEPARTMENTS.filter((fixed) =>
       departments.some((department) =>
         department.department_id === fixed.department_id ||
-        department.department_name.trim().toLowerCase() === fixed.name.toLowerCase(),
+        department.department_name.trim().toLowerCase() === fixed.name.toLowerCase() ||
+        (fixed.code === 'QC' && QUALITY_DEPARTMENT_NAME.test(department.department_name)),
       ),
     ).map((department) => department.code);
     request.confirmed_orders_only = request.department_codes.some(

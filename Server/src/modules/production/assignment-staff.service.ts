@@ -4,6 +4,7 @@ import { Model } from 'mongoose';
 import { Department, DepartmentDocument } from '../../database/schemas/department.schema';
 import { TenantMembership, TenantMembershipDocument } from '../../database/schemas/tenant-membership.schema';
 import { User, UserAccountStatus, UserDocument } from '../../database/schemas/user.schema';
+import { QUALITY_DEPARTMENT_NAME } from '../departments/departments.constants';
 
 @Injectable()
 export class AssignmentStaffService {
@@ -14,7 +15,11 @@ export class AssignmentStaffService {
   ) {}
 
   async list(tenantId: string, departmentName: 'Supervisor' | 'QC', userId?: string) {
-    const departments = await this.departments.find({ department_name: departmentName, is_active: true });
+    const departments = await this.departments.find({
+      department_name: departmentName === 'QC' ? QUALITY_DEPARTMENT_NAME : departmentName,
+      $or: [{ tenant_id: tenantId }, { tenant_id: null }],
+      is_active: true,
+    });
     const memberships = await this.memberships.find({
       tenant_id: tenantId,
       is_active: true,

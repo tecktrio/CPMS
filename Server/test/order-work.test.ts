@@ -3,6 +3,8 @@ import { test } from 'node:test';
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { OrderWorkController } from '../src/modules/purchase-orders/order-work.controller';
 import { OrderWorkService } from '../src/modules/purchase-orders/order-work.service';
+import { DepartmentsService } from '../src/modules/departments/departments.service';
+import { AssignmentStaffService } from '../src/modules/production/assignment-staff.service';
 import { ProductionService } from '../src/modules/production/production.service';
 
 function query<T>(data: T) {
@@ -132,4 +134,63 @@ test('an assigned QA check records an optional note and identifies the actor', a
   assert.equal(event.user_id, 'my-user');
   assert.equal(event.action, 'Marked item checked');
   assert.equal(event.detail, 'First · Seal intact');
+});
+
+test('the QA picker and assignment validation resolve Quality Assurance members in the active tenant', async () => {
+  const staff = new AssignmentStaffService({
+    find(filter: any) {
+      assert.ok(filter.department_name.test('Quality Assurance'));
+      assert.ok(filter.department_name.test('QC'));
+      assert.equal(filter.department_name.test('Sales'), false);
+      assert.deepEqual(filter.$or, [{ tenant_id: 'tenant' }, { tenant_id: null }]);
+      return [{ department_id: 'quality-id' }];
+    },
+  } as never, {
+    find(filter: any) {
+      assert.equal(filter.tenant_id, 'tenant');
+      assert.equal(filter.is_active, true);
+      assert.deepEqual(filter.department_ids, { $in: ['quality-id'] });
+      return filter.user_id === 'outside-user' ? [] : [{ user_id: 'qa-user' }];
+    },
+  } as never, {
+    find(filter: any) {
+      assert.deepEqual(filter.account_status.$nin, ['INACTIVE', 'SUSPENDED']);
+      return { select: async () => filter.user_id.$in.length
+        ? [{ user_id: 'qa-user', full_name: 'QA Staff' }]
+        : [] };
+    },
+  } as never);
+
+  const expected = { user_id: 'qa-user', name: 'QA Staff' };
+  assert.deepEqual(await staff.list('tenant', 'QC'), [expected]);
+  assert.deepEqual(await staff.requireMember('tenant', 'QC', 'qa-user'), expected);
+  await assert.rejects(staff.requireMember('tenant', 'QC', 'outside-user'));
+});
+
+test('startup remaps legacy QA memberships without reactivating disabled memberships', async () => {
+  const membership = {
+    user_id: 'qa-user',
+    department_ids: ['legacy-qa'],
+    is_active: false,
+    async save() {},
+  };
+  const service = new DepartmentsService({
+    find(filter: any) {
+      assert.deepEqual(filter.department_id, { $in: ['legacy-qa'] });
+      assert.ok(filter.department_name.test('QA'));
+      assert.deepEqual(filter.$or, [{ tenant_id: 'tenant' }, { tenant_id: null }]);
+      return { select: async () => [{ department_id: 'legacy-qa' }] };
+    },
+  } as never, {
+    find: async () => [{ tenant_id: 'tenant', company_name: 'Tenant' }],
+  } as never, {
+    find: async () => [membership],
+  } as never, null);
+  service.seedFixedDepartments = async () => [
+    { department_id: 'canonical-qa', department_name: 'QC' },
+  ] as never;
+
+  await service.migrateAllTenantsToFixedDepartments();
+  assert.deepEqual(membership.department_ids, ['canonical-qa']);
+  assert.equal(membership.is_active, false);
 });

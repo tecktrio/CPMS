@@ -1,3 +1,4 @@
+import { QUALITY_DEPARTMENT_NAME } from '../departments/departments.constants';
 import {
   Injectable,
   NotFoundException,
@@ -322,7 +323,7 @@ export class TenantsService {
       const fixedDepts = await this.departmentsService.findAll(tenantId);
       if (fixedDepts.length > 0) {
         const oldDepts = await this.departmentModel.find({
-          tenant_id: tenantId,
+          $or: [{ tenant_id: tenantId }, { tenant_id: null }],
           department_id: { $in: membership.department_ids || [] },
         });
 
@@ -332,18 +333,22 @@ export class TenantsService {
           if (!oldName) continue;
           const mapped = fixedDepts.find((f) => {
             const fName = f.department_name.toLowerCase();
-            return fName === oldName || (fName !== 'administrator' &&
+            return fName === oldName ||
+              (fName === 'qc' && QUALITY_DEPARTMENT_NAME.test(oldName)) ||
+              (fName !== 'administrator' &&
               (fName.includes(oldName) || oldName.includes(fName)));
           });
           if (mapped) recoveredDeptIds.push(mapped.department_id);
         }
 
         const newDeptIds = [...new Set(recoveredDeptIds)];
-        membership.department_ids = newDeptIds;
-        await this.membershipModel.updateOne(
-          { _id: (membership as any)._id },
-          { $set: { department_ids: newDeptIds } },
-        );
+        if (newDeptIds.length > 0) {
+          membership.department_ids = newDeptIds;
+          await this.membershipModel.updateOne(
+            { _id: membership._id },
+            { $set: { department_ids: newDeptIds } },
+          );
+        }
 
         depts = fixedDepts.filter((d) => newDeptIds.includes(d.department_id));
       }

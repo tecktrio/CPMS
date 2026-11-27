@@ -101,7 +101,7 @@ class _OrderWorkScreenState extends State<OrderWorkScreen> {
     if (people.isEmpty) {
       _message(
         quality
-            ? 'No QA users are assigned to this tenant.'
+            ? 'No eligible Quality Assurance users found. Ask your tenant administrator to check the user’s department assignment.'
             : 'No supervisors are assigned to this tenant.',
       );
       return;
