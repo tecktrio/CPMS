@@ -1167,7 +1167,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
     final tenant = context.watch<TenantProvider>();
     final isAdmin = tenant.isTenantAdmin;
     final canUpdate = isAdmin || tenant.hasPermission(AppPermissions.storeroomUpdate);
-    final canDelete = isAdmin || tenant.hasPermission(AppPermissions.storeroomDelete);
+    final canDelete = isAdmin;
 
     final currentRoom = inventory.storeRooms.firstWhere(
       (r) => r.storeRoomId == widget.room.storeRoomId,
@@ -1655,7 +1655,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                                   },
                                   itemBuilder: (ctx) => [
                                     ...divisionsList.map((d) => PopupMenuItem<String>(value: d, child: Text(d, style: const TextStyle(fontSize: 13)))),
-                                    if (canUpdate) ...[
+                                    if (isAdmin) ...[
                                       const PopupMenuDivider(),
                                       const PopupMenuItem<String>(
                                         value: '__manage__',
@@ -2043,7 +2043,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                           ),
                         ),
-                      if (canUpdate)
+                      if (isAdmin)
                         FilledButton.icon(
                           onPressed: () => _showEditRoomBottomSheet(currentRoom),
                           icon: const Icon(Icons.edit_outlined, size: 16, color: Colors.white),

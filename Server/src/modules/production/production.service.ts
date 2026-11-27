@@ -2,10 +2,9 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
-  ForbiddenException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Error as MongooseError, Model } from 'mongoose';
 import { v4 as uuidv4 } from 'uuid';
 import {
   ProductionAssignment,
@@ -14,8 +13,10 @@ import {
 import {
   PurchaseOrder,
   PurchaseOrderDocument,
+  PurchaseOrderStatus,
+  PurchaseOrderActivity,
 } from '../../database/schemas/purchase-order.schema';
-import { User, UserDocument } from '../../database/schemas/user.schema';
+import { AssignmentStaffService } from './assignment-staff.service';
 import {
   CreateProductionAssignmentDto,
   UpdateAssignmentDto,
@@ -29,8 +30,7 @@ export class ProductionService {
     private readonly assignmentModel: Model<ProductionAssignmentDocument>,
     @InjectModel(PurchaseOrder.name)
     private readonly poModel: Model<PurchaseOrderDocument>,
-    @InjectModel(User.name)
-    private readonly userModel: Model<UserDocument>,
+    private readonly staff: AssignmentStaffService,
   ) {}
 
   async createAssignment(
@@ -41,6 +41,7 @@ export class ProductionService {
     const po = await this.poModel.findOne({
       tenant_id: tenantId,
       po_id: dto.po_id,
+      status: { $in: [PurchaseOrderStatus.CONFIRMED, PurchaseOrderStatus.IN_PRODUCTION] },
     });
     if (!po) {
       throw new NotFoundException(`Purchase Order "${dto.po_id}" not found`);
@@ -53,14 +54,7 @@ export class ProductionService {
       );
     }
 
-    const supervisor = await this.userModel.findOne({
-      user_id: dto.supervisor_user_id,
-    });
-    if (!supervisor) {
-      throw new NotFoundException(
-        `Supervisor user "${dto.supervisor_user_id}" not found`,
-      );
-    }
+    const supervisor = await this.staff.requireMember(tenantId, 'Supervisor', dto.supervisor_user_id);
 
     // Enforce max cartons = remaining balance on this PO item
     const existingForItem = await this.assignmentModel.find({
@@ -89,7 +83,7 @@ export class ProductionService {
       item_id: item.item_id,
       item_name: item.item_name,
       supervisor_user_id: supervisor.user_id,
-      supervisor_name: supervisor.full_name || supervisor.email_address,
+      supervisor_name: supervisor.name,
       assigned_cartons: dto.assigned_cartons,
       completed_cartons: 0,
       status: 'PENDING',
@@ -101,7 +95,11 @@ export class ProductionService {
     await newAssignment.save();
 
     // Recalculate PO total assigned cartons
-    await this.recalculatePoTotals(tenantId, po.po_id);
+    await this.recalculatePoTotals(tenantId, po.po_id, {
+      user_id: assignedByUserId, department: 'Production Manager', action: 'Assigned supervisor',
+      detail: `${item.item_name}: ${dto.assigned_cartons} cartons assigned to ${supervisor.name}`,
+      at: new Date(),
+    });
 
     return newAssignment;
   }
@@ -144,18 +142,21 @@ export class ProductionService {
     const assignment = await this.assignmentModel.findOne({
       tenant_id: tenantId,
       assignment_id: assignmentId,
+      supervisor_user_id: requestingUserId,
+      status: { $ne: 'CANCELLED' },
     });
 
     if (!assignment) {
       throw new NotFoundException('Production assignment not found');
     }
 
-    if (
-      assignment.supervisor_user_id !== requestingUserId &&
-      assignment.assigned_by_user_id !== requestingUserId
-    ) {
-      // Checked in permissions guard, but ensure user can only modify their own if they are supervisor
-    }
+    const order = await this.poModel.exists({
+      tenant_id: tenantId,
+      po_id: assignment.po_id,
+      status: { $in: [PurchaseOrderStatus.CONFIRMED, PurchaseOrderStatus.IN_PRODUCTION] },
+      'items.item_id': assignment.item_id,
+    });
+    if (!order) throw new NotFoundException('Active purchase order item not found');
 
     if (dto.completed_cartons > assignment.assigned_cartons) {
       throw new BadRequestException(
@@ -178,7 +179,13 @@ export class ProductionService {
     await assignment.save();
 
     // Roll up to PO line item and PO totals
-    await this.recalculatePoTotals(tenantId, assignment.po_id);
+    await this.recalculatePoTotals(tenantId, assignment.po_id, {
+      user_id: requestingUserId,
+      department: 'Supervisor',
+      action: 'Updated production progress',
+      detail: `${assignment.item_name}: ${dto.completed_cartons} / ${assignment.assigned_cartons} cartons`,
+      at: new Date(),
+    });
 
     return assignment;
   }
@@ -187,6 +194,7 @@ export class ProductionService {
     tenantId: string,
     assignmentId: string,
     dto: UpdateAssignmentDto,
+    actor: string,
   ) {
     const assignment = await this.assignmentModel.findOne({
       tenant_id: tenantId,
@@ -198,17 +206,21 @@ export class ProductionService {
       throw new NotFoundException('Production assignment not found');
     }
 
+    const activeOrder = await this.poModel.exists({
+      tenant_id: tenantId,
+      po_id: assignment.po_id,
+      status: { $in: [PurchaseOrderStatus.CONFIRMED, PurchaseOrderStatus.IN_PRODUCTION] },
+      'items.item_id': assignment.item_id,
+    });
+    if (!activeOrder) throw new NotFoundException('Active purchase order item not found');
+
     if (dto.supervisor_user_id && dto.supervisor_user_id !== assignment.supervisor_user_id) {
-      const supervisor = await this.userModel.findOne({
-        user_id: dto.supervisor_user_id,
-      });
-      if (!supervisor) {
-        throw new NotFoundException(
-          `Supervisor user "${dto.supervisor_user_id}" not found`,
-        );
+      if (assignment.completed_cartons > 0) {
+        throw new BadRequestException('An assignment with recorded production cannot be reassigned.');
       }
+      const supervisor = await this.staff.requireMember(tenantId, 'Supervisor', dto.supervisor_user_id);
       assignment.supervisor_user_id = supervisor.user_id;
-      assignment.supervisor_name = supervisor.full_name || supervisor.email_address;
+      assignment.supervisor_name = supervisor.name;
     }
 
     if (dto.assigned_cartons !== undefined) {
@@ -266,30 +278,52 @@ export class ProductionService {
     }
 
     await assignment.save();
-    await this.recalculatePoTotals(tenantId, assignment.po_id);
+    await this.recalculatePoTotals(tenantId, assignment.po_id, {
+      user_id: actor, department: 'Production Manager', action: 'Updated production assignment',
+      detail: `${assignment.item_name}: ${assignment.assigned_cartons} cartons assigned to ${assignment.supervisor_name}`,
+      at: new Date(),
+    });
 
     return assignment;
   }
 
-  async cancelAssignment(tenantId: string, assignmentId: string) {
+  async cancelAssignment(tenantId: string, assignmentId: string, actor: string) {
     const assignment = await this.assignmentModel.findOne({
       tenant_id: tenantId,
       assignment_id: assignmentId,
+      status: { $ne: 'CANCELLED' },
     });
 
     if (!assignment) {
       throw new NotFoundException('Production assignment not found');
     }
 
+    if (assignment.completed_cartons > 0) {
+      throw new BadRequestException('An assignment with recorded production cannot be cancelled.');
+    }
     assignment.status = 'CANCELLED';
     await assignment.save();
 
-    await this.recalculatePoTotals(tenantId, assignment.po_id);
+    await this.recalculatePoTotals(tenantId, assignment.po_id, {
+      user_id: actor, department: 'Production Manager', action: 'Cancelled production assignment',
+      detail: `${assignment.item_name}: ${assignment.supervisor_name}`, at: new Date(),
+    });
 
     return { message: 'Assignment cancelled successfully', assignment_id: assignmentId };
   }
 
-  private async recalculatePoTotals(tenantId: string, poId: string) {
+  private async recalculatePoTotals(tenantId: string, poId: string, activity?: PurchaseOrderActivity) {
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        await this.savePoTotals(tenantId, poId, activity);
+        return;
+      } catch (error) {
+        if (!(error instanceof MongooseError.VersionError) || attempt === 2) throw error;
+      }
+    }
+  }
+
+  private async savePoTotals(tenantId: string, poId: string, activity?: PurchaseOrderActivity) {
     const po = await this.poModel.findOne({ tenant_id: tenantId, po_id: poId });
     if (!po) return;
 
@@ -316,12 +350,17 @@ export class ProductionService {
 
     for (const it of po.items) {
       it.completed_cartons = itemCompletions.get(it.item_id) || 0;
-      if (it.completed_cartons > 0 && it.item_status === 'PENDING') {
-        it.item_status =
-          it.completed_cartons >= it.cartons ? 'PRODUCED' : 'IN_PRODUCTION';
+      if (['PENDING', 'IN_PRODUCTION', 'PRODUCED'].includes(it.item_status)) {
+        if (it.completed_cartons === 0) it.item_status = 'PENDING';
+        else if (it.completed_cartons >= it.cartons) it.item_status = 'PRODUCED';
+        else it.item_status = 'IN_PRODUCTION';
       }
     }
 
+    if (totalCompleted > 0 && po.status === PurchaseOrderStatus.CONFIRMED) {
+      po.status = PurchaseOrderStatus.IN_PRODUCTION;
+    }
+    if (activity) po.activity.push(activity);
     po.markModified('items');
     await po.save();
   }

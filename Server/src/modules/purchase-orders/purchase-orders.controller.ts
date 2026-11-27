@@ -8,6 +8,7 @@ import {
   Param,
   Body,
   UseGuards,
+  Req,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -32,6 +33,7 @@ import {
   RequirePermissions,
   RequireAnyPermissions,
 } from '../../common/decorators/require-permissions.decorator';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { CurrentTenant } from '../../common/decorators/current-tenant.decorator';
 
 @ApiTags('Purchase Orders & Customers')
@@ -122,8 +124,9 @@ export class PurchaseOrdersController {
   async createPO(
     @CurrentTenant() tenantId: string,
     @Body() dto: CreatePurchaseOrderDto,
+    @CurrentUser('user_id') userId: string,
   ) {
-    return this.poService.createPurchaseOrder(tenantId, dto);
+    return this.poService.createPurchaseOrder(tenantId, dto, userId);
   }
 
   @Get('purchase-orders')
@@ -135,8 +138,11 @@ export class PurchaseOrdersController {
   )
   @ApiOperation({ summary: 'List all purchase orders' })
   @ApiResponse({ status: 200, description: 'List of purchase orders' })
-  async findAllPOs(@CurrentTenant() tenantId: string) {
-    return this.poService.findAllPurchaseOrders(tenantId);
+  async findAllPOs(
+    @CurrentTenant() tenantId: string,
+    @Req() request: { confirmed_orders_only?: boolean },
+  ) {
+    return this.poService.findAllPurchaseOrders(tenantId, request.confirmed_orders_only);
   }
 
   @Get('purchase-orders/:id')
@@ -151,8 +157,9 @@ export class PurchaseOrdersController {
   async findOnePO(
     @CurrentTenant() tenantId: string,
     @Param('id') poId: string,
+    @Req() request: { confirmed_orders_only?: boolean },
   ) {
-    return this.poService.findOnePurchaseOrder(tenantId, poId);
+    return this.poService.findOnePurchaseOrder(tenantId, poId, request.confirmed_orders_only);
   }
 
   @Put('purchase-orders/:id')
@@ -163,16 +170,13 @@ export class PurchaseOrdersController {
     @CurrentTenant() tenantId: string,
     @Param('id') poId: string,
     @Body() dto: UpdatePurchaseOrderDto,
+    @CurrentUser('user_id') userId: string,
   ) {
-    return this.poService.updatePurchaseOrder(tenantId, poId, dto);
+    return this.poService.updatePurchaseOrder(tenantId, poId, dto, userId);
   }
 
   @Patch('purchase-orders/:poId/items/:itemId/production')
-  @RequireAnyPermissions(
-    'permission.production.update',
-    'permission.production.create',
-    'permission.po.update',
-  )
+  @RequirePermissions('permission.production.assign')
   @ApiOperation({
     summary:
       'Update produced cartons and status for a PO line item (Supervisor role)',
@@ -181,6 +185,7 @@ export class PurchaseOrdersController {
     @CurrentTenant() tenantId: string,
     @Param('poId') poId: string,
     @Param('itemId') itemId: string,
+    @Req() request: { confirmed_orders_only?: boolean },
     @Body('completed_cartons') completedCartons: number,
     @Body('item_status') itemStatus?: string,
   ) {
@@ -190,6 +195,7 @@ export class PurchaseOrdersController {
       itemId,
       Number(completedCartons) || 0,
       itemStatus,
+      request.confirmed_orders_only,
     );
   }
 
@@ -201,13 +207,16 @@ export class PurchaseOrdersController {
     @Param('poId') poId: string,
     @Param('itemId') itemId: string,
     @Body('packed_cartons') packedCartons: number,
+    @CurrentUser('user_id') userId: string,
   ) {
-    return this.poService.updateItemPacking(
+    await this.poService.updateItemPacking(
       tenantId,
       poId,
       itemId,
-      Number(packedCartons) || 0,
+      Number(packedCartons),
+      userId,
     );
+    return { success: true };
   }
 
   @Patch('purchase-orders/:poId/items/:itemId/shipping')
@@ -218,6 +227,7 @@ export class PurchaseOrdersController {
     @Param('poId') poId: string,
     @Param('itemId') itemId: string,
     @Body('shipped_cartons') shippedCartons: number,
+    @CurrentUser('user_id') userId: string,
     @Body('item_status') itemStatus?: string,
   ) {
     return this.poService.updateItemShipping(
@@ -226,6 +236,7 @@ export class PurchaseOrdersController {
       itemId,
       Number(shippedCartons) || 0,
       itemStatus,
+      userId,
     );
   }
 

@@ -8,8 +8,10 @@ import '../../core/constants/permissions.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/department_provider.dart';
 import '../../providers/inventory_provider.dart';
+import '../../providers/purchase_order_provider.dart';
 import '../../providers/tenant_provider.dart';
 import '../../providers/emergency_contacts_provider.dart';
+import 'department_workspace.dart';
 import 'manage_emergency_contacts_modal.dart';
 import 'signage_embed_banner.dart';
 import '../departments/departments_list_screen.dart';
@@ -81,15 +83,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final tenant = context.read<TenantProvider>();
     final inventory = context.read<InventoryProvider>();
     final dept = context.read<DepartmentProvider>();
-    try {
-      await Future.wait([
-        tenant.loadTenantPermissions(),
-        dept.loadTenantUsers(),
-        inventory.loadItems(),
-        inventory.loadStoreRooms(),
-        context.read<EmergencyContactsProvider>().loadContacts(),
-      ]);
-    } catch (_) {}
+    final orders = context.read<PurchaseOrderProvider>();
+    final contacts = context.read<EmergencyContactsProvider>();
+    await tenant.loadTenantPermissions();
+    if (!mounted) return;
+    await Future.wait([
+      if (tenant.hasPermission(AppPermissions.userRead)) dept.loadTenantUsers(),
+      if (tenant.hasPermission(AppPermissions.itemRead)) inventory.loadItems(),
+      if (tenant.hasPermission(AppPermissions.storeroomRead)) inventory.loadStoreRooms(),
+      if (DepartmentWorkspace.resolve(tenant) == DepartmentWorkspace.sales) orders.loadPurchaseOrders(),
+      if (_showEmergencyContacts) contacts.loadContacts(),
+    ]);
     if (mounted) {
       setState(() {});
     }
@@ -274,7 +278,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
                   ),
                   onTap: () async {
-                    final navigator = Navigator.of(context);
+                    final navigator = Navigator.of(context, rootNavigator: true);
                     Navigator.pop(ctx);
                     tenant.clear();
                     context.read<InventoryProvider>().clear();
@@ -492,12 +496,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
               builder: (navContext) => ValueListenableBuilder<int>(
                 valueListenable: _currentNavIndexNotifier,
                 builder: (context, activeNavIndex, _) {
+                  final currentTenant = context.watch<TenantProvider>();
+                  final workspace = DepartmentWorkspace.resolve(currentTenant);
                   return SafeArea(
                     child: Column(
                       children: [
-                        // Top Bar: Shown on Search (0), Alerts (1), Settings (3).
-                        // On Modules (2), the green textured hero banner serves as the top header.
-                        if (activeNavIndex != 2)
+                        if (activeNavIndex != 2 || workspace != null)
                           Center(
                             child: ConstrainedBox(
                               constraints: const BoxConstraints(maxWidth: 1100),
@@ -508,64 +512,33 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 ),
                                 child: Row(
                                   children: [
-                                    // Tenant Brand
-                                    Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Text(
-                                          tenantDisplayName,
-                                          style: const TextStyle(
-                                            fontSize: 24,
-                                            fontWeight: FontWeight.w900,
-                                            color: Colors.black,
-                                            letterSpacing: -0.7,
-                                          ),
-                                        ),
-                                        if (resolvedDeptName.isNotEmpty) ...[
-                                          const SizedBox(height: 1),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
                                           Text(
-                                            resolvedDeptName,
-                                            style: const TextStyle(
-                                              fontSize: 12,
+                                            currentTenant.activeTenant?.companyName ??
+                                                tenantDisplayName,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: Theme.of(context).textTheme.titleMedium,
+                                          ),
+                                          Text(
+                                            workspace?.label ?? resolvedDeptName,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: TextStyle(
+                                              color: workspace?.color ?? const Color(0xFF64748B),
                                               fontWeight: FontWeight.w600,
-                                              color: Color(0xFF64748B),
                                             ),
                                           ),
                                         ],
-                                      ],
+                                      ),
                                     ),
-                                    const Spacer(),
-
                                     // Real-time Sync Status Indicator
                                     const SyncStatusIndicator(),
                                     const SizedBox(width: 8),
 
-                                    // User Info & Avatar
-                                    Column(
-                                      crossAxisAlignment: CrossAxisAlignment.end,
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Text(
-                                          userName,
-                                          style: const TextStyle(
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.w800,
-                                            color: Colors.black,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 1),
-                                        Text(
-                                          userRoleSubtitle,
-                                          style: const TextStyle(
-                                            fontSize: 12,
-                                            color: Color(0xFF6B7280),
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(width: 10),
                                     InkWell(
                                       onTap: () => _showProfileModal(context),
                                       borderRadius: BorderRadius.circular(4),
@@ -613,22 +586,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
                         // Tab Body: Search (Tab 0), Alerts (Tab 1), Modules (Tab 2), Settings (Tab 3)
                         Expanded(
-                          child: _buildCurrentTabBody(
-                            activeNavIndex: activeNavIndex,
-                            isWide: isWide,
-                            horizontalPadding: horizontalPadding,
-                            tenant: tenant,
-                            inventory: inventory,
-                            deptProvider: deptProvider,
-                            allowedModules: allowedModules,
-                            resolvedDeptName: resolvedDeptName,
-                            userName: userName,
-                            userAvatarUrl: userAvatarUrl,
-                            userInitial: userInitial,
-                            tenantDisplayName: tenantDisplayName,
-                            userRoleSubtitle: userRoleSubtitle,
-                            isAdmin: isAdmin,
-                          ),
+                          child: activeNavIndex == 2 && workspace != null
+                              ? DepartmentWorkspaceView(
+                                  key: ValueKey(workspace),
+                                  workspace: workspace,
+                                  onRefresh: _loadInitialData,
+                                )
+                              : _buildCurrentTabBody(
+                                  activeNavIndex: activeNavIndex,
+                                  isWide: isWide,
+                                  horizontalPadding: horizontalPadding,
+                                  tenant: currentTenant,
+                                  inventory: inventory,
+                                  deptProvider: deptProvider,
+                                  allowedModules: allowedModules,
+                                  resolvedDeptName: resolvedDeptName,
+                                  userName: userName,
+                                  userAvatarUrl: userAvatarUrl,
+                                  userInitial: userInitial,
+                                  tenantDisplayName: tenantDisplayName,
+                                  userRoleSubtitle: userRoleSubtitle,
+                                  isAdmin: isAdmin,
+                                ),
                         ),
                       ],
                     ),

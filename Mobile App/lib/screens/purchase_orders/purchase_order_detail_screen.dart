@@ -150,7 +150,11 @@ class _PurchaseOrderDetailScreenState extends State<PurchaseOrderDetailScreen> {
   Widget build(BuildContext context) {
     final poProvider = context.watch<PurchaseOrderProvider>();
     final poList = poProvider.purchaseOrders;
-    final poIndex = poList.indexWhere((p) => p.poId == widget.poId);
+    final tenant = context.watch<TenantProvider>();
+    final poIndex = poList.indexWhere((order) =>
+        order.poId == widget.poId &&
+        order.tenantId == tenant.activeTenant?.tenantId &&
+        (!tenant.isUserInSupervisorDepartment || order.wasConfirmed));
 
     if (poIndex < 0) {
       return Scaffold(
@@ -183,7 +187,6 @@ class _PurchaseOrderDetailScreenState extends State<PurchaseOrderDetailScreen> {
     }
 
     final po = poList[poIndex];
-    final tenant = context.watch<TenantProvider>();
     final isAdmin = tenant.isTenantAdmin;
     final canUpdatePo = isAdmin || tenant.hasPermission(AppPermissions.poUpdate);
     final canDeletePo = isAdmin || tenant.hasPermission(AppPermissions.poDelete);

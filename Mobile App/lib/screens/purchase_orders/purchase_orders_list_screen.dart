@@ -11,7 +11,9 @@ import 'create_purchase_order_screen.dart';
 import 'purchase_order_detail_screen.dart';
 
 class PurchaseOrdersListScreen extends StatefulWidget {
-  const PurchaseOrdersListScreen({super.key});
+  const PurchaseOrdersListScreen({super.key, this.initialStatus = 'ALL'});
+
+  final String initialStatus;
 
   @override
   State<PurchaseOrdersListScreen> createState() =>
@@ -22,7 +24,7 @@ class _PurchaseOrdersListScreenState extends State<PurchaseOrdersListScreen> {
   final TextEditingController _searchController = TextEditingController();
   final DateFormat _dateFormat = DateFormat('dd/MM/yyyy');
   String _searchQuery = '';
-  String _selectedStatus = 'ALL';
+  late String _selectedStatus = widget.initialStatus;
 
   @override
   void initState() {
@@ -88,7 +90,10 @@ class _PurchaseOrdersListScreenState extends State<PurchaseOrdersListScreen> {
     final tenant = context.watch<TenantProvider>();
     final isAdmin = tenant.isTenantAdmin;
     final canCreatePo = isAdmin || tenant.hasPermission(AppPermissions.poCreate);
-    final allOrders = poProvider.purchaseOrders;
+    final isSupervisor = tenant.isUserInSupervisorDepartment;
+    final allOrders = poProvider.purchaseOrders.where((order) =>
+        order.tenantId == tenant.activeTenant?.tenantId &&
+        (!isSupervisor || order.wasConfirmed));
 
     final screenWidth = MediaQuery.of(context).size.width;
     final isWide = screenWidth >= 700;
@@ -169,7 +174,7 @@ class _PurchaseOrdersListScreenState extends State<PurchaseOrdersListScreen> {
                             flex: 6,
                             child: SingleChildScrollView(
                               scrollDirection: Axis.horizontal,
-                              child: _buildStatusChipsRow(),
+                              child: _buildStatusChipsRow(isSupervisor: isSupervisor),
                             ),
                           ),
                         ],
@@ -181,7 +186,7 @@ class _PurchaseOrdersListScreenState extends State<PurchaseOrdersListScreen> {
                           const SizedBox(height: 10),
                           SingleChildScrollView(
                             scrollDirection: Axis.horizontal,
-                            child: _buildStatusChipsRow(),
+                            child: _buildStatusChipsRow(isSupervisor: isSupervisor),
                           ),
                         ],
                       ),
@@ -507,7 +512,7 @@ class _PurchaseOrdersListScreenState extends State<PurchaseOrdersListScreen> {
     );
   }
 
-  Widget _buildStatusChipsRow() {
+  Widget _buildStatusChipsRow({required bool isSupervisor}) {
     return Row(
       children: [
         _buildStatusChip('ALL', 'All Orders'),
@@ -518,7 +523,11 @@ class _PurchaseOrdersListScreenState extends State<PurchaseOrdersListScreen> {
         const SizedBox(width: 8),
         _buildStatusChip('SHIPPED', 'Shipped'),
         const SizedBox(width: 8),
-        _buildStatusChip('DRAFT', 'Draft'),
+        _buildStatusChip('DELIVERED', 'Delivered'),
+        if (!isSupervisor) ...[
+          const SizedBox(width: 8),
+          _buildStatusChip('DRAFT', 'Draft'),
+        ],
       ],
     );
   }

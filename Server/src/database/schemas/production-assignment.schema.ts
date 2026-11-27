@@ -6,6 +6,7 @@ export type ProductionAssignmentDocument = ProductionAssignment & Document;
 
 @Schema({
   collection: 'production_assignments',
+  optimisticConcurrency: true,
   timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' },
   toJSON: {
     transform: (_, ret: Record<string, any>) => {

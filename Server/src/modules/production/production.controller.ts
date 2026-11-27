@@ -7,6 +7,7 @@ import {
   Param,
   Body,
   UseGuards,
+  Req,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -54,7 +55,15 @@ export class ProductionController {
   @Get('assignments')
   @RequirePermissions('permission.production.read')
   @ApiOperation({ summary: 'List all production assignments' })
-  async getAllAssignments(@CurrentTenant() tenantId: string) {
+  async getAllAssignments(
+    @CurrentTenant() tenantId: string,
+    @CurrentUser('user_id') userId: string,
+    @Req() request: { department_codes: string[] },
+  ) {
+    if (request.department_codes.includes('SUPERVISOR') &&
+        !request.department_codes.some((code) => ['PRODUCTION_MANAGER', 'ADMINISTRATOR'].includes(code))) {
+      return this.productionService.getMyAssignments(tenantId, userId);
+    }
     return this.productionService.getAllAssignments(tenantId);
   }
 
@@ -74,19 +83,27 @@ export class ProductionController {
   async getAssignmentsByPo(
     @CurrentTenant() tenantId: string,
     @Param('poId') poId: string,
+    @CurrentUser('user_id') userId: string,
+    @Req() request: { department_codes: string[] },
   ) {
+    if (request.department_codes.includes('SUPERVISOR') &&
+        !request.department_codes.some((code) => ['PRODUCTION_MANAGER', 'ADMINISTRATOR'].includes(code))) {
+      const assignments = await this.productionService.getMyAssignments(tenantId, userId);
+      return assignments.filter((assignment) => assignment.po_id === poId);
+    }
     return this.productionService.getAssignmentsByPo(tenantId, poId);
   }
 
   @Patch('assignments/:id')
-  @RequirePermissions('permission.production.update')
+  @RequirePermissions('permission.production.assign')
   @ApiOperation({ summary: 'Reassign supervisor, update quantity or notes on assignment' })
   async updateAssignment(
     @CurrentTenant() tenantId: string,
     @Param('id') assignmentId: string,
     @Body() dto: UpdateAssignmentDto,
+    @CurrentUser('user_id') userId: string,
   ) {
-    return this.productionService.updateAssignment(tenantId, assignmentId, dto);
+    return this.productionService.updateAssignment(tenantId, assignmentId, dto, userId);
   }
 
   @Patch('assignments/:id/progress')
@@ -112,8 +129,9 @@ export class ProductionController {
   async cancelAssignment(
     @CurrentTenant() tenantId: string,
     @Param('id') assignmentId: string,
+    @CurrentUser('user_id') userId: string,
   ) {
-    return this.productionService.cancelAssignment(tenantId, assignmentId);
+    return this.productionService.cancelAssignment(tenantId, assignmentId, userId);
   }
 }
 

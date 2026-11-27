@@ -5,6 +5,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+import { FIXED_DEPARTMENTS } from '../../modules/departments/departments.constants';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import {
@@ -74,6 +75,7 @@ export class PermissionsGuard implements CanActivate {
     });
 
     if (tenant && tenant.admin_user_id === user.user_id) {
+      request.department_codes = ['ADMINISTRATOR'];
       return true;
     }
 
@@ -112,26 +114,17 @@ export class PermissionsGuard implements CanActivate {
 
         const recoveredDeptIds: string[] = [];
         for (const oldD of oldDepts) {
-          const oldName = (oldD.department_name || '').toLowerCase();
+          const oldName = (oldD.department_name || '').trim().toLowerCase();
+          if (!oldName) continue;
           const mapped = fixedDepts.find((f) => {
             const fName = f.department_name.toLowerCase();
-            return fName.includes(oldName) || oldName.includes(fName);
+            return fName === oldName || (fName !== 'administrator' &&
+              (fName.includes(oldName) || oldName.includes(fName)));
           });
           if (mapped) recoveredDeptIds.push(mapped.department_id);
         }
 
-        const adminDept =
-          fixedDepts.find(
-            (d) => d.department_name.toLowerCase() === 'administrator',
-          ) || fixedDepts[0];
-
-        const isTenantAdmin = tenant && tenant.admin_user_id === user.user_id;
-        const newDeptIds = isTenantAdmin
-          ? fixedDepts.map((d) => d.department_id)
-          : recoveredDeptIds.length > 0
-            ? recoveredDeptIds
-            : [adminDept.department_id];
-
+        const newDeptIds = [...new Set(recoveredDeptIds)];
         membership.department_ids = newDeptIds;
         await this.membershipModel.updateOne(
           { _id: (membership as any)._id },
@@ -149,6 +142,17 @@ export class PermissionsGuard implements CanActivate {
         `Access denied: You are not assigned to any active departments in this tenant organization`,
       );
     }
+
+    request.department_codes = FIXED_DEPARTMENTS.filter((fixed) =>
+      departments.some((department) =>
+        department.department_id === fixed.department_id ||
+        department.department_name.trim().toLowerCase() === fixed.name.toLowerCase(),
+      ),
+    ).map((department) => department.code);
+    request.confirmed_orders_only = request.department_codes.some(
+      (code: string) => code === 'SUPERVISOR' || code === 'PRODUCTION_MANAGER' || code === 'ACCOUNTS',
+    ) && !request.department_codes.includes('ADMINISTRATOR') &&
+      !request.department_codes.includes('SALES');
 
     // 4. Users with the Administrator department inherit full access across all modules
     if (

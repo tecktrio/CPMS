@@ -31,7 +31,7 @@ class _StoreRoomsListScreenState extends State<StoreRoomsListScreen> {
     final tenant = context.watch<TenantProvider>();
     final isAdmin = tenant.isTenantAdmin;
     final canCreate =
-        isAdmin || tenant.hasPermission(AppPermissions.storeroomCreate);
+        isAdmin;
 
     final screenWidth = MediaQuery.of(context).size.width;
     final isWide = screenWidth >= 700;

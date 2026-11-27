@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsNumber, IsOptional, IsString, Min } from 'class-validator';
+import { IsDateString, IsNotEmpty, IsInt, IsOptional, IsString, Min } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateProductionAssignmentDto {
@@ -18,7 +18,7 @@ export class CreateProductionAssignmentDto {
   supervisor_user_id: string;
 
   @ApiProperty({ description: 'Cartons assigned to this supervisor', minimum: 1 })
-  @IsNumber()
+  @IsInt()
   @Min(1)
   assigned_cartons: number;
 
@@ -28,14 +28,14 @@ export class CreateProductionAssignmentDto {
   notes?: string;
 
   @ApiProperty({ description: 'Target/scheduled date for this assignment (ISO string)', required: false })
-  @IsString()
+  @IsDateString()
   @IsOptional()
   target_date?: string;
 }
 
 export class UpdateProgressDto {
   @ApiProperty({ description: 'Carton quantity completed so far', minimum: 0 })
-  @IsNumber()
+  @IsInt()
   @Min(0)
   completed_cartons: number;
 }
@@ -47,7 +47,7 @@ export class UpdateAssignmentDto {
   supervisor_user_id?: string;
 
   @ApiProperty({ description: 'Updated assigned cartons', minimum: 1, required: false })
-  @IsNumber()
+  @IsInt()
   @Min(1)
   @IsOptional()
   assigned_cartons?: number;
@@ -58,7 +58,7 @@ export class UpdateAssignmentDto {
   notes?: string;
 
   @ApiProperty({ description: 'Updated target/scheduled date (ISO string)', required: false })
-  @IsString()
+  @IsDateString()
   @IsOptional()
   target_date?: string;
 }

@@ -7,6 +7,34 @@ export interface SystemPermissionDefinition {
 }
 
 export const SYSTEM_PERMISSIONS: SystemPermissionDefinition[] = [
+  {
+    permission_id: 'permission.storeroom.manage',
+    module: 'StoreRooms',
+    action: 'UPDATE',
+    display_name: 'Edit Store Room Settings',
+    description: 'Allows updating room details and divisions.',
+  },
+  {
+    permission_id: 'permission.production.assign',
+    module: 'Production',
+    action: 'ALLOCATE',
+    display_name: 'Manage Order Assignments',
+    description: 'Allows allocating confirmed order items to supervisors and quality assurance staff.',
+  },
+  {
+    permission_id: 'permission.qc.check',
+    module: 'Quality Control',
+    action: 'EXECUTE',
+    display_name: 'Check Assigned Order Items',
+    description: 'Allows recording a check and optional note on an assigned order item.',
+  },
+  {
+    permission_id: 'permission.export.read',
+    module: 'Export',
+    action: 'READ',
+    display_name: 'View Order Readiness',
+    description: 'Allows viewing basic confirmed order details and packing progress.',
+  },
   // 1. Items & Raw Materials
   {
     permission_id: 'permission.item.create',

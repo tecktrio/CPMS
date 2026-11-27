@@ -12,8 +12,33 @@ import '../../widgets/app_footer.dart';
 import '../../widgets/export_options_dialog.dart';
 import 'production_status_dialogs.dart';
 
+enum ProductionQueue {
+  inspection('Inspection queue', 'No orders are awaiting inspection'),
+  packing('Packing queue', 'No orders are ready to pack'),
+  dispatch('Dispatch queue', 'No orders are ready to dispatch');
+
+  const ProductionQueue(this.title, this.emptyMessage);
+
+  final String title;
+  final String emptyMessage;
+
+  bool matches(PurchaseOrderModel order) =>
+      const {'CONFIRMED', 'IN_PRODUCTION'}.contains(
+        order.status.trim().toUpperCase(),
+      ) &&
+      order.items.any(matchesLine);
+
+  bool matchesLine(PurchaseOrderItemModel item) => switch (this) {
+        inspection => item.completedCartons > 0 && !item.qcPassed,
+        packing => item.qcPassed && item.packedCartons < item.completedCartons,
+        dispatch => item.shippedCartons < item.packedCartons,
+      };
+}
+
 class ProductionHubScreen extends StatefulWidget {
-  const ProductionHubScreen({super.key});
+  const ProductionHubScreen({super.key, this.queue});
+
+  final ProductionQueue? queue;
 
   @override
   State<ProductionHubScreen> createState() => _ProductionHubScreenState();
@@ -23,6 +48,7 @@ class _ProductionHubScreenState extends State<ProductionHubScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   String _statusFilter = 'ALL';
+  bool _showOrderHistory = false;
   final Set<String> _collapsedPoIds = {};
   final DateFormat _dateFormat = DateFormat('dd/MM/yyyy');
 
@@ -154,9 +180,12 @@ class _ProductionHubScreenState extends State<ProductionHubScreen> {
     final canUpdateShipping =
         isAdmin || tenant.hasPermission(AppPermissions.exportUpdate);
 
-    // Filter POs: strictly NON-DRAFT purchase orders
+    final queue = _showOrderHistory ? null : widget.queue;
     final nonDraftOrders = poProvider.purchaseOrders.where((po) {
+      if (po.tenantId != tenant.activeTenant?.tenantId) return false;
       final status = po.status.trim().toUpperCase();
+      if (queue != null) return queue.matches(po);
+      if (isSupervisor || widget.queue != null) return po.wasConfirmed;
       return status != 'DRAFT';
     }).where((po) {
       if (_searchQuery.isEmpty) return true;
@@ -175,9 +204,9 @@ class _ProductionHubScreenState extends State<ProductionHubScreen> {
         elevation: 0,
         scrolledUnderElevation: 0,
         centerTitle: true,
-        title: const Text(
-          'Production Hub',
-          style: TextStyle(
+        title: Text(
+          widget.queue?.title ?? (isSupervisor ? 'Production lines' : 'Production Hub'),
+          style: const TextStyle(
             color: Color(0xFF0F172A),
             fontSize: 22,
             fontWeight: FontWeight.w800,
@@ -222,17 +251,17 @@ class _ProductionHubScreenState extends State<ProductionHubScreen> {
                         Icon(Icons.inventory_2_outlined,
                             size: 48, color: Colors.grey.shade400),
                         const SizedBox(height: 12),
-                        const Text(
-                          'No active production orders found',
-                          style: TextStyle(
+                        Text(
+                          queue?.emptyMessage ?? 'No production orders found',
+                          style: const TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w800,
                             color: Color(0xFF0F172A),
                           ),
                         ),
-                        const SizedBox(height: 4),
-                        const Text(
-                          'Purchase Orders will automatically appear here once confirmed or moved to production stage.',
+                        if (widget.queue == null) const SizedBox(height: 4),
+                        if (widget.queue == null) const Text(
+                          'Purchase orders appear here after confirmation.',
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             fontSize: 12,
@@ -245,6 +274,7 @@ class _ProductionHubScreenState extends State<ProductionHubScreen> {
                 else
                   ...nonDraftOrders.map((po) => _buildProductionOrderCard(
                         po,
+                        queue: queue,
                         canManageProd: canManageProd,
                         canAssignTask: canAssignTask,
                         isSupervisor: isSupervisor,
@@ -280,21 +310,33 @@ class _ProductionHubScreenState extends State<ProductionHubScreen> {
             setState(() => _searchQuery = '');
           },
         ),
-        const SizedBox(height: 12),
-
-        // Status pills
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            children: [
-              _buildFilterPill('ALL', 'All Active'),
-              _buildFilterPill('CONFIRMED', 'Confirmed'),
-              _buildFilterPill('IN_PRODUCTION', 'In Production'),
-              _buildFilterPill('SHIPPED', 'Shipped'),
-              _buildFilterPill('DELIVERED', 'Delivered'),
-            ],
+        if (widget.queue != null)
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('Show order history'),
+            value: _showOrderHistory,
+            onChanged: (value) => setState(() {
+              _showOrderHistory = value;
+              _statusFilter = 'ALL';
+            }),
           ),
-        ),
+        if (widget.queue == null || _showOrderHistory) ...[
+          const SizedBox(height: 12),
+
+          // Status pills
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _buildFilterPill('ALL', 'All orders'),
+                _buildFilterPill('CONFIRMED', 'Confirmed'),
+                _buildFilterPill('IN_PRODUCTION', 'In Production'),
+                _buildFilterPill('SHIPPED', 'Shipped'),
+                _buildFilterPill('DELIVERED', 'Delivered'),
+              ],
+            ),
+          ),
+        ],
       ],
     );
   }
@@ -332,6 +374,7 @@ class _ProductionHubScreenState extends State<ProductionHubScreen> {
 
   Widget _buildProductionOrderCard(
     PurchaseOrderModel po, {
+    required ProductionQueue? queue,
     required bool canManageProd,
     required bool canAssignTask,
     required bool isSupervisor,
@@ -343,6 +386,9 @@ class _ProductionHubScreenState extends State<ProductionHubScreen> {
     required bool canUpdateShipping,
   }) {
     final isCollapsed = _collapsedPoIds.contains(po.poId);
+    final visibleItems = queue == null
+        ? po.items
+        : po.items.where(queue.matchesLine).toList();
     final totalCompleted =
         po.items.fold<int>(0, (sum, i) => sum + i.completedCartons);
     final totalPacked =
@@ -755,7 +801,7 @@ class _ProductionHubScreenState extends State<ProductionHubScreen> {
                           size: 16, color: Color(0xFF475569)),
                       const SizedBox(width: 8),
                       Text(
-                        'LINE ITEMS (${po.items.length})',
+                        'LINE ITEMS (${visibleItems.length})',
                         style: const TextStyle(
                           fontSize: 11.5,
                           fontWeight: FontWeight.w800,
@@ -875,11 +921,11 @@ class _ProductionHubScreenState extends State<ProductionHubScreen> {
                       ListView.separated(
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
-                        itemCount: po.items.length,
+                        itemCount: visibleItems.length,
                         separatorBuilder: (_, _) =>
                             const Divider(height: 1, color: Color(0xFFF1F5F9)),
                         itemBuilder: (context, idx) {
-                          final item = po.items[idx];
+                          final item = visibleItems[idx];
                           final unitSubtitle = item.specification.isNotEmpty
                               ? item.specification
                               : (item.unit.isNotEmpty ? item.unit.toUpperCase() : '454 GRAM');

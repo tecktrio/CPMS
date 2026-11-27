@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   ConflictException,
+  BadRequestException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
@@ -14,6 +15,7 @@ import {
   PurchaseOrder,
   PurchaseOrderDocument,
   PurchaseOrderStatus,
+  releasedOrderStatuses,
 } from '../../database/schemas/purchase-order.schema';
 import {
   CreateCustomerDto,
@@ -117,7 +119,7 @@ export class PurchaseOrdersService {
 
   // ===================== PURCHASE ORDERS =====================
 
-  async createPurchaseOrder(tenantId: string, dto: CreatePurchaseOrderDto) {
+  async createPurchaseOrder(tenantId: string, dto: CreatePurchaseOrderDto, userId: string) {
     const poNum = dto.po_number.trim().toUpperCase();
 
     const existing = await this.poModel.findOne({
@@ -195,22 +197,33 @@ export class PurchaseOrdersService {
       total_items_count: processedItems.length,
       status: dto.status || PurchaseOrderStatus.DRAFT,
       notes: dto.notes?.trim() || '',
+      activity: [{
+        user_id: userId,
+        department: 'Sales',
+        action: 'Created purchase order',
+        detail: dto.status || PurchaseOrderStatus.DRAFT,
+        at: new Date(),
+      }],
     });
 
     await po.save();
     return po;
   }
 
-  async findAllPurchaseOrders(tenantId: string) {
+  async findAllPurchaseOrders(tenantId: string, confirmedOnly = false) {
     return this.poModel
-      .find({ tenant_id: tenantId })
+      .find({
+        tenant_id: tenantId,
+        ...(confirmedOnly && { status: { $in: releasedOrderStatuses } }),
+      })
       .sort({ po_date: -1, created_at: -1 });
   }
 
-  async findOnePurchaseOrder(tenantId: string, poId: string) {
+  async findOnePurchaseOrder(tenantId: string, poId: string, confirmedOnly = false) {
     const po = await this.poModel.findOne({
       tenant_id: tenantId,
       po_id: poId,
+      ...(confirmedOnly && { status: { $in: releasedOrderStatuses } }),
     });
     if (!po) {
       throw new NotFoundException('Purchase Order not found');
@@ -222,6 +235,7 @@ export class PurchaseOrdersService {
     tenantId: string,
     poId: string,
     dto: UpdatePurchaseOrderDto,
+    userId: string,
   ) {
     const po = await this.findOnePurchaseOrder(tenantId, poId);
 
@@ -258,6 +272,7 @@ export class PurchaseOrdersService {
     if (dto.customer_name !== undefined) po.customer_name = dto.customer_name.trim();
     if (dto.customer_address !== undefined) po.customer_address = dto.customer_address.trim();
     if (dto.customer_contact !== undefined) po.customer_contact = dto.customer_contact.trim();
+    const previousStatus = po.status;
     if (dto.status !== undefined) po.status = dto.status;
     if (dto.notes !== undefined) po.notes = dto.notes.trim();
 
@@ -287,6 +302,10 @@ export class PurchaseOrdersService {
           quantity_per_packet: qtyPerPacket,
           unit: it.unit || '',
           completed_cartons: existingItem?.completed_cartons || 0,
+          qa_user_id: existingItem?.qa_user_id,
+          qa_target_date: existingItem?.qa_target_date,
+          qa_checked_at: existingItem?.qa_checked_at,
+          qa_note: existingItem?.qa_note,
           qc_passed: existingItem?.qc_passed || false,
           packed_cartons: existingItem?.packed_cartons || 0,
           shipped_cartons: existingItem?.shipped_cartons || 0,
@@ -305,6 +324,13 @@ export class PurchaseOrdersService {
       po.total_items_count = po.items.length;
     }
 
+    po.activity.push({
+      user_id: userId,
+      department: 'Sales',
+      action: 'Updated purchase order',
+      detail: previousStatus === po.status ? '' : `${previousStatus} → ${po.status}`,
+      at: new Date(),
+    });
     await po.save();
     return po;
   }
@@ -315,8 +341,9 @@ export class PurchaseOrdersService {
     itemId: string,
     completedCartons: number,
     itemStatus?: string,
+    confirmedOnly = false,
   ) {
-    const po = await this.findOnePurchaseOrder(tenantId, poId);
+    const po = await this.findOnePurchaseOrder(tenantId, poId, confirmedOnly);
     const item = po.items.find((it) => it.item_id === itemId);
     if (!item) {
       throw new NotFoundException(
@@ -361,14 +388,23 @@ export class PurchaseOrdersService {
     poId: string,
     itemId: string,
     packedCartons: number,
+    userId: string,
   ) {
-    const po = await this.findOnePurchaseOrder(tenantId, poId);
+    const po = await this.findOnePurchaseOrder(tenantId, poId, true);
     const item = po.items.find((it) => it.item_id === itemId);
     if (!item) {
       throw new NotFoundException(`Item "${itemId}" not found in PO "${po.po_number}"`);
     }
 
-    item.packed_cartons = Math.max(0, packedCartons);
+    if (![PurchaseOrderStatus.CONFIRMED, PurchaseOrderStatus.IN_PRODUCTION].includes(po.status)) {
+      throw new BadRequestException('This order is closed for packing');
+    }
+    if (!Number.isInteger(packedCartons) || packedCartons < 0 ||
+        packedCartons > item.cartons || packedCartons < item.shipped_cartons) {
+      throw new BadRequestException('Packed cartons must be between shipped and ordered cartons');
+    }
+    if (item.packed_cartons === packedCartons) return { success: true };
+    item.packed_cartons = packedCartons;
     if (item.packed_cartons >= item.cartons) {
       if (item.item_status !== 'SHIPPED') item.item_status = 'PACKED';
     } else if (item.packed_cartons > 0) {
@@ -380,6 +416,10 @@ export class PurchaseOrdersService {
       0,
     );
 
+    po.activity.push({
+      user_id: userId, department: 'Packing', action: 'Updated packed cartons',
+      detail: `${item.item_name}: ${packedCartons} / ${item.cartons} cartons`, at: new Date(),
+    });
     await po.save();
     return { success: true, item, po };
   }
@@ -389,7 +429,8 @@ export class PurchaseOrdersService {
     poId: string,
     itemId: string,
     shippedCartons: number,
-    itemStatus?: string,
+    itemStatus: string | undefined,
+    userId: string,
   ) {
     const po = await this.findOnePurchaseOrder(tenantId, poId);
     const item = po.items.find((it) => it.item_id === itemId);
@@ -418,6 +459,10 @@ export class PurchaseOrdersService {
       po.status = PurchaseOrderStatus.SHIPPED;
     }
 
+    po.activity.push({
+      user_id: userId, department: 'Export', action: 'Updated shipped cartons',
+      detail: `${item.item_name}: ${shippedCartons} / ${item.cartons} cartons`, at: new Date(),
+    });
     await po.save();
     return { success: true, item, po };
   }

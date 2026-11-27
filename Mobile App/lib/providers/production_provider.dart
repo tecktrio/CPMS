@@ -112,7 +112,7 @@ class ProductionProvider extends ChangeNotifier {
         'supervisor_user_id': supervisorUserId,
         'assigned_cartons': assignedCartons,
         if (notes != null && notes.isNotEmpty) 'notes': notes,
-        if (targetDate != null) 'target_date': targetDate.toIso8601String(),
+        if (targetDate != null) 'target_date': targetDate.toUtc().toIso8601String(),
       };
 
       final res = await apiClient.post(
@@ -185,7 +185,7 @@ class ProductionProvider extends ChangeNotifier {
         'supervisor_user_id': ?supervisorUserId,
         'assigned_cartons': ?assignedCartons,
         'notes': ?notes,
-        if (targetDate != null) 'target_date': targetDate.toIso8601String(),
+        if (targetDate != null) 'target_date': targetDate.toUtc().toIso8601String(),
       };
       final res = await apiClient.patch(
         ApiConstants.productionAssignmentCancel(assignmentId),

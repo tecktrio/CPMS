@@ -16,7 +16,7 @@ class StoreRoomsHubScreen extends StatelessWidget {
     final isAdmin = tenant.isTenantAdmin;
 
     final canRead = isAdmin || tenant.hasPermission(AppPermissions.storeroomRead);
-    final canCreate = isAdmin || tenant.hasPermission(AppPermissions.storeroomCreate);
+    final canCreate = isAdmin;
 
     return Scaffold(
       appBar: AppBar(

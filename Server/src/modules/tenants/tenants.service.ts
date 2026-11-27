@@ -328,26 +328,17 @@ export class TenantsService {
 
         const recoveredDeptIds: string[] = [];
         for (const oldD of oldDepts) {
-          const oldName = (oldD.department_name || '').toLowerCase();
+          const oldName = (oldD.department_name || '').trim().toLowerCase();
+          if (!oldName) continue;
           const mapped = fixedDepts.find((f) => {
             const fName = f.department_name.toLowerCase();
-            return fName.includes(oldName) || oldName.includes(fName);
+            return fName === oldName || (fName !== 'administrator' &&
+              (fName.includes(oldName) || oldName.includes(fName)));
           });
           if (mapped) recoveredDeptIds.push(mapped.department_id);
         }
 
-        const adminDept =
-          fixedDepts.find(
-            (d) => d.department_name.toLowerCase() === 'administrator',
-          ) || fixedDepts[0];
-
-        const isTenantAdmin = tenant.admin_user_id === userId;
-        const newDeptIds = isTenantAdmin
-          ? fixedDepts.map((d) => d.department_id)
-          : recoveredDeptIds.length > 0
-            ? recoveredDeptIds
-            : [adminDept.department_id];
-
+        const newDeptIds = [...new Set(recoveredDeptIds)];
         membership.department_ids = newDeptIds;
         await this.membershipModel.updateOne(
           { _id: (membership as any)._id },

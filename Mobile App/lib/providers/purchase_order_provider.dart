@@ -154,6 +154,10 @@ class PurchaseOrderModel {
   final String notes;
   final DateTime? createdAt;
 
+  bool get wasConfirmed => const {
+        'CONFIRMED', 'IN_PRODUCTION', 'SHIPPED', 'DELIVERED',
+      }.contains(status.trim().toUpperCase());
+
   PurchaseOrderModel({
     required this.poId,
     required this.tenantId,

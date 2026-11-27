@@ -5,6 +5,7 @@ import {
   Param,
   Body,
   UseGuards,
+  Req,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -51,8 +52,13 @@ export class QcController {
   async getReportsByPo(
     @CurrentTenant() tenantId: string,
     @Param('poId') poId: string,
+    @CurrentUser('user_id') userId: string,
+    @Req() request: { department_codes: string[] },
   ) {
-    return this.qcService.getReportsByPo(tenantId, poId);
+    return this.qcService.getReportsByPo(
+      tenantId, poId,
+      request.department_codes.includes('QC') && !request.department_codes.includes('ADMINISTRATOR') ? userId : undefined,
+    );
   }
 
   @Get('reports/:id')
@@ -61,8 +67,13 @@ export class QcController {
   async getReportById(
     @CurrentTenant() tenantId: string,
     @Param('id') reportId: string,
+    @CurrentUser('user_id') userId: string,
+    @Req() request: { department_codes: string[] },
   ) {
-    return this.qcService.getReportById(tenantId, reportId);
+    return this.qcService.getReportById(
+      tenantId, reportId,
+      request.department_codes.includes('QC') && !request.department_codes.includes('ADMINISTRATOR') ? userId : undefined,
+    );
   }
 }
 

@@ -85,16 +85,17 @@ export class QcService {
     return newReport;
   }
 
-  async getReportsByPo(tenantId: string, poId: string) {
+  async getReportsByPo(tenantId: string, poId: string, inspectorId?: string) {
     return this.qcReportModel
-      .find({ tenant_id: tenantId, po_id: poId })
+      .find({ tenant_id: tenantId, po_id: poId, ...(inspectorId && { inspector_user_id: inspectorId }) })
       .sort({ created_at: -1 });
   }
 
-  async getReportById(tenantId: string, reportId: string) {
+  async getReportById(tenantId: string, reportId: string, inspectorId?: string) {
     const report = await this.qcReportModel.findOne({
       tenant_id: tenantId,
       qc_report_id: reportId,
+      ...(inspectorId && { inspector_user_id: inspectorId }),
     });
     if (!report) {
       throw new NotFoundException('QC Report not found');

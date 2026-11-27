@@ -441,8 +441,7 @@ class _StoreRoomItemDetailScreenState extends State<StoreRoomItemDetailScreen> {
     final isAdmin = tenant.isTenantAdmin;
     final canUpdate =
         isAdmin || tenant.hasPermission(AppPermissions.storeroomUpdate);
-    final canDelete =
-        isAdmin || tenant.hasPermission(AppPermissions.storeroomDelete);
+    final canRemoveItem = canUpdate;
 
     final currentRoom = inventory.storeRooms.firstWhere(
       (r) => r.storeRoomId == widget.storeRoomId,
@@ -550,7 +549,7 @@ class _StoreRoomItemDetailScreenState extends State<StoreRoomItemDetailScreen> {
                   context,
                   MaterialPageRoute(builder: (_) => ItemDetailScreen(item: item)),
                 );
-              } else if (val == 'remove_item' && canDelete) {
+              } else if (val == 'remove_item' && canRemoveItem) {
                 _confirmRemoveItem(item, currentRoom);
               }
             },
@@ -588,7 +587,7 @@ class _StoreRoomItemDetailScreenState extends State<StoreRoomItemDetailScreen> {
                     ],
                   ),
                 ),
-              const PopupMenuItem(
+              if (isAdmin) const PopupMenuItem(
                 value: 'view_catalog',
                 child: Row(
                   children: [
@@ -598,7 +597,7 @@ class _StoreRoomItemDetailScreenState extends State<StoreRoomItemDetailScreen> {
                   ],
                 ),
               ),
-              if (canDelete) ...[
+              if (canRemoveItem) ...[
                 const PopupMenuDivider(),
                 const PopupMenuItem(
                   value: 'remove_item',

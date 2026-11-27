@@ -38,6 +38,7 @@ class AppPermissions {
   static const String productionDelete = 'permission.production.delete';
 
   // QC (Quality Control)
+  static const String qcCheck = 'permission.qc.check';
   static const String qcCreate = 'permission.qc.create';
   static const String qcRead = 'permission.qc.read';
   static const String qcUpdate = 'permission.qc.update';
@@ -46,6 +47,7 @@ class AppPermissions {
   static const String packingUpdate = 'permission.packing.update';
 
   // Export
+  static const String exportRead = 'permission.export.read';
   static const String exportUpdate = 'permission.export.update';
 }
 

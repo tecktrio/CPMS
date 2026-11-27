@@ -13,6 +13,31 @@ export enum PurchaseOrderStatus {
   CANCELLED = 'CANCELLED',
 }
 
+export const releasedOrderStatuses = [
+  PurchaseOrderStatus.CONFIRMED,
+  PurchaseOrderStatus.IN_PRODUCTION,
+  PurchaseOrderStatus.SHIPPED,
+  PurchaseOrderStatus.DELIVERED,
+];
+
+@Schema({ _id: false })
+export class PurchaseOrderActivity {
+  @Prop({ type: String, required: true })
+  user_id: string;
+
+  @Prop({ type: String, required: true })
+  department: string;
+
+  @Prop({ type: String, required: true })
+  action: string;
+
+  @Prop({ type: Date, default: Date.now })
+  at: Date;
+
+  @Prop({ type: String, default: '' })
+  detail: string;
+}
+
 @Schema({ _id: false })
 export class PurchaseOrderItem {
   @Prop({ type: String, required: true })
@@ -41,6 +66,18 @@ export class PurchaseOrderItem {
 
   @Prop({ type: String, default: '' })
   unit: string;
+
+  @Prop({ type: String, default: '' })
+  qa_user_id?: string;
+
+  @Prop({ type: Date, default: null })
+  qa_target_date?: Date | null;
+
+  @Prop({ type: Date, default: null })
+  qa_checked_at?: Date | null;
+
+  @Prop({ type: String, default: '' })
+  qa_note?: string;
 
   // Lifecycle Stage Quantities per Line Item:
   @Prop({ type: Number, default: 0, min: 0 })
@@ -77,6 +114,7 @@ export const PurchaseOrderItemSchema =
 
 @Schema({
   collection: 'purchase_orders',
+  optimisticConcurrency: true,
   timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' },
   toJSON: {
     transform: (_, ret: Record<string, any>) => {
@@ -151,6 +189,9 @@ export class PurchaseOrder {
 
   @Prop({ type: String, default: '' })
   notes: string;
+
+  @Prop({ type: [SchemaFactory.createForClass(PurchaseOrderActivity)], default: [] })
+  activity: PurchaseOrderActivity[];
 }
 
 export const PurchaseOrderSchema = SchemaFactory.createForClass(PurchaseOrder);

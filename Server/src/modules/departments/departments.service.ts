@@ -114,11 +114,6 @@ export class DepartmentsService implements OnModuleInit {
   }> {
     const fixedDepts = await this.seedFixedDepartments();
     const fixedDeptIds = fixedDepts.map((d) => d.department_id);
-    const adminDept =
-      fixedDepts.find(
-        (d) => d.department_name.toLowerCase() === 'administrator',
-      ) || fixedDepts[0];
-
     const tenants = await this.tenantModel.find({});
     const details = [];
 
@@ -142,11 +137,10 @@ export class DepartmentsService implements OnModuleInit {
         const validIds = (mem.department_ids || []).filter((id) =>
           fixedDeptIds.includes(id),
         );
-        if (validIds.length === 0) {
-          validIds.push(adminDept.department_id);
+        if (validIds.length > 0) {
+          mem.department_ids = validIds;
         }
-        mem.department_ids = validIds;
-        mem.is_active = true;
+
         await mem.save();
         membersMigrated++;
       }

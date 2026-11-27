@@ -94,7 +94,7 @@ export class StoreRoomsController {
   }
 
   @Put(':id')
-  @RequirePermissions('permission.storeroom.update')
+  @RequirePermissions('permission.storeroom.manage')
   @ApiOperation({
     summary: 'Update store room',
     description: 'Updates room properties. Capacity cannot be reduced below current allocated stock. Requires permission.storeroom.update.',
