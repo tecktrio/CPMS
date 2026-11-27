@@ -17,13 +17,12 @@ class ManageCustomersModal extends StatefulWidget {
     String? selectedCustomerId,
     ValueChanged<CustomerModel?>? onCustomerSelected,
   }) {
-    return showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => ManageCustomersModal(
-        selectedCustomerId: selectedCustomerId,
-        onCustomerSelected: onCustomerSelected,
+    return Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => ManageCustomersModal(
+          selectedCustomerId: selectedCustomerId,
+          onCustomerSelected: onCustomerSelected,
+        ),
       ),
     );
   }
@@ -308,80 +307,59 @@ class _ManageCustomersModalState extends State<ManageCustomersModal> {
           c.contactDetails.toLowerCase().contains(q);
     }).toList();
 
-    return Container(
-      height: MediaQuery.of(context).size.height * 0.82,
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      child: Column(
-        children: [
-          // Handle bar
-          Container(
-            margin: const EdgeInsets.only(top: 10, bottom: 6),
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: const Color(0xFFE2E8F0),
-              borderRadius: BorderRadius.circular(2),
-            ),
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.black, size: 22),
+          onPressed: () => Navigator.pop(context),
+        ),
+        titleSpacing: 0,
+        title: const Text(
+          'Manage Customers',
+          style: TextStyle(
+            fontSize: 19,
+            fontWeight: FontWeight.w800,
+            color: Colors.black,
+            letterSpacing: -0.4,
           ),
-
-          // Header
+        ),
+        actions: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(20, 8, 12, 12),
-            child: Row(
-              children: [
-                const Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Manage Customers',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w800,
-                          color: Colors.black,
-                        ),
-                      ),
-                      SizedBox(height: 2),
-                      Text(
-                        'Add, edit, delete, or select a consignee',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Color(0xFF64748B),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                ElevatedButton.icon(
-                  onPressed:
-                      _isBusy ? null : () => _showCreateOrEditDialog(),
-                  icon: const Icon(Icons.add, size: 16),
-                  label: const Text('Add New',
-                      style:
-                          TextStyle(fontWeight: FontWeight.w700, fontSize: 12)),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.black,
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 10),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(6)),
-                  ),
-                ),
-                const SizedBox(width: 4),
-                IconButton(
-                  icon: const Icon(Icons.close, color: Colors.black),
-                  onPressed: () => Navigator.pop(context),
-                ),
-              ],
+            padding: const EdgeInsets.only(right: 12),
+            child: ElevatedButton.icon(
+              onPressed: _isBusy ? null : () => _showCreateOrEditDialog(),
+              icon: const Icon(Icons.add, size: 16),
+              label: const Text('Add New',
+                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.black,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(6)),
+              ),
             ),
           ),
-
-          // Search bar
+        ],
+        bottom: const PreferredSize(
+          preferredSize: Size.fromHeight(1),
+          child: Divider(height: 1, color: Color(0xFFE2E8F0)),
+        ),
+      ),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1100),
+          child: Column(
+            children: [
+              const SizedBox(height: 14),
+              // Search bar
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: TextField(
@@ -548,7 +526,9 @@ class _ManageCustomersModalState extends State<ManageCustomersModal> {
           ),
         ],
       ),
-    );
+    ),
+  ),
+);
   }
 }
 

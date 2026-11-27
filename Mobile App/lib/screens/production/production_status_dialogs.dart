@@ -66,9 +66,7 @@ class ProductionStatusDialogs {
     final initialExisting = prodProvInit.assignmentsForItem(po.poId, item.itemId);
     final initialAssigned = initialExisting.fold<int>(0, (s, a) => s + a.assignedCartons);
     final initialRemaining = item.cartons - initialAssigned;
-    final cartonsController = TextEditingController(
-      text: '${initialRemaining > 0 ? initialRemaining : 0}',
-    );
+    int assignedQty = initialRemaining > 0 ? initialRemaining : 0;
     final notesController = TextEditingController();
     DateTime selectedTargetDate = po.expectedShippingDate ?? DateTime.now();
     final dateFmt = DateFormat('dd/MM/yyyy');
@@ -82,6 +80,11 @@ class ProductionStatusDialogs {
           final totalAssigned = existingAssignments.fold<int>(0, (s, a) => s + a.assignedCartons);
           final remainingToAssign = (item.cartons - totalAssigned).clamp(0, item.cartons);
           final canAssignMore = remainingToAssign > 0 && supervisorUsers.isNotEmpty;
+          if (remainingToAssign <= 0) {
+            assignedQty = 0;
+          } else if (assignedQty <= 0 || assignedQty > remainingToAssign) {
+            assignedQty = remainingToAssign;
+          }
 
           return AlertDialog(
             backgroundColor: Colors.white,
@@ -198,7 +201,7 @@ class ProductionStatusDialogs {
                                       final updatedList = prodProvInner.assignmentsForItem(po.poId, item.itemId);
                                       final newAssigned = updatedList.fold<int>(0, (s, x) => s + x.assignedCartons);
                                       final newRem = item.cartons - newAssigned;
-                                      cartonsController.text = '${newRem > 0 ? newRem : 0}';
+                                      setDialogState(() => assignedQty = newRem > 0 ? newRem : 0);
                                       onUpdated?.call();
                                     },
                                   );
@@ -218,7 +221,7 @@ class ProductionStatusDialogs {
                                     final updatedList = prodProvInner.assignmentsForItem(po.poId, item.itemId);
                                     final newAssigned = updatedList.fold<int>(0, (s, x) => s + x.assignedCartons);
                                     final newRem = item.cartons - newAssigned;
-                                    cartonsController.text = '${newRem > 0 ? newRem : 0}';
+                                    setDialogState(() => assignedQty = newRem > 0 ? newRem : 0);
                                     onUpdated?.call();
                                   }
                                 },
@@ -322,17 +325,12 @@ class ProductionStatusDialogs {
                   ],
                 ),
                 const SizedBox(height: 6),
-                TextField(
-                  controller: cartonsController,
+                _buildCartonStepper(
+                  value: assignedQty,
+                  min: remainingToAssign > 0 ? 1 : 0,
+                  max: remainingToAssign,
                   enabled: canAssignMore,
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(
-                    hintText: 'Max $remainingToAssign',
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(6)),
-                    contentPadding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  ),
+                  onChanged: (val) => setDialogState(() => assignedQty = val),
                 ),
                 const SizedBox(height: 14),
                 const Text('Target / Assigned Date',
@@ -455,7 +453,7 @@ class ProductionStatusDialogs {
               onPressed: !canAssignMore
                   ? null
                   : () async {
-                      final qty = int.tryParse(cartonsController.text.trim()) ?? 0;
+                      final qty = assignedQty;
                       if (selectedUserId == null) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
@@ -468,7 +466,7 @@ class ProductionStatusDialogs {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                               content: Text(
-                                  'Please enter a carton count between 1 and $remainingToAssign.')),
+                                  'Please select a carton count between 1 and $remainingToAssign.')),
                         );
                         return;
                       }
@@ -489,7 +487,7 @@ class ProductionStatusDialogs {
                         final updatedList = prodProv.assignmentsForItem(po.poId, item.itemId);
                         final newAssigned = updatedList.fold<int>(0, (s, x) => s + x.assignedCartons);
                         final newRem = item.cartons - newAssigned;
-                        cartonsController.text = '${newRem > 0 ? newRem : 0}';
+                        setDialogState(() => assignedQty = newRem > 0 ? newRem : 0);
                         onUpdated?.call();
                         if (context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
@@ -535,6 +533,79 @@ class ProductionStatusDialogs {
     );
   }
 
+  static Widget _buildCartonStepper({
+    required int value,
+    required int min,
+    required int max,
+    required bool enabled,
+    required ValueChanged<int> onChanged,
+  }) {
+    final canDecrement = enabled && value > min;
+    final canIncrement = enabled && value < max;
+    return Container(
+      height: 44,
+      decoration: BoxDecoration(
+        color: enabled ? Colors.white : const Color(0xFFF1F5F9),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: const Color(0xFFCBD5E1)),
+      ),
+      child: Row(
+        children: [
+          InkWell(
+            onTap: canDecrement ? () => onChanged(value - 1) : null,
+            borderRadius:
+                const BorderRadius.horizontal(left: Radius.circular(5)),
+            child: Container(
+              width: 48,
+              height: double.infinity,
+              alignment: Alignment.center,
+              decoration: const BoxDecoration(
+                border: Border(right: BorderSide(color: Color(0xFFE2E8F0))),
+              ),
+              child: Icon(
+                Icons.remove,
+                size: 18,
+                color: canDecrement ? Colors.black : const Color(0xFFCBD5E1),
+              ),
+            ),
+          ),
+          Expanded(
+            child: Center(
+              child: Text(
+                '$value ctns',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
+                  color: enabled
+                      ? const Color(0xFF0F172A)
+                      : const Color(0xFF94A3B8),
+                ),
+              ),
+            ),
+          ),
+          InkWell(
+            onTap: canIncrement ? () => onChanged(value + 1) : null,
+            borderRadius:
+                const BorderRadius.horizontal(right: Radius.circular(5)),
+            child: Container(
+              width: 48,
+              height: double.infinity,
+              alignment: Alignment.center,
+              decoration: const BoxDecoration(
+                border: Border(left: BorderSide(color: Color(0xFFE2E8F0))),
+              ),
+              child: Icon(
+                Icons.add,
+                size: 18,
+                color: canIncrement ? Colors.black : const Color(0xFFCBD5E1),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   static Future<void> _showEditAssignmentDialog(
     BuildContext context, {
     required ProductionAssignmentModel assignment,
@@ -547,7 +618,9 @@ class ProductionStatusDialogs {
         supervisorUsers.any((u) => u.userId == assignment.supervisorUserId)
             ? assignment.supervisorUserId
             : (supervisorUsers.isNotEmpty ? supervisorUsers.first.userId : null);
-    final qtyCtrl = TextEditingController(text: '${assignment.assignedCartons}');
+    final minAllowed =
+        assignment.completedCartons > 0 ? assignment.completedCartons : 1;
+    int editedQty = assignment.assignedCartons.clamp(minAllowed, maxAllowedCartons);
     final notesCtrl = TextEditingController(text: assignment.notes);
     DateTime editedDate = assignment.targetDate ?? DateTime.now();
     final dateFmt = DateFormat('dd/MM/yyyy');
@@ -616,15 +689,12 @@ class ProductionStatusDialogs {
                 Text('Assigned Cartons (Max: $maxAllowedCartons)',
                     style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
                 const SizedBox(height: 6),
-                TextField(
-                  controller: qtyCtrl,
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(6)),
-                    contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 8),
-                  ),
+                _buildCartonStepper(
+                  value: editedQty,
+                  min: minAllowed,
+                  max: maxAllowedCartons,
+                  enabled: maxAllowedCartons >= minAllowed,
+                  onChanged: (val) => setDlgState(() => editedQty = val),
                 ),
                 const SizedBox(height: 12),
                 const Text('Target / Assigned Date',
@@ -695,9 +765,7 @@ class ProductionStatusDialogs {
                 foregroundColor: Colors.white,
               ),
               onPressed: () async {
-                final newQty = int.tryParse(qtyCtrl.text.trim()) ?? 0;
-                final minAllowed =
-                    assignment.completedCartons > 0 ? assignment.completedCartons : 1;
+                final newQty = editedQty;
                 if (newQty < minAllowed || newQty > maxAllowedCartons) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(

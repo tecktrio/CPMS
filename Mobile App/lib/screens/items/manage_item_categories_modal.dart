@@ -8,11 +8,10 @@ class ManageItemCategoriesModal extends StatefulWidget {
   const ManageItemCategoriesModal({super.key});
 
   static Future<void> show(BuildContext context) {
-    return showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => const ManageItemCategoriesModal(),
+    return Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => const ManageItemCategoriesModal(),
+      ),
     );
   }
 
@@ -308,58 +307,64 @@ class _ManageItemCategoriesModalState extends State<ManageItemCategoriesModal> {
             ),
           ];
 
-    return Center(
-      child: ConstrainedBox(
-        constraints: BoxConstraints(
-          maxWidth: 680,
-          maxHeight: MediaQuery.of(context).size.height * 0.8,
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.black, size: 22),
+          onPressed: () => Navigator.pop(context),
         ),
-        child: Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        titleSpacing: 0,
+        title: const Text(
+          'Manage Item Categories',
+          style: TextStyle(
+            fontSize: 19,
+            fontWeight: FontWeight.w800,
+            color: Colors.black,
+            letterSpacing: -0.4,
           ),
-          padding: EdgeInsets.only(
-            top: 20,
-            left: 20,
-            right: 20,
-            bottom: MediaQuery.of(context).viewInsets.bottom + 20,
-          ),
-          child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Item Categories',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800,
-                      color: Colors.black,
-                    ),
+        ),
+        actions: [
+          if (canManage)
+            Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.black,
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(6),
                   ),
-                  SizedBox(height: 2),
-                  Text(
-                    'Manage categories for your tenant organization',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Color(0xFF64748B),
-                    ),
-                  ),
-                ],
+                ),
+                icon: const Icon(Icons.add, size: 16),
+                label: const Text(
+                  'Add New',
+                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
+                ),
+                onPressed: () => _showCreateOrEditDialog(),
               ),
-              IconButton(
-                icon: const Icon(Icons.close, color: Colors.grey),
-                onPressed: () => Navigator.pop(context),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
+            ),
+        ],
+        bottom: const PreferredSize(
+          preferredSize: Size.fromHeight(1),
+          child: Divider(height: 1, color: Color(0xFFE2E8F0)),
+        ),
+      ),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1100),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
           if (_isLoading)
             const Center(
               child: Padding(
@@ -369,7 +374,6 @@ class _ManageItemCategoriesModalState extends State<ManageItemCategoriesModal> {
             ),
           Expanded(
             child: ListView.separated(
-              shrinkWrap: true,
               itemCount: categories.length,
               separatorBuilder: (_, _) => const Divider(height: 1),
               itemBuilder: (ctx, idx) {
@@ -449,6 +453,7 @@ class _ManageItemCategoriesModalState extends State<ManageItemCategoriesModal> {
       ),
     ),
   ),
+),
 );
   }
 }

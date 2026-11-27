@@ -75,6 +75,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
       await Future.wait([
         poProv.loadCustomers(),
         invProv.loadItems(),
+        invProv.loadStoreRooms(),
       ]);
 
       if (po != null && mounted) {
@@ -501,7 +502,135 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
     );
   }
 
-  void _addQuickItemToPo() {
+  double _getOverallItemStock(ItemModel item) {
+    final storeRooms = context.read<InventoryProvider>().storeRooms;
+    double storeRoomSum = 0;
+    for (final room in storeRooms) {
+      for (final sri in room.items) {
+        if (sri.itemId == item.itemId) {
+          storeRoomSum += sri.quantity;
+        }
+      }
+    }
+    return storeRoomSum > item.totalAvailableStock
+        ? storeRoomSum
+        : item.totalAvailableStock;
+  }
+
+  Future<bool> _confirmLowStockIfNeeded(ItemModel item, int totalPackets) async {
+    final overallStock = _getOverallItemStock(item);
+    if (totalPackets <= overallStock) return true;
+
+    final stockText = overallStock.truncateToDouble() == overallStock
+        ? overallStock.toInt().toString()
+        : overallStock.toStringAsFixed(1);
+    final shortfall = totalPackets - overallStock;
+    final shortfallText = shortfall.truncateToDouble() == shortfall
+        ? shortfall.toInt().toString()
+        : shortfall.toStringAsFixed(1);
+
+    final proceed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded,
+                color: Color(0xFFD97706), size: 24),
+            SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Low Stock Warning',
+                style: TextStyle(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 17,
+                  color: Color(0xFF0F172A),
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'The requested quantity for "${item.itemName}" exceeds the overall available stock.',
+              style: const TextStyle(fontSize: 13.5, color: Color(0xFF334155)),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFFBEB),
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: const Color(0xFFFDE68A)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Requested Total Packets: $totalPackets',
+                    style: const TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF92400E),
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    'Overall Available Stock: $stockText',
+                    style: const TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF78350F),
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    'Shortfall: $shortfallText',
+                    style: const TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFFDC2626),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 10),
+            const Text(
+              'Do you still want to add this item to the Purchase Order?',
+              style: TextStyle(fontSize: 12.5, color: Color(0xFF64748B)),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel',
+                style: TextStyle(color: Color(0xFF64748B))),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFD97706),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(6)),
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Add Anyway',
+                style: TextStyle(fontWeight: FontWeight.w700)),
+          ),
+        ],
+      ),
+    );
+    return proceed == true;
+  }
+
+  Future<void> _addQuickItemToPo() async {
     if (_quickSelectedItem == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please select an item from the suggestions')),
@@ -518,16 +647,20 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
       return;
     }
 
-    final qpp = _quickSelectedItem!.quantity;
+    final selected = _quickSelectedItem!;
+    final confirmed = await _confirmLowStockIfNeeded(selected, p * c);
+    if (!confirmed || !mounted) return;
+
+    final qpp = selected.quantity;
     final newItem = PurchaseOrderItemModel(
-      itemId: _quickSelectedItem!.itemId,
-      itemName: _quickSelectedItem!.itemName,
-      sku: _quickSelectedItem!.sku,
-      specification: _quickSelectedItem!.specification,
+      itemId: selected.itemId,
+      itemName: selected.itemName,
+      sku: selected.sku,
+      specification: selected.specification,
       packetPerCarton: p,
       cartons: c,
       quantityPerPacket: qpp > 0 ? qpp : 1.0,
-      unit: _quickSelectedItem!.measurementUnit,
+      unit: selected.measurementUnit,
     );
 
     setState(() {
@@ -542,6 +675,80 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
     });
 
     FocusScope.of(context).unfocus();
+  }
+
+  Widget _buildStoreRoomStockBadges(
+    ItemModel item,
+    List<StoreRoomModel> storeRooms,
+  ) {
+    final roomBalances = <({String roomName, double qty})>[];
+    for (final room in storeRooms) {
+      final matches = room.items.where((sri) => sri.itemId == item.itemId);
+      if (matches.isNotEmpty) {
+        final roomQty = matches.fold<double>(0, (s, sri) => s + sri.quantity);
+        roomBalances.add((roomName: room.roomName, qty: roomQty));
+      }
+    }
+
+    if (roomBalances.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.only(top: 4),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFEF2F2),
+            borderRadius: BorderRadius.circular(4),
+            border: Border.all(color: const Color(0xFFFECACA)),
+          ),
+          child: const Text(
+            'No stock in store rooms (0)',
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFFDC2626),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: Wrap(
+        spacing: 6,
+        runSpacing: 4,
+        children: roomBalances.map((rb) {
+          final qtyText = rb.qty.truncateToDouble() == rb.qty
+              ? rb.qty.toInt().toString()
+              : rb.qty.toStringAsFixed(1);
+          final hasStock = rb.qty > 0;
+          return Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              color: hasStock
+                  ? const Color(0xFFEFF6FF)
+                  : const Color(0xFFFEF2F2),
+              borderRadius: BorderRadius.circular(4),
+              border: Border.all(
+                color: hasStock
+                    ? const Color(0xFFBFDBFE)
+                    : const Color(0xFFFECACA),
+              ),
+            ),
+            child: Text(
+              '${rb.roomName}: $qtyText',
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+                color: hasStock
+                    ? const Color(0xFF1D4ED8)
+                    : const Color(0xFFDC2626),
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
   }
 
   void _showAddItemModal({PurchaseOrderItemModel? editItem, int? editIndex}) {
@@ -846,9 +1053,15 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                                       ),
                                     ],
                                   ),
-                                  subtitle: Text(
-                                    it.itemType.replaceAll('_', ' '),
-                                    style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                                  subtitle: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        it.itemType.replaceAll('_', ' '),
+                                        style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                                      ),
+                                      _buildStoreRoomStockBadges(it, invProv.storeRooms),
+                                    ],
                                   ),
                                   onTap: () {
                                     setModalState(() {
@@ -993,7 +1206,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                         elevation: 0,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
                       ),
-                      onPressed: () {
+                      onPressed: () async {
                         if (selectedCatalogItem == null) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(content: Text('Please select an item from the catalog')),
@@ -1010,6 +1223,10 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                           );
                           return;
                         }
+
+                        final confirmed = await _confirmLowStockIfNeeded(
+                            selectedCatalogItem!, p * c);
+                        if (!confirmed || !mounted) return;
 
                         final newItem = PurchaseOrderItemModel(
                           itemId: selectedCatalogItem!.itemId,
@@ -1030,7 +1247,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                           }
                         });
 
-                        Navigator.pop(ctx);
+                        if (ctx.mounted) Navigator.pop(ctx);
                       },
                       child: Text(
                         editItem != null ? 'Update Item' : 'Add Item to Order',
@@ -1225,6 +1442,10 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                                           color: Color(0xFF71717A),
                                           fontWeight: FontWeight.w500,
                                         ),
+                                      ),
+                                      _buildStoreRoomStockBadges(
+                                        item,
+                                        context.read<InventoryProvider>().storeRooms,
                                       ),
                                     ],
                                   ),

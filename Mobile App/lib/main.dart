@@ -13,6 +13,7 @@ import 'providers/emergency_contacts_provider.dart';
 import 'screens/auth/sign_in_screen.dart';
 import 'screens/dashboard/dashboard_screen.dart';
 import 'screens/tenant/tenant_selector_screen.dart';
+import 'utils/app_update_helper.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -88,8 +89,30 @@ class AuthGate extends StatefulWidget {
   State<AuthGate> createState() => _AuthGateState();
 }
 
-class _AuthGateState extends State<AuthGate> {
+class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
   bool _tenantRestorationAttempted = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      AppUpdateHelper.checkForImmediateUpdate();
+    });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      AppUpdateHelper.checkForImmediateUpdate();
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
