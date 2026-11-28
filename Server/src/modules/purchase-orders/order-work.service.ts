@@ -84,7 +84,7 @@ export class OrderWorkService {
             .filter((item) => item.export_assignment?.user_id === userId)
             .map((item) => ({
               item_id: item.item_id, item_name: item.item_name, cartons: item.cartons,
-              shipped_cartons: item.shipped_cartons,
+              packed_cartons: item.packed_cartons, shipped_cartons: item.shipped_cartons,
             })),
         };
       }

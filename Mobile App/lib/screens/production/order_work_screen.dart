@@ -1473,6 +1473,45 @@ class _OrderWorkScreenState extends State<OrderWorkScreen> {
     );
   }
 
+  Future<void> _ship(WorkRecord order, WorkRecord item) async {
+    final cartons = _count(item, 'cartons');
+    final name = workText(item, 'item_name');
+    final confirmed = await openCpmsPage<bool>(
+      context: context,
+      builder: (context) => CpmsFormPage(
+        icon: Icons.local_shipping_outlined,
+        title: const Text('Mark item shipped'),
+        content: Text(
+          '$name · ${workText(order, 'po_number')}\nRecord all $cartons cartons as shipped?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Mark shipped'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    final poId = workText(order, 'po_id');
+    final itemId = workText(item, 'item_id');
+    await _save(
+      () async {
+        await _api.patch(
+          '${ApiConstants.purchaseOrders}/$poId/items/$itemId/shipping',
+          body: {'shipped_cartons': cartons, 'item_status': 'SHIPPED'},
+        );
+      },
+      successTitle: 'Item marked as shipped',
+      successMessage:
+          '$name · ${workText(order, 'po_number')}\n$cartons cartons shipped',
+    );
+  }
+
   List<Widget> _exportReadiness(WorkRecord order) {
     final total = _count(order, 'total_cartons');
     final packed = _count(order, 'packed_cartons');
@@ -1486,14 +1525,28 @@ class _OrderWorkScreenState extends State<OrderWorkScreen> {
         '${(fraction * 100).round()}% ready · $packed of $total cartons packed',
       ),
       for (final item in workRecords(order['assigned_items']))
-        ListTile(
-          contentPadding: EdgeInsets.zero,
-          title: Text(workText(item, 'item_name')),
-          subtitle: Text(
-            'Assigned to you · ${_count(item, 'shipped_cartons')} of ${_count(item, 'cartons')} cartons shipped',
-          ),
-        ),
+        _exportItem(order, item),
     ];
+  }
+
+  Widget _exportItem(WorkRecord order, WorkRecord item) {
+    final cartons = _count(item, 'cartons');
+    final shipped = _count(item, 'shipped_cartons');
+    final ready = cartons > 0 && _count(item, 'packed_cartons') >= cartons;
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      title: Text(workText(item, 'item_name')),
+      subtitle: Text(
+        'Assigned to you · $shipped of $cartons cartons shipped'
+        '${shipped < cartons && !ready ? '\nWaiting for packing' : ''}',
+      ),
+      trailing: shipped < cartons && ready && order['editable'] == true
+          ? FilledButton(
+              onPressed: _saving ? null : () => _ship(order, item),
+              child: const Text('Mark shipped'),
+            )
+          : null,
+    );
   }
 
   List<Widget> _orderLines(WorkRecord order) {

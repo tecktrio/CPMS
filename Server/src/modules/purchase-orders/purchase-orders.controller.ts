@@ -230,16 +230,20 @@ export class PurchaseOrdersController {
     @Param('itemId') itemId: string,
     @Body('shipped_cartons') shippedCartons: number,
     @CurrentUser('user_id') userId: string,
+    @Req() request: { department_codes?: string[] },
     @Body('item_status') itemStatus?: string,
   ) {
-    return this.poService.updateItemShipping(
+    const isAdministrator = request.department_codes?.includes('ADMINISTRATOR');
+    const result = await this.poService.updateItemShipping(
       tenantId,
       poId,
       itemId,
       Number(shippedCartons) || 0,
       itemStatus,
       userId,
+      isAdministrator,
     );
+    return isAdministrator ? result : { success: true };
   }
 
   @Delete('purchase-orders/:id')

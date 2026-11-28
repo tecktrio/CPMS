@@ -540,6 +540,40 @@ void main() {
     expect(find.text('Private line'), findsNothing);
   });
 
+  testWidgets('exporters can mark a packed assigned item shipped', (
+    tester,
+  ) async {
+    final client = _WorkClient(includeExportAssignments: true);
+    final tenant = _WorkspaceTenant(client, 'Export', {
+      AppPermissions.exportRead,
+    });
+    await tester.pumpWidget(
+      ChangeNotifierProvider<TenantProvider>.value(
+        value: tenant,
+        child: const MaterialApp(
+          home: OrderWorkScreen(workspace: DepartmentWorkspace.export),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Waiting for packing'), findsOneWidget);
+    await tester.tap(find.text('Mark shipped'));
+    await tester.pumpAndSettle();
+    expect(client.lastPatch, isNull);
+    await tester.tap(find.widgetWithText(FilledButton, 'Mark shipped').last);
+    await tester.pumpAndSettle();
+    expect(
+      client.lastPatch,
+      '/purchase-orders/order-124/items/export-ready/shipping',
+    );
+    expect(client.patchBody, {'shipped_cartons': 4, 'item_status': 'SHIPPED'});
+    expect(find.text('Item marked as shipped'), findsOneWidget);
+    await tester.tap(find.text('Back to orders'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('4 of 4 cartons shipped'), findsOneWidget);
+    expect(find.text('Mark shipped'), findsNothing);
+  });
+
   testWidgets('packing changes only after the update dialog is confirmed', (
     tester,
   ) async {
@@ -659,9 +693,13 @@ class _WorkspaceTenant extends TenantProvider {
 }
 
 class _WorkClient extends ApiClient {
-  _WorkClient({this.includeSecondOrder = false});
+  _WorkClient({
+    this.includeSecondOrder = false,
+    this.includeExportAssignments = false,
+  });
 
   final bool includeSecondOrder;
+  final bool includeExportAssignments;
   String? lastGet;
   String? lastPatch;
   Object? patchBody;
@@ -722,6 +760,25 @@ class _WorkClient extends ApiClient {
         'editable': true,
         'total_cartons': 10,
         'packed_cartons': 4,
+        if (includeExportAssignments)
+          'assigned_items': [
+            {
+              'item_id': 'export-ready',
+              'item_name': 'Ready line',
+              'cartons': 4,
+              'packed_cartons': 4,
+              'shipped_cartons': lastPatch?.endsWith('/shipping') == true
+                  ? 4
+                  : 0,
+            },
+            {
+              'item_id': 'export-waiting',
+              'item_name': 'Waiting line',
+              'cartons': 6,
+              'packed_cartons': 0,
+              'shipped_cartons': 0,
+            },
+          ],
         'items': [
           {
             'item_id': 'item-123',

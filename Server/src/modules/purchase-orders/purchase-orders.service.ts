@@ -440,11 +440,29 @@ export class PurchaseOrdersService {
     shippedCartons: number,
     itemStatus: string | undefined,
     userId: string,
+    isAdministrator = false,
   ) {
     const po = await this.findOnePurchaseOrder(tenantId, poId);
     const item = po.items.find((it) => it.item_id === itemId);
     if (!item) {
       throw new NotFoundException(`Item "${itemId}" not found in PO "${po.po_number}"`);
+    }
+
+    if (!isAdministrator) {
+      if (item.export_assignment?.user_id !== userId) {
+        throw new ForbiddenException('This item is not assigned to you for export');
+      }
+      if (item.cartons <= 0 || shippedCartons !== item.cartons ||
+          (item.packed_cartons ?? 0) < item.cartons ||
+          (itemStatus !== undefined && itemStatus !== 'SHIPPED')) {
+        throw new BadRequestException('All ordered cartons must be packed before marking the item shipped');
+      }
+      if (item.shipped_cartons === item.cartons && item.item_status === 'SHIPPED') {
+        return { success: true, item, po };
+      }
+      if (![PurchaseOrderStatus.CONFIRMED, PurchaseOrderStatus.IN_PRODUCTION].includes(po.status)) {
+        throw new BadRequestException('This order is closed for shipping');
+      }
     }
 
     item.shipped_cartons = Math.max(0, shippedCartons);

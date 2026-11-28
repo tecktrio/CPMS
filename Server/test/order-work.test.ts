@@ -1,6 +1,6 @@
 import * as assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { ConflictException, ForbiddenException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { PurchaseOrdersService } from '../src/modules/purchase-orders/purchase-orders.service';
 import { OrderWorkController } from '../src/modules/purchase-orders/order-work.controller';
 import { ItemAssignmentStage, OrderWorkService } from '../src/modules/purchase-orders/order-work.service';
@@ -384,4 +384,26 @@ test('a packer can update only their own assigned item', async () => {
   await service.updateItemPacking('tenant', 'po', 'first', 5, 'packer');
   assert.equal(saves, 1);
   assert.equal(item.packed_cartons, 5);
+});
+
+test('exporters can ship their own packed item and the final shipment closes the order', async () => {
+  const item = {
+    ...order.items[0], shipped_cartons: 0, item_status: 'PACKING',
+    export_assignment: { user_id: 'exporter' },
+  };
+  let saves = 0;
+  const record = { ...order, items: [item], activity: [], total_shipped_cartons: 0, async save() { saves++; } };
+  const service = new PurchaseOrdersService(null, null);
+  service.findOnePurchaseOrder = async () => record as never;
+
+  await assert.rejects(service.updateItemShipping('tenant', 'po', 'first', 5, 'SHIPPED', 'another-exporter'), ForbiddenException);
+  await assert.rejects(service.updateItemShipping('tenant', 'po', 'first', 5, 'SHIPPED', 'exporter'), BadRequestException);
+  assert.equal(saves, 0);
+  item.packed_cartons = 5;
+  await service.updateItemShipping('tenant', 'po', 'first', 5, 'SHIPPED', 'exporter');
+  await service.updateItemShipping('tenant', 'po', 'first', 5, 'SHIPPED', 'exporter');
+  assert.equal(saves, 1);
+  assert.equal(item.item_status, 'SHIPPED');
+  assert.equal(record.total_shipped_cartons, 5);
+  assert.equal(record.status, 'SHIPPED');
 });

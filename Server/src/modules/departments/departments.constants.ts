@@ -125,6 +125,7 @@ export const FIXED_DEPARTMENTS: FixedDepartmentDefinition[] = [
     description: 'Handles dispatch logistics, container allocation, and records shipped cartons.',
     permission_ids: [
       'permission.export.read',
+      'permission.export.update',
     ],
   },
   {
