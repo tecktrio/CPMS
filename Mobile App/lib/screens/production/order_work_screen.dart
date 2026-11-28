@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import '../../widgets/cpms_page_route.dart';
 
 import 'package:flutter/material.dart';
@@ -56,6 +58,8 @@ class OrderWorkScreen extends StatefulWidget {
 
 class _OrderWorkScreenState extends State<OrderWorkScreen> {
   late Future<List<WorkRecord>> _orders;
+  Timer? _packingRefreshTimer;
+  bool _pollingPacking = false;
   late final ApiClient _api = context.read<TenantProvider>().apiClient;
   String _query = '';
   String? _selectedOrderId;
@@ -68,6 +72,7 @@ class _OrderWorkScreenState extends State<OrderWorkScreen> {
 
   @override
   void dispose() {
+    _packingRefreshTimer?.cancel();
     _searchController.dispose();
     _itemSearchController.dispose();
     super.dispose();
@@ -81,6 +86,30 @@ class _OrderWorkScreenState extends State<OrderWorkScreen> {
   void initState() {
     super.initState();
     _orders = _load();
+    if (widget.workspace == DepartmentWorkspace.packing) {
+      _packingRefreshTimer = Timer.periodic(
+        const Duration(seconds: 10),
+        (_) => _pollPacking(),
+      );
+    }
+  }
+
+  Future<void> _pollPacking() async {
+    if (_saving || _pollingPacking) return;
+    _pollingPacking = true;
+    final currentOrders = _orders;
+    try {
+      final orders = await _load();
+      if (mounted && !_saving && identical(_orders, currentOrders)) {
+        setState(() {
+          _orders = Future.value(orders);
+        });
+      }
+    } catch (_) {
+      // Keep the last visible orders when a background refresh fails.
+    } finally {
+      _pollingPacking = false;
+    }
   }
 
   Future<List<WorkRecord>> _load() async => workRecords(
@@ -1659,9 +1688,12 @@ class _OrderWorkScreenState extends State<OrderWorkScreen> {
         if (widget.workspace == DepartmentWorkspace.packing) ...[
           Text('${_count(item, 'packed_cartons')} of $cartons cartons packed'),
           if (item['assigned_to_me'] == true) const Text('Assigned to you'),
-          if (item['production_done'] != true &&
-              _count(item, 'packed_cartons') < cartons)
-            const Text('Waiting for production'),
+          if (_count(item, 'packed_cartons') < cartons)
+            Text(
+              item['production_done'] == true
+                  ? 'Produced'
+                  : 'Waiting for production',
+            ),
         ],
         if (actions.isNotEmpty) ...[
           const SizedBox(height: 12),

@@ -11,6 +11,8 @@ import { User, UserDocument } from '../../database/schemas/user.schema';
 import { AssignmentStaffService } from '../production/assignment-staff.service';
 import { PurchaseOrdersService } from './purchase-orders.service';
 
+import { isAssignmentProductionDone, isItemProductionDone } from '../production/production-completion';
+
 export const orderWorkRoles = ['PRODUCTION_MANAGER', 'SUPERVISOR', 'QC', 'PACKER', 'EXPORT', 'ACCOUNTS'] as const;
 export type OrderWorkRole = (typeof orderWorkRoles)[number];
 
@@ -56,6 +58,19 @@ export class OrderWorkService {
       ...(role === 'QC' && { 'items.qa_user_id': userId }),
       ...(role === 'PACKER' && { 'items.packing_assignment.user_id': userId }),
     }).sort({ po_date: -1 }).lean();
+
+    if (role === 'PACKER' && orders.length > 0) {
+      const packingAssignments = await this.assignments.find({
+        tenant_id: tenantId,
+        po_id: { $in: orders.map((order) => order.po_id) },
+        status: { $ne: 'CANCELLED' },
+      }).select('po_id item_id status assigned_cartons completed_cartons production_done').lean();
+      for (const assignment of packingAssignments) {
+        const group = byOrder.get(assignment.po_id) ?? [];
+        group.push(assignment);
+        byOrder.set(assignment.po_id, group);
+      }
+    }
 
     const qualityUserIds = role === 'PRODUCTION_MANAGER'
       ? orders.flatMap((order) => order.items.map((item) => item.qa_user_id)).filter(Boolean)
@@ -103,7 +118,10 @@ export class OrderWorkService {
           };
           if (role === 'PACKER') return {
             ...line, cartons: item.cartons, packed_cartons: item.packed_cartons,
-            assigned_to_me: true, production_done: item.production_done === true,
+            assigned_to_me: true,
+            production_done: isItemProductionDone(
+              orderAssignments.filter((assignment) => assignment.item_id === item.item_id),
+            ),
           };
           const lineAssignments = orderAssignments.filter((assignment) => assignment.item_id === item.item_id)
             .map((assignment) => ({
@@ -115,7 +133,7 @@ export class OrderWorkService {
               }),
               assigned_cartons: assignment.assigned_cartons,
               completed_cartons: assignment.completed_cartons,
-              production_done: assignment.production_done === true,
+              production_done: isAssignmentProductionDone(assignment),
               assigned_at: assignment.created_at,
               target_date: assignment.target_date,
               status: assignment.status,

@@ -27,6 +27,9 @@ import {
   UpdatePurchaseOrderDto,
 } from './dtos/purchase-order.dto';
 
+import { ProductionAssignment, ProductionAssignmentDocument } from '../../database/schemas/production-assignment.schema';
+import { isItemProductionDone } from '../production/production-completion';
+
 @Injectable()
 export class PurchaseOrdersService {
   constructor(
@@ -34,6 +37,8 @@ export class PurchaseOrdersService {
     private readonly customerModel: Model<CustomerDocument>,
     @InjectModel(PurchaseOrder.name)
     private readonly poModel: Model<PurchaseOrderDocument>,
+    @InjectModel(ProductionAssignment.name)
+    private readonly productionAssignments: Model<ProductionAssignmentDocument>,
   ) {}
 
   // ===================== CUSTOMERS =====================
@@ -419,8 +424,14 @@ export class PurchaseOrdersService {
       throw new BadRequestException('Packed cartons must be between shipped and ordered cartons');
     }
     if (item.packed_cartons === packedCartons) return { success: true };
-    if (!isAdministrator && !item.production_done) {
-      throw new BadRequestException('Waiting for production to be marked done');
+    if (!isAdministrator) {
+      const assignments = await this.productionAssignments.find({
+        tenant_id: tenantId, po_id: poId, item_id: itemId, status: { $ne: 'CANCELLED' },
+      }).select('status assigned_cartons completed_cartons production_done').lean();
+      if (!isItemProductionDone(assignments)) {
+        throw new BadRequestException('Waiting for production to be marked done');
+      }
+      item.production_done = true;
     }
     item.packed_cartons = packedCartons;
     if (item.packed_cartons >= item.cartons) {

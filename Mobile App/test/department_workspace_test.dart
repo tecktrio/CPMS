@@ -657,8 +657,10 @@ void main() {
     expect(find.text('Waiting for production'), findsOneWidget);
     expect(find.text('Mark packed'), findsNothing);
     client.productionDone = true;
-    await tester.tap(find.byTooltip('Refresh orders'));
+    await tester.pump(const Duration(seconds: 10));
+    await tester.pump();
     await tester.pumpAndSettle();
+    expect(find.text('Produced'), findsOneWidget);
 
     await tester.tap(find.text('Mark packed'));
     await tester.pumpAndSettle();

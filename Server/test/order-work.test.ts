@@ -301,12 +301,17 @@ test('packers receive only their assigned orders and lines and exporters see the
         record.items.some((item) => 'packing_assignment' in item && item.packing_assignment?.user_id === userId),
       ));
     },
+  }, {
+    find: () => query([
+      { ...assignment, status: 'COMPLETED', completed_cartons: 5 },
+    ]),
   });
   const [packing] = await service.list('tenant', 'packer', 'PACKER');
   const [shipping] = await service.list('tenant', 'exporter', 'EXPORT');
   assert.ok('items' in packing);
   assert.ok('assigned_items' in shipping);
   assert.deepEqual(packing.items.map((item) => item.item_id), ['first']);
+  assert.equal('production_done' in packing.items[0] && packing.items[0].production_done, true);
   assert.deepEqual(await service.list('tenant', 'unassigned-packer', 'PACKER'), []);
   assert.deepEqual(shipping.assigned_items.map((item) => item.item_id), ['first']);
 });
@@ -377,14 +382,21 @@ test('a packer can update only their own assigned item', async () => {
   };
   let saves = 0;
   const record = { ...order, items: [item], activity: [], async save() { saves++; } };
-  const service = new PurchaseOrdersService(null, null);
+  const progress = { ...assignment, completed_cartons: 5, production_done: false };
+  const service = new PurchaseOrdersService(null, null, {
+    find(filter) {
+      assert.equal(filter.tenant_id, 'tenant');
+      assert.equal(filter.item_id, 'first');
+      return query([progress]);
+    },
+  } as never);
   service.findOnePurchaseOrder = async () => record as never;
 
   await assert.rejects(service.updateItemPacking('tenant', 'po', 'first', 5, 'other-packer'), ForbiddenException);
   assert.equal(saves, 0);
   await assert.rejects(service.updateItemPacking('tenant', 'po', 'first', 5, 'packer'), BadRequestException);
   assert.equal(saves, 0);
-  item.production_done = true;
+  progress.production_done = true;
   await service.updateItemPacking('tenant', 'po', 'first', 5, 'packer');
   assert.equal(saves, 1);
   assert.equal(item.packed_cartons, 5);
@@ -397,7 +409,7 @@ test('exporters can ship their own packed item and the final shipment closes the
   };
   let saves = 0;
   const record = { ...order, items: [item], activity: [], total_shipped_cartons: 0, async save() { saves++; } };
-  const service = new PurchaseOrdersService(null, null);
+  const service = new PurchaseOrdersService(null, null, null);
   service.findOnePurchaseOrder = async () => record as never;
 
   await assert.rejects(service.updateItemShipping('tenant', 'po', 'first', 5, 'SHIPPED', 'another-exporter'), ForbiddenException);
@@ -420,7 +432,7 @@ test('production is handed to packing only after every assigned carton is confir
   const second = {
     ...first, assignment_id: 'second-assignment', assigned_cartons: 2, completed_cartons: 2,
   };
-  const item = { ...order.items[0], item_status: 'IN_PRODUCTION', production_done: false };
+  const item = { ...order.items[0], cartons: 10, item_status: 'IN_PRODUCTION', production_done: false };
   const po = { ...order, items: [item], activity: [], markModified() {}, async save() {} };
   const service = new ProductionService({
     findOne: async (filter) => filter.assignment_id === first.assignment_id ? first : second,

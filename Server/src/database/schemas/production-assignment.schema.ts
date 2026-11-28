@@ -67,7 +67,7 @@ export class ProductionAssignment {
   @Prop({ type: Number, required: true, min: 1 })
   assigned_cartons: number;
 
-  @Prop({ type: Boolean, default: false })
+  @Prop({ type: Boolean })
   production_done?: boolean;
 
   @Prop({ type: Number, default: 0, min: 0 })

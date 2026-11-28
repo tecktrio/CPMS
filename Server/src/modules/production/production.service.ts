@@ -23,6 +23,8 @@ import {
   UpdateProgressDto,
 } from './dtos/production-assignment.dto';
 
+import { isAssignmentProductionDone, isItemProductionDone } from './production-completion';
+
 @Injectable()
 export class ProductionService {
   constructor(
@@ -86,6 +88,7 @@ export class ProductionService {
       supervisor_name: supervisor.name,
       assigned_cartons: dto.assigned_cartons,
       completed_cartons: 0,
+      production_done: false,
       status: 'PENDING',
       assigned_by_user_id: assignedByUserId || supervisor.user_id,
       notes: dto.notes?.trim() || '',
@@ -167,7 +170,7 @@ export class ProductionService {
     if (dto.mark_done && dto.completed_cartons !== assignment.assigned_cartons) {
       throw new BadRequestException('Complete all assigned cartons before marking production done');
     }
-    if (assignment.production_done && dto.completed_cartons !== assignment.completed_cartons) {
+    if (isAssignmentProductionDone(assignment) && dto.completed_cartons !== assignment.completed_cartons) {
       throw new BadRequestException('Production is already marked done for this assignment');
     }
 
@@ -196,6 +199,7 @@ export class ProductionService {
       });
     }
     if (markedDone) assignment.production_done = true;
+    else if (changed) assignment.production_done = false;
     if (changed || markedDone) await assignment.save();
 
     // Roll up to PO line item and PO totals
@@ -363,15 +367,15 @@ export class ProductionService {
 
     // Map item completions
     const itemCompletions = new Map<string, number>();
-    const confirmedCartons = new Map<string, number>();
+    const assignmentsByItem = new Map<string, typeof activeAssignments>();
     for (const a of activeAssignments) {
       totalAssigned += a.assigned_cartons || 0;
       totalCompleted += a.completed_cartons || 0;
       const cur = itemCompletions.get(a.item_id) || 0;
       itemCompletions.set(a.item_id, cur + (a.completed_cartons || 0));
-      if (a.production_done) {
-        confirmedCartons.set(a.item_id, (confirmedCartons.get(a.item_id) ?? 0) + a.completed_cartons);
-      }
+      const itemAssignments = assignmentsByItem.get(a.item_id) ?? [];
+      itemAssignments.push(a);
+      assignmentsByItem.set(a.item_id, itemAssignments);
     }
 
     po.total_assigned_cartons = totalAssigned;
@@ -379,7 +383,7 @@ export class ProductionService {
 
     for (const it of po.items) {
       it.completed_cartons = itemCompletions.get(it.item_id) || 0;
-      it.production_done = it.cartons > 0 && (confirmedCartons.get(it.item_id) ?? 0) >= it.cartons;
+      it.production_done = isItemProductionDone(assignmentsByItem.get(it.item_id) ?? []);
       if (['PENDING', 'IN_PRODUCTION', 'PRODUCED'].includes(it.item_status)) {
         if (it.completed_cartons === 0) it.item_status = 'PENDING';
         else if (it.production_done) it.item_status = 'PRODUCED';
