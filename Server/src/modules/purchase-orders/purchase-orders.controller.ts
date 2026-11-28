@@ -1,5 +1,6 @@
 import {
   Controller,
+  BadRequestException,
   Get,
   Post,
   Put,
@@ -213,9 +214,13 @@ export class PurchaseOrdersController {
     @Param('poId') poId: string,
     @Param('itemId') itemId: string,
     @Body('packed_cartons') packedCartons: number,
+    @Body('mark_packed') markPacked: boolean | undefined,
     @CurrentUser('user_id') userId: string,
     @Req() request: { department_codes?: string[] },
   ) {
+    if (markPacked !== undefined && typeof markPacked !== 'boolean') {
+      throw new BadRequestException('mark_packed must be a boolean');
+    }
     await this.poService.updateItemPacking(
       tenantId,
       poId,
@@ -223,6 +228,7 @@ export class PurchaseOrdersController {
       Number(packedCartons),
       userId,
       request.department_codes?.includes('ADMINISTRATOR'),
+      markPacked,
     );
     return { success: true };
   }

@@ -631,41 +631,84 @@ class _OrderWorkScreenState extends State<OrderWorkScreen> {
 
   Future<void> _pack(WorkRecord order, WorkRecord item) async {
     final cartons = _count(item, 'cartons');
-    final confirmed = await openCpmsPage<bool>(
+    final originalCount = _count(item, 'packed_cartons');
+    final minimum = _count(item, 'shipped_cartons').clamp(0, cartons);
+    var packed = originalCount.clamp(minimum, cartons);
+    final result = await openCpmsPage<(int, bool)>(
       context: context,
-      builder: (context) => CpmsFormPage(
-        icon: Icons.inventory_2_outlined,
-        title: const Text('Mark item packed'),
-        content: Text(
-          '${workText(item, 'item_name')} · ${workText(order, 'po_number')}\n'
-          'Record all $cartons cartons as packed?',
+      builder: (context) => StatefulBuilder(
+        builder: (context, update) => CpmsFormPage(
+          icon: Icons.inventory_2_outlined,
+          title: const Text('Update packing'),
+          content: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '${workText(item, 'item_name')} · ${workText(order, 'po_number')}',
+              ),
+              const SizedBox(height: 12),
+              const Text('Packed cartons'),
+              Row(
+                children: [
+                  IconButton.outlined(
+                    tooltip: 'Decrease packed cartons',
+                    onPressed: packed > minimum
+                        ? () => update(() => packed--)
+                        : null,
+                    icon: const Icon(Icons.remove),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Text('$packed / $cartons'),
+                  ),
+                  IconButton.outlined(
+                    tooltip: 'Increase packed cartons',
+                    onPressed: packed < cartons
+                        ? () => update(() => packed++)
+                        : null,
+                    icon: const Icon(Icons.add),
+                  ),
+                ],
+              ),
+              Text('${cartons > 0 ? packed * 100 ~/ cartons : 0}% packed'),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            OutlinedButton(
+              onPressed: packed == originalCount
+                  ? null
+                  : () => Navigator.pop(context, (packed, false)),
+              child: const Text('Save progress'),
+            ),
+            FilledButton(
+              onPressed: cartons > 0 && packed == cartons
+                  ? () => Navigator.pop(context, (packed, true))
+                  : null,
+              child: const Text('Mark packed'),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Mark packed'),
-          ),
-        ],
       ),
     );
-    if (confirmed != true || !mounted) return;
+    if (result == null || !mounted) return;
+    final (quantity, markPacked) = result;
     await _save(
       () async {
         final poId = workText(order, 'po_id');
         final itemId = workText(item, 'item_id');
         await _api.patch(
           '${ApiConstants.purchaseOrders}/$poId/items/$itemId/packing',
-          body: {'packed_cartons': cartons},
+          body: {'packed_cartons': quantity, 'mark_packed': markPacked},
         );
       },
-      successTitle: 'Item marked as packed',
-      successMessage:
-          '${workText(item, 'item_name')} · ${workText(order, 'po_number')}\n'
-          '$cartons cartons packed',
+      successTitle: markPacked ? 'Item marked as packed' : null,
+      successMessage: markPacked
+          ? '${workText(item, 'item_name')} · ${workText(order, 'po_number')}\n$quantity cartons packed'
+          : null,
     );
   }
 
@@ -1778,7 +1821,7 @@ class _OrderWorkScreenState extends State<OrderWorkScreen> {
   Widget _exportItem(WorkRecord order, WorkRecord item) {
     final cartons = _count(item, 'cartons');
     final shipped = _count(item, 'shipped_cartons');
-    final ready = cartons > 0 && _count(item, 'packed_cartons') >= cartons;
+    final ready = item['packing_done'] == true;
     return ListTile(
       contentPadding: EdgeInsets.zero,
       title: Text(workText(item, 'item_name')),
@@ -1861,7 +1904,7 @@ class _OrderWorkScreenState extends State<OrderWorkScreen> {
           Text('${_count(item, 'packed_cartons')} of $cartons cartons packed'),
           if (item['assigned_to_me'] == true) const Text('Assigned to you'),
           if (qaDate.isNotEmpty) Text('Due $qaDate'),
-          if (_count(item, 'packed_cartons') < cartons)
+          if (item['packing_done'] != true)
             Text(item['checked_at'] != null ? 'QA done' : 'Waiting for QA'),
         ],
         if (actions.isNotEmpty) ...[
@@ -2295,11 +2338,12 @@ class _OrderWorkScreenState extends State<OrderWorkScreen> {
       ],
       DepartmentWorkspace.packing
           when item['checked_at'] != null &&
-              _count(item, 'packed_cartons') < _count(item, 'cartons') =>
+              item['packing_done'] != true &&
+              _count(item, 'cartons') > 0 =>
         [
           FilledButton(
             onPressed: () => _pack(order, item),
-            child: const Text('Mark packed'),
+            child: const Text('Update packing'),
           ),
         ],
       _ => const [],

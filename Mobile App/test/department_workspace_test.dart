@@ -327,7 +327,7 @@ void main() {
       final actionLabel = switch (workspace) {
         DepartmentWorkspace.sales => 'Edit Purchase Order',
         DepartmentWorkspace.productionManager => '+ Split Quantity / Add Line',
-        _ => 'Mark packed',
+        _ => 'Update packing',
       };
       final detailCard = find.ancestor(
         of: find.text('Private line'),
@@ -843,16 +843,29 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('QA done'), findsOneWidget);
 
-    await tester.tap(find.text('Mark packed'));
+    client.savedPackedCartons = 9;
+    await tester.tap(find.byTooltip('Refresh orders'));
     await tester.pumpAndSettle();
-    expect(find.text('Mark item packed'), findsOneWidget);
-    expect(client.lastPatch, isNull);
+    await tester.tap(find.text('Update packing'));
+    await tester.pumpAndSettle();
+    final markPacked = find.widgetWithText(FilledButton, 'Mark packed');
+    final plus = find.widgetWithIcon(IconButton, Icons.add);
+    final minus = find.widgetWithIcon(IconButton, Icons.remove);
+    expect(tester.widget<FilledButton>(markPacked).onPressed, isNull);
+    expect(find.text('90% packed'), findsOneWidget);
+    await tester.tap(minus);
+    await tester.pumpAndSettle();
+    expect(find.text('80% packed'), findsOneWidget);
     await tester.tap(find.text('Cancel'));
     await tester.pumpAndSettle();
     expect(client.lastPatch, isNull);
 
-    await tester.tap(find.text('Mark packed'));
+    await tester.tap(find.text('Update packing'));
     await tester.pumpAndSettle();
+    await tester.tap(plus);
+    await tester.pumpAndSettle();
+    expect(find.text('100% packed'), findsOneWidget);
+    expect(tester.widget<IconButton>(plus).onPressed, isNull);
     final saveResponse = Completer<void>();
     client.saveResponse = saveResponse.future;
     await tester.tap(find.widgetWithText(FilledButton, 'Mark packed').last);
@@ -871,7 +884,7 @@ void main() {
       client.lastPatch,
       '/purchase-orders/order-124/items/item-123/packing',
     );
-    expect(client.patchBody, {'packed_cartons': 10});
+    expect(client.patchBody, {'packed_cartons': 10, 'mark_packed': true});
     expect(tester.takeException(), isNull);
   });
 
@@ -978,6 +991,7 @@ class _WorkClient extends ApiClient {
   Future<void>? saveResponse;
   int qcProducedCartons = 9;
   bool packingQaDone = true;
+  int savedPackedCartons = 0;
   int staffRequests = 0;
   final itemAssignments = <String, Map<String, dynamic>>{};
 
@@ -1053,6 +1067,7 @@ class _WorkClient extends ApiClient {
               'item_name': 'Ready line',
               'cartons': 4,
               'packed_cartons': 4,
+              'packing_done': true,
               'shipped_cartons': lastPatch?.endsWith('/shipping') == true
                   ? 4
                   : 0,
@@ -1077,6 +1092,8 @@ class _WorkClient extends ApiClient {
               'checked_at': '2026-11-28T10:00:00Z',
               'note': (patchBody as Map)['note'],
             },
+            if (endpoint == '/order-work?department=PACKER')
+              'packed_cartons': savedPackedCartons,
             if (endpoint == '/order-work?department=PACKER' && packingQaDone)
               'checked_at': '2026-11-28T10:00:00Z',
             if (endpoint == '/order-work?department=SUPERVISOR')

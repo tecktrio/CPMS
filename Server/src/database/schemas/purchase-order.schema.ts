@@ -150,6 +150,11 @@ export class PurchaseOrderItem {
   item_status: string;
 }
 
+export function isItemPackingDone(item: Pick<PurchaseOrderItem, 'cartons' | 'packed_cartons' | 'item_status'>): boolean {
+  return item.cartons > 0 && item.packed_cartons >= item.cartons &&
+    ['PACKED', 'PARTIALLY_SHIPPED', 'SHIPPED'].includes(item.item_status);
+}
+
 export const PurchaseOrderItemSchema =
   SchemaFactory.createForClass(PurchaseOrderItem);
 

@@ -3,7 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import {
   PurchaseOrder, PurchaseOrderActivity, PurchaseOrderDocument, PurchaseOrderItem,
-  PurchaseOrderStatus, releasedOrderStatuses,
+  PurchaseOrderStatus, isItemPackingDone, releasedOrderStatuses,
 } from '../../database/schemas/purchase-order.schema';
 import { ProductionAssignment, ProductionAssignmentDocument } from '../../database/schemas/production-assignment.schema';
 import { QcReport, QcReportDocument } from '../../database/schemas/qc-report.schema';
@@ -87,6 +87,7 @@ export class OrderWorkService {
             .map((item) => ({
               item_id: item.item_id, item_name: item.item_name, cartons: item.cartons,
               packed_cartons: item.packed_cartons, shipped_cartons: item.shipped_cartons,
+              packing_done: isItemPackingDone(item),
               target_date: item.export_assignment?.target_date,
             })),
         };
@@ -105,9 +106,9 @@ export class OrderWorkService {
             checked_at: item.qa_checked_at, note: item.qa_note,
           };
           if (role === 'PACKER') return {
-            ...line, cartons: item.cartons, packed_cartons: item.packed_cartons,
+            ...line, cartons: item.cartons, packed_cartons: item.packed_cartons, shipped_cartons: item.shipped_cartons,
             assigned_to_me: true, target_date: item.packing_assignment?.target_date,
-            checked_at: item.qa_checked_at,
+            checked_at: item.qa_checked_at, packing_done: isItemPackingDone(item),
           };
           const lineAssignments = orderAssignments.filter((assignment) => assignment.item_id === item.item_id)
             .map((assignment) => ({

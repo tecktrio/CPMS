@@ -16,6 +16,7 @@ import {
   PurchaseOrder,
   PurchaseOrderDocument,
   PurchaseOrderStatus,
+  isItemPackingDone,
   releasedOrderStatuses,
 } from '../../database/schemas/purchase-order.schema';
 import {
@@ -410,6 +411,7 @@ export class PurchaseOrdersService {
     packedCartons: number,
     userId: string,
     isAdministrator = false,
+    markPacked?: boolean,
   ) {
     const po = await this.findOnePurchaseOrder(tenantId, poId, true);
     const item = po.items.find((it) => it.item_id === itemId);
@@ -428,15 +430,21 @@ export class PurchaseOrdersService {
         packedCartons > item.cartons || packedCartons < item.shipped_cartons) {
       throw new BadRequestException('Packed cartons must be between shipped and ordered cartons');
     }
-    if (item.packed_cartons === packedCartons) return { success: true };
+    const finalize = markPacked ?? (item.cartons > 0 && packedCartons === item.cartons);
+    if (finalize && (item.cartons <= 0 || packedCartons !== item.cartons)) {
+      throw new BadRequestException('Pack all ordered cartons before marking the item packed');
+    }
+    const alreadyDone = isItemPackingDone(item);
+    if (!isAdministrator && alreadyDone && item.packed_cartons !== packedCartons) {
+      throw new BadRequestException('Packing is already marked done for this item');
+    }
+    if (item.packed_cartons === packedCartons && (!finalize || alreadyDone)) return { success: true };
     if (!item.qa_checked_at) {
       throw new BadRequestException('Waiting for QA to be marked done');
     }
     item.packed_cartons = packedCartons;
-    if (item.packed_cartons >= item.cartons) {
-      if (item.item_status !== 'SHIPPED') item.item_status = 'PACKED';
-    } else if (item.packed_cartons > 0) {
-      if (item.item_status !== 'SHIPPED') item.item_status = 'PACKING';
+    if (!['PARTIALLY_SHIPPED', 'SHIPPED'].includes(item.item_status)) {
+      item.item_status = finalize ? 'PACKED' : packedCartons > 0 ? 'PACKING' : 'QC_APPROVED';
     }
 
     po.total_packed_cartons = po.items.reduce(
@@ -445,7 +453,7 @@ export class PurchaseOrdersService {
     );
 
     po.activity.push({
-      user_id: userId, department: 'Packing', action: 'Updated packed cartons',
+      user_id: userId, department: 'Packing', action: finalize ? 'Marked item packed' : 'Updated packed cartons',
       detail: `${item.item_name}: ${packedCartons} / ${item.cartons} cartons`, at: new Date(),
     });
     await po.save();
@@ -472,9 +480,9 @@ export class PurchaseOrdersService {
         throw new ForbiddenException('This item is not assigned to you for export');
       }
       if (item.cartons <= 0 || shippedCartons !== item.cartons ||
-          (item.packed_cartons ?? 0) < item.cartons ||
+          !isItemPackingDone(item) ||
           (itemStatus !== undefined && itemStatus !== 'SHIPPED')) {
-        throw new BadRequestException('All ordered cartons must be packed before marking the item shipped');
+        throw new BadRequestException('The item must be marked packed before marking it shipped');
       }
       if (item.shipped_cartons === item.cartons && item.item_status === 'SHIPPED') {
         return { success: true, item, po };

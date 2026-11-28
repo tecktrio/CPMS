@@ -397,6 +397,7 @@ test('a packer can update only their own assigned item', async () => {
   const item = {
     ...order.items[0],
     shipped_cartons: 0,
+    item_status: 'PRODUCED',
     production_done: true,
     qa_checked_at: null as Date | null,
     packing_assignment: { user_id: 'packer' },
@@ -411,9 +412,16 @@ test('a packer can update only their own assigned item', async () => {
   await assert.rejects(service.updateItemPacking('tenant', 'po', 'first', 5, 'packer'), BadRequestException);
   assert.equal(saves, 0);
   item.qa_checked_at = new Date();
-  await service.updateItemPacking('tenant', 'po', 'first', 5, 'packer');
-  assert.equal(saves, 1);
+  await assert.rejects(
+    service.updateItemPacking('tenant', 'po', 'first', 4, 'packer', false, true),
+    BadRequestException,
+  );
+  await service.updateItemPacking('tenant', 'po', 'first', 5, 'packer', false, false);
+  assert.equal(item.item_status, 'PACKING');
+  await service.updateItemPacking('tenant', 'po', 'first', 5, 'packer', false, true);
+  assert.equal(saves, 2);
   assert.equal(item.packed_cartons, 5);
+  assert.equal(item.item_status, 'PACKED');
 });
 
 test('exporters can ship their own packed item and the final shipment closes the order', async () => {
@@ -430,6 +438,8 @@ test('exporters can ship their own packed item and the final shipment closes the
   await assert.rejects(service.updateItemShipping('tenant', 'po', 'first', 5, 'SHIPPED', 'exporter'), BadRequestException);
   assert.equal(saves, 0);
   item.packed_cartons = 5;
+  await assert.rejects(service.updateItemShipping('tenant', 'po', 'first', 5, 'SHIPPED', 'exporter'), BadRequestException);
+  item.item_status = 'PACKED';
   await service.updateItemShipping('tenant', 'po', 'first', 5, 'SHIPPED', 'exporter');
   await service.updateItemShipping('tenant', 'po', 'first', 5, 'SHIPPED', 'exporter');
   assert.equal(saves, 1);
