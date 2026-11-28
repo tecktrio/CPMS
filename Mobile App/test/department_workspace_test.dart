@@ -572,8 +572,20 @@ void main() {
 
     await tester.tap(find.text('Mark packed'));
     await tester.pumpAndSettle();
+    final saveResponse = Completer<void>();
+    client.saveResponse = saveResponse.future;
     await tester.tap(find.widgetWithText(FilledButton, 'Mark packed').last);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 350));
+    expect(find.text('Saving changes…'), findsOneWidget);
+    expect(find.byIcon(Icons.check_rounded), findsNothing);
+    saveResponse.complete();
     await tester.pumpAndSettle();
+    expect(find.text('Item marked as packed'), findsOneWidget);
+    expect(find.byIcon(Icons.check_rounded), findsOneWidget);
+    await tester.tap(find.text('Back to orders'));
+    await tester.pumpAndSettle();
+    expect(find.text('PO-124'), findsOneWidget);
     expect(
       client.lastPatch,
       '/purchase-orders/order-124/items/item-123/packing',

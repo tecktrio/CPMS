@@ -529,14 +529,20 @@ class _OrderWorkScreenState extends State<OrderWorkScreen> {
       ),
     );
     if (confirmed != true || !mounted) return;
-    await _save(() async {
-      final poId = workText(order, 'po_id');
-      final itemId = workText(item, 'item_id');
-      await _api.patch(
-        '${ApiConstants.purchaseOrders}/$poId/items/$itemId/packing',
-        body: {'packed_cartons': cartons},
-      );
-    });
+    await _save(
+      () async {
+        final poId = workText(order, 'po_id');
+        final itemId = workText(item, 'item_id');
+        await _api.patch(
+          '${ApiConstants.purchaseOrders}/$poId/items/$itemId/packing',
+          body: {'packed_cartons': cartons},
+        );
+      },
+      successTitle: 'Item marked as packed',
+      successMessage:
+          '${workText(item, 'item_name')} · ${workText(order, 'po_number')}\n'
+          '$cartons cartons packed',
+    );
   }
 
   @override

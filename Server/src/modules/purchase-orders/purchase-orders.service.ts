@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   ConflictException,
+  ForbiddenException,
   BadRequestException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
@@ -392,11 +393,16 @@ export class PurchaseOrdersService {
     itemId: string,
     packedCartons: number,
     userId: string,
+    isAdministrator = false,
   ) {
     const po = await this.findOnePurchaseOrder(tenantId, poId, true);
     const item = po.items.find((it) => it.item_id === itemId);
     if (!item) {
       throw new NotFoundException(`Item "${itemId}" not found in PO "${po.po_number}"`);
+    }
+
+    if (!isAdministrator && item.packing_assignment?.user_id !== userId) {
+      throw new ForbiddenException('This item is not assigned to you for packing');
     }
 
     if (![PurchaseOrderStatus.CONFIRMED, PurchaseOrderStatus.IN_PRODUCTION].includes(po.status)) {

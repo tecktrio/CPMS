@@ -1,6 +1,7 @@
 import * as assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { ConflictException, ForbiddenException, NotFoundException } from '@nestjs/common';
+import { PurchaseOrdersService } from '../src/modules/purchase-orders/purchase-orders.service';
 import { OrderWorkController } from '../src/modules/purchase-orders/order-work.controller';
 import { ItemAssignmentStage, OrderWorkService } from '../src/modules/purchase-orders/order-work.service';
 import { DepartmentsService } from '../src/modules/departments/departments.service';
@@ -280,20 +281,33 @@ test('packing and export assignments require matching department staff and curre
   assert.equal(writes[2].update.$set['items.$.export_assignment'], null);
 });
 
-test('workers can identify their own packing and export assignments', async () => {
+test('packers receive only their assigned orders and lines and exporters see their assignments', async () => {
   const assignedOrder = {
     ...order,
     items: [
       { ...order.items[0], packing_assignment: { user_id: 'packer' }, export_assignment: { user_id: 'exporter' } },
-      { ...order.items[1], export_assignment: { user_id: 'different-exporter' } },
+      { ...order.items[1], packing_assignment: { user_id: 'different-packer' }, export_assignment: { user_id: 'different-exporter' } },
+      { item_id: 'unassigned', item_name: 'Unassigned', cartons: 1 },
     ],
   };
-  const service = work({ find: () => query([assignedOrder]) });
+  const otherOrder = { ...order, po_id: 'other-order' };
+  const service = work({
+    find(filter: any) {
+      if (filter.status.$in.includes('SHIPPED')) return query([assignedOrder]);
+      assert.equal(filter.tenant_id, 'tenant');
+      const userId = filter['items.packing_assignment.user_id'];
+      assert.ok(userId);
+      return query([assignedOrder, otherOrder].filter((record) =>
+        record.items.some((item) => 'packing_assignment' in item && item.packing_assignment?.user_id === userId),
+      ));
+    },
+  });
   const [packing] = await service.list('tenant', 'packer', 'PACKER');
   const [shipping] = await service.list('tenant', 'exporter', 'EXPORT');
   assert.ok('items' in packing);
   assert.ok('assigned_items' in shipping);
-  assert.deepEqual(packing.items.map((item) => 'assigned_to_me' in item && item.assigned_to_me), [true, false]);
+  assert.deepEqual(packing.items.map((item) => item.item_id), ['first']);
+  assert.deepEqual(await service.list('tenant', 'unassigned-packer', 'PACKER'), []);
   assert.deepEqual(shipping.assigned_items.map((item) => item.item_id), ['first']);
 });
 
@@ -352,4 +366,22 @@ test('startup preserves Packing membership when switching to the fixed Packer de
   await service.migrateAllTenantsToFixedDepartments();
   assert.deepEqual(membership.department_ids, ['canonical-packer', 'canonical-export']);
   assert.equal(membership.is_active, true);
+});
+
+test('a packer can update only their own assigned item', async () => {
+  const item = {
+    ...order.items[0],
+    shipped_cartons: 0,
+    packing_assignment: { user_id: 'packer' },
+  };
+  let saves = 0;
+  const record = { ...order, items: [item], activity: [], async save() { saves++; } };
+  const service = new PurchaseOrdersService(null, null);
+  service.findOnePurchaseOrder = async () => record as never;
+
+  await assert.rejects(service.updateItemPacking('tenant', 'po', 'first', 5, 'other-packer'), ForbiddenException);
+  assert.equal(saves, 0);
+  await service.updateItemPacking('tenant', 'po', 'first', 5, 'packer');
+  assert.equal(saves, 1);
+  assert.equal(item.packed_cartons, 5);
 });

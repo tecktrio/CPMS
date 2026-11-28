@@ -54,6 +54,7 @@ export class OrderWorkService {
       status: { $in: role === 'PACKER' ? activeStatuses : releasedOrderStatuses },
       ...(role === 'SUPERVISOR' && { po_id: { $in: [...byOrder.keys()] } }),
       ...(role === 'QC' && { 'items.qa_user_id': userId }),
+      ...(role === 'PACKER' && { 'items.packing_assignment.user_id': userId }),
     }).sort({ po_date: -1 }).lean();
 
     const qualityUserIds = role === 'PRODUCTION_MANAGER'
@@ -91,6 +92,7 @@ export class OrderWorkService {
 
       const lines = order.items
         .filter((item) => role !== 'QC' || item.qa_user_id === userId)
+        .filter((item) => role !== 'PACKER' || item.packing_assignment?.user_id === userId)
         .filter((item) => role !== 'SUPERVISOR' ||
           orderAssignments.some((assignment) => assignment.item_id === item.item_id))
         .map((item) => {
@@ -101,7 +103,7 @@ export class OrderWorkService {
           };
           if (role === 'PACKER') return {
             ...line, cartons: item.cartons, packed_cartons: item.packed_cartons,
-            assigned_to_me: item.packing_assignment?.user_id === userId,
+            assigned_to_me: true,
           };
           const lineAssignments = orderAssignments.filter((assignment) => assignment.item_id === item.item_id)
             .map((assignment) => ({

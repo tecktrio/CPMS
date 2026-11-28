@@ -208,6 +208,7 @@ export class PurchaseOrdersController {
     @Param('itemId') itemId: string,
     @Body('packed_cartons') packedCartons: number,
     @CurrentUser('user_id') userId: string,
+    @Req() request: { department_codes?: string[] },
   ) {
     await this.poService.updateItemPacking(
       tenantId,
@@ -215,6 +216,7 @@ export class PurchaseOrdersController {
       itemId,
       Number(packedCartons),
       userId,
+      request.department_codes?.includes('ADMINISTRATOR'),
     );
     return { success: true };
   }
