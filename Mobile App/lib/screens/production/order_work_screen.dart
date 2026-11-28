@@ -58,8 +58,8 @@ class OrderWorkScreen extends StatefulWidget {
 
 class _OrderWorkScreenState extends State<OrderWorkScreen> {
   late Future<List<WorkRecord>> _orders;
-  Timer? _packingRefreshTimer;
-  bool _pollingPacking = false;
+  Timer? _assignedWorkRefreshTimer;
+  bool _pollingAssignedWork = false;
   late final ApiClient _api = context.read<TenantProvider>().apiClient;
   String _query = '';
   String? _selectedOrderId;
@@ -72,7 +72,7 @@ class _OrderWorkScreenState extends State<OrderWorkScreen> {
 
   @override
   void dispose() {
-    _packingRefreshTimer?.cancel();
+    _assignedWorkRefreshTimer?.cancel();
     _searchController.dispose();
     _itemSearchController.dispose();
     super.dispose();
@@ -86,17 +86,18 @@ class _OrderWorkScreenState extends State<OrderWorkScreen> {
   void initState() {
     super.initState();
     _orders = _load();
-    if (widget.workspace == DepartmentWorkspace.packing) {
-      _packingRefreshTimer = Timer.periodic(
+    if (widget.workspace == DepartmentWorkspace.packing ||
+        widget.workspace == DepartmentWorkspace.quality) {
+      _assignedWorkRefreshTimer = Timer.periodic(
         const Duration(seconds: 10),
-        (_) => _pollPacking(),
+        (_) => _pollAssignedWork(),
       );
     }
   }
 
-  Future<void> _pollPacking() async {
-    if (_saving || _pollingPacking) return;
-    _pollingPacking = true;
+  Future<void> _pollAssignedWork() async {
+    if (_saving || _pollingAssignedWork) return;
+    _pollingAssignedWork = true;
     final currentOrders = _orders;
     try {
       final orders = await _load();
@@ -108,7 +109,7 @@ class _OrderWorkScreenState extends State<OrderWorkScreen> {
     } catch (_) {
       // Keep the last visible orders when a background refresh fails.
     } finally {
-      _pollingPacking = false;
+      _pollingAssignedWork = false;
     }
   }
 
@@ -548,16 +549,32 @@ class _OrderWorkScreenState extends State<OrderWorkScreen> {
 
   Future<void> _check(WorkRecord order, WorkRecord item) async {
     var note = '';
+    final form = GlobalKey<FormState>();
     final checkedNote = await openCpmsPage<String>(
       context: context,
       builder: (context) => CpmsFormPage(
         icon: Icons.fact_check_outlined,
-        title: const Text('Mark item checked'),
-        content: TextField(
-          decoration: const InputDecoration(labelText: 'Optional note'),
-          maxLength: 1000,
-          maxLines: 3,
-          onChanged: (value) => note = value,
+        title: const Text('Mark QC done'),
+        content: Form(
+          key: form,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '${workText(item, 'item_name')} · ${workText(order, 'po_number')}',
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                decoration: const InputDecoration(labelText: 'Remark'),
+                maxLength: 1000,
+                maxLines: 3,
+                onChanged: (value) => note = value,
+                validator: (value) => (value ?? '').trim().isEmpty
+                    ? 'Enter an inspection remark.'
+                    : null,
+              ),
+            ],
+          ),
         ),
         actions: [
           TextButton(
@@ -565,21 +582,30 @@ class _OrderWorkScreenState extends State<OrderWorkScreen> {
             child: const Text('Cancel'),
           ),
           FilledButton(
-            onPressed: () => Navigator.pop(context, note.trim()),
-            child: const Text('Mark checked'),
+            onPressed: () {
+              if (form.currentState!.validate()) {
+                Navigator.pop(context, note.trim());
+              }
+            },
+            child: const Text('Mark QC done'),
           ),
         ],
       ),
     );
     if (checkedNote == null || !mounted) return;
-    await _save(() async {
-      final poId = workText(order, 'po_id');
-      final itemId = workText(item, 'item_id');
-      await _api.patch(
-        '/order-work/$poId/items/$itemId/quality-check',
-        body: {'note': checkedNote},
-      );
-    });
+    await _save(
+      () async {
+        final poId = workText(order, 'po_id');
+        final itemId = workText(item, 'item_id');
+        await _api.patch(
+          '/order-work/$poId/items/$itemId/quality-check',
+          body: {'note': checkedNote},
+        );
+      },
+      successTitle: 'QC marked done',
+      successMessage:
+          '${workText(item, 'item_name')} · ${workText(order, 'po_number')}',
+    );
   }
 
   Future<void> _pack(WorkRecord order, WorkRecord item) async {
@@ -1681,7 +1707,7 @@ class _OrderWorkScreenState extends State<OrderWorkScreen> {
             ),
         if (widget.workspace == DepartmentWorkspace.quality) ...[
           Text('$cartons cartons${qaDate.isEmpty ? '' : ' · Due $qaDate'}'),
-          if (checked) Text('Checked ${workDate(item['checked_at'])}'),
+          if (checked) Text('QC done · ${workDate(item['checked_at'])}'),
           if (checked && workText(item, 'note').isNotEmpty)
             Text(workText(item, 'note')),
         ],
@@ -2116,7 +2142,7 @@ class _OrderWorkScreenState extends State<OrderWorkScreen> {
       DepartmentWorkspace.quality when !checked => [
         FilledButton(
           onPressed: () => _check(order, item),
-          child: const Text('Mark checked'),
+          child: const Text('Mark QC done'),
         ),
       ],
       DepartmentWorkspace.packing

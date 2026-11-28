@@ -181,6 +181,11 @@ export class PermissionsGuard implements CanActivate {
       }
     }
 
+    // Legacy Quality departments can predate the fixed QC permission set.
+    if (request.department_codes.includes('QC')) {
+      aggregatedPermissions.add('permission.qc.check');
+    }
+
     // Auto-grant read permission if user has any action permission in that module
     for (const perm of Array.from(aggregatedPermissions)) {
       const parts = perm.split('.');

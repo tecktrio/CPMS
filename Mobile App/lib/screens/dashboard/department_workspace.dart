@@ -69,6 +69,10 @@ enum DepartmentWorkspace {
       'supervisor' || 'supervisors' => supervisor,
       'qc' ||
       'qa' ||
+      'quality' ||
+      'quality control department' ||
+      'quality control team' ||
+      'quality assurance department' ||
       'quality control' ||
       'quality assurance' ||
       'quality assurance team' => quality,
@@ -132,13 +136,13 @@ class DepartmentWorkspaceView extends StatelessWidget {
       DepartmentWorkspace.storeRoom => AppPermissions.storeroomRead,
       DepartmentWorkspace.productionManager ||
       DepartmentWorkspace.supervisor => AppPermissions.productionRead,
-      DepartmentWorkspace.quality => AppPermissions.qcCheck,
+      DepartmentWorkspace.quality => null,
       DepartmentWorkspace.packing => AppPermissions.packingUpdate,
       DepartmentWorkspace.export => AppPermissions.exportRead,
       DepartmentWorkspace.administrator => AppPermissions.userRead,
     };
 
-    if (!tenant.hasPermission(permission)) {
+    if (permission != null && !tenant.hasPermission(permission)) {
       return RefreshIndicator(
         color: workspace.color,
         onRefresh: onRefresh,

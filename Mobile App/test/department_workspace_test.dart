@@ -629,6 +629,53 @@ void main() {
     },
   );
 
+  testWidgets('Quality Assurance opens assigned QC work and saves a remark', (
+    tester,
+  ) async {
+    final client = _WorkClient();
+    final tenant = _WorkspaceTenant(client, 'Quality Assurance', {});
+    await tester.pumpWidget(
+      ChangeNotifierProvider<TenantProvider>.value(
+        value: tenant,
+        child: MaterialApp(
+          home: Scaffold(
+            body: DepartmentWorkspaceView(
+              workspace: DepartmentWorkspace.resolve(tenant)!,
+              onRefresh: () async {},
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(client.lastGet, '/order-work?department=QC');
+    await tester.tap(find.text('PO-124'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Mark QC done'));
+    await tester.pumpAndSettle();
+    final submit = find.widgetWithText(FilledButton, 'Mark QC done');
+    await tester.tap(submit);
+    await tester.pumpAndSettle();
+    expect(find.text('Enter an inspection remark.'), findsOneWidget);
+    expect(client.lastPatch, isNull);
+    await tester.enterText(
+      find.byType(TextFormField),
+      '  Inspection completed  ',
+    );
+    await tester.tap(submit);
+    await tester.pumpAndSettle();
+    expect(
+      client.lastPatch,
+      '/order-work/order-124/items/item-123/quality-check',
+    );
+    expect(client.patchBody, {'note': 'Inspection completed'});
+    expect(find.text('QC marked done'), findsOneWidget);
+    await tester.tap(find.text('Back to orders'));
+    await tester.pumpAndSettle();
+    expect(find.text('Inspection completed'), findsOneWidget);
+    expect(find.text('Mark QC done'), findsNothing);
+  });
+
   testWidgets('packing changes only after the update dialog is confirmed', (
     tester,
   ) async {
@@ -851,6 +898,11 @@ class _WorkClient extends ApiClient {
             'item_id': 'item-123',
             'item_name': 'Private line',
             'cartons': 10,
+            if (endpoint == '/order-work?department=QC' &&
+                lastPatch?.endsWith('/quality-check') == true) ...{
+              'checked_at': '2026-11-28T10:00:00Z',
+              'note': (patchBody as Map)['note'],
+            },
             'production_done': productionDone,
             if (endpoint == '/order-work?department=SUPERVISOR')
               'assignments': [

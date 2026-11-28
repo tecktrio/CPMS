@@ -381,6 +381,10 @@ export class TenantsService {
       depts.flatMap((d) => d.permission_ids || []),
     );
 
+    if (depts.some((department) => QUALITY_DEPARTMENT_NAME.test(department.department_name))) {
+      permissionsSet.add('permission.qc.check');
+    }
+
     // Auto-grant read permission if user has any other permission in that module
     for (const p of Array.from(permissionsSet)) {
       const parts = p.split('.');
