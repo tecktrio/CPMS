@@ -1862,11 +1862,7 @@ class _OrderWorkScreenState extends State<OrderWorkScreen> {
           if (item['assigned_to_me'] == true) const Text('Assigned to you'),
           if (qaDate.isNotEmpty) Text('Due $qaDate'),
           if (_count(item, 'packed_cartons') < cartons)
-            Text(
-              item['production_done'] == true
-                  ? 'Produced'
-                  : 'Waiting for production',
-            ),
+            Text(item['checked_at'] != null ? 'QA done' : 'Waiting for QA'),
         ],
         if (actions.isNotEmpty) ...[
           const SizedBox(height: 12),
@@ -2298,7 +2294,7 @@ class _OrderWorkScreenState extends State<OrderWorkScreen> {
         ),
       ],
       DepartmentWorkspace.packing
-          when item['production_done'] == true &&
+          when item['checked_at'] != null &&
               _count(item, 'packed_cartons') < _count(item, 'cartons') =>
         [
           FilledButton(

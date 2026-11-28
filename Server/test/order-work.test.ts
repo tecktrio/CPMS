@@ -309,7 +309,7 @@ test('packers receive only their assigned orders and lines and exporters see the
   const assignedOrder = {
     ...order,
     items: [
-      { ...order.items[0], packing_assignment: { user_id: 'packer' }, export_assignment: { user_id: 'exporter' } },
+      { ...order.items[0], qa_checked_at: new Date('2026-11-28'), packing_assignment: { user_id: 'packer' }, export_assignment: { user_id: 'exporter' } },
       { ...order.items[1], packing_assignment: { user_id: 'different-packer' }, export_assignment: { user_id: 'different-exporter' } },
       { item_id: 'unassigned', item_name: 'Unassigned', cartons: 1 },
     ],
@@ -325,17 +325,13 @@ test('packers receive only their assigned orders and lines and exporters see the
         record.items.some((item) => 'packing_assignment' in item && item.packing_assignment?.user_id === userId),
       ));
     },
-  }, {
-    find: () => query([
-      { ...assignment, status: 'COMPLETED', completed_cartons: 5 },
-    ]),
   });
   const [packing] = await service.list('tenant', 'packer', 'PACKER');
   const [shipping] = await service.list('tenant', 'exporter', 'EXPORT');
   assert.ok('items' in packing);
   assert.ok('assigned_items' in shipping);
   assert.deepEqual(packing.items.map((item) => item.item_id), ['first']);
-  assert.equal('production_done' in packing.items[0] && packing.items[0].production_done, true);
+  assert.deepEqual('checked_at' in packing.items[0] && packing.items[0].checked_at, new Date('2026-11-28'));
   assert.deepEqual(await service.list('tenant', 'unassigned-packer', 'PACKER'), []);
   assert.deepEqual(shipping.assigned_items.map((item) => item.item_id), ['first']);
 });
@@ -401,26 +397,20 @@ test('a packer can update only their own assigned item', async () => {
   const item = {
     ...order.items[0],
     shipped_cartons: 0,
-    production_done: false,
+    production_done: true,
+    qa_checked_at: null as Date | null,
     packing_assignment: { user_id: 'packer' },
   };
   let saves = 0;
   const record = { ...order, items: [item], activity: [], async save() { saves++; } };
-  const progress = { ...assignment, completed_cartons: 5, production_done: false };
-  const service = new PurchaseOrdersService(null, null, {
-    find(filter) {
-      assert.equal(filter.tenant_id, 'tenant');
-      assert.equal(filter.item_id, 'first');
-      return query([progress]);
-    },
-  } as never);
+  const service = new PurchaseOrdersService(null, null);
   service.findOnePurchaseOrder = async () => record as never;
 
   await assert.rejects(service.updateItemPacking('tenant', 'po', 'first', 5, 'other-packer'), ForbiddenException);
   assert.equal(saves, 0);
   await assert.rejects(service.updateItemPacking('tenant', 'po', 'first', 5, 'packer'), BadRequestException);
   assert.equal(saves, 0);
-  progress.production_done = true;
+  item.qa_checked_at = new Date();
   await service.updateItemPacking('tenant', 'po', 'first', 5, 'packer');
   assert.equal(saves, 1);
   assert.equal(item.packed_cartons, 5);
@@ -433,7 +423,7 @@ test('exporters can ship their own packed item and the final shipment closes the
   };
   let saves = 0;
   const record = { ...order, items: [item], activity: [], total_shipped_cartons: 0, async save() { saves++; } };
-  const service = new PurchaseOrdersService(null, null, null);
+  const service = new PurchaseOrdersService(null, null);
   service.findOnePurchaseOrder = async () => record as never;
 
   await assert.rejects(service.updateItemShipping('tenant', 'po', 'first', 5, 'SHIPPED', 'another-exporter'), ForbiddenException);
@@ -448,7 +438,7 @@ test('exporters can ship their own packed item and the final shipment closes the
   assert.equal(record.status, 'SHIPPED');
 });
 
-test('production is handed to packing only after every assigned carton is confirmed', async () => {
+test('production is marked done only after every assigned carton is confirmed', async () => {
   const first = {
     ...assignment, assigned_cartons: 3, completed_cartons: 3, production_done: false,
     progress_history: [], async save() {},
@@ -487,7 +477,7 @@ test('Sales can confirm drafts but cannot change purchase orders to other status
     activity: [],
     async save() { saves++; },
   };
-  const service = new PurchaseOrdersService(null, null, null);
+  const service = new PurchaseOrdersService(null, null);
   service.findOnePurchaseOrder = async () => po as never;
   await assert.rejects(
     service.createPurchaseOrder('tenant', { status: PurchaseOrderStatus.CONFIRMED } as CreatePurchaseOrderDto, 'sales', true),
@@ -508,4 +498,26 @@ test('Sales can confirm drafts but cannot change purchase orders to other status
   assert.equal(saves, 2);
   await service.updatePurchaseOrder('tenant', 'po', { status: PurchaseOrderStatus.SHIPPED }, 'admin');
   assert.equal(po.status, PurchaseOrderStatus.SHIPPED);
+});
+
+test('Accounts can monitor purchase orders from the draft stage', async () => {
+  const draft = { ...order, status: 'DRAFT' };
+  const service = new OrderWorkService({
+    find(filter) {
+      assert.deepEqual(filter, { tenant_id: 'tenant' });
+      return query([draft]);
+    },
+  } as never, { find: () => query([]) } as never, { find: () => query([]) } as never, {
+    find: () => query([]),
+  } as never, null, {
+    async findOnePurchaseOrder(tenantId, poId, confirmedOnly) {
+      assert.equal(tenantId, 'tenant');
+      assert.equal(poId, 'po');
+      assert.notEqual(confirmedOnly, true);
+      return { ...draft, activity: [] };
+    },
+  } as never);
+  const [visible] = await service.list('tenant', 'accounts', 'ACCOUNTS');
+  assert.equal(visible.status, 'DRAFT');
+  assert.equal((await service.accountDetail('tenant', 'po')).order.status, 'DRAFT');
 });

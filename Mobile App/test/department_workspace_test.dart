@@ -832,16 +832,16 @@ void main() {
     await tester.tap(find.text('PO-124'));
     await tester.pumpAndSettle();
 
-    client.productionDone = false;
+    client.packingQaDone = false;
     await tester.tap(find.byTooltip('Refresh orders'));
     await tester.pumpAndSettle();
-    expect(find.text('Waiting for production'), findsOneWidget);
+    expect(find.text('Waiting for QA'), findsOneWidget);
     expect(find.text('Mark packed'), findsNothing);
-    client.productionDone = true;
+    client.packingQaDone = true;
     await tester.pump(const Duration(seconds: 10));
     await tester.pump();
     await tester.pumpAndSettle();
-    expect(find.text('Produced'), findsOneWidget);
+    expect(find.text('QA done'), findsOneWidget);
 
     await tester.tap(find.text('Mark packed'));
     await tester.pumpAndSettle();
@@ -977,7 +977,7 @@ class _WorkClient extends ApiClient {
   Future<Map<String, dynamic>>? staffResponse;
   Future<void>? saveResponse;
   int qcProducedCartons = 9;
-  bool productionDone = true;
+  bool packingQaDone = true;
   int staffRequests = 0;
   final itemAssignments = <String, Map<String, dynamic>>{};
 
@@ -1077,7 +1077,8 @@ class _WorkClient extends ApiClient {
               'checked_at': '2026-11-28T10:00:00Z',
               'note': (patchBody as Map)['note'],
             },
-            'production_done': productionDone,
+            if (endpoint == '/order-work?department=PACKER' && packingQaDone)
+              'checked_at': '2026-11-28T10:00:00Z',
             if (endpoint == '/order-work?department=SUPERVISOR')
               'assignments': [
                 {
@@ -1151,7 +1152,8 @@ class _WorkClient extends ApiClient {
               'item_id': 'item-125',
               'item_name': 'Second item',
               'cartons': 5,
-              'production_done': productionDone,
+              if (endpoint == '/order-work?department=PACKER' && packingQaDone)
+                'checked_at': '2026-11-28T10:00:00Z',
             },
           ],
         },
