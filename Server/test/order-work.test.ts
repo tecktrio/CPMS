@@ -27,7 +27,7 @@ const order = {
   customer_address: 'Private address',
   total_cartons: 10,
   items: [
-    { item_id: 'first', item_name: 'First', qa_user_id: 'my-user', cartons: 5, packed_cartons: 3 },
+    { item_id: 'first', item_name: 'First', qa_user_id: 'my-user', cartons: 5, completed_cartons: 5, packed_cartons: 3 },
     { item_id: 'second', item_name: 'Second', qa_user_id: 'other-user', cartons: 5, packed_cartons: 1 },
   ],
 };
@@ -120,12 +120,24 @@ test('production progress cannot change another supervisor’s assignment', asyn
   );
 });
 
+test('an assigned QA check is rejected below 100% production', async () => {
+  const service = work({
+    findOne: () => query({ ...order, items: [{ ...order.items[0], completed_cartons: 4 }] }),
+    updateOne() { assert.fail('An item below 100% production must not be checked'); },
+  });
+  await assert.rejects(
+    service.checkQuality('tenant', 'my-user', 'po', 'first'),
+    BadRequestException,
+  );
+});
+
 test('an assigned QA check records an optional note and identifies the actor', async () => {
   let update: any;
   const service = work({
     findOne: () => query(order),
     updateOne(filter: any, operations: any) {
       assert.equal(filter.items.$elemMatch.qa_user_id, 'my-user');
+      assert.deepEqual(filter.items.$elemMatch.completed_cartons, { $gte: 5 });
       update = operations[0].$set;
       return { matchedCount: 1 };
     },

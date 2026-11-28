@@ -778,6 +778,13 @@ void main() {
     expect(client.lastGet, '/order-work?department=QC');
     await tester.tap(find.text('PO-124'));
     await tester.pumpAndSettle();
+    final qc = find.widgetWithText(FilledButton, 'Mark QC done');
+    expect(tester.widget<FilledButton>(qc).onPressed, isNull);
+    expect(find.text('Waiting for production to reach 100%'), findsOneWidget);
+    client.qcProducedCartons = 10;
+    await tester.tap(find.byTooltip('Refresh orders'));
+    await tester.pumpAndSettle();
+    expect(tester.widget<FilledButton>(qc).onPressed, isNotNull);
     await tester.tap(find.text('Mark QC done'));
     await tester.pumpAndSettle();
     final submit = find.widgetWithText(FilledButton, 'Mark QC done');
@@ -969,6 +976,7 @@ class _WorkClient extends ApiClient {
   Object? patchBody;
   Future<Map<String, dynamic>>? staffResponse;
   Future<void>? saveResponse;
+  int qcProducedCartons = 9;
   bool productionDone = true;
   int staffRequests = 0;
   final itemAssignments = <String, Map<String, dynamic>>{};
@@ -1062,6 +1070,8 @@ class _WorkClient extends ApiClient {
             'item_id': 'item-123',
             'item_name': 'Private line',
             'cartons': 10,
+            if (endpoint == '/order-work?department=QC')
+              'completed_cartons': qcProducedCartons,
             if (endpoint == '/order-work?department=QC' &&
                 lastPatch?.endsWith('/quality-check') == true) ...{
               'checked_at': '2026-11-28T10:00:00Z',

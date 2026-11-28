@@ -1852,6 +1852,8 @@ class _OrderWorkScreenState extends State<OrderWorkScreen> {
         if (widget.workspace == DepartmentWorkspace.quality) ...[
           Text('$cartons cartons${qaDate.isEmpty ? '' : ' · Due $qaDate'}'),
           if (checked) Text('QC done · ${workDate(item['checked_at'])}'),
+          if (!checked && !_canCompleteQc(item))
+            const Text('Waiting for production to reach 100%'),
           if (checked && workText(item, 'note').isNotEmpty)
             Text(workText(item, 'note')),
         ],
@@ -2280,13 +2282,18 @@ class _OrderWorkScreenState extends State<OrderWorkScreen> {
     return _count(item, 'cartons') - assigned;
   }
 
+  bool _canCompleteQc(WorkRecord item) {
+    final ordered = _count(item, 'cartons');
+    return ordered > 0 && _count(item, 'completed_cartons') >= ordered;
+  }
+
   List<Widget> _itemActions(WorkRecord order, WorkRecord item, bool editable) {
     if (!editable) return const [];
     final checked = item['checked_at'] != null;
     return switch (widget.workspace) {
       DepartmentWorkspace.quality when !checked => [
         FilledButton(
-          onPressed: () => _check(order, item),
+          onPressed: _canCompleteQc(item) ? () => _check(order, item) : null,
           child: const Text('Mark QC done'),
         ),
       ],

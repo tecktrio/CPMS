@@ -114,7 +114,7 @@ export class OrderWorkService {
         .map((item) => {
           const line = { item_id: item.item_id, item_name: item.item_name, sku: item.sku };
           if (role === 'QC') return {
-            ...line, cartons: item.cartons, target_date: item.qa_target_date,
+            ...line, cartons: item.cartons, completed_cartons: item.completed_cartons ?? 0, target_date: item.qa_target_date,
             checked_at: item.qa_checked_at, note: item.qa_note,
           };
           if (role === 'PACKER') return {
@@ -245,13 +245,21 @@ export class OrderWorkService {
     const order = await this.orders.findOne(orderFilter).select('items').lean();
     const item = order?.items.find((line) => line.item_id === itemId);
     if (!item) throw new NotFoundException('Assigned quality check not found');
+    if (item.cartons <= 0 || (item.completed_cartons ?? 0) < item.cartons) {
+      throw new BadRequestException('Production must reach 100% before completing QC');
+    }
     const now = new Date();
     const activity: PurchaseOrderActivity = {
       user_id: actor, department: 'Quality Assurance', action: 'Marked item checked',
       detail: [item.item_name, note.trim()].filter(Boolean).join(' · '), at: now,
     };
     const completion = { at: now, user_id: actor, note: note.trim() };
-    const updated = await this.orders.updateOne(orderFilter, [
+    const updated = await this.orders.updateOne({
+      ...orderFilter,
+      items: { $elemMatch: {
+        ...itemMatch, cartons: item.cartons, completed_cartons: { $gte: item.cartons },
+      }},
+    }, [
       { $set: {
         items: { $map: { input: '$items', as: 'item', in: { $cond: [
           { $and: [
@@ -274,7 +282,7 @@ export class OrderWorkService {
         activity: { $concatArrays: [{ $ifNull: ['$activity', []] }, { $literal: [activity] }] },
       }},
     ]);
-    if (!updated.matchedCount) throw new NotFoundException('Assigned quality check not found');
+    if (!updated.matchedCount) throw new ConflictException('The assignment or production progress changed. Refresh the order and try again.');
     return { success: true };
   }
 
