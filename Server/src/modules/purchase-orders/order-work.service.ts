@@ -105,6 +105,9 @@ export class OrderWorkService {
           if (role === 'SUPERVISOR') return { ...line, assignments: lineAssignments };
           return {
             ...line, cartons: item.cartons, qa_user_id: item.qa_user_id,
+            completed_cartons: item.completed_cartons,
+            packed_cartons: item.packed_cartons,
+            shipped_cartons: item.shipped_cartons,
             qa_assignee: qualityNames.get(item.qa_user_id || ''),
             target_date: item.qa_target_date, checked_at: item.qa_checked_at,
             qa_completion_history: item.qa_completion_history?.length
@@ -115,7 +118,13 @@ export class OrderWorkService {
             assignments: lineAssignments,
           };
         });
-      return { ...basic, items: lines };
+      return {
+        ...basic,
+        ...(role === 'PRODUCTION_MANAGER' && {
+          destination: order.customer_address,
+        }),
+        items: lines,
+      };
     });
   }
 

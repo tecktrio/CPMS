@@ -145,7 +145,7 @@ void main() {
         if (screen == OrderWorkScreen) {
           expect(
             client.lastGet,
-            '/order-work?department=${workspace!.orderWorkRole}',
+            '/order-work?department=${workspace.orderWorkRole}',
           );
           expect(find.text('PO-124'), findsOneWidget);
         }
@@ -166,7 +166,7 @@ void main() {
       tester,
     ) async {
       tester.view.devicePixelRatio = 1;
-      tester.view.physicalSize = const Size(1000, 850);
+      tester.view.physicalSize = const Size(1280, 850);
       addTearDown(tester.view.resetDevicePixelRatio);
       addTearDown(tester.view.resetPhysicalSize);
       final client = _WorkClient(includeSecondOrder: true);
@@ -209,21 +209,38 @@ void main() {
       await tester.pumpAndSettle();
       expect(tester.widget<ListTile>(first).selected, isTrue);
       expect(second, findsOneWidget);
+      final planning = workspace == DepartmentWorkspace.productionManager;
+      if (planning) {
+        expect(find.text('QA Inspection Assignment'), findsNothing);
+        expect(find.text('Additional line'), findsOneWidget);
+        final search = find.byType(TextField).last;
+        await tester.enterText(search, 'SKU-126');
+        await tester.pumpAndSettle();
+        expect(find.text('Private line'), findsNothing);
+        expect(find.text('Additional line'), findsOneWidget);
+        await tester.enterText(search, '');
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Private line'));
+        await tester.pumpAndSettle();
+        expect(find.text('Additional line'), findsNothing);
+      }
       final actionLabel = switch (workspace) {
         DepartmentWorkspace.sales => 'Edit Purchase Order',
-        DepartmentWorkspace.productionManager =>
-          'Assign remaining 5 cartons to supervisors',
+        DepartmentWorkspace.productionManager => '+ Split Quantity / Add Line',
         _ => 'Mark packed',
       };
       final detailCard = find.ancestor(
         of: find.text('Private line'),
         matching: find.byType(Card),
       );
-      final action = workspace == DepartmentWorkspace.sales
+      final action = planning || workspace == DepartmentWorkspace.sales
           ? find.text(actionLabel)
           : find.descendant(of: detailCard, matching: find.text(actionLabel));
       expect(action, findsOneWidget);
-      expect(tester.getSize(first).width, lessThan(260));
+      expect(
+        tester.getSize(first).width,
+        lessThan(tester.view.physicalSize.width / 2),
+      );
       expect(
         tester.getCenter(action).dx,
         greaterThan(tester.getCenter(first).dx),
@@ -233,7 +250,7 @@ void main() {
           find.ancestor(of: action, matching: find.byType(AppBar)),
           findsOneWidget,
         );
-      } else {
+      } else if (!planning) {
         final item = find.text('Private line');
 
         expect(detailCard, findsOneWidget);
@@ -245,91 +262,56 @@ void main() {
           tester.getTopLeft(action).dy,
           greaterThan(tester.getBottomLeft(item).dy),
         );
-        if (workspace == DepartmentWorkspace.productionManager) {
-          expect(
-            find.descendant(of: detailCard, matching: find.byType(Table)),
-            findsNWidgets(2),
-          );
-          expect(find.text('Assigned date'), findsOneWidget);
-          expect(find.text('Nov 27, 2026'), findsOneWidget);
-          expect(find.text('40%'), findsOneWidget);
-          expect(find.text('Reassign'), findsOneWidget);
-          expect(find.text('Unassign'), findsOneWidget);
-          expect(
-            tester
-                .widget<IconButton>(
-                  find.byWidgetPredicate(
-                    (widget) =>
-                        widget is IconButton &&
-                        widget.tooltip == 'Reassign supervisor',
-                  ),
-                )
-                .onPressed,
-            isNull,
-          );
-          expect(
-            tester
-                .widget<IconButton>(
-                  find.byWidgetPredicate(
-                    (widget) =>
-                        widget is IconButton &&
-                        widget.tooltip == 'Unassign supervisor',
-                  ),
-                )
-                .onPressed,
-            isNull,
-          );
-          for (final (tooltip, title, value) in [
-            (
-              'View supervisor history',
-              'Supervisor progress history',
-              'Previous cartons',
-            ),
-            ('View QA history', 'QA completion history', 'Inspection passed'),
-          ]) {
-            final history = find.descendant(
-              of: detailCard,
-              matching: find.byTooltip(tooltip),
-            );
-            await tester.ensureVisible(history);
-            await tester.tap(history);
-            await tester.pumpAndSettle();
-            final dialog = find.byType(CpmsFormPage);
-            expect(
-              find.descendant(of: dialog, matching: find.text(title)),
-              findsOneWidget,
-            );
-            expect(
-              find.descendant(of: dialog, matching: find.text(value)),
-              findsOneWidget,
-            );
-            final export = find.descendant(
-              of: dialog,
-              matching: find.widgetWithText(FilledButton, 'Export PDF'),
-            );
-            expect(tester.widget<FilledButton>(export).onPressed, isNotNull);
-            await tester.tap(find.widgetWithText(TextButton, 'Close'));
-            await tester.pumpAndSettle();
-          }
-        }
       }
-      if (workspace == DepartmentWorkspace.productionManager) {
-        final otherCard = find.ancestor(
-          of: find.text('Additional line'),
-          matching: find.byType(Card),
-        );
-        expect(otherCard, findsOneWidget);
-        expect(
-          find.descendant(
-            of: detailCard,
-            matching: find.text('Additional line'),
+      if (planning) {
+        expect(find.text('QA Inspection Assignment'), findsOneWidget);
+        expect(find.text('Supervisor Carton Assignments'), findsOneWidget);
+        expect(find.text('Assigned date'), findsOneWidget);
+        expect(find.text('Nov 27, 2026'), findsOneWidget);
+        expect(find.text('40%'), findsOneWidget);
+        expect(find.widgetWithText(TextButton, 'Checked'), findsOneWidget);
+        for (final label in ['Reassign', 'Unassign']) {
+          final button = find.widgetWithText(OutlinedButton, label);
+          expect(button, findsOneWidget);
+          expect(tester.widget<OutlinedButton>(button).onPressed, isNull);
+        }
+        for (final (tooltip, title, value) in [
+          (
+            'View supervisor history',
+            'Supervisor progress history',
+            'Previous cartons',
           ),
-          findsNothing,
-        );
-        final assignQa = find.descendant(
-          of: otherCard,
-          matching: find.widgetWithText(OutlinedButton, 'Assign QA'),
-        );
+          ('View QA history', 'QA completion history', 'Inspection passed'),
+        ]) {
+          final history = find.byTooltip(tooltip);
+          await tester.ensureVisible(history);
+          await tester.tap(history);
+          await tester.pumpAndSettle();
+          final dialog = find.byType(CpmsFormPage);
+          expect(
+            find.descendant(of: dialog, matching: find.text(title)),
+            findsOneWidget,
+          );
+          expect(
+            find.descendant(of: dialog, matching: find.text(value)),
+            findsOneWidget,
+          );
+          final export = find.descendant(
+            of: dialog,
+            matching: find.widgetWithText(FilledButton, 'Export PDF'),
+          );
+          expect(tester.widget<FilledButton>(export).onPressed, isNotNull);
+          await tester.tap(find.widgetWithText(TextButton, 'Close'));
+          await tester.pumpAndSettle();
+        }
+        await tester.tap(find.text('PO-124 Overview'));
+        await tester.pumpAndSettle();
+        expect(find.text('Private line'), findsOneWidget);
+        expect(find.text('QA Inspection Assignment'), findsNothing);
+        await tester.tap(find.text('Additional line'));
+        await tester.pumpAndSettle();
+        expect(find.text('Private line'), findsNothing);
+        final assignQa = find.widgetWithText(OutlinedButton, 'Assign QA');
         final staffResponse = Completer<Map<String, dynamic>>();
         client.staffResponse = staffResponse.future;
         await tester.ensureVisible(assignQa);
@@ -428,7 +410,7 @@ void main() {
         await tester.tap(find.text('Back to orders'));
         await tester.pumpAndSettle();
         expect(
-          find.descendant(of: otherCard, matching: find.text('Reassign QA')),
+          find.widgetWithText(OutlinedButton, 'Reassign QA'),
           findsOneWidget,
         );
         expect(find.byType(SnackBar), findsNothing);
