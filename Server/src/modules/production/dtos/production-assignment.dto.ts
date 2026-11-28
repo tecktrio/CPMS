@@ -1,4 +1,4 @@
-import { IsDateString, IsNotEmpty, IsInt, IsOptional, IsString, Min } from 'class-validator';
+import { IsBoolean, IsDateString, IsNotEmpty, IsInt, IsOptional, IsString, Min } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateProductionAssignmentDto {
@@ -38,6 +38,10 @@ export class UpdateProgressDto {
   @IsInt()
   @Min(0)
   completed_cartons: number;
+
+  @IsOptional()
+  @IsBoolean()
+  mark_done?: boolean;
 }
 
 export class UpdateAssignmentDto {

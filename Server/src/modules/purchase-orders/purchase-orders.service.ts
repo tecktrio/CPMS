@@ -303,6 +303,8 @@ export class PurchaseOrdersService {
           quantity_per_packet: qtyPerPacket,
           unit: it.unit || '',
           completed_cartons: existingItem?.completed_cartons || 0,
+          production_done: existingItem?.production_done === true &&
+            cartons > 0 && existingItem.completed_cartons >= cartons,
           qa_user_id: existingItem?.qa_user_id,
           qa_target_date: existingItem?.qa_target_date,
           qa_checked_at: existingItem?.qa_checked_at,
@@ -353,6 +355,10 @@ export class PurchaseOrdersService {
       throw new NotFoundException(
         `Item "${itemId}" not found in PO "${po.po_number}"`,
       );
+    }
+
+    if (item.production_done) {
+      throw new BadRequestException('Production is already marked done for this item');
     }
 
     item.completed_cartons = Math.max(0, completedCartons);
@@ -413,6 +419,9 @@ export class PurchaseOrdersService {
       throw new BadRequestException('Packed cartons must be between shipped and ordered cartons');
     }
     if (item.packed_cartons === packedCartons) return { success: true };
+    if (!isAdministrator && !item.production_done) {
+      throw new BadRequestException('Waiting for production to be marked done');
+    }
     item.packed_cartons = packedCartons;
     if (item.packed_cartons >= item.cartons) {
       if (item.item_status !== 'SHIPPED') item.item_status = 'PACKED';

@@ -114,6 +114,9 @@ export class PurchaseOrderItem {
   @Prop({ type: ItemDepartmentAssignmentSchema, default: null })
   export_assignment?: ItemDepartmentAssignment | null;
 
+  @Prop({ type: Boolean, default: false })
+  production_done?: boolean;
+
   // Lifecycle Stage Quantities per Line Item:
   @Prop({ type: Number, default: 0, min: 0 })
   completed_cartons: number;

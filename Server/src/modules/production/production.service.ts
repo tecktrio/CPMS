@@ -164,8 +164,16 @@ export class ProductionService {
       );
     }
 
+    if (dto.mark_done && dto.completed_cartons !== assignment.assigned_cartons) {
+      throw new BadRequestException('Complete all assigned cartons before marking production done');
+    }
+    if (assignment.production_done && dto.completed_cartons !== assignment.completed_cartons) {
+      throw new BadRequestException('Production is already marked done for this assignment');
+    }
+
     const previousCartons = assignment.completed_cartons;
     const changed = previousCartons !== dto.completed_cartons;
+    const markedDone = dto.mark_done === true && !assignment.production_done;
     const now = new Date();
     if (changed) {
       assignment.completed_cartons = dto.completed_cartons;
@@ -186,14 +194,15 @@ export class ProductionService {
         previous_cartons: previousCartons,
         completed_cartons: dto.completed_cartons,
       });
-      await assignment.save();
     }
+    if (markedDone) assignment.production_done = true;
+    if (changed || markedDone) await assignment.save();
 
     // Roll up to PO line item and PO totals
-    await this.recalculatePoTotals(tenantId, assignment.po_id, changed ? {
+    await this.recalculatePoTotals(tenantId, assignment.po_id, changed || markedDone ? {
       user_id: requestingUserId,
       department: 'Supervisor',
-      action: 'Updated production progress',
+      action: markedDone ? 'Marked production done' : 'Updated production progress',
       detail: `${assignment.item_name}: ${dto.completed_cartons} / ${assignment.assigned_cartons} cartons`,
       at: now,
     } : undefined);
@@ -232,6 +241,11 @@ export class ProductionService {
       const supervisor = await this.staff.requireMember(tenantId, 'Supervisor', dto.supervisor_user_id);
       assignment.supervisor_user_id = supervisor.user_id;
       assignment.supervisor_name = supervisor.name;
+    }
+
+    if (assignment.production_done && dto.assigned_cartons != null &&
+        dto.assigned_cartons !== assignment.assigned_cartons) {
+      throw new BadRequestException('Production is already marked done for this assignment');
     }
 
     if (dto.assigned_cartons !== undefined) {
@@ -349,11 +363,15 @@ export class ProductionService {
 
     // Map item completions
     const itemCompletions = new Map<string, number>();
+    const confirmedCartons = new Map<string, number>();
     for (const a of activeAssignments) {
       totalAssigned += a.assigned_cartons || 0;
       totalCompleted += a.completed_cartons || 0;
       const cur = itemCompletions.get(a.item_id) || 0;
       itemCompletions.set(a.item_id, cur + (a.completed_cartons || 0));
+      if (a.production_done) {
+        confirmedCartons.set(a.item_id, (confirmedCartons.get(a.item_id) ?? 0) + a.completed_cartons);
+      }
     }
 
     po.total_assigned_cartons = totalAssigned;
@@ -361,9 +379,10 @@ export class ProductionService {
 
     for (const it of po.items) {
       it.completed_cartons = itemCompletions.get(it.item_id) || 0;
+      it.production_done = it.cartons > 0 && (confirmedCartons.get(it.item_id) ?? 0) >= it.cartons;
       if (['PENDING', 'IN_PRODUCTION', 'PRODUCED'].includes(it.item_status)) {
         if (it.completed_cartons === 0) it.item_status = 'PENDING';
-        else if (it.completed_cartons >= it.cartons) it.item_status = 'PRODUCED';
+        else if (it.production_done) it.item_status = 'PRODUCED';
         else it.item_status = 'IN_PRODUCTION';
       }
     }

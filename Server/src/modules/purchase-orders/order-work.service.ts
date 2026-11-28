@@ -103,7 +103,7 @@ export class OrderWorkService {
           };
           if (role === 'PACKER') return {
             ...line, cartons: item.cartons, packed_cartons: item.packed_cartons,
-            assigned_to_me: true,
+            assigned_to_me: true, production_done: item.production_done === true,
           };
           const lineAssignments = orderAssignments.filter((assignment) => assignment.item_id === item.item_id)
             .map((assignment) => ({
@@ -115,6 +115,7 @@ export class OrderWorkService {
               }),
               assigned_cartons: assignment.assigned_cartons,
               completed_cartons: assignment.completed_cartons,
+              production_done: assignment.production_done === true,
               assigned_at: assignment.created_at,
               target_date: assignment.target_date,
               status: assignment.status,

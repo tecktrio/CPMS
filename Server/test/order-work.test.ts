@@ -372,6 +372,7 @@ test('a packer can update only their own assigned item', async () => {
   const item = {
     ...order.items[0],
     shipped_cartons: 0,
+    production_done: false,
     packing_assignment: { user_id: 'packer' },
   };
   let saves = 0;
@@ -381,6 +382,9 @@ test('a packer can update only their own assigned item', async () => {
 
   await assert.rejects(service.updateItemPacking('tenant', 'po', 'first', 5, 'other-packer'), ForbiddenException);
   assert.equal(saves, 0);
+  await assert.rejects(service.updateItemPacking('tenant', 'po', 'first', 5, 'packer'), BadRequestException);
+  assert.equal(saves, 0);
+  item.production_done = true;
   await service.updateItemPacking('tenant', 'po', 'first', 5, 'packer');
   assert.equal(saves, 1);
   assert.equal(item.packed_cartons, 5);
@@ -406,4 +410,35 @@ test('exporters can ship their own packed item and the final shipment closes the
   assert.equal(item.item_status, 'SHIPPED');
   assert.equal(record.total_shipped_cartons, 5);
   assert.equal(record.status, 'SHIPPED');
+});
+
+test('production is handed to packing only after every assigned carton is confirmed', async () => {
+  const first = {
+    ...assignment, assigned_cartons: 3, completed_cartons: 3, production_done: false,
+    progress_history: [], async save() {},
+  };
+  const second = {
+    ...first, assignment_id: 'second-assignment', assigned_cartons: 2, completed_cartons: 2,
+  };
+  const item = { ...order.items[0], item_status: 'IN_PRODUCTION', production_done: false };
+  const po = { ...order, items: [item], activity: [], markModified() {}, async save() {} };
+  const service = new ProductionService({
+    findOne: async (filter) => filter.assignment_id === first.assignment_id ? first : second,
+    find: async () => [first, second],
+  } as never, { exists: async () => true, findOne: async () => po } as never, null);
+
+  await assert.rejects(service.updateProgress('tenant', 'assignment', 'my-user', {
+    completed_cartons: 2, mark_done: true,
+  }), BadRequestException);
+  await service.updateProgress('tenant', 'assignment', 'my-user', { completed_cartons: 3 });
+  assert.equal(item.production_done, false);
+  await service.updateProgress('tenant', 'assignment', 'my-user', { completed_cartons: 3, mark_done: true });
+  assert.equal(first.production_done, true);
+  assert.equal(item.production_done, false);
+  await assert.rejects(service.updateProgress('tenant', 'assignment', 'my-user', {
+    completed_cartons: 2,
+  }), BadRequestException);
+  await service.updateProgress('tenant', 'second-assignment', 'my-user', { completed_cartons: 2, mark_done: true });
+  assert.equal(item.production_done, true);
+  assert.equal(item.item_status, 'PRODUCED');
 });

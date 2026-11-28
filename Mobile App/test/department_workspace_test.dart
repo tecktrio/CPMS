@@ -574,6 +574,61 @@ void main() {
     expect(find.text('Mark shipped'), findsNothing);
   });
 
+  testWidgets(
+    'production controls lock after the supervisor marks all cartons done',
+    (tester) async {
+      final client = _WorkClient();
+      final tenant = _WorkspaceTenant(client, 'Supervisor', {
+        AppPermissions.productionRead,
+      });
+      await tester.pumpWidget(
+        MultiProvider(
+          providers: [
+            ChangeNotifierProvider<TenantProvider>.value(value: tenant),
+            ChangeNotifierProvider(
+              create: (_) => ProductionProvider(apiClient: client),
+            ),
+          ],
+          child: const MaterialApp(
+            home: OrderWorkScreen(workspace: DepartmentWorkspace.supervisor),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('PO-124'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('Update production'));
+      await tester.pumpAndSettle();
+
+      final markDone = find.widgetWithText(
+        FilledButton,
+        'Mark production done',
+      );
+      final increase = find.widgetWithIcon(IconButton, Icons.add);
+      final decrease = find.widgetWithIcon(IconButton, Icons.remove);
+      expect(tester.widget<FilledButton>(markDone).onPressed, isNull);
+      expect(tester.widget<IconButton>(decrease).onPressed, isNull);
+      await tester.tap(increase);
+      await tester.pumpAndSettle();
+      expect(find.text('50% complete'), findsOneWidget);
+      await tester.tap(decrease);
+      await tester.pumpAndSettle();
+      expect(find.text('0% complete'), findsOneWidget);
+      await tester.tap(increase);
+      await tester.pumpAndSettle();
+      await tester.tap(increase);
+      await tester.pumpAndSettle();
+      expect(find.text('100% complete'), findsOneWidget);
+      await tester.tap(markDone);
+      await tester.pumpAndSettle();
+      expect(client.lastPatch, '/production/assignments/assignment-1/progress');
+      expect(client.patchBody, {'completed_cartons': 2, 'mark_done': true});
+      expect(find.text('Production done'), findsOneWidget);
+      expect(tester.widget<IconButton>(increase).onPressed, isNull);
+      expect(tester.widget<IconButton>(decrease).onPressed, isNull);
+    },
+  );
+
   testWidgets('packing changes only after the update dialog is confirmed', (
     tester,
   ) async {
@@ -594,6 +649,15 @@ void main() {
     );
     await tester.pumpAndSettle();
     await tester.tap(find.text('PO-124'));
+    await tester.pumpAndSettle();
+
+    client.productionDone = false;
+    await tester.tap(find.byTooltip('Refresh orders'));
+    await tester.pumpAndSettle();
+    expect(find.text('Waiting for production'), findsOneWidget);
+    expect(find.text('Mark packed'), findsNothing);
+    client.productionDone = true;
+    await tester.tap(find.byTooltip('Refresh orders'));
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('Mark packed'));
@@ -705,6 +769,7 @@ class _WorkClient extends ApiClient {
   Object? patchBody;
   Future<Map<String, dynamic>>? staffResponse;
   Future<void>? saveResponse;
+  bool productionDone = true;
   int staffRequests = 0;
   final itemAssignments = <String, Map<String, dynamic>>{};
 
@@ -784,6 +849,16 @@ class _WorkClient extends ApiClient {
             'item_id': 'item-123',
             'item_name': 'Private line',
             'cartons': 10,
+            'production_done': productionDone,
+            if (endpoint == '/order-work?department=SUPERVISOR')
+              'assignments': [
+                {
+                  'assignment_id': 'assignment-1',
+                  'assigned_cartons': 2,
+                  'completed_cartons': 0,
+                  'status': 'PENDING',
+                },
+              ],
             if (includeSecondOrder &&
                 endpoint == '/order-work?department=PRODUCTION_MANAGER') ...{
               'qa_user_id': 'qa-1',
@@ -843,7 +918,12 @@ class _WorkClient extends ApiClient {
           'status': 'DRAFT',
           'editable': true,
           'items': [
-            {'item_id': 'item-125', 'item_name': 'Second item', 'cartons': 5},
+            {
+              'item_id': 'item-125',
+              'item_name': 'Second item',
+              'cartons': 5,
+              'production_done': productionDone,
+            },
           ],
         },
     ];

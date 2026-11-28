@@ -415,58 +415,106 @@ class _OrderWorkScreenState extends State<OrderWorkScreen> {
   Future<void> _progress(WorkRecord assignment) async {
     final production = context.read<ProductionProvider>();
     final assigned = _count(assignment, 'assigned_cartons');
-    var input = '${_count(assignment, 'completed_cartons')}';
-    final form = GlobalKey<FormState>();
-    final completed = await openCpmsPage<int>(
+    var completed = _count(assignment, 'completed_cartons').clamp(0, assigned);
+    var done = assignment['production_done'] == true;
+    var saving = false;
+    String? error;
+    await openCpmsPage<void>(
       context: context,
-      builder: (context) => CpmsFormPage(
-        title: const Text('Update production'),
-        content: Form(
-          key: form,
-          child: TextFormField(
-            initialValue: input,
-            autofocus: true,
-            decoration: InputDecoration(
-              labelText: 'Completed cartons out of $assigned',
-            ),
-            keyboardType: TextInputType.number,
-            onChanged: (value) => input = value,
-            validator: (value) {
-              final cartons = int.tryParse(value?.trim() ?? '');
-              return cartons == null || cartons < 0 || cartons > assigned
-                  ? 'Enter a whole number from 0 to $assigned.'
-                  : null;
-            },
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () {
-              if (form.currentState!.validate()) {
-                Navigator.pop(context, int.parse(input.trim()));
+      builder: (_) => StatefulBuilder(
+        builder: (pageContext, update) {
+          Future<void> save({required bool markDone}) async {
+            update(() {
+              saving = true;
+              error = null;
+            });
+            final saved = await production.updateProgress(
+              assignmentId: workText(assignment, 'assignment_id'),
+              completedCartons: completed,
+              markDone: markDone,
+            );
+            if (saved && mounted) await _refresh();
+            if (!pageContext.mounted) return;
+            update(() {
+              saving = false;
+              if (saved) {
+                done = markDone;
+              } else {
+                error =
+                    production.errorMessage ?? 'Progress could not be saved.';
               }
-            },
-            child: const Text('Save progress'),
-          ),
-        ],
+            });
+            if (saved && !markDone) Navigator.pop(pageContext);
+          }
+
+          return PopScope(
+            canPop: !saving,
+            child: CpmsFormPage(
+              title: const Text('Update production'),
+              content: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Completed cartons'),
+                  Row(
+                    children: [
+                      IconButton.outlined(
+                        tooltip: 'Decrease completed cartons',
+                        onPressed: saving || done || completed == 0
+                            ? null
+                            : () => update(() => completed--),
+                        icon: const Icon(Icons.remove),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Text('$completed / $assigned'),
+                      ),
+                      IconButton.outlined(
+                        tooltip: 'Increase completed cartons',
+                        onPressed: saving || done || completed >= assigned
+                            ? null
+                            : () => update(() => completed++),
+                        icon: const Icon(Icons.add),
+                      ),
+                    ],
+                  ),
+                  Text(
+                    done
+                        ? 'Production done'
+                        : '${assigned > 0 ? completed * 100 ~/ assigned : 0}% complete',
+                  ),
+                  if (saving) const LinearProgressIndicator(),
+                  if (error != null)
+                    Text(
+                      error!,
+                      style: TextStyle(
+                        color: Theme.of(pageContext).colorScheme.error,
+                      ),
+                    ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: saving ? null : () => Navigator.pop(pageContext),
+                  child: Text(done ? 'Close' : 'Cancel'),
+                ),
+                if (!done)
+                  OutlinedButton(
+                    onPressed: saving ? null : () => save(markDone: false),
+                    child: const Text('Save progress'),
+                  ),
+                FilledButton(
+                  onPressed:
+                      saving || done || assigned == 0 || completed != assigned
+                      ? null
+                      : () => save(markDone: true),
+                  child: const Text('Mark production done'),
+                ),
+              ],
+            ),
+          );
+        },
       ),
     );
-    if (completed == null || !mounted) return;
-    await _save(() async {
-      final saved = await production.updateProgress(
-        assignmentId: workText(assignment, 'assignment_id'),
-        completedCartons: completed,
-      );
-      if (!saved) {
-        throw ApiException(
-          production.errorMessage ?? 'Progress could not be saved.',
-        );
-      }
-    });
   }
 
   Future<void> _check(WorkRecord order, WorkRecord item) async {
@@ -1611,6 +1659,9 @@ class _OrderWorkScreenState extends State<OrderWorkScreen> {
         if (widget.workspace == DepartmentWorkspace.packing) ...[
           Text('${_count(item, 'packed_cartons')} of $cartons cartons packed'),
           if (item['assigned_to_me'] == true) const Text('Assigned to you'),
+          if (item['production_done'] != true &&
+              _count(item, 'packed_cartons') < cartons)
+            const Text('Waiting for production'),
         ],
         if (actions.isNotEmpty) ...[
           const SizedBox(height: 12),
@@ -2037,7 +2088,8 @@ class _OrderWorkScreenState extends State<OrderWorkScreen> {
         ),
       ],
       DepartmentWorkspace.packing
-          when _count(item, 'packed_cartons') < _count(item, 'cartons') =>
+          when item['production_done'] == true &&
+              _count(item, 'packed_cartons') < _count(item, 'cartons') =>
         [
           FilledButton(
             onPressed: () => _pack(order, item),
@@ -2050,7 +2102,9 @@ class _OrderWorkScreenState extends State<OrderWorkScreen> {
 
   String _assignmentSummary(WorkRecord assignment) => [
     '${_count(assignment, 'completed_cartons')} of ${_count(assignment, 'assigned_cartons')} cartons',
-    workStatus(assignment['status']),
+    assignment['production_done'] == true
+        ? 'Production done'
+        : workStatus(assignment['status']),
     workDate(assignment['target_date']),
   ].where((part) => part.isNotEmpty).join(' · ');
 }

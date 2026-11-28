@@ -140,26 +140,34 @@ class ProductionProvider extends ChangeNotifier {
   Future<bool> updateProgress({
     required String assignmentId,
     required int completedCartons,
+    bool markDone = false,
   }) async {
     try {
       final res = await apiClient.patch(
         ApiConstants.productionAssignmentProgress(assignmentId),
-        body: {'completed_cartons': completedCartons},
+        body: {
+          'completed_cartons': completedCartons,
+          if (markDone) 'mark_done': true,
+        },
       );
 
-      final updated =
-          ProductionAssignmentModel.fromJson(Map<String, dynamic>.from(res));
+      final updated = ProductionAssignmentModel.fromJson(
+        Map<String, dynamic>.from(res),
+      );
 
-      final myIdx =
-          _myAssignments.indexWhere((a) => a.assignmentId == assignmentId);
+      final myIdx = _myAssignments.indexWhere(
+        (a) => a.assignmentId == assignmentId,
+      );
       if (myIdx >= 0) _myAssignments[myIdx] = updated;
 
-      final poIdx =
-          _poAssignments.indexWhere((a) => a.assignmentId == assignmentId);
+      final poIdx = _poAssignments.indexWhere(
+        (a) => a.assignmentId == assignmentId,
+      );
       if (poIdx >= 0) _poAssignments[poIdx] = updated;
 
-      final allIdx =
-          _allAssignments.indexWhere((a) => a.assignmentId == assignmentId);
+      final allIdx = _allAssignments.indexWhere(
+        (a) => a.assignmentId == assignmentId,
+      );
       if (allIdx >= 0) _allAssignments[allIdx] = updated;
 
       notifyListeners();
