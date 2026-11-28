@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../core/theme/app_theme.dart';
+import '../../widgets/cpms_page_title.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
@@ -388,11 +390,11 @@ class _EditItemScreenState extends State<EditItemScreen> {
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
-        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+        borderSide: const BorderSide(color: AppTheme.workspaceBorder),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
-        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+        borderSide: const BorderSide(color: AppTheme.workspaceBorder),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
@@ -424,34 +426,22 @@ class _EditItemScreenState extends State<EditItemScreen> {
         : 'A';
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: AppTheme.adminCanvas,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: AppTheme.adminCanvas,
+        foregroundColor: AppTheme.adminInk,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         scrolledUnderElevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black, size: 24),
+          icon: const Icon(Icons.arrow_back, color: AppTheme.adminInk, size: 24),
           onPressed: () => Navigator.pop(context),
         ),
         titleSpacing: 0,
-        title: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 1000),
-            child: Row(
-              children: const [
-                Text(
-                  'Edit Item',
-                  style: TextStyle(
-                    color: Colors.black,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -0.3,
-                  ),
-                ),
-              ],
-            ),
-          ),
+        title: const CpmsPageTitle(
+          'Edit item',
+          icon: Icons.edit_outlined,
+          accent: AppTheme.adminItems,
         ),
         actions: const [
           Padding(
@@ -506,7 +496,7 @@ class _EditItemScreenState extends State<EditItemScreen> {
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                      border: Border.all(color: AppTheme.workspaceBorder),
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withValues(alpha: 0.02),
@@ -628,7 +618,7 @@ class _EditItemScreenState extends State<EditItemScreen> {
                                   color: Colors.white,
                                   borderRadius: BorderRadius.circular(8),
                                   border: Border.all(
-                                      color: const Color(0xFFE2E8F0)),
+                                      color: AppTheme.workspaceBorder),
                                 ),
                                 child: InkWell(
                                   onTap: () {
@@ -752,7 +742,7 @@ class _EditItemScreenState extends State<EditItemScreen> {
                                       foregroundColor: const Color(0xFF334155),
                                       elevation: 0,
                                       side: const BorderSide(
-                                          color: Color(0xFFE2E8F0)),
+                                          color: AppTheme.workspaceBorder),
                                       padding: const EdgeInsets.symmetric(
                                           horizontal: 20, vertical: 14),
                                       shape: RoundedRectangleBorder(
@@ -772,7 +762,7 @@ class _EditItemScreenState extends State<EditItemScreen> {
                                   const SizedBox(width: 12),
                                   ElevatedButton(
                                     style: ElevatedButton.styleFrom(
-                                      backgroundColor: const Color(0xFF0F172A),
+                                      backgroundColor: AppTheme.adminItems,
                                       foregroundColor: Colors.white,
                                       elevation: 0,
                                       padding: const EdgeInsets.symmetric(
@@ -853,7 +843,7 @@ class _EditItemScreenState extends State<EditItemScreen> {
               decoration: BoxDecoration(
                 color: const Color(0xFFF8FAFC),
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFFE2E8F0)),
+                border: Border.all(color: AppTheme.workspaceBorder),
               ),
               alignment: Alignment.center,
               child: showImage
@@ -1347,7 +1337,7 @@ class _EditItemScreenState extends State<EditItemScreen> {
       decoration: BoxDecoration(
         color: const Color(0xFFF8FAFC),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: AppTheme.workspaceBorder),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1378,6 +1368,7 @@ class _EditItemScreenState extends State<EditItemScreen> {
 
           // Search Field
           CpmsSearchBar(
+            accentColor: AppTheme.adminItems,
             controller: _ingredientSearchController,
             hintText: 'Search raw materials by name...',
             onChanged: (val) =>
@@ -1497,12 +1488,12 @@ class _EditItemScreenState extends State<EditItemScreen> {
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(6),
                                 borderSide: const BorderSide(
-                                    color: Color(0xFFE2E8F0)),
+                                    color: AppTheme.workspaceBorder),
                               ),
                               enabledBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(6),
                                 borderSide: const BorderSide(
-                                    color: Color(0xFFE2E8F0)),
+                                    color: AppTheme.workspaceBorder),
                               ),
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(6),

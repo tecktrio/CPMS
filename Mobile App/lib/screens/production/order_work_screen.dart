@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+
+import '../../widgets/cpms_form_dialog.dart';
+import '../../widgets/cpms_page_title.dart';
+
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
@@ -108,9 +112,14 @@ class _OrderWorkScreenState extends State<OrderWorkScreen> {
     }
     final assignments = workRecords(item['assignments']);
     final existingId = existingAssignment?['assignment_id'];
-    final remaining = _count(item, 'cartons') - assignments
-        .where((entry) => entry['assignment_id'] != existingId)
-        .fold<int>(0, (sum, entry) => sum + _count(entry, 'assigned_cartons'));
+    final remaining =
+        _count(item, 'cartons') -
+        assignments
+            .where((entry) => entry['assignment_id'] != existingId)
+            .fold<int>(
+              0,
+              (sum, entry) => sum + _count(entry, 'assigned_cartons'),
+            );
     if (!quality && remaining < 1) {
       _message('All cartons on this item are already assigned.');
       return;
@@ -125,10 +134,15 @@ class _OrderWorkScreenState extends State<OrderWorkScreen> {
         currentUserId: quality
             ? workText(item, 'qa_user_id')
             : workText(existingAssignment ?? const {}, 'assignee_id'),
-        initialCartons: existingAssignment == null ? remaining : _count(existingAssignment, 'assigned_cartons'),
-        initialDate: DateTime.tryParse((quality ? item['target_date'] : existingAssignment?['target_date'])?.toString() ?? '')?.toLocal(),
+        initialCartons: existingAssignment == null
+            ? remaining
+            : _count(existingAssignment, 'assigned_cartons'),
+        initialDate: DateTime.tryParse(
+          (quality ? item['target_date'] : existingAssignment?['target_date'])
+                  ?.toString() ??
+              '',
+        )?.toLocal(),
         editing: existingAssignment != null,
-
       ),
     );
     if (assignment == null || !mounted) return;
@@ -159,10 +173,11 @@ class _OrderWorkScreenState extends State<OrderWorkScreen> {
                 assignedCartons: assignment.cartons,
                 targetDate: assignment.date,
               );
-        if (!saved)
+        if (!saved) {
           throw ApiException(
             production.errorMessage ?? 'Assignment could not be saved.',
           );
+        }
       }
     });
   }
@@ -171,7 +186,8 @@ class _OrderWorkScreenState extends State<OrderWorkScreen> {
     final production = context.read<ProductionProvider>();
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (context) => CpmsFormDialog(
+        icon: Icons.event_busy_outlined,
         title: const Text('Cancel assignment?'),
         content: Text(
           'This will remove the allocation for ${workText(assignment, 'assignee')}.',
@@ -207,7 +223,7 @@ class _OrderWorkScreenState extends State<OrderWorkScreen> {
     final form = GlobalKey<FormState>();
     final completed = await showDialog<int>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (context) => CpmsFormDialog(
         title: const Text('Update production'),
         content: Form(
           key: form,
@@ -234,8 +250,9 @@ class _OrderWorkScreenState extends State<OrderWorkScreen> {
           ),
           FilledButton(
             onPressed: () {
-              if (form.currentState!.validate())
+              if (form.currentState!.validate()) {
                 Navigator.pop(context, int.parse(input.trim()));
+              }
             },
             child: const Text('Save progress'),
           ),
@@ -248,10 +265,11 @@ class _OrderWorkScreenState extends State<OrderWorkScreen> {
         assignmentId: workText(assignment, 'assignment_id'),
         completedCartons: completed,
       );
-      if (!saved)
+      if (!saved) {
         throw ApiException(
           production.errorMessage ?? 'Progress could not be saved.',
         );
+      }
     });
   }
 
@@ -259,7 +277,8 @@ class _OrderWorkScreenState extends State<OrderWorkScreen> {
     var note = '';
     final checkedNote = await showDialog<String>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (context) => CpmsFormDialog(
+        icon: Icons.fact_check_outlined,
         title: const Text('Mark item checked'),
         content: TextField(
           decoration: const InputDecoration(labelText: 'Optional note'),
@@ -290,20 +309,58 @@ class _OrderWorkScreenState extends State<OrderWorkScreen> {
     });
   }
 
-  Future<void> _pack(WorkRecord order, WorkRecord item) => _save(() async {
-    final poId = workText(order, 'po_id');
-    final itemId = workText(item, 'item_id');
-    await _api.patch(
-      '${ApiConstants.purchaseOrders}/$poId/items/$itemId/packing',
-      body: {'packed_cartons': _count(item, 'cartons')},
+  Future<void> _pack(WorkRecord order, WorkRecord item) async {
+    final cartons = _count(item, 'cartons');
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => CpmsFormDialog(
+        icon: Icons.inventory_2_outlined,
+        title: const Text('Mark item packed'),
+        content: Text(
+          '${workText(item, 'item_name')} · ${workText(order, 'po_number')}\n'
+          'Record all $cartons cartons as packed?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Mark packed'),
+          ),
+        ],
+      ),
     );
-  });
+    if (confirmed != true || !mounted) return;
+    await _save(() async {
+      final poId = workText(order, 'po_id');
+      final itemId = workText(item, 'item_id');
+      await _api.patch(
+        '${ApiConstants.purchaseOrders}/$poId/items/$itemId/packing',
+        body: {'packed_cartons': cartons},
+      );
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     final accent = widget.workspace.color;
     return Scaffold(
-      appBar: AppBar(title: Text(widget.workspace.title)),
+      appBar: AppBar(
+        title: CpmsPageTitle(
+          widget.workspace.title,
+          icon: widget.workspace.icon,
+          accent: accent,
+        ),
+        actions: [
+          IconButton(
+            onPressed: _saving ? null : _refresh,
+            tooltip: 'Refresh orders',
+            icon: const Icon(Icons.refresh_rounded),
+          ),
+        ],
+      ),
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 920),
@@ -354,15 +411,35 @@ class _OrderWorkScreenState extends State<OrderWorkScreen> {
                       child: ListView.builder(
                         padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
                         physics: const AlwaysScrollableScrollPhysics(),
-                        itemCount: matching.isEmpty ? 1 : matching.length,
-                        itemBuilder: (context, index) => matching.isEmpty
-                            ? const Padding(
-                                padding: EdgeInsets.all(24),
-                                child: Center(
-                                  child: Text('No matching orders.'),
+                        itemCount: matching.length + 1,
+                        itemBuilder: (context, index) {
+                          if (index > 0) return _orderCard(matching[index - 1]);
+                          if (matching.isEmpty) {
+                            return Card(
+                              child: Padding(
+                                padding: const EdgeInsets.all(24),
+                                child: Column(
+                                  children: [
+                                    Icon(widget.workspace.icon, color: accent),
+                                    const SizedBox(height: 10),
+                                    Text(
+                                      _query.isEmpty
+                                          ? 'No orders in this workspace yet.'
+                                          : 'No orders match your search.',
+                                    ),
+                                  ],
                                 ),
-                              )
-                            : _orderCard(matching[index]),
+                              ),
+                            );
+                          }
+                          return Padding(
+                            padding: const EdgeInsets.fromLTRB(12, 4, 12, 6),
+                            child: Text(
+                              '${matching.length} ${matching.length == 1 ? 'order' : 'orders'}',
+                              style: Theme.of(context).textTheme.labelLarge,
+                            ),
+                          );
+                        },
                       ),
                     );
                   },
@@ -479,14 +556,25 @@ class _OrderWorkScreenState extends State<OrderWorkScreen> {
                       tooltip: 'Manage assignment',
                       onSelected: (choice) {
                         if (choice == 'edit') {
-                          _assign(order, item, quality: false, existingAssignment: assignment);
+                          _assign(
+                            order,
+                            item,
+                            quality: false,
+                            existingAssignment: assignment,
+                          );
                         } else {
                           _cancelAssignment(assignment);
                         }
                       },
                       itemBuilder: (_) => const [
-                        PopupMenuItem(value: 'edit', child: Text('Edit assignment')),
-                        PopupMenuItem(value: 'cancel', child: Text('Cancel assignment')),
+                        PopupMenuItem(
+                          value: 'edit',
+                          child: Text('Edit assignment'),
+                        ),
+                        PopupMenuItem(
+                          value: 'cancel',
+                          child: Text('Cancel assignment'),
+                        ),
                       ],
                     )
                   : null,
@@ -598,71 +686,71 @@ class _AssignmentDialogState extends State<_AssignmentDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
+    return CpmsFormDialog(
       title: Text(
-        widget.quality ? 'Assign quality check' : widget.editing ? 'Edit production assignment' : 'Assign production',
+        widget.quality
+            ? 'Assign quality check'
+            : widget.editing
+            ? 'Edit production assignment'
+            : 'Assign production',
       ),
-      content: SingleChildScrollView(
-        child: Form(
-          key: _form,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              DropdownButtonFormField<String>(
-                isExpanded: true,
-                initialValue: _userId,
-                decoration: InputDecoration(
-                  labelText: widget.quality ? 'QA user' : 'Supervisor',
-                ),
-                items: [
-                  for (final person in widget.people)
-                    DropdownMenuItem(
-                      value: workText(person, 'user_id'),
-                      child: Text(
-                        workText(person, 'name'),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                ],
-                onChanged: (value) => _userId = value,
-                validator: (value) =>
-                    value == null ? 'Choose an assignee.' : null,
+      content: Form(
+        key: _form,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            DropdownButtonFormField<String>(
+              isExpanded: true,
+              initialValue: _userId,
+              decoration: InputDecoration(
+                labelText: widget.quality ? 'QA user' : 'Supervisor',
               ),
-              if (!widget.quality)
-                TextFormField(
-                  initialValue: _cartons,
-                  decoration: InputDecoration(
-                    labelText: 'Cartons · ${widget.remaining} available',
+              items: [
+                for (final person in widget.people)
+                  DropdownMenuItem(
+                    value: workText(person, 'user_id'),
+                    child: Text(
+                      workText(person, 'name'),
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
-                  keyboardType: TextInputType.number,
-                  onChanged: (value) => _cartons = value,
-                  validator: (value) {
-                    final count = int.tryParse(value?.trim() ?? '');
-                    return count == null ||
-                            count < 1 ||
-                            count > widget.remaining
-                        ? 'Enter 1 to ${widget.remaining} cartons.'
-                        : null;
-                  },
+              ],
+              onChanged: (value) => _userId = value,
+              validator: (value) =>
+                  value == null ? 'Choose an assignee.' : null,
+            ),
+            if (!widget.quality)
+              TextFormField(
+                initialValue: _cartons,
+                decoration: InputDecoration(
+                  labelText: 'Cartons · ${widget.remaining} available',
                 ),
-              TextButton.icon(
-                icon: const Icon(Icons.calendar_today_outlined),
-                label: Text(
-                  _date == null ? 'Set due date (optional)' : workDate(_date),
-                ),
-                onPressed: () async {
-                  final picked = await showDatePicker(
-                    context: context,
-                    initialDate: _date ?? DateTime.now(),
-                    firstDate: DateTime(2020),
-                    lastDate: DateTime(2100),
-                  );
-                  if (picked != null && mounted) setState(() => _date = picked);
+                keyboardType: TextInputType.number,
+                onChanged: (value) => _cartons = value,
+                validator: (value) {
+                  final count = int.tryParse(value?.trim() ?? '');
+                  return count == null || count < 1 || count > widget.remaining
+                      ? 'Enter 1 to ${widget.remaining} cartons.'
+                      : null;
                 },
               ),
-            ],
-          ),
+            TextButton.icon(
+              icon: const Icon(Icons.calendar_today_outlined),
+              label: Text(
+                _date == null ? 'Set due date (optional)' : workDate(_date),
+              ),
+              onPressed: () async {
+                final picked = await showDatePicker(
+                  context: context,
+                  initialDate: _date ?? DateTime.now(),
+                  firstDate: DateTime(2020),
+                  lastDate: DateTime(2100),
+                );
+                if (picked != null && mounted) setState(() => _date = picked);
+              },
+            ),
+          ],
         ),
       ),
       actions: [

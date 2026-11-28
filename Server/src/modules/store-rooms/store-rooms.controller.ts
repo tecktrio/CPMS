@@ -17,7 +17,7 @@ import {
 } from '@nestjs/swagger';
 import { StoreRoomsService } from './store-rooms.service';
 import { CreateStoreRoomDto } from './dtos/create-store-room.dto';
-import { UpdateStoreRoomDto, StoreRoomItemDto } from './dtos/update-store-room.dto';
+import { MoveStoreRoomItemDto, UpdateStoreRoomDto, StoreRoomItemDto } from './dtos/update-store-room.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { TenantGuard } from '../../common/guards/tenant.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
@@ -155,6 +155,24 @@ export class StoreRoomsController {
       division,
       minCount,
       divisionId,
+    );
+  }
+
+  @Put(':id/items/:itemId/division')
+  @RequirePermissions('permission.storeroom.update')
+  async moveItem(
+    @CurrentTenant() tenantId: string,
+    @Param('id') storeRoomId: string,
+    @Param('itemId') itemId: string,
+    @Body() dto: MoveStoreRoomItemDto,
+  ) {
+    return this.storeRoomsService.moveItem(
+      tenantId,
+      storeRoomId,
+      itemId,
+      dto.source_division_id ?? '',
+      dto.source_division ?? '',
+      dto.division_id,
     );
   }
 

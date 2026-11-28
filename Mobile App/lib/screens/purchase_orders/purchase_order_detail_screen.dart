@@ -7,6 +7,8 @@ import '../../providers/production_provider.dart';
 import '../../providers/purchase_order_provider.dart';
 import '../../providers/tenant_provider.dart';
 import '../../services/purchase_order_export_service.dart';
+import '../../widgets/cpms_form_dialog.dart';
+import '../../widgets/cpms_page_title.dart';
 import 'create_purchase_order_screen.dart';
 import 'purchase_order_export_screen.dart';
 
@@ -90,6 +92,92 @@ class _PurchaseOrderDetailScreenState extends State<PurchaseOrderDetailScreen> {
         ),
       );
     }
+  }
+
+  Future<void> _showStatusUpdate(
+    PurchaseOrderModel order,
+    PurchaseOrderProvider provider,
+  ) async {
+    final statuses = {
+      'DRAFT': 'Draft',
+      'CONFIRMED': 'Confirmed',
+      'IN_PRODUCTION': 'In production',
+      'SHIPPED': 'Shipped',
+      'DELIVERED': 'Delivered',
+      'CANCELLED': 'Cancelled',
+    };
+    var selected = order.status.toUpperCase();
+    if (!statuses.containsKey(selected)) statuses[selected] = order.status;
+    final initial = selected;
+    var saving = false;
+    String? error;
+
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => PopScope(
+          canPop: !saving,
+          child: CpmsFormDialog(
+            icon: Icons.swap_horiz_rounded,
+            title: const Text('Update order status'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(order.poNumber, style: Theme.of(context).textTheme.titleSmall),
+                const SizedBox(height: 14),
+                DropdownButtonFormField<String>(
+                  initialValue: initial,
+                  isExpanded: true,
+                  decoration: const InputDecoration(labelText: 'Order status'),
+                  items: [
+                    for (final status in statuses.entries)
+                      DropdownMenuItem(value: status.key, child: Text(status.value)),
+                  ],
+                  onChanged: saving ? null : (value) {
+                    if (value == null) return;
+                    setDialogState(() {
+                      selected = value;
+                      error = null;
+                    });
+                  },
+                ),
+                if (error != null) ...[
+                  const SizedBox(height: 12),
+                  Text(error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+                ],
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: saving ? null : () => Navigator.pop(dialogContext),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: saving || selected == initial ? null : () async {
+                  setDialogState(() => saving = true);
+                  final saved = await provider.updatePurchaseOrder(
+                    poId: order.poId,
+                    status: selected,
+                  );
+                  if (!dialogContext.mounted) return;
+                  if (saved) {
+                    Navigator.pop(dialogContext);
+                  } else {
+                    setDialogState(() {
+                      saving = false;
+                      error = provider.errorMessage ?? 'The order status could not be updated.';
+                    });
+                  }
+                },
+                child: Text(saving ? 'Saving…' : 'Save status'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   Color _getStatusBg(String status) {
@@ -202,13 +290,9 @@ class _PurchaseOrderDetailScreenState extends State<PurchaseOrderDetailScreen> {
           icon: const Icon(Icons.arrow_back, color: Color(0xFF0F172A), size: 22),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text(
-          'PO # ${po.poNumber}',
-          style: const TextStyle(
-            color: Color(0xFF0F172A),
-            fontSize: 16,
-            fontWeight: FontWeight.w700,
-          ),
+        title: const CpmsPageTitle(
+          'Purchase order',
+          icon: Icons.receipt_long_outlined,
         ),
         actions: [
           IconButton(
@@ -256,45 +340,22 @@ class _PurchaseOrderDetailScreenState extends State<PurchaseOrderDetailScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Top Row: PO Title + Export + Status
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                        Text(
+                          po.poNumber,
+                          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        if (po.customerName.isNotEmpty) ...[
+                          const SizedBox(height: 4),
+                          Text(po.customerName, style: Theme.of(context).textTheme.bodyMedium),
+                        ],
+                        const SizedBox(height: 14),
+                        Wrap(
+                          spacing: 10,
+                          runSpacing: 8,
+                          crossAxisAlignment: WrapCrossAlignment.center,
                           children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'PO # ${po.poNumber}',
-                                    style: const TextStyle(
-                                      fontSize: 22,
-                                      fontWeight: FontWeight.w800,
-                                      color: Color(0xFF0F172A),
-                                      letterSpacing: -0.4,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 6),
-                                  Row(
-                                    children: [
-                                      const Icon(
-                                        Icons.description_outlined,
-                                        size: 15,
-                                        color: Color(0xFF64748B),
-                                      ),
-                                      const SizedBox(width: 6),
-                                      Text(
-                                        po.customerName.isNotEmpty ? po.customerName : 'kdm',
-                                        style: const TextStyle(
-                                          fontSize: 13.5,
-                                          fontWeight: FontWeight.w600,
-                                          color: Color(0xFF64748B),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
                             // Export Button
                             FilledButton.icon(
                               onPressed: () {
@@ -315,50 +376,11 @@ class _PurchaseOrderDetailScreenState extends State<PurchaseOrderDetailScreen> {
                                 elevation: 0,
                               ),
                             ),
-                            const SizedBox(width: 10),
-
-                            // Status Badge / Dropdown
-                            PopupMenuButton<String>(
-                              enabled: canUpdatePo,
-                              onSelected: (newStatus) async {
-                                if (newStatus != po.status) {
-                                  await poProvider.updatePurchaseOrder(
-                                    poId: po.poId,
-                                    status: newStatus,
-                                  );
-                                }
-                              },
-                              itemBuilder: (ctx) => [
-                                'DRAFT',
-                                'CONFIRMED',
-                                'IN_PRODUCTION',
-                                'SHIPPED',
-                                'DELIVERED',
-                                'CANCELLED',
-                              ].map((s) => PopupMenuItem(
-                                value: s,
-                                child: Row(
-                                  children: [
-                                    Container(
-                                      width: 8,
-                                      height: 8,
-                                      decoration: BoxDecoration(
-                                        color: _getStatusTextColor(s),
-                                        shape: BoxShape.circle,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      s.replaceAll('_', ' '),
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        fontWeight: s == po.status ? FontWeight.w700 : FontWeight.w500,
-                                        color: const Color(0xFF0F172A),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              )).toList(),
+                            InkWell(
+                              onTap: canUpdatePo
+                                  ? () => _showStatusUpdate(po, poProvider)
+                                  : null,
+                              borderRadius: BorderRadius.circular(8),
                               child: Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                                 decoration: BoxDecoration(
@@ -390,7 +412,7 @@ class _PurchaseOrderDetailScreenState extends State<PurchaseOrderDetailScreen> {
                                     if (canUpdatePo) ...[
                                       const SizedBox(width: 4),
                                       Icon(
-                                        Icons.keyboard_arrow_down,
+                                        Icons.edit_outlined,
                                         size: 15,
                                         color: _getStatusTextColor(po.status),
                                       ),

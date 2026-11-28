@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import '../../core/theme/app_theme.dart';
+import '../../widgets/cpms_page_title.dart';
+import '../../widgets/cpms_form_dialog.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/constants/api_constants.dart';
@@ -14,11 +17,13 @@ import '../items/item_detail_screen.dart';
 class StoreRoomItemDetailScreen extends StatefulWidget {
   final String storeRoomId;
   final String itemId;
+  final String? divisionId;
 
   const StoreRoomItemDetailScreen({
     super.key,
     required this.storeRoomId,
     required this.itemId,
+    this.divisionId,
   });
 
   @override
@@ -42,9 +47,7 @@ class _StoreRoomItemDetailScreenState extends State<StoreRoomItemDetailScreen> {
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDlgState) => AlertDialog(
-          backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        builder: (ctx, setDlgState) => CpmsFormDialog(
           title: Text(
             'Update Quantity: ${item.itemName}',
             style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 17),
@@ -56,7 +59,7 @@ class _StoreRoomItemDetailScreenState extends State<StoreRoomItemDetailScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Stored in ${room.roomName} (${room.resolveFormattedDivisionName(sri)})',
+                  'Stored in ${room.roomName} (${room.displayDivisionName(sri)})',
                   style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
                 ),
                 const SizedBox(height: 14),
@@ -73,11 +76,11 @@ class _StoreRoomItemDetailScreenState extends State<StoreRoomItemDetailScreen> {
                     fillColor: const Color(0xFFF8FAFC),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(6),
-                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                      borderSide: const BorderSide(color: AppTheme.workspaceBorder),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(6),
-                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                      borderSide: const BorderSide(color: AppTheme.workspaceBorder),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(6),
@@ -100,7 +103,6 @@ class _StoreRoomItemDetailScreenState extends State<StoreRoomItemDetailScreen> {
               ],
             ),
           ),
-          actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
@@ -109,7 +111,7 @@ class _StoreRoomItemDetailScreenState extends State<StoreRoomItemDetailScreen> {
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.black,
+                backgroundColor: AppTheme.adminStorage,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(6),
@@ -123,6 +125,8 @@ class _StoreRoomItemDetailScreenState extends State<StoreRoomItemDetailScreen> {
                 await inventory.updateStoreRoomItemQuantity(
                   storeRoomId: room.storeRoomId,
                   itemId: item.itemId,
+                  division: sri.division,
+                  divisionId: room.divisionForItem(sri)?.divisionId ?? sri.divisionId,
                   quantity: qty,
                   minCount: sri.minCount,
                 );
@@ -152,9 +156,7 @@ class _StoreRoomItemDetailScreenState extends State<StoreRoomItemDetailScreen> {
 
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      builder: (ctx) => CpmsFormDialog(
         title: Text(
           'Minimum Quantity Alert: ${item.itemName}',
           style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 17),
@@ -184,11 +186,11 @@ class _StoreRoomItemDetailScreenState extends State<StoreRoomItemDetailScreen> {
                   fillColor: const Color(0xFFF8FAFC),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(6),
-                    borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                    borderSide: const BorderSide(color: AppTheme.workspaceBorder),
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(6),
-                    borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                    borderSide: const BorderSide(color: AppTheme.workspaceBorder),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(6),
@@ -207,7 +209,6 @@ class _StoreRoomItemDetailScreenState extends State<StoreRoomItemDetailScreen> {
             ],
           ),
         ),
-        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
@@ -216,7 +217,7 @@ class _StoreRoomItemDetailScreenState extends State<StoreRoomItemDetailScreen> {
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF14532D), // Dark Green
+              backgroundColor: AppTheme.adminStorage,
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(6),
@@ -229,6 +230,8 @@ class _StoreRoomItemDetailScreenState extends State<StoreRoomItemDetailScreen> {
               await context.read<InventoryProvider>().updateStoreRoomItemQuantity(
                     storeRoomId: room.storeRoomId,
                     itemId: item.itemId,
+                  division: sri.division,
+                  divisionId: room.divisionForItem(sri)?.divisionId ?? sri.divisionId,
                     quantity: sri.quantity,
                     minCount: minCount,
                   );
@@ -243,134 +246,56 @@ class _StoreRoomItemDetailScreenState extends State<StoreRoomItemDetailScreen> {
     );
   }
 
-  void _showMoveDivisionDialog(
+  late String? _divisionId = widget.divisionId;
+
+  Future<void> _showMoveDivisionDialog(
     ItemModel item,
-    StoreRoomItemModel sri,
+    StoreRoomItemModel source,
     StoreRoomModel room,
-  ) {
-    final inventory = context.read<InventoryProvider>();
-
-    final List<String> availableDivisions = [];
-    if (room.divisions.isNotEmpty) {
-      availableDivisions.addAll(room.divisions);
-    }
-    if (!availableDivisions.contains('+ Custom Division')) {
-      availableDivisions.add('+ Custom Division');
-    }
-
-    String selected = availableDivisions.contains(sri.division)
-        ? sri.division
-        : availableDivisions.first;
-    final customCtrl = TextEditingController();
-
-    showDialog(
+  ) async {
+    final current = room.divisionForItem(source)?.divisionId ?? source.divisionId;
+    final targets = room.configuredDivisions.where((division) => division.divisionId != current).toList();
+    String? selected;
+    final targetId = await showDialog<String>(
       context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (context, setDlgState) {
-          return AlertDialog(
-            backgroundColor: Colors.white,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            title: Text(
-              'Move "${item.itemName}"',
-              style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 17),
-            ),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Select division / section within ${room.roomName}:',
-                  style: const TextStyle(fontSize: 13, color: Color(0xFF64748B)),
+      builder: (context) => StatefulBuilder(
+        builder: (context, updateDialog) => CpmsFormDialog(
+          icon: Icons.drive_file_move_outlined,
+          title: Text('Move ${item.itemName}'),
+          content: targets.isEmpty
+              ? const Text('Add another division to this store room before moving this item.')
+              : DropdownButtonFormField<String>(
+                  isExpanded: true,
+                  decoration: const InputDecoration(labelText: 'Destination division'),
+                  items: [
+                    for (final division in targets)
+                      DropdownMenuItem(value: division.divisionId, child: Text(division.name, overflow: TextOverflow.ellipsis)),
+                  ],
+                  onChanged: (id) => updateDialog(() => selected = id),
                 ),
-                const SizedBox(height: 12),
-                DropdownButtonFormField<String>(
-                  initialValue: availableDivisions.contains(selected)
-                      ? selected
-                      : availableDivisions.first,
-                  icon: const Icon(Icons.keyboard_arrow_down,
-                      color: Color(0xFF64748B)),
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.black,
-                  ),
-                  decoration: InputDecoration(
-                    filled: true,
-                    fillColor: const Color(0xFFF8FAFC),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(6),
-                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                    ),
-                  ),
-                  items: availableDivisions.map((div) {
-                    return DropdownMenuItem(
-                      value: div,
-                      child: Text(div),
-                    );
-                  }).toList(),
-                  onChanged: (val) {
-                    if (val != null) {
-                      setDlgState(() => selected = val);
-                    }
-                  },
-                ),
-                if (selected == '+ Custom Division') ...[
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: customCtrl,
-                    autofocus: true,
-                    decoration: InputDecoration(
-                      labelText: 'New Section Name',
-                      filled: true,
-                      fillColor: const Color(0xFFF8FAFC),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(6),
-                        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                      ),
-                    ),
-                  ),
-                ],
-              ],
-            ),
-            actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text('Cancel',
-                    style: TextStyle(color: Color(0xFF64748B))),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: Text(targets.isEmpty ? 'OK' : 'Cancel')),
+            if (targets.isNotEmpty)
+              FilledButton(
+                onPressed: selected == null ? null : () => Navigator.pop(context, selected),
+                child: const Text('Move item'),
               ),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.black,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(6)),
-                ),
-                onPressed: () async {
-                  String target = selected;
-                  if (selected == '+ Custom Division') {
-                    target = customCtrl.text.trim();
-                    if (target.isEmpty) return;
-                  }
-                  Navigator.pop(ctx);
-                  final divId = room.getDivisionId(target);
-                  await inventory.updateStoreRoomItemQuantity(
-                    storeRoomId: room.storeRoomId,
-                    itemId: item.itemId,
-                    quantity: sri.quantity,
-                    division: target,
-                    divisionId: divId,
-                    minCount: sri.minCount,
-                  );
-                },
-                child: const Text('Move Item',
-                    style: TextStyle(fontWeight: FontWeight.w700)),
-              ),
-            ],
-          );
-        },
+          ],
+        ),
       ),
     );
+    if (targetId == null || !mounted) return;
+    final inventory = context.read<InventoryProvider>();
+    final moved = await inventory.moveStoreRoomItem(
+      storeRoomId: room.storeRoomId,
+      source: source,
+      targetDivisionId: targetId,
+    );
+    if (!mounted) return;
+    if (moved) setState(() => _divisionId = targetId);
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(moved ? 'Item moved to the selected division.' : inventory.errorMessage ?? 'Could not move the item.'),
+    ));
   }
 
   void _confirmRemoveItem(
@@ -457,7 +382,9 @@ class _StoreRoomItemDetailScreenState extends State<StoreRoomItemDetailScreen> {
     );
 
     final sri = currentRoom.items.firstWhere(
-      (it) => it.itemId == widget.itemId,
+      (it) => it.itemId == widget.itemId &&
+          (_divisionId == null ||
+              (currentRoom.divisionForItem(it)?.divisionId ?? it.divisionId) == _divisionId),
       orElse: () => StoreRoomItemModel(
         itemId: widget.itemId,
         division: '',
@@ -484,10 +411,7 @@ class _StoreRoomItemDetailScreenState extends State<StoreRoomItemDetailScreen> {
     );
 
     final isLowStock = sri.minCount > 0 && sri.quantity <= sri.minCount;
-    final isAmbient = currentRoom.temperature == null;
-    final tempStr = !isAmbient
-        ? '${currentRoom.temperature!.toStringAsFixed(1)} °C'
-        : 'Ambient';
+    final temperature = currentRoom.temperatureLabel;
 
     final screenWidth = MediaQuery.of(context).size.width;
     final isWide = screenWidth >= 700;
@@ -501,30 +425,27 @@ class _StoreRoomItemDetailScreenState extends State<StoreRoomItemDetailScreen> {
         : '100.0';
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: AppTheme.adminCanvas,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: AppTheme.adminCanvas,
+        foregroundColor: AppTheme.adminInk,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         scrolledUnderElevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black, size: 24),
+          icon: const Icon(Icons.arrow_back, color: AppTheme.adminInk, size: 24),
           onPressed: () => Navigator.pop(context),
         ),
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Store Room Item Details',
-              style: TextStyle(
-                color: Colors.black,
-                fontSize: 18,
-                fontWeight: FontWeight.w800,
-                letterSpacing: -0.3,
-              ),
+            const CpmsPageTitle(
+              'Store room item',
+              icon: Icons.inventory_2_outlined,
+              accent: AppTheme.adminStorage,
             ),
             Text(
-              '${currentRoom.roomName} • ${currentRoom.resolveFormattedDivisionName(sri)}',
+              '${currentRoom.roomName} • ${currentRoom.displayDivisionName(sri)}',
               style: const TextStyle(
                 color: Color(0xFF64748B),
                 fontSize: 12,
@@ -615,7 +536,7 @@ class _StoreRoomItemDetailScreenState extends State<StoreRoomItemDetailScreen> {
         ],
         bottom: const PreferredSize(
           preferredSize: Size.fromHeight(1),
-          child: Divider(height: 1, color: Color(0xFFE2E8F0)),
+          child: Divider(height: 1, color: AppTheme.workspaceBorder),
         ),
       ),
       body: RefreshIndicator(
@@ -641,7 +562,7 @@ class _StoreRoomItemDetailScreenState extends State<StoreRoomItemDetailScreen> {
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                    border: Border.all(color: AppTheme.workspaceBorder),
                   ),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -653,7 +574,7 @@ class _StoreRoomItemDetailScreenState extends State<StoreRoomItemDetailScreen> {
                         decoration: BoxDecoration(
                           color: const Color(0xFFF1F5F9),
                           borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                          border: Border.all(color: AppTheme.workspaceBorder),
                         ),
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(9),
@@ -734,7 +655,7 @@ class _StoreRoomItemDetailScreenState extends State<StoreRoomItemDetailScreen> {
                                     borderRadius: BorderRadius.circular(6),
                                   ),
                                   child: Text(
-                                    '📍 ${currentRoom.resolveFormattedDivisionName(sri)}',
+                                    '📍 ${currentRoom.displayDivisionName(sri)}',
                                     style: const TextStyle(
                                       fontSize: 11,
                                       fontWeight: FontWeight.w700,
@@ -836,7 +757,7 @@ class _StoreRoomItemDetailScreenState extends State<StoreRoomItemDetailScreen> {
                     decoration: BoxDecoration(
                       color: const Color(0xFFF8FAFC),
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                      border: Border.all(color: AppTheme.workspaceBorder),
                     ),
                     child: Row(
                       children: [
@@ -869,7 +790,7 @@ class _StoreRoomItemDetailScreenState extends State<StoreRoomItemDetailScreen> {
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                          border: Border.all(color: AppTheme.workspaceBorder),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1074,7 +995,7 @@ class _StoreRoomItemDetailScreenState extends State<StoreRoomItemDetailScreen> {
                                 style: OutlinedButton.styleFrom(
                                   foregroundColor: Colors.black,
                                   side: const BorderSide(
-                                      color: Color(0xFFE2E8F0)),
+                                      color: AppTheme.workspaceBorder),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(6),
                                   ),
@@ -1109,7 +1030,7 @@ class _StoreRoomItemDetailScreenState extends State<StoreRoomItemDetailScreen> {
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                    border: Border.all(color: AppTheme.workspaceBorder),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -1129,14 +1050,6 @@ class _StoreRoomItemDetailScreenState extends State<StoreRoomItemDetailScreen> {
                         label: 'Store Room',
                         value: currentRoom.roomName,
                       ),
-                      if (currentRoom.roomCode.isNotEmpty) ...[
-                        const Divider(height: 20, color: Color(0xFFF1F5F9)),
-                        _buildInfoRow(
-                          icon: Icons.tag,
-                          label: 'Room Code',
-                          value: currentRoom.roomCode,
-                        ),
-                      ],
                       if (currentRoom.description.isNotEmpty) ...[
                         const Divider(height: 20, color: Color(0xFFF1F5F9)),
                         _buildInfoRow(
@@ -1149,7 +1062,7 @@ class _StoreRoomItemDetailScreenState extends State<StoreRoomItemDetailScreen> {
                       _buildInfoRow(
                         icon: Icons.grid_view,
                         label: 'Storage Section / Division',
-                        value: currentRoom.resolveFormattedDivisionName(sri),
+                        value: currentRoom.displayDivisionName(sri),
                         trailing: canUpdate
                             ? TextButton(
                                 onPressed: () => _showMoveDivisionDialog(
@@ -1165,12 +1078,14 @@ class _StoreRoomItemDetailScreenState extends State<StoreRoomItemDetailScreen> {
                               )
                             : null,
                       ),
-                      const Divider(height: 20, color: Color(0xFFF1F5F9)),
-                      _buildInfoRow(
-                        icon: Icons.thermostat_outlined,
-                        label: 'Temperature Environment',
-                        value: tempStr,
-                      ),
+                      if (temperature != null) ...[
+                        const Divider(height: 20, color: Color(0xFFF1F5F9)),
+                        _buildInfoRow(
+                          icon: Icons.thermostat_outlined,
+                          label: 'Temperature',
+                          value: temperature,
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -1183,7 +1098,7 @@ class _StoreRoomItemDetailScreenState extends State<StoreRoomItemDetailScreen> {
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                    border: Border.all(color: AppTheme.workspaceBorder),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -1250,7 +1165,7 @@ class _StoreRoomItemDetailScreenState extends State<StoreRoomItemDetailScreen> {
                         child: OutlinedButton.icon(
                           style: OutlinedButton.styleFrom(
                             foregroundColor: Colors.black,
-                            side: const BorderSide(color: Color(0xFFE2E8F0)),
+                            side: const BorderSide(color: AppTheme.workspaceBorder),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(6),
                             ),

@@ -317,7 +317,7 @@ class DataExportService {
           isActive: true,
         ),
       );
-      final divName = room.resolveFormattedDivisionName(sri);
+      final divName = room.displayDivisionName(sri);
       final pktPerCtn = item.reorderThresholdQuantity > 0
           ? item.reorderThresholdQuantity.toInt().toString()
           : '14';
@@ -391,7 +391,7 @@ class DataExportService {
           isActive: true,
         ),
       );
-      final divName = room.resolveFormattedDivisionName(sri);
+      final divName = room.displayDivisionName(sri);
       final pktPerCtn = item.reorderThresholdQuantity > 0
           ? item.reorderThresholdQuantity.toInt().toString()
           : '14';

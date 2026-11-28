@@ -1,4 +1,9 @@
 import 'package:flutter/material.dart';
+import '../../core/theme/app_theme.dart';
+import '../../widgets/cpms_search_bar.dart';
+import '../../widgets/cpms_page_title.dart';
+import '../../widgets/cpms_form_dialog.dart';
+import '../../widgets/cpms_stock_quantity_input.dart';
 import 'package:provider/provider.dart';
 import '../../core/constants/api_constants.dart';
 import '../../core/constants/permissions.dart';
@@ -19,10 +24,16 @@ class StoreRoomDetailScreen extends StatefulWidget {
 }
 
 class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
+  final _itemSearchController = TextEditingController();
+
+  @override
+  void dispose() {
+    _itemSearchController.dispose();
+    super.dispose();
+  }
+
   void _showAddDivisionDialog(StoreRoomModel room) {
-    final divController = TextEditingController(
-      text: 'Division - section ${room.divisions.length + 1}',
-    );
+    final divController = TextEditingController();
 
     showDialog(
       context: context,
@@ -55,11 +66,11 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                 fillColor: const Color(0xFFF8FAFC),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(4),
-                  borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                  borderSide: const BorderSide(color: AppTheme.workspaceBorder),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(4),
-                  borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                  borderSide: const BorderSide(color: AppTheme.workspaceBorder),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(4),
@@ -78,7 +89,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
           ),
             ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.black,
+              backgroundColor: AppTheme.adminStorage,
               foregroundColor: Colors.white,
               elevation: 0,
               padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
@@ -94,7 +105,6 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
               final ok = await inventory.updateStoreRoom(
                 storeRoomId: room.storeRoomId,
                 roomName: room.roomName,
-                temperature: room.temperature,
                 divisions: updatedDivs,
               );
 
@@ -160,11 +170,11 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                 fillColor: const Color(0xFFF8FAFC),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(4),
-                  borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                  borderSide: const BorderSide(color: AppTheme.workspaceBorder),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(4),
-                  borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                  borderSide: const BorderSide(color: AppTheme.workspaceBorder),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(4),
@@ -224,7 +234,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                   const SizedBox(width: 8),
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.black,
+                      backgroundColor: AppTheme.adminStorage,
                       foregroundColor: Colors.white,
                       elevation: 0,
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -239,33 +249,12 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                       Navigator.pop(ctx);
 
                       final inventory = context.read<InventoryProvider>();
-                      final updatedDivs = List<String>.from(room.divisions);
-                      updatedDivs[index] = updatedName;
-
+                      final updatedDivisions = room.configuredDivisions.toList();
+                      updatedDivisions[index] = updatedDivisions[index].copyWith(name: updatedName);
                       final ok = await inventory.updateStoreRoom(
                         storeRoomId: room.storeRoomId,
-                        roomName: room.roomName,
-                        temperature: room.temperature,
-                        divisions: updatedDivs,
+                        divisionObjects: updatedDivisions,
                       );
-
-                      // Ensure item assignments sync if name changed using division_id
-                      final divId = room.divisionObjects.length > index
-                          ? room.divisionObjects[index].divisionId
-                          : room.getDivisionId(currentDivName);
-
-                      for (final it in room.items) {
-                        if ((it.divisionId.isNotEmpty && it.divisionId == divId) ||
-                            it.division == currentDivName ||
-                            room.resolveFormattedDivisionName(it) == currentDivName) {
-                          await inventory.updateStoreRoomItemDivision(
-                            storeRoomId: room.storeRoomId,
-                            itemId: it.itemId,
-                            division: updatedName,
-                            divisionId: divId,
-                          );
-                        }
-                      }
 
                       if (mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
@@ -289,108 +278,62 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
     );
   }
 
-  void _confirmDeleteDivision(StoreRoomModel room, int index) {
-    if (index < 0 || index >= room.divisions.length) return;
-    final divToDelete = room.divisions[index];
-    final itemsInDiv = room.items.where((i) => i.division == divToDelete).length;
-
-    showDialog(
+  void _warnDivisionOccupied(String divisionName) {
+    showDialog<void>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-        title: const Row(
-          children: [
-            Icon(Icons.warning_amber_rounded, size: 22, color: Color(0xFFDC2626)),
-            SizedBox(width: 8),
-            Text(
-              'Delete Division',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
-            ),
-          ],
+      builder: (context) => CpmsFormDialog(
+        icon: Icons.warning_amber_rounded,
+        title: const Text('Reassign items first'),
+        content: Text(
+          'Move all items in "$divisionName" to another division before deleting it.',
         ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Are you sure you want to delete division "$divToDelete"?',
-              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
-            ),
-            const SizedBox(height: 8),
-            if (itemsInDiv > 0)
-              Text(
-                'Warning: $itemsInDiv items are currently allocated to this division. They will be unassigned from this section.',
-                style: const TextStyle(fontSize: 12, color: Color(0xFFDC2626), fontWeight: FontWeight.w600),
-              )
-            else
-              const Text(
-                'This division will be permanently removed from this store room.',
-                style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
-              ),
-          ],
-        ),
-        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel', style: TextStyle(color: Color(0xFF64748B))),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFDC2626),
-              foregroundColor: Colors.white,
-              elevation: 0,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-            ),
-            onPressed: () async {
-              Navigator.pop(ctx);
-              final inventory = context.read<InventoryProvider>();
-              final updatedDivs = List<String>.from(room.divisions)..removeAt(index);
-              final divId = room.divisionObjects.length > index
-                  ? room.divisionObjects[index].divisionId
-                  : room.getDivisionId(divToDelete);
-              final fallbackDiv = updatedDivs.isNotEmpty ? updatedDivs[0] : '';
-              final fallbackDivId = room.getDivisionId(fallbackDiv);
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK')),
+        ],
+      ),
+    );
+  }
 
-              final ok = await inventory.updateStoreRoom(
-                storeRoomId: room.storeRoomId,
-                roomName: room.roomName,
-                temperature: room.temperature,
-                divisions: updatedDivs,
-              );
-
-              // Reassign any orphaned items
-              for (final it in room.items) {
-                if ((it.divisionId.isNotEmpty && it.divisionId == divId) ||
-                    it.division == divToDelete ||
-                    room.resolveFormattedDivisionName(it) == divToDelete) {
-                  await inventory.updateStoreRoomItemDivision(
-                    storeRoomId: room.storeRoomId,
-                    itemId: it.itemId,
-                    division: fallbackDiv,
-                    divisionId: fallbackDivId,
-                  );
-                }
-              }
-
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(ok
-                        ? 'Division "$divToDelete" removed'
-                        : (inventory.errorMessage ?? 'Failed to delete division')),
-                    backgroundColor: ok ? Colors.black : Colors.red.shade700,
-                  ),
-                );
-              }
-            },
-            child: const Text('Delete Division', style: TextStyle(fontWeight: FontWeight.w700)),
+  Future<void> _confirmDeleteDivision(StoreRoomModel room, int index) async {
+    final divisions = room.configuredDivisions;
+    if (index < 0 || index >= divisions.length) return;
+    final division = divisions[index];
+    if (room.itemsInDivision(division.divisionId) > 0) {
+      _warnDivisionOccupied(division.name);
+      return;
+    }
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => CpmsFormDialog(
+        icon: Icons.delete_outline,
+        title: const Text('Delete division?'),
+        content: Text('Remove "${division.name}" from this store room?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: FilledButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.error),
+            child: const Text('Delete division'),
           ),
         ],
       ),
     );
+    if (confirmed != true || !mounted) return;
+    final inventory = context.read<InventoryProvider>();
+    final current = inventory.storeRooms.where((entry) => entry.storeRoomId == room.storeRoomId).firstOrNull;
+    if (current == null) return;
+    if (current.itemsInDivision(division.divisionId) > 0) {
+      _warnDivisionOccupied(division.name);
+      return;
+    }
+    final saved = await inventory.updateStoreRoom(
+      storeRoomId: room.storeRoomId,
+      divisionObjects: current.configuredDivisions.where((entry) => entry.divisionId != division.divisionId).toList(),
+    );
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(saved ? 'Division removed.' : inventory.errorMessage ?? 'Could not delete division.'),
+    ));
   }
 
   void _showEditRoomBottomSheet(StoreRoomModel room) {
@@ -399,8 +342,10 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
     final tempCtrl = TextEditingController(
       text: room.temperature != null ? room.temperature.toString() : '',
     );
-    final List<TextEditingController> divisionCtrls =
-        room.divisions.map((d) => TextEditingController(text: d)).toList();
+    final divisionCtrls = <TextEditingController, String?>{
+      for (final division in room.configuredDivisions)
+        TextEditingController(text: division.name): division.divisionId,
+    };
 
     final formKey = GlobalKey<FormState>();
 
@@ -433,7 +378,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                         width: 40,
                         height: 4,
                         decoration: BoxDecoration(
-                          color: const Color(0xFFE2E8F0),
+                          color: AppTheme.workspaceBorder,
                           borderRadius: BorderRadius.circular(2),
                         ),
                       ),
@@ -481,11 +426,11 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                                 fillColor: const Color(0xFFF8FAFC),
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(4),
-                                  borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                                  borderSide: const BorderSide(color: AppTheme.workspaceBorder),
                                 ),
                                 enabledBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(4),
-                                  borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                                  borderSide: const BorderSide(color: AppTheme.workspaceBorder),
                                 ),
                                 focusedBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(4),
@@ -515,11 +460,11 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                                 fillColor: const Color(0xFFF8FAFC),
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(4),
-                                  borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                                  borderSide: const BorderSide(color: AppTheme.workspaceBorder),
                                 ),
                                 enabledBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(4),
-                                  borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                                  borderSide: const BorderSide(color: AppTheme.workspaceBorder),
                                 ),
                                 focusedBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(4),
@@ -540,6 +485,13 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                             const SizedBox(height: 6),
                             TextFormField(
                               controller: tempCtrl,
+                              validator: (value) {
+                                final input = value?.trim() ?? '';
+                                if (input.isEmpty) return null;
+                                return double.tryParse(input)?.isFinite == true
+                                    ? null
+                                    : 'Enter a valid temperature';
+                              },
                               keyboardType: const TextInputType.numberWithOptions(
                                 signed: true,
                                 decimal: true,
@@ -550,11 +502,11 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                                 fillColor: const Color(0xFFF8FAFC),
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(4),
-                                  borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                                  borderSide: const BorderSide(color: AppTheme.workspaceBorder),
                                 ),
                                 enabledBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(4),
-                                  borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                                  borderSide: const BorderSide(color: AppTheme.workspaceBorder),
                                 ),
                                 focusedBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(4),
@@ -579,11 +531,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                                 TextButton.icon(
                                   onPressed: () {
                                     setSheetState(() {
-                                      divisionCtrls.add(
-                                        TextEditingController(
-                                          text: 'Division - section ${divisionCtrls.length + 1}',
-                                        ),
-                                      );
+                                      divisionCtrls[TextEditingController()] = null;
                                     });
                                   },
                                   icon: const Icon(Icons.add, size: 16, color: Colors.black),
@@ -599,29 +547,30 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                               ],
                             ),
                             const SizedBox(height: 6),
-                            ...List.generate(divisionCtrls.length, (i) {
+                            ...divisionCtrls.keys.map((controller) {
                               return Padding(
                                 padding: const EdgeInsets.only(bottom: 8),
                                 child: Row(
                                   children: [
                                     Expanded(
                                       child: TextFormField(
-                                        controller: divisionCtrls[i],
+                                        controller: controller,
                                         style: const TextStyle(
                                             fontWeight: FontWeight.w600, fontSize: 13),
                                         decoration: InputDecoration(
+                                          hintText: 'Section name',
                                           isDense: true,
                                           filled: true,
                                           fillColor: const Color(0xFFF8FAFC),
                                           border: OutlineInputBorder(
                                             borderRadius: BorderRadius.circular(4),
                                             borderSide:
-                                                const BorderSide(color: Color(0xFFE2E8F0)),
+                                                const BorderSide(color: AppTheme.workspaceBorder),
                                           ),
                                           enabledBorder: OutlineInputBorder(
                                             borderRadius: BorderRadius.circular(4),
                                             borderSide:
-                                                const BorderSide(color: Color(0xFFE2E8F0)),
+                                                const BorderSide(color: AppTheme.workspaceBorder),
                                           ),
                                         ),
                                       ),
@@ -631,10 +580,15 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                                       icon: const Icon(Icons.delete_outline,
                                           color: Color(0xFFDC2626), size: 20),
                                       onPressed: () {
-                                        setSheetState(() {
-                                          divisionCtrls[i].dispose();
-                                          divisionCtrls.removeAt(i);
-                                        });
+                                        final divisionId = divisionCtrls[controller];
+                                        final current = context.read<InventoryProvider>().storeRooms
+                                            .where((entry) => entry.storeRoomId == room.storeRoomId).firstOrNull;
+                                        if (divisionId != null && (current?.itemsInDivision(divisionId) ?? 0) > 0) {
+                                          _warnDivisionOccupied(controller.text.trim());
+                                          return;
+                                        }
+                                        setSheetState(() => divisionCtrls.remove(controller));
+                                        WidgetsBinding.instance.addPostFrameCallback((_) => controller.dispose());
                                       },
                                     ),
                                   ],
@@ -652,7 +606,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                       height: 50,
                       child: ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.black,
+                          backgroundColor: AppTheme.adminStorage,
                           foregroundColor: Colors.white,
                           elevation: 0,
                           shape: RoundedRectangleBorder(
@@ -662,12 +616,15 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                         onPressed: () async {
                           if (!formKey.currentState!.validate()) return;
                           final messenger = ScaffoldMessenger.of(context);
-                          Navigator.pop(ctx);
                           final inventory = context.read<InventoryProvider>();
-                          final divisions = divisionCtrls
-                              .map((c) => c.text.trim())
-                              .where((s) => s.isNotEmpty)
-                              .toList();
+                          final divisions = [
+                            for (final entry in divisionCtrls.entries)
+                              if (entry.key.text.trim().isNotEmpty)
+                                StoreRoomDivisionModel.fromJson({
+                                  'division_id': entry.value,
+                                  'name': entry.key.text.trim(),
+                                }),
+                          ];
                           final temp = tempCtrl.text.trim().isNotEmpty
                               ? double.tryParse(tempCtrl.text.trim())
                               : null;
@@ -677,9 +634,11 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                             roomName: nameCtrl.text.trim(),
                             description: descCtrl.text.trim(),
                             temperature: temp,
-                            divisions: divisions,
+                            clearTemperature: temp == null,
+                            divisionObjects: divisions,
                           );
 
+                          if (ok && ctx.mounted) Navigator.pop(ctx);
                           if (mounted) {
                             messenger.showSnackBar(
                               SnackBar(
@@ -715,7 +674,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
         backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
         title: Text(
-          'Delete Store Room: ${room.roomCode}?',
+          'Delete ${room.roomName}?',
           style: const TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w800,
@@ -723,7 +682,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
           ),
         ),
         content: Text(
-          'Are you sure you want to permanently delete "${room.roomName}" (${room.roomCode})? Note: A store room cannot be deleted if active stock or batches are present.',
+          'Are you sure you want to permanently delete "${room.roomName}"? Note: A store room cannot be deleted if active stock or batches are present.',
           style: const TextStyle(fontSize: 14, color: Color(0xFF64748B), height: 1.4),
         ),
         actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
@@ -768,7 +727,6 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
   String _itemSearchQuery = '';
   String? _selectedDivisionFilter;
   String? _selectedTypeFilter;
-  bool _isGridView = false;
   bool _sortAscending = true;
 
   void _showAddItemToRoomSheet(StoreRoomModel room) {
@@ -788,116 +746,6 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
     );
   }
 
-  void _showEditItemQuantityDialog(
-    ItemModel item,
-    StoreRoomItemModel sri,
-    StoreRoomModel room,
-  ) {
-    final qtyCtrl = TextEditingController(text: sri.quantity.toStringAsFixed(sri.quantity.truncateToDouble() == sri.quantity ? 0 : 1));
-    final formKey = GlobalKey<FormState>();
-
-    showDialog(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDlgState) => AlertDialog(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-        title: Text(
-          'Set Count: ${item.itemName}',
-          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 17),
-        ),
-        content: Form(
-          key: formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Stored in ${room.roomName} (${room.resolveFormattedDivisionName(sri)})',
-                style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
-              ),
-              if (item.quantity > 1) ...[
-                const SizedBox(height: 4),
-                Text(
-                  'Each item = ${item.quantity.toStringAsFixed(item.quantity.truncateToDouble() == item.quantity ? 0 : 2)} ${item.measurementUnit}',
-                  style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
-                ),
-              ],
-              const SizedBox(height: 14),
-              TextFormField(
-                controller: qtyCtrl,
-                autofocus: true,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
-                decoration: InputDecoration(
-                  labelText: item.quantity > 1
-                      ? 'Count of "${item.itemName}" *'
-                      : 'Count *',
-                  suffixText: null,
-                  filled: true,
-                  fillColor: const Color(0xFFF8FAFC),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(4),
-                    borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                  ),
-                ),
-                onChanged: (_) => setDlgState(() {}),
-                validator: (val) {
-                  if (val == null || val.trim().isEmpty) return 'Enter count';
-                  final n = double.tryParse(val.trim());
-                  if (n == null || n < 0) return 'Enter valid non-negative number';
-                  return null;
-                },
-              ),
-              if (item.quantity > 1) ...[
-                const SizedBox(height: 8),
-                Builder(
-                  builder: (context) {
-                    final count = double.tryParse(qtyCtrl.text.trim()) ?? 0.0;
-                    final total = count * item.quantity;
-                    final totalStr = total.toStringAsFixed(total.truncateToDouble() == total ? 0 : 2);
-                    return Text(
-                      '= $totalStr ${item.measurementUnit} total',
-                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.black),
-                    );
-                  },
-                ),
-              ],
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel', style: TextStyle(color: Color(0xFF64748B))),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.black,
-              foregroundColor: Colors.white,
-              shape:
-                  RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-            ),
-            onPressed: () async {
-              if (!formKey.currentState!.validate()) return;
-              final qty = double.parse(qtyCtrl.text.trim());
-              Navigator.pop(ctx);
-              final inventory = context.read<InventoryProvider>();
-              await inventory.updateStoreRoomItemQuantity(
-                storeRoomId: room.storeRoomId,
-                itemId: item.itemId,
-                quantity: qty,
-              );
-            },
-            child: const Text('Save Count',
-                style: TextStyle(fontWeight: FontWeight.w700)),
-          ),
-        ],
-      ),
-      ),
-    );
-  }
-
   // ignore: unused_element
   void _showSetMinimumCountDialog(
     ItemModel item,
@@ -912,9 +760,8 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
     final formKey = GlobalKey<FormState>();
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+      builder: (ctx) => CpmsFormDialog(
+        icon: Icons.notifications_outlined,
         title: Text('Minimum Count: ${item.itemName}',
             style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 17)),
         content: Form(
@@ -937,7 +784,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.black, foregroundColor: Colors.white),
+            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.adminStorage, foregroundColor: Colors.white),
             onPressed: () async {
               if (!formKey.currentState!.validate()) return;
               final minCount = double.parse(controller.text.trim());
@@ -957,156 +804,6 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
   }
 
   // ignore: unused_element
-  void _showMoveDivisionDialog(ItemModel item, StoreRoomModel room) {
-    final messenger = ScaffoldMessenger.of(context);
-    final inventory = context.read<InventoryProvider>();
-
-    final List<String> availableDivisions = [];
-    if (room.divisions.isNotEmpty) {
-      availableDivisions.addAll(room.divisions);
-    }
-    if (!availableDivisions.contains('+ Custom Division')) {
-      availableDivisions.add('+ Custom Division');
-    }
-
-    String selected = (item.division != null && availableDivisions.contains(item.division))
-        ? item.division!
-        : availableDivisions.first;
-    final customCtrl = TextEditingController();
-
-    showDialog(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (context, setDlgState) {
-          return AlertDialog(
-            backgroundColor: Colors.white,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-            title: Text(
-              'Move "${item.itemName}"',
-              style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 17),
-            ),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Select division within ${room.roomName}:',
-                  style: const TextStyle(fontSize: 13, color: Color(0xFF64748B)),
-                ),
-                const SizedBox(height: 12),
-                DropdownButtonFormField<String>(
-                  initialValue: availableDivisions.contains(selected)
-                      ? selected
-                      : availableDivisions.first,
-                  icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF64748B)),
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.black,
-                  ),
-                  decoration: InputDecoration(
-                    filled: true,
-                    fillColor: const Color(0xFFF8FAFC),
-                    prefixIcon: const Icon(
-                      Icons.grid_view_outlined,
-                      size: 20,
-                      color: Color(0xFF64748B),
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(4),
-                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(4),
-                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(4),
-                      borderSide: const BorderSide(color: Colors.black, width: 1.5),
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                  ),
-                  items: availableDivisions.map((div) {
-                    final isCustom = div == '+ Custom Division';
-                    return DropdownMenuItem<String>(
-                      value: div,
-                      child: Text(
-                        div,
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: isCustom ? FontWeight.w800 : FontWeight.w600,
-                          color: isCustom ? const Color(0xFF0F766E) : Colors.black,
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                  onChanged: (val) {
-                    if (val != null) {
-                      setDlgState(() => selected = val);
-                    }
-                  },
-                ),
-                if (selected == '+ Custom Division') ...[
-                  const SizedBox(height: 10),
-                  TextFormField(
-                    controller: customCtrl,
-                    autofocus: true,
-                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
-                    decoration: InputDecoration(
-                      filled: true,
-                      fillColor: Colors.white,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(4),
-                        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                      ),
-                      prefixIcon: const Icon(Icons.edit_note, size: 20, color: Color(0xFF64748B)),
-                    ),
-                  ),
-                ],
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text('Cancel', style: TextStyle(color: Color(0xFF64748B))),
-              ),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.black,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-                ),
-                onPressed: () async {
-                  Navigator.pop(ctx);
-                  final finalDiv = (selected == '+ Custom Division' && customCtrl.text.trim().isNotEmpty)
-                      ? customCtrl.text.trim()
-                      : (selected == '+ Custom Division' ? '' : selected);
-                  final divId = room.getDivisionId(finalDiv);
-                  final ok = await inventory.updateStoreRoomItemDivision(
-                    storeRoomId: room.storeRoomId,
-                    itemId: item.itemId,
-                    division: finalDiv,
-                    divisionId: divId,
-                  );
-                  if (mounted) {
-                    messenger.showSnackBar(
-                      SnackBar(
-                        content: Text(ok
-                            ? 'Moved "${item.itemName}" to $finalDiv'
-                            : (inventory.errorMessage ?? 'Failed to move division')),
-                        backgroundColor: ok ? const Color(0xFF0F766E) : Colors.red.shade700,
-                      ),
-                    );
-                  }
-                },
-                child: const Text('Move Division', style: TextStyle(fontWeight: FontWeight.w700)),
-              ),
-            ],
-          );
-        },
-      ),
-    );
-  }
 
   // ignore: unused_element
   void _confirmRemoveItemFromRoom(ItemModel item, StoreRoomModel room) {
@@ -1174,8 +871,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
       orElse: () => widget.room,
     );
 
-    final isAmbient = currentRoom.temperature == null;
-    final tempStr = !isAmbient ? '${currentRoom.temperature!.toStringAsFixed(1)} °C' : 'Ambient';
+    final temperature = currentRoom.temperatureLabel;
     final roomItems = currentRoom.items;
 
     // Filter items based on search and filters
@@ -1199,7 +895,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
 
       if (_itemSearchQuery.isNotEmpty) {
         final q = _itemSearchQuery.toLowerCase();
-        final divName = currentRoom.resolveFormattedDivisionName(sri);
+        final divName = currentRoom.displayDivisionName(sri);
         final matches = item.itemName.toLowerCase().contains(q) ||
             item.sku.toLowerCase().contains(q) ||
             item.specification.toLowerCase().contains(q) ||
@@ -1209,7 +905,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
       }
 
       if (_selectedDivisionFilter != null && _selectedDivisionFilter != 'All') {
-        final divName = currentRoom.resolveFormattedDivisionName(sri);
+        final divName = currentRoom.displayDivisionName(sri);
         final selectedFilter = _selectedDivisionFilter!;
         if (divName != selectedFilter &&
             sri.division != selectedFilter &&
@@ -1239,24 +935,18 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
     final typeList = ['All', 'Finished Good', 'Raw Material', 'Packaging', 'WIP'];
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: AppTheme.adminCanvas,
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        surfaceTintColor: Colors.transparent,
+        backgroundColor: AppTheme.adminCanvas,
+        foregroundColor: AppTheme.adminInk,
+          surfaceTintColor: Colors.transparent,
         elevation: 0,
         scrolledUnderElevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Color(0xFF0F172A), size: 22),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text(
-          currentRoom.roomName,
-          style: const TextStyle(
-            color: Color(0xFF0F172A),
-            fontSize: 16,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
+        title: CpmsPageTitle(currentRoom.roomName, icon: Icons.warehouse_outlined, accent: AppTheme.adminStorage),
         actions: [
           IconButton(
             icon: const Icon(Icons.file_download_outlined, color: Color(0xFF0F172A), size: 20),
@@ -1292,7 +982,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
         ],
         bottom: const PreferredSize(
           preferredSize: Size.fromHeight(1),
-          child: Divider(height: 1, color: Color(0xFFE2E8F0)),
+          child: Divider(height: 1, color: AppTheme.workspaceBorder),
         ),
       ),
       body: RefreshIndicator(
@@ -1318,7 +1008,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                      border: Border.all(color: AppTheme.workspaceBorder),
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withValues(alpha: 0.02),
@@ -1337,22 +1027,16 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                             Row(
                               crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
-                                // Black square badge with room number
                                 Container(
                                   width: 44,
                                   height: 44,
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFF0F172A),
+                                    color: AppTheme.adminStorageTint,
                                     borderRadius: BorderRadius.circular(10),
                                   ),
-                                  alignment: Alignment.center,
-                                  child: Text(
-                                    currentRoom.roomCode.isNotEmpty ? currentRoom.roomCode : '1',
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.w800,
-                                    ),
+                                  child: const Icon(
+                                    Icons.warehouse_outlined,
+                                    color: AppTheme.adminStorage,
                                   ),
                                 ),
                                 const SizedBox(width: 16),
@@ -1369,126 +1053,93 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                                           letterSpacing: -0.4,
                                         ),
                                       ),
-                                      const SizedBox(height: 2),
-                                      Text(
-                                        'Zone: ${currentRoom.roomCode.isNotEmpty ? 'North Bay • ${currentRoom.roomCode}' : 'North Cold Bay'}',
-                                        style: const TextStyle(
-                                          fontSize: 13,
-                                          color: Color(0xFF64748B),
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
                                     ],
                                   ),
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 16),
-                            Text(
-                              currentRoom.description.isNotEmpty
-                                  ? currentRoom.description
-                                  : 'Climate-regulated ambient preservation storage unit configured for pallet and container storage.',
-                              style: const TextStyle(
-                                fontSize: 13.5,
-                                color: Color(0xFF475569),
-                                height: 1.45,
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            // Pill Badges
-                            Wrap(
-                              spacing: 10,
-                              runSpacing: 8,
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFF1F5F9),
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      const Icon(Icons.swap_vert, size: 14, color: Color(0xFF64748B)),
-                                      const SizedBox(width: 6),
-                                      Flexible(
-                                        child: Text(
-                                          '$tempStr (Target ±0.5° tolerance)',
-                                          style: const TextStyle(
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w500,
-                                            color: Color(0xFF334155),
-                                          ),
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFF1F5F9),
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      const Icon(Icons.location_on_outlined, size: 14, color: Color(0xFF64748B)),
-                                      const SizedBox(width: 6),
-                                      Flexible(
-                                        child: Text(
-                                          'Bay ${currentRoom.roomCode.isNotEmpty ? currentRoom.roomCode : '1'} • Sector C • North Facility',
-                                          style: const TextStyle(
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w500,
-                                            color: Color(0xFF334155),
-                                          ),
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        );
-
-                        final metricCard = Container(
-                          width: isNarrow ? double.infinity : 170,
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: const Color(0xFFE2E8F0)),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'STORE ROOM ITEMS',
-                                style: TextStyle(
-                                  fontSize: 10.5,
-                                  fontWeight: FontWeight.w700,
-                                  color: Color(0xFF94A3B8),
-                                  letterSpacing: 0.6,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Align(
-                                alignment: isNarrow ? Alignment.centerLeft : Alignment.centerRight,
-                                child: Text(
-                                  '${roomItems.length}',
-                                  style: const TextStyle(
-                                    fontSize: 28,
-                                    fontWeight: FontWeight.w800,
-                                    color: Color(0xFF0F172A),
-                                  ),
+                            if (currentRoom.description.isNotEmpty) ...[
+                              const SizedBox(height: 16),
+                              Text(
+                                currentRoom.description,
+                                style: const TextStyle(
+                                  fontSize: 13.5,
+                                  color: Color(0xFF475569),
+                                  height: 1.45,
                                 ),
                               ),
                             ],
-                          ),
+                          ],
+                        );
+
+                        Widget metricCard(String label, String value) {
+                          return Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 14,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: AppTheme.workspaceBorder),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                SizedBox(
+                                  height: 16,
+                                  child: FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    alignment: Alignment.centerLeft,
+                                    child: Text(
+                                      label,
+                                      style: const TextStyle(
+                                        fontSize: 10.5,
+                                        fontWeight: FontWeight.w700,
+                                        color: Color(0xFF64748B),
+                                        letterSpacing: 0.6,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                SizedBox(
+                                  height: 36,
+                                  child: FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    alignment: isNarrow
+                                        ? Alignment.centerLeft
+                                        : Alignment.centerRight,
+                                    child: Text(
+                                      value,
+                                      style: const TextStyle(
+                                        fontSize: 28,
+                                        fontWeight: FontWeight.w800,
+                                        color: Color(0xFF0F172A),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }
+
+                        final metrics = Row(
+                          mainAxisSize: isNarrow ? MainAxisSize.max : MainAxisSize.min,
+                          children: [
+                            if (temperature != null) ...[
+                              if (isNarrow)
+                                Expanded(child: metricCard('TEMPERATURE', temperature))
+                              else
+                                SizedBox(width: 170, child: metricCard('TEMPERATURE', temperature)),
+                              const SizedBox(width: 12),
+                            ],
+                            if (isNarrow)
+                              Expanded(child: metricCard('STORE ROOM ITEMS', '${roomItems.length}'))
+                            else
+                              SizedBox(width: 170, child: metricCard('STORE ROOM ITEMS', '${roomItems.length}')),
+                          ],
                         );
 
                         if (isNarrow) {
@@ -1497,7 +1148,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                             children: [
                               leftInfo,
                               const SizedBox(height: 16),
-                              metricCard,
+                              metrics,
                             ],
                           );
                         }
@@ -1507,7 +1158,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                           children: [
                             Expanded(child: leftInfo),
                             const SizedBox(width: 24),
-                            metricCard,
+                            metrics,
                           ],
                         );
                       },
@@ -1521,7 +1172,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                      border: Border.all(color: AppTheme.workspaceBorder),
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withValues(alpha: 0.02),
@@ -1580,7 +1231,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                                   icon: const Icon(Icons.add, size: 16),
                                   label: const Text('Add Item', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
                                   style: FilledButton.styleFrom(
-                                    backgroundColor: const Color(0xFF0F172A),
+                                    backgroundColor: AppTheme.adminStorage,
                                     foregroundColor: Colors.white,
                                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -1598,46 +1249,12 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                             builder: (context, filterConstraints) {
                               final isNarrow = filterConstraints.maxWidth < 640;
 
-                              final searchWidget = SizedBox(
-                                height: 40,
-                                child: TextField(
-                                  onChanged: (val) => setState(() => _itemSearchQuery = val),
-                                  decoration: InputDecoration(
-                                    prefixIcon: const Icon(Icons.search, size: 18, color: Color(0xFF94A3B8)),
-                                    suffixIcon: _itemSearchQuery.isNotEmpty
-                                        ? IconButton(
-                                            icon: const Icon(Icons.clear, size: 16, color: Color(0xFF94A3B8)),
-                                            onPressed: () => setState(() => _itemSearchQuery = ''),
-                                          )
-                                        : Container(
-                                            margin: const EdgeInsets.only(right: 8),
-                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                            decoration: BoxDecoration(
-                                              color: const Color(0xFFF1F5F9),
-                                              borderRadius: BorderRadius.circular(4),
-                                              border: Border.all(color: const Color(0xFFE2E8F0)),
-                                            ),
-                                            child: const Text(
-                                              '⌘K',
-                                              style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8)),
-                                            ),
-                                          ),
-                                    suffixIconConstraints: const BoxConstraints(minWidth: 32, minHeight: 20),
-                                    hintText: 'Search items in ${currentRoom.roomName}...',
-                                    hintStyle: const TextStyle(fontSize: 12.5, color: Color(0xFF94A3B8)),
-                                    contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 12),
-                                    filled: true,
-                                    fillColor: Colors.white,
-                                    enabledBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(8),
-                                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                                    ),
-                                    focusedBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(8),
-                                      borderSide: const BorderSide(color: Color(0xFF0F172A)),
-                                    ),
-                                  ),
-                                ),
+                              final searchWidget = CpmsSearchBar(
+                                controller: _itemSearchController,
+                                hintText: 'Search room items',
+                                accentColor: AppTheme.adminStorage,
+                                height: 44,
+                                onChanged: (value) => setState(() => _itemSearchQuery = value),
                               );
 
                               final filterButtons = [
@@ -1686,7 +1303,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                                     decoration: BoxDecoration(
                                       color: Colors.white,
                                       borderRadius: BorderRadius.circular(8),
-                                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                                      border: Border.all(color: AppTheme.workspaceBorder),
                                     ),
                                     child: Row(
                                       mainAxisSize: MainAxisSize.min,
@@ -1714,7 +1331,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                                     decoration: BoxDecoration(
                                       color: Colors.white,
                                       borderRadius: BorderRadius.circular(8),
-                                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                                      border: Border.all(color: AppTheme.workspaceBorder),
                                     ),
                                     child: Row(
                                       mainAxisSize: MainAxisSize.min,
@@ -1727,42 +1344,6 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                                         ),
                                       ],
                                     ),
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-
-                                // View Toggle (List / Grid)
-                                Container(
-                                  height: 40,
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(8),
-                                    border: Border.all(color: const Color(0xFFE2E8F0)),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      IconButton(
-                                        icon: Icon(
-                                          Icons.reorder,
-                                          size: 18,
-                                          color: !_isGridView ? const Color(0xFF0F172A) : const Color(0xFF94A3B8),
-                                        ),
-                                        onPressed: () => setState(() => _isGridView = false),
-                                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                                        constraints: const BoxConstraints(),
-                                      ),
-                                      IconButton(
-                                        icon: Icon(
-                                          Icons.grid_view,
-                                          size: 18,
-                                          color: _isGridView ? const Color(0xFF0F172A) : const Color(0xFF94A3B8),
-                                        ),
-                                        onPressed: () => setState(() => _isGridView = true),
-                                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                                        constraints: const BoxConstraints(),
-                                      ),
-                                    ],
                                   ),
                                 ),
                               ];
@@ -1795,7 +1376,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                         ),
 
                         // Table Divider
-                        const Divider(height: 1, color: Color(0xFFE2E8F0)),
+                        const Divider(height: 1, color: AppTheme.workspaceBorder),
 
                         // Table Header
                         Container(
@@ -1832,7 +1413,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                           ),
                         ),
 
-                        const Divider(height: 1, color: Color(0xFFE2E8F0)),
+                        const Divider(height: 1, color: AppTheme.workspaceBorder),
 
                         // Table Content
                         if (filteredItems.isEmpty)
@@ -1888,6 +1469,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                                       builder: (c) => StoreRoomItemDetailScreen(
                                         storeRoomId: currentRoom.storeRoomId,
                                         itemId: sri.itemId,
+                                        divisionId: currentRoom.divisionForItem(sri)?.divisionId ?? sri.divisionId,
                                       ),
                                     ),
                                   ).then((_) => inventory.loadStoreRooms());
@@ -1929,7 +1511,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                                                   ),
                                                   const SizedBox(height: 2),
                                                   Text(
-                                                    '${currentRoom.resolveFormattedDivisionName(sri)} • Packets Per Carton: ${item.reorderThresholdQuantity > 0 ? item.reorderThresholdQuantity.toInt() : 14}',
+                                                    '${currentRoom.displayDivisionName(sri)} • Packets Per Carton: ${item.reorderThresholdQuantity > 0 ? item.reorderThresholdQuantity.toInt() : 14}',
                                                     style: const TextStyle(
                                                       fontSize: 11.5,
                                                       color: Color(0xFF64748B),
@@ -1945,50 +1527,19 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                                       ),
                                       const SizedBox(width: 12),
 
-                                      // In-Stock Qty (Stepper)
-                                      SizedBox(
-                                        width: 120,
-                                        child: Align(
-                                          alignment: Alignment.centerRight,
-                                          child: Container(
-                                            height: 30,
-                                            decoration: BoxDecoration(
-                                              color: Colors.white,
-                                              borderRadius: BorderRadius.circular(6),
-                                              border: Border.all(color: const Color(0xFFE2E8F0)),
-                                            ),
-                                            child: Row(
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                InkWell(
-                                                  onTap: canUpdate
-                                                      ? () => _showEditItemQuantityDialog(item, sri, currentRoom)
-                                                      : null,
-                                                  child: const Padding(
-                                                    padding: EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-                                                    child: Text('−', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF64748B))),
-                                                  ),
-                                                ),
-                                                Padding(
-                                                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                                                  child: Text(
-                                                    '${sri.quantity.toInt()}',
-                                                    style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
-                                                  ),
-                                                ),
-                                                InkWell(
-                                                  onTap: canUpdate
-                                                      ? () => _showEditItemQuantityDialog(item, sri, currentRoom)
-                                                      : null,
-                                                  child: const Padding(
-                                                    padding: EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-                                                    child: Text('+', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF64748B))),
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                        ),
+                                      CpmsStockQuantityInput(
+                                        key: ValueKey((currentRoom.storeRoomId, sri.itemId, sri.divisionId, sri.division)),
+                                        quantity: sri.quantity,
+                                        itemName: item.itemName,
+                                        onChanged: canUpdate
+                                            ? (quantity) => inventory.updateStoreRoomItemQuantity(
+                                                  storeRoomId: currentRoom.storeRoomId,
+                                                  itemId: sri.itemId,
+                                                  division: sri.division,
+                                                  divisionId: sri.divisionId,
+                                                  quantity: quantity,
+                                                )
+                                            : null,
                                       ),
                                     ],
                                   ),
@@ -1998,7 +1549,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                           ),
 
                         // Table Footer
-                        const Divider(height: 1, color: Color(0xFFE2E8F0)),
+                        const Divider(height: 1, color: AppTheme.workspaceBorder),
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
                           child: Wrap(
@@ -2049,7 +1600,7 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
                           icon: const Icon(Icons.edit_outlined, size: 16, color: Colors.white),
                           label: const Text('Edit Store Room Details', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13)),
                           style: FilledButton.styleFrom(
-                            backgroundColor: const Color(0xFF0F172A),
+                            backgroundColor: AppTheme.adminStorage,
                             padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                             elevation: 0,
@@ -2250,34 +1801,11 @@ class _AddItemToRoomModalState extends State<_AddItemToRoomModal> {
         // Search Field
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-          child: Container(
-            height: 44,
-            decoration: BoxDecoration(
-              color: const Color(0xFFF8FAFC),
-              borderRadius: BorderRadius.circular(4),
-              border: Border.all(color: const Color(0xFFE2E8F0)),
-            ),
-            child: TextField(
-              controller: _searchCtrl,
-              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-              decoration: InputDecoration(
-                hintText: 'Search items by name...',
-                hintStyle: const TextStyle(fontSize: 13, color: Color(0xFF94A3B8)),
-                prefixIcon: const Icon(Icons.search, size: 18, color: Color(0xFF94A3B8)),
-                suffixIcon: _searchQuery.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear, size: 16),
-                        onPressed: () {
-                          _searchCtrl.clear();
-                          setState(() => _searchQuery = '');
-                        },
-                      )
-                    : null,
-                border: InputBorder.none,
-                contentPadding: const EdgeInsets.symmetric(vertical: 12),
-              ),
-              onChanged: (val) => setState(() => _searchQuery = val.trim()),
-            ),
+          child: CpmsSearchBar(
+            controller: _searchCtrl,
+            hintText: 'Search items by name',
+            accentColor: AppTheme.adminStorage,
+            onChanged: (value) => setState(() => _searchQuery = value.trim()),
           ),
         ),
 
@@ -2456,7 +1984,7 @@ class _AddItemToRoomModalState extends State<_AddItemToRoomModal> {
                                     borderRadius: BorderRadius.circular(4),
                                   ),
                                   child: Text(
-                                    'In this room (${widget.room.resolveFormattedDivisionName(matchInThisRoom.first)})',
+                                    'In this room (${widget.room.displayDivisionName(matchInThisRoom.first)})',
                                     style: const TextStyle(
                                       fontSize: 10,
                                       fontWeight: FontWeight.w700,
@@ -2595,7 +2123,7 @@ class _AddItemToRoomModalState extends State<_AddItemToRoomModal> {
             decoration: BoxDecoration(
               color: const Color(0xFFF8FAFC),
               borderRadius: BorderRadius.circular(4),
-              border: Border.all(color: const Color(0xFFE2E8F0)),
+              border: Border.all(color: AppTheme.workspaceBorder),
             ),
             child: Row(
               children: [
@@ -2678,11 +2206,11 @@ class _AddItemToRoomModalState extends State<_AddItemToRoomModal> {
                       ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(4),
-                        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                        borderSide: const BorderSide(color: AppTheme.workspaceBorder),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(4),
-                        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                        borderSide: const BorderSide(color: AppTheme.workspaceBorder),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(4),
@@ -2721,11 +2249,11 @@ class _AddItemToRoomModalState extends State<_AddItemToRoomModal> {
                         fillColor: Colors.white,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(4),
-                          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                          borderSide: const BorderSide(color: AppTheme.workspaceBorder),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(4),
-                          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                          borderSide: const BorderSide(color: AppTheme.workspaceBorder),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(4),
@@ -2771,11 +2299,11 @@ class _AddItemToRoomModalState extends State<_AddItemToRoomModal> {
               suffixStyle: null,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(4),
-                borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                borderSide: const BorderSide(color: AppTheme.workspaceBorder),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(4),
-                borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                borderSide: const BorderSide(color: AppTheme.workspaceBorder),
               ),
             ),
           ),
@@ -2803,7 +2331,7 @@ class _AddItemToRoomModalState extends State<_AddItemToRoomModal> {
             height: 48,
             child: ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.black,
+                backgroundColor: AppTheme.adminStorage,
                 foregroundColor: Colors.white,
                 elevation: 0,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),

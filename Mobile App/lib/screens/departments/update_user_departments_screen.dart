@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../../core/theme/app_theme.dart';
+import '../../widgets/cpms_page_title.dart';
 import 'package:provider/provider.dart';
 import '../../providers/department_provider.dart';
 import '../../providers/tenant_provider.dart';
@@ -171,9 +173,10 @@ class _UpdateUserDepartmentsScreenState
     }).toList();
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppTheme.adminCanvas,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: AppTheme.adminCanvas,
+        foregroundColor: AppTheme.adminInk,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         scrolledUnderElevation: 0,
@@ -181,16 +184,7 @@ class _UpdateUserDepartmentsScreenState
           icon: const Icon(Icons.arrow_back, color: Colors.black, size: 24),
           onPressed: () => Navigator.pop(context),
         ),
-        centerTitle: true,
-        title: Text(
-          isEditing ? 'Reassign Department' : 'Add Staff Member',
-          style: const TextStyle(
-            color: Colors.black,
-            fontSize: 18,
-            fontWeight: FontWeight.w800,
-            letterSpacing: -0.3,
-          ),
-        ),
+        title: CpmsPageTitle(isEditing ? 'Reassign Department' : 'Add Staff Member', icon: Icons.manage_accounts_outlined),
         actions: const [
           Padding(
             padding: EdgeInsets.only(right: 8),
@@ -760,6 +754,7 @@ class _UpdateUserDepartmentsScreenState
               CpmsSearchBar(
                 controller: _searchController,
                 hintText: 'Search departments...',
+                accentColor: AppTheme.adminPeople,
                 onChanged: (val) {
                   setState(() => _searchQuery = val.trim());
                 },
@@ -900,7 +895,7 @@ class _UpdateUserDepartmentsScreenState
                 height: 50,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.black,
+                    backgroundColor: AppTheme.adminPeople,
                     foregroundColor: Colors.white,
                     elevation: 0,
                     shape: RoundedRectangleBorder(

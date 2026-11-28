@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../core/sync/sync_manager.dart';
 
 class SyncStatusIndicator extends StatelessWidget {
@@ -7,107 +8,22 @@ class SyncStatusIndicator extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final syncManager = SyncManager();
-
-    return StreamBuilder<SyncStatus>(
-      stream: syncManager.syncStatusStream,
-      initialData: syncManager.pendingCount > 0 ? SyncStatus.syncing : SyncStatus.idle,
+    return StreamBuilder<int>(
+      stream: syncManager.queueCountStream,
+      initialData: syncManager.pendingCount,
       builder: (context, snapshot) {
-        final status = snapshot.data ?? SyncStatus.idle;
-
-        if (status == SyncStatus.syncing) {
-          return Tooltip(
-            message: 'Live syncing changes to server...',
-            child: Container(
-              margin: const EdgeInsets.symmetric(horizontal: 6),
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF0FDF4),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFBBF7D0)),
-              ),
-              child: const Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  SizedBox(
-                    width: 10,
-                    height: 10,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Color(0xFF16A34A),
-                    ),
-                  ),
-                  SizedBox(width: 6),
-                  Text(
-                    'Syncing',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF16A34A),
-                    ),
-                  ),
-                ],
-              ),
+        final pending = (snapshot.data ?? 0) > 0;
+        return Semantics(
+          label: pending ? 'Local changes pending sync' : 'No pending local changes',
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: pending ? const Color(0xFFDC2626) : const Color(0xFF16A34A),
+              shape: BoxShape.circle,
             ),
-          );
-        } else if (status == SyncStatus.offline && syncManager.pendingCount > 0) {
-          return InkWell(
-            borderRadius: BorderRadius.circular(12),
-            onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    'Retrying ${syncManager.pendingCount} pending synchronization item(s)...',
-                  ),
-                  duration: const Duration(seconds: 2),
-                  action: SnackBarAction(
-                    label: 'Clear Queue',
-                    textColor: Colors.amberAccent,
-                    onPressed: () {
-                      syncManager.clearQueue();
-                    },
-                  ),
-                ),
-              );
-              syncManager.processQueue();
-            },
-            child: Tooltip(
-              message:
-                  '${syncManager.pendingCount} change(s) saved locally. Tap to retry sync or clear.',
-              child: Container(
-                margin: const EdgeInsets.symmetric(horizontal: 6),
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFFBEB),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFFDE68A)),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(
-                      Icons.cloud_queue,
-                      size: 13,
-                      color: Color(0xFFD97706),
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      'Offline (${syncManager.pendingCount})',
-                      style: const TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFFD97706),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          );
-        }
-
-        return const SizedBox.shrink();
+            child: const SizedBox.square(dimension: 9),
+          ),
+        );
       },
     );
   }
 }
-

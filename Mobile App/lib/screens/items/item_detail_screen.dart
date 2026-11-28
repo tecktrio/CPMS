@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../core/theme/app_theme.dart';
+import '../../widgets/cpms_page_title.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
@@ -271,7 +273,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: const Color(0xFFE2E8F0)),
+              border: Border.all(color: AppTheme.workspaceBorder),
             ),
             child: Stack(
               children: [
@@ -423,36 +425,18 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
           );
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: AppTheme.adminCanvas,
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        surfaceTintColor: Colors.transparent,
+        backgroundColor: AppTheme.adminCanvas,
+        foregroundColor: AppTheme.adminInk,
+          surfaceTintColor: Colors.transparent,
         elevation: 0,
         scrolledUnderElevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black, size: 24),
+          icon: const Icon(Icons.arrow_back, color: AppTheme.adminInk, size: 24),
           onPressed: () => Navigator.pop(context),
         ),
-        centerTitle: true,
-        title: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 1000),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  currentItem.itemName,
-                  style: const TextStyle(
-                    color: Colors.black,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -0.3,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
+        title: CpmsPageTitle(currentItem.itemName, icon: Icons.inventory_2_outlined, accent: AppTheme.adminItems),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh, color: Colors.black, size: 22),
@@ -496,7 +480,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                      border: Border.all(color: AppTheme.workspaceBorder),
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withValues(alpha: 0.02),
@@ -560,7 +544,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                      border: Border.all(color: AppTheme.workspaceBorder),
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withValues(alpha: 0.02),
@@ -620,7 +604,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                      border: Border.all(color: AppTheme.workspaceBorder),
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withValues(alpha: 0.02),
@@ -684,7 +668,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                               color: const Color(0xFFF8FAFC),
                               borderRadius: BorderRadius.circular(10),
                               border: Border.all(
-                                  color: const Color(0xFFE2E8F0)),
+                                  color: AppTheme.workspaceBorder),
                             ),
                             child: const Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -731,7 +715,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                               color: const Color(0xFFF8FAFC),
                               borderRadius: BorderRadius.circular(10),
                               border: Border.all(
-                                  color: const Color(0xFFE2E8F0)),
+                                  color: AppTheme.workspaceBorder),
                             ),
                             child: const Text(
                               'No raw materials assigned as ingredients yet. Tap Edit Item Details to select ingredients.',
@@ -787,7 +771,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                                       borderRadius:
                                           BorderRadius.circular(6),
                                       border: Border.all(
-                                          color: const Color(0xFFE2E8F0)),
+                                          color: AppTheme.workspaceBorder),
                                     ),
                                     alignment: Alignment.center,
                                     child: const Icon(
@@ -832,7 +816,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                                       borderRadius:
                                           BorderRadius.circular(4),
                                       border: Border.all(
-                                          color: const Color(0xFFE2E8F0)),
+                                          color: AppTheme.workspaceBorder),
                                     ),
                                     child: Text(
                                       '$formattedQty $ingUnit',
@@ -890,7 +874,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                                   ),
                                 ),
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF0F172A),
+                                  backgroundColor: AppTheme.adminItems,
                                   foregroundColor: Colors.white,
                                   elevation: 0,
                                   padding: const EdgeInsets.symmetric(

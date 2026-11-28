@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/theme/app_theme.dart';
 import 'package:provider/provider.dart';
 import '../../core/constants/permissions.dart';
 import '../../providers/tenant_provider.dart';
@@ -19,7 +20,10 @@ class StoreRoomsHubScreen extends StatelessWidget {
     final canCreate = isAdmin;
 
     return Scaffold(
+      backgroundColor: AppTheme.adminCanvas,
       appBar: AppBar(
+        backgroundColor: AppTheme.adminCanvas,
+        foregroundColor: AppTheme.adminInk,
         title: const Text('Cold Store Rooms Hub'),
         actions: const [
           UserProfileAvatar(),
@@ -127,7 +131,7 @@ class StoreRoomsHubScreen extends StatelessWidget {
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: const BorderSide(color: Color(0xFFE2E8F0)),
+        side: const BorderSide(color: AppTheme.workspaceBorder),
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(12),

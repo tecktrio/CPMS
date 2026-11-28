@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../providers/inventory_provider.dart';
 import '../providers/tenant_provider.dart';
 import '../core/constants/permissions.dart';
+import '../core/theme/app_theme.dart';
 import '../screens/dashboard/department_workspace.dart';
 import '../screens/dashboard/dashboard_screen.dart';
 
@@ -35,11 +36,83 @@ class CpmsBottomNavBar extends StatelessWidget {
     final tenant = context.watch<TenantProvider>();
     final workspace = DepartmentWorkspace.resolve(tenant);
     final showAlerts =
-        (workspace == null) &&
         tenant.hasPermission(AppPermissions.storeroomRead) &&
         tenant.hasPermission(AppPermissions.itemRead);
     final accent = workspace?.color ?? const Color(0xFF0F172A);
     final hasAlerts = inventory.items.any((i) => i.isBelowReorderThreshold);
+
+    if (workspace == DepartmentWorkspace.administrator) {
+      return ColoredBox(
+        color: AppTheme.adminCanvas,
+        child: SafeArea(
+          top: false,
+          minimum: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+          child: Center(
+            heightFactor: 1,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 420),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(20),
+                child: NavigationBar(
+                  height: 64,
+                  backgroundColor: Colors.white,
+                  surfaceTintColor: Colors.transparent,
+                  indicatorColor: AppTheme.adminTint,
+                  selectedIndex: switch (currentIndex) {
+                    1 => 1,
+                    3 => 2,
+                    _ => 0,
+                  },
+                  onDestinationSelected: (index) =>
+                      _handleTap(context, const [2, 1, 3][index]),
+                  destinations: [
+                    const NavigationDestination(
+                      icon: Icon(
+                        Icons.dashboard_outlined,
+                        color: AppTheme.adminInk,
+                      ),
+                      selectedIcon: Icon(
+                        Icons.dashboard_rounded,
+                        color: AppTheme.adminInk,
+                      ),
+                      label: 'Administration',
+                    ),
+                    NavigationDestination(
+                      icon: Badge(
+                        isLabelVisible: hasAlerts,
+                        child: const Icon(
+                          Icons.notifications_none_outlined,
+                          color: AppTheme.adminInk,
+                        ),
+                      ),
+                      selectedIcon: Badge(
+                        isLabelVisible: hasAlerts,
+                        child: const Icon(
+                          Icons.notifications_rounded,
+                          color: AppTheme.adminInk,
+                        ),
+                      ),
+                      label: 'Alerts',
+                    ),
+                    const NavigationDestination(
+                      icon: Icon(
+                        Icons.settings_outlined,
+                        color: AppTheme.adminInk,
+                      ),
+                      selectedIcon: Icon(
+                        Icons.settings_rounded,
+                        color: AppTheme.adminInk,
+                      ),
+                      label: 'Settings',
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
 
     return Container(
       width: double.infinity,

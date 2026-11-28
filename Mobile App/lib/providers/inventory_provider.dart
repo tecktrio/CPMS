@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import '../core/constants/api_constants.dart';
 import '../core/network/api_client.dart';
@@ -34,26 +36,20 @@ class StoreRoomDivisionModel {
           '';
       final rawName = json['name']?.toString() ??
           json['division']?.toString() ??
-          'Division - section 1';
+          'section 1';
       final clean = rawName.trim();
-      final formatted = clean.toLowerCase().startsWith('division')
-          ? clean
-          : 'Division - $clean';
       return StoreRoomDivisionModel(
         divisionId: id.isNotEmpty
             ? id
             : 'div_${clean.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '_')}',
-        name: formatted,
+        name: clean,
       );
     }
     final clean = json.toString().trim();
-    final formatted = clean.toLowerCase().startsWith('division')
-        ? clean
-        : 'Division - $clean';
     return StoreRoomDivisionModel(
       divisionId:
           'div_${clean.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '_')}',
-      name: formatted,
+      name: clean,
     );
   }
 }
@@ -117,6 +113,14 @@ class StoreRoomModel {
   final String roomName;
   final String description;
   final double? temperature;
+
+  String? get temperatureLabel {
+    final value = temperature;
+    if (value == null) return null;
+    final degrees = value.toString().replaceFirst(RegExp(r'\.0$'), '');
+    return '$degrees °C';
+  }
+
   final double totalCapacityUnits;
   final double currentOccupancyUnits;
   final double capacityUtilizationPercentage;
@@ -142,6 +146,26 @@ class StoreRoomModel {
     this.items = const [],
     required this.isActive,
   });
+
+  List<StoreRoomDivisionModel> get configuredDivisions => divisionObjects.isNotEmpty
+      ? divisionObjects
+      : divisions.map(StoreRoomDivisionModel.fromJson).toList();
+
+  StoreRoomDivisionModel? divisionForItem(StoreRoomItemModel item) {
+    final options = configuredDivisions;
+    final matchById = options.where((division) => division.divisionId == item.divisionId).firstOrNull;
+    if (matchById != null || item.division.trim().isEmpty) return matchById;
+    final name = item.division.trim().toLowerCase();
+    final exact = options.where((division) => division.name.trim().toLowerCase() == name).firstOrNull;
+    return exact ?? options.where((division) =>
+        division.name.trim().toLowerCase() == 'division - $name' ||
+        name == 'division - ${division.name.trim().toLowerCase()}',
+    ).firstOrNull;
+  }
+
+  int itemsInDivision(String divisionId) => items.where(
+    (item) => divisionForItem(item)?.divisionId == divisionId,
+  ).length;
 
   String getDivisionName(String divisionId, {String fallback = ''}) {
     if (divisionId.isNotEmpty) {
@@ -173,11 +197,9 @@ class StoreRoomModel {
     return 'div_${clean.replaceAll(RegExp(r'[^a-z0-9]'), '_')}';
   }
 
-  String resolveFormattedDivisionName(StoreRoomItemModel sri) {
-    final rawName = getDivisionName(sri.divisionId, fallback: sri.division);
-    if (rawName.isEmpty) return 'No Section';
-    if (rawName.toLowerCase().startsWith('division')) return rawName;
-    return 'Division - $rawName';
+  String displayDivisionName(StoreRoomItemModel item) {
+    final name = divisionForItem(item)?.name ?? item.division;
+    return name.trim().isEmpty ? 'No Section' : name;
   }
 
   StoreRoomModel copyWith({
@@ -187,6 +209,7 @@ class StoreRoomModel {
     String? roomName,
     String? description,
     double? temperature,
+    bool clearTemperature = false,
     double? totalCapacityUnits,
     double? currentOccupancyUnits,
     double? capacityUtilizationPercentage,
@@ -202,7 +225,7 @@ class StoreRoomModel {
       roomCode: roomCode ?? this.roomCode,
       roomName: roomName ?? this.roomName,
       description: description ?? this.description,
-      temperature: temperature ?? this.temperature,
+      temperature: clearTemperature ? null : temperature ?? this.temperature,
       totalCapacityUnits: totalCapacityUnits ?? this.totalCapacityUnits,
       currentOccupancyUnits: currentOccupancyUnits ?? this.currentOccupancyUnits,
       capacityUtilizationPercentage:
@@ -752,9 +775,12 @@ class InventoryProvider extends ChangeNotifier {
     if (!silent && _storeRooms.isEmpty) {
       _setLoading(true);
     }
+    final tenantId = apiClient.activeTenantId;
+    final hadPendingChanges = syncManager.hasPendingStoreRoomChanges(tenantId);
     try {
       final res = await apiClient.get(ApiConstants.storeRooms);
-      if (res is List) {
+      if (res is List && tenantId == apiClient.activeTenantId &&
+          !hadPendingChanges && !syncManager.hasPendingStoreRoomChanges(tenantId)) {
         _storeRooms = res.map((item) => StoreRoomModel.fromJson(item)).toList();
         _persistStoreRoomsLocally();
       }
@@ -766,7 +792,6 @@ class InventoryProvider extends ChangeNotifier {
   }
 
   Future<bool> createStoreRoom({
-    required String roomCode,
     required String roomName,
     String? description,
     double? temperature,
@@ -774,11 +799,14 @@ class InventoryProvider extends ChangeNotifier {
     List<String>? divisions,
   }) async {
     // 1. Instant optimistic local creation
-    final tempId = 'room_${DateTime.now().millisecondsSinceEpoch}';
+    final timestamp = DateTime.now().microsecondsSinceEpoch;
+    final suffix = Random.secure().nextInt(1 << 30).toRadixString(36);
+    final tempId = 'room_${timestamp}_$suffix';
+    final roomCode = 'ROOM-$timestamp-$suffix'.toUpperCase();
     final optimisticRoom = StoreRoomModel(
       storeRoomId: tempId,
       tenantId: apiClient.activeTenantId ?? '',
-      roomCode: roomCode.trim().toUpperCase(),
+      roomCode: roomCode,
       roomName: roomName.trim(),
       description: description?.trim() ?? '',
       temperature: temperature,
@@ -796,7 +824,7 @@ class InventoryProvider extends ChangeNotifier {
 
     // 2. Queue for background live sync
     final body = <String, dynamic>{
-      'room_code': roomCode.trim().toUpperCase(),
+      'room_code': roomCode,
       'room_name': roomName.trim(),
     };
     if (description != null && description.trim().isNotEmpty) {
@@ -823,22 +851,55 @@ class InventoryProvider extends ChangeNotifier {
     String? roomName,
     String? description,
     double? temperature,
+    bool clearTemperature = false,
     double? totalCapacityUnits,
     List<String>? divisions,
     List<StoreRoomDivisionModel>? divisionObjects,
   }) async {
-    // 1. Instant optimistic update
+    _errorMessage = null;
     final index = _storeRooms.indexWhere((r) => r.storeRoomId == storeRoomId);
+    var nextDivisions = divisionObjects?.map((division) =>
+        StoreRoomDivisionModel.fromJson(division.toJson())).toList();
     if (index != -1) {
       final existing = _storeRooms[index];
+      if (nextDivisions == null && divisions != null) {
+        nextDivisions = divisions.map((name) {
+          final candidate = StoreRoomDivisionModel.fromJson(name);
+          return existing.configuredDivisions.where(
+            (division) => division.name.toLowerCase() == candidate.name.toLowerCase(),
+          ).firstOrNull ?? candidate;
+        }).toList();
+      }
+      var items = existing.items;
+      if (nextDivisions != null) {
+        final byId = {for (final division in nextDivisions) division.divisionId: division};
+        if (byId.length != nextDivisions.length ||
+            nextDivisions.map((division) => division.name.toLowerCase()).toSet().length != nextDivisions.length) {
+          _errorMessage = 'Division names must be unique within a store room.';
+          return false;
+        }
+        items = <StoreRoomItemModel>[];
+        for (final item in existing.items) {
+          final source = existing.divisionForItem(item);
+          final target = source == null ? null : byId[source.divisionId];
+          if (source != null && target == null) {
+            _errorMessage = 'Reassign all items in "${source.name}" before deleting the division.';
+            return false;
+          }
+          items.add(target == null ? item : item.copyWith(divisionId: target.divisionId, division: target.name));
+        }
+      }
+
       _storeRooms[index] = existing.copyWith(
         roomCode: roomCode?.trim().toUpperCase(),
         roomName: roomName?.trim(),
         description: description?.trim(),
         temperature: temperature,
+        clearTemperature: clearTemperature,
         totalCapacityUnits: totalCapacityUnits,
-        divisions: divisions,
-        divisionObjects: divisionObjects,
+        divisions: nextDivisions?.map((division) => division.name).toList(),
+        divisionObjects: nextDivisions,
+        items: items,
       );
       _persistStoreRoomsLocally();
       notifyListeners();
@@ -855,12 +916,14 @@ class InventoryProvider extends ChangeNotifier {
     if (description != null) {
       body['description'] = description.trim();
     }
-    if (temperature != null) body['temperature'] = temperature;
+    if (clearTemperature || temperature != null) {
+      body['temperature'] = clearTemperature ? null : temperature;
+    }
     if (totalCapacityUnits != null) {
       body['total_capacity_units'] = totalCapacityUnits;
     }
-    if (divisionObjects != null && divisionObjects.isNotEmpty) {
-      body['divisions'] = divisionObjects.map((d) => d.toJson()).toList();
+    if (nextDivisions != null) {
+      body['divisions'] = nextDivisions.map((d) => d.toJson()).toList();
     } else if (divisions != null) {
       body['divisions'] = divisions;
     }
@@ -1481,55 +1544,60 @@ class InventoryProvider extends ChangeNotifier {
     return true;
   }
 
-  Future<bool> updateStoreRoomItemDivision({
+  Future<bool> moveStoreRoomItem({
     required String storeRoomId,
-    required String itemId,
-    required String division,
-    String? divisionId,
+    required StoreRoomItemModel source,
+    required String targetDivisionId,
   }) async {
-    final roomIdx = _storeRooms.indexWhere((r) => r.storeRoomId == storeRoomId);
-    double curQty = 0.0;
-    String divId = divisionId?.trim() ?? '';
-    String div = division.trim();
-
-    if (roomIdx != -1) {
-      final room = _storeRooms[roomIdx];
-      if (divId.isEmpty) {
-        divId = room.getDivisionId(div);
-      }
-      div = room.getDivisionName(divId, fallback: div);
-
-      final existingItems = List<StoreRoomItemModel>.from(room.items);
-      final itemSubIdx = existingItems.indexWhere((it) => it.itemId == itemId);
-      if (itemSubIdx != -1) {
-        curQty = existingItems[itemSubIdx].quantity;
-        existingItems[itemSubIdx] = existingItems[itemSubIdx].copyWith(
-          divisionId: divId,
-          division: div,
-        );
-        _storeRooms[roomIdx] = room.copyWith(items: existingItems);
-        _persistStoreRoomsLocally();
-        notifyListeners();
-      }
+    _errorMessage = null;
+    final roomIndex = _storeRooms.indexWhere((room) => room.storeRoomId == storeRoomId);
+    if (roomIndex < 0) return false;
+    final room = _storeRooms[roomIndex];
+    final target = room.configuredDivisions.where((division) => division.divisionId == targetDivisionId).firstOrNull;
+    if (target == null) {
+      _errorMessage = 'Choose an existing destination division.';
+      return false;
+    }
+    String divisionId(StoreRoomItemModel item) =>
+        room.divisionForItem(item)?.divisionId ?? item.divisionId;
+    final sourceId = divisionId(source);
+    if (sourceId == targetDivisionId) return true;
+    final items = room.items.toList();
+    final sourceIndex = items.indexWhere((item) => item.itemId == source.itemId && divisionId(item) == sourceId);
+    if (sourceIndex < 0) {
+      _errorMessage = 'Item not found in the source division.';
+      return false;
+    }
+    final from = items[sourceIndex];
+    final targetIndex = items.indexWhere((item) => item.itemId == source.itemId && divisionId(item) == targetDivisionId);
+    if (targetIndex < 0) {
+      items[sourceIndex] = from.copyWith(divisionId: targetDivisionId, division: target.name);
+    } else {
+      final existing = items[targetIndex];
+      items[targetIndex] = existing.copyWith(
+        divisionId: targetDivisionId,
+        division: target.name,
+        quantity: existing.quantity + from.quantity,
+        minCount: existing.minCount > from.minCount ? existing.minCount : from.minCount,
+      );
+      items.removeAt(sourceIndex);
     }
 
-    final payload = <String, dynamic>{
-      'item_id': itemId,
-      'division': div,
-      'quantity': curQty,
-    };
-    if (divId.isNotEmpty) {
-      payload['division_id'] = divId;
-    }
-
-    syncManager.enqueue(SyncOperation(
+    _storeRooms[roomIndex] = room.copyWith(items: items);
+    _persistStoreRoomsLocally();
+    notifyListeners();
+    await syncManager.enqueue(SyncOperation(
       id: 'op_${DateTime.now().microsecondsSinceEpoch}',
-      type: SyncOperationType.updateStoreRoomItemQuantity,
+      type: SyncOperationType.moveStoreRoomItem,
       targetId: storeRoomId,
-      payload: payload,
+      payload: {
+        'item_id': source.itemId,
+        'source_division_id': sourceId,
+        'source_division': from.division,
+        'division_id': targetDivisionId,
+      },
       createdAt: DateTime.now(),
     ));
-
     return true;
   }
 

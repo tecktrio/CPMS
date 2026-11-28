@@ -20,6 +20,20 @@ class AppTheme {
   static const Color dangerRed = Color(0xFFDC2626);
   static const Color successGreen = Color(0xFF15803D);
 
+  static const Color workspaceCanvas = Color(0xFFF5F8F6);
+  static const Color workspaceBorder = Color(0xFFDFE8E2);
+
+  static const Color adminCanvas = Color(0xFFF2F6F5);
+  static const Color adminInk = Color(0xFF163E37);
+  static const Color adminTint = Color(0xFFDAE8E2);
+  static const Color adminPeople = Color(0xFF6844B3);
+  static const Color adminPeopleTint = Color(0xFFEFE9F8);
+
+  static const Color adminStorage = Color(0xFF057B67);
+  static const Color adminStorageTint = Color(0xFFE3F3EE);
+  static const Color adminItems = Color(0xFF2264AA);
+  static const Color adminItemsTint = Color(0xFFE7F0FA);
+
   static ThemeData get lightTheme {
     return ThemeData(
       useMaterial3: true,
@@ -30,12 +44,44 @@ class AppTheme {
         surface: Colors.white,
         error: dangerRed,
       ),
-      scaffoldBackgroundColor: Colors.white,
+      scaffoldBackgroundColor: workspaceCanvas,
+      dividerTheme: const DividerThemeData(color: workspaceBorder, space: 1),
+      dialogTheme: DialogThemeData(
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+        elevation: 6,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+        constraints: const BoxConstraints(maxWidth: 520),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+        titleTextStyle: const TextStyle(
+          color: Color(0xFF182921),
+          fontSize: 20,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+      bottomSheetTheme: const BottomSheetThemeData(
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+        ),
+      ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          minimumSize: const Size(0, 44),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          textStyle: const TextStyle(fontWeight: FontWeight.w700),
+        ),
+      ),
+      snackBarTheme: SnackBarThemeData(
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
       appBarTheme: const AppBarTheme(
         backgroundColor: Colors.white,
         elevation: 0,
         scrolledUnderElevation: 0,
-        centerTitle: true,
+        centerTitle: false,
         iconTheme: IconThemeData(color: Colors.black),
         titleTextStyle: TextStyle(
           color: Colors.black,
@@ -55,7 +101,7 @@ class AppTheme {
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
-          side: const BorderSide(color: Color(0xFFE5E5E5)),
+          side: const BorderSide(color: workspaceBorder),
         ),
         margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
       ),
@@ -64,7 +110,7 @@ class AppTheme {
         fillColor: Colors.white,
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         hintStyle: const TextStyle(
-          color: Color(0xFFCBD5E1),
+          color: Color(0xFF68766E),
           fontSize: 14,
           fontWeight: FontWeight.w400,
         ),

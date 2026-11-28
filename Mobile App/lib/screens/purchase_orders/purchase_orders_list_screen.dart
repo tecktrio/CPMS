@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/cpms_page_title.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../core/constants/permissions.dart';
@@ -113,7 +114,6 @@ class _PurchaseOrdersListScreenState extends State<PurchaseOrdersListScreen> {
         .length;
 
     return Scaffold(
-      backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.white,
         surfaceTintColor: Colors.transparent,
@@ -124,24 +124,7 @@ class _PurchaseOrdersListScreenState extends State<PurchaseOrdersListScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         titleSpacing: 0,
-        title: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 1100),
-            child: Row(
-              children: const [
-                Text(
-                  'Purchase Orders',
-                  style: TextStyle(
-                    color: Colors.black,
-                    fontSize: 22,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -0.5,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
+        title: const CpmsPageTitle('Purchase Orders', icon: Icons.receipt_long_outlined),
         actions: const [
           Padding(
             padding: EdgeInsets.only(right: 12),

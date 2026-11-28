@@ -22,7 +22,6 @@ import '../production/production_hub_screen.dart';
 import '../store_rooms/store_rooms_list_screen.dart';
 import '../store_rooms/store_room_detail_screen.dart';
 import '../../utils/app_update_helper.dart';
-import '../../widgets/sync_status_indicator.dart';
 import '../../widgets/cpms_bottom_nav_bar.dart';
 import '../../widgets/cpms_search_bar.dart';
 import '../../widgets/app_footer.dart';
@@ -312,11 +311,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     final tenant = context.watch<TenantProvider>();
-    final auth = context.watch<AuthProvider>();
     final inventory = context.watch<InventoryProvider>();
     final deptProvider = context.watch<DepartmentProvider>();
     final activeTenant = tenant.activeTenant;
-    final user = auth.user;
     final isAdmin = tenant.isTenantAdmin;
 
     final mediaQuery = MediaQuery.of(context);
@@ -468,13 +465,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final tenantDisplayName = activeTenant != null && activeTenant.companyName.isNotEmpty
         ? activeTenant.companyName.toLowerCase()
         : 'organization';
-    final userName = user != null && user.fullName.isNotEmpty
-        ? user.fullName
-        : 'Authenticated User';
-    final userRoleSubtitle = isAdmin ? 'Organization Admin' : resolvedDeptName;
-    final userInitial = userName.isNotEmpty ? userName[0].toUpperCase() : 'U';
-    final userAvatarUrl = ApiConstants.resolveImageUrl(user?.avatarUrl);
-
     final horizontalPadding = isWide ? 28.0 : 16.0;
 
     return Scaffold(
@@ -497,11 +487,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 valueListenable: _currentNavIndexNotifier,
                 builder: (context, activeNavIndex, _) {
                   final currentTenant = context.watch<TenantProvider>();
+                  final profile = context.select<AuthProvider, AuthUser?>(
+                    (auth) => auth.user,
+                  );
+                  final profileName = profile?.fullName.trim() ?? '';
+                  final userInitial = profileName.isEmpty
+                      ? 'U'
+                      : profileName.characters.first.toUpperCase();
+                  final userAvatarUrl = ApiConstants.resolveImageUrl(profile?.avatarUrl);
                   final workspace = DepartmentWorkspace.resolve(currentTenant);
                   return SafeArea(
                     child: Column(
                       children: [
-                        if (activeNavIndex != 2 || workspace != null)
+                        if (activeNavIndex != 2 ||
+                            (workspace != null && workspace != DepartmentWorkspace.administrator))
                           Center(
                             child: ConstrainedBox(
                               constraints: const BoxConstraints(maxWidth: 1100),
@@ -535,8 +534,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                         ],
                                       ),
                                     ),
-                                    // Real-time Sync Status Indicator
-                                    const SyncStatusIndicator(),
                                     const SizedBox(width: 8),
 
                                     InkWell(
@@ -591,6 +588,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   key: ValueKey(workspace),
                                   workspace: workspace,
                                   onRefresh: _loadInitialData,
+                                  userName: profileName,
+                                  userAvatarUrl: userAvatarUrl,
+                                  onProfileTap: () => _showProfileModal(context),
                                 )
                               : _buildCurrentTabBody(
                                   activeNavIndex: activeNavIndex,
@@ -601,11 +601,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   deptProvider: deptProvider,
                                   allowedModules: allowedModules,
                                   resolvedDeptName: resolvedDeptName,
-                                  userName: userName,
-                                  userAvatarUrl: userAvatarUrl,
-                                  userInitial: userInitial,
                                   tenantDisplayName: tenantDisplayName,
-                                  userRoleSubtitle: userRoleSubtitle,
                                   isAdmin: isAdmin,
                                 ),
                         ),
@@ -639,11 +635,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     required DepartmentProvider deptProvider,
     required List<_DashboardModuleItem> allowedModules,
     required String resolvedDeptName,
-    required String userName,
-    required String? userAvatarUrl,
-    required String userInitial,
     required String tenantDisplayName,
-    required String userRoleSubtitle,
     required bool isAdmin,
   }) {
     final effectiveNavIndex = activeNavIndex ?? _currentNavIndex;

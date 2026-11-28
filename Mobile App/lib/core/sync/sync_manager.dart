@@ -13,6 +13,7 @@ enum SyncOperationType {
   deleteStoreRoom,
   addStoreRoomItem,
   updateStoreRoomItemQuantity,
+  moveStoreRoomItem,
   removeStoreRoomItem,
 }
 
@@ -29,6 +30,7 @@ class SyncOperation {
   final Map<String, dynamic> payload;
   final DateTime createdAt;
   int retryCount;
+  String? tenantId;
 
   SyncOperation({
     required this.id,
@@ -37,6 +39,7 @@ class SyncOperation {
     required this.payload,
     required this.createdAt,
     this.retryCount = 0,
+    this.tenantId,
   });
 
   Map<String, dynamic> toJson() => {
@@ -46,6 +49,7 @@ class SyncOperation {
         'payload': payload,
         'createdAt': createdAt.toIso8601String(),
         'retryCount': retryCount,
+        'tenantId': tenantId,
       };
 
   factory SyncOperation.fromJson(Map<String, dynamic> json) => SyncOperation(
@@ -60,6 +64,7 @@ class SyncOperation {
             ? DateTime.tryParse(json['createdAt']) ?? DateTime.now()
             : DateTime.now(),
         retryCount: json['retryCount'] ?? 0,
+        tenantId: json['tenantId'] as String?,
       );
 }
 
@@ -71,6 +76,9 @@ class SyncManager {
   ApiClient? _apiClient;
   Timer? _syncTimer;
   bool _isProcessingQueue = false;
+  Future<void>? _queueRestore;
+  Future<bool> _queueWrite = Future.value(true);
+  final _retryAfter = <String, DateTime>{};
 
   final List<SyncOperation> _queue = [];
   final _syncStatusController = StreamController<SyncStatus>.broadcast();
@@ -80,19 +88,33 @@ class SyncManager {
   Stream<int> get queueCountStream => _queueCountController.stream;
   int get pendingCount => _queue.length;
 
+  bool hasPendingStoreRoomChanges(String? tenantId) => _queue.any(
+    (op) => op.tenantId == tenantId && const {
+      SyncOperationType.createStoreRoom,
+      SyncOperationType.updateStoreRoom,
+      SyncOperationType.deleteStoreRoom,
+      SyncOperationType.addStoreRoomItem,
+      SyncOperationType.updateStoreRoomItemQuantity,
+      SyncOperationType.moveStoreRoomItem,
+      SyncOperationType.removeStoreRoomItem,
+    }.contains(op.type),
+  );
+
   static const String _kQueueKey = 'cpms_sync_queue_v1';
   static const String _kItemsCacheKey = 'cpms_cache_items_v1';
   static const String _kStoreRoomsCacheKey = 'cpms_cache_store_rooms_v1';
 
   void clearQueue() {
     _queue.clear();
+    _retryAfter.clear();
+    _queueCountController.add(0);
     _persistQueue();
     _syncStatusController.add(SyncStatus.idle);
   }
 
   void initialize({required ApiClient apiClient}) {
     _apiClient = apiClient;
-    _loadQueue();
+    restoreQueue();
     // Start periodic background sync check every 4 seconds
     _syncTimer?.cancel();
     _syncTimer = Timer.periodic(const Duration(seconds: 4), (_) {
@@ -156,6 +178,8 @@ class SyncManager {
   // Sync Queue Operations
   // ---------------------------------------------------------------------------
 
+  Future<void> restoreQueue() => _queueRestore ??= _loadQueue();
+
   Future<void> _loadQueue() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -163,36 +187,39 @@ class SyncManager {
       if (str != null && str.isNotEmpty) {
         final decoded = jsonDecode(str);
         if (decoded is List) {
-          _queue.clear();
+          final savedTenantId = prefs.getString('cpms_active_tenant') ??
+              prefs.getString('cims_active_tenant');
           for (final item in decoded) {
-            _queue.add(SyncOperation.fromJson(item));
+            final op = SyncOperation.fromJson(item);
+            op.tenantId ??= savedTenantId;
+            _queue.add(op);
           }
           _queueCountController.add(_queue.length);
+          await _persistQueue();
         }
       }
     } catch (_) {}
   }
 
-  Future<void> _persistQueue() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final serialized = _queue.map((op) => op.toJson()).toList();
-      await prefs.setString(_kQueueKey, jsonEncode(serialized));
-      _queueCountController.add(_queue.length);
-    } catch (_) {}
+  Future<bool> _persistQueue() {
+    final serialized = jsonEncode(_queue.map((op) => op.toJson()).toList());
+    _queueWrite = _queueWrite.then((_) async {
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        return await prefs.setString(_kQueueKey, serialized);
+      } catch (_) {
+        return false;
+      }
+    });
+    return _queueWrite;
   }
 
   Future<void> enqueue(SyncOperation op) async {
-    // Coalesce / deduplicate rapid updates to same target
-    if (op.type == SyncOperationType.updateItemStock ||
-        op.type == SyncOperationType.updateItem) {
-      _queue.removeWhere((existing) =>
-          existing.targetId == op.targetId &&
-          (existing.type == SyncOperationType.updateItemStock ||
-              existing.type == SyncOperationType.updateItem));
-    }
+    op.tenantId ??= _apiClient?.activeTenantId;
+    await restoreQueue();
 
     _queue.add(op);
+    _queueCountController.add(_queue.length);
     await _persistQueue();
 
     // Trigger immediate background sync
@@ -200,54 +227,66 @@ class SyncManager {
   }
 
   Future<void> processQueue({Function()? onBatchSynced}) async {
-    if (_isProcessingQueue || _queue.isEmpty || _apiClient == null) return;
-    if (_apiClient!.authToken == null || _apiClient!.authToken!.isEmpty) return;
+    await restoreQueue();
+    final client = _apiClient;
+    final tenantId = client?.activeTenantId;
+    final token = client?.authToken;
+    if (_isProcessingQueue || tenantId == null || tenantId.isEmpty ||
+        token?.isNotEmpty != true) {
+      return;
+    }
+
+    final pending = _queue.where((op) => op.tenantId == tenantId).toList();
+    if (pending.isEmpty) return;
 
     _isProcessingQueue = true;
     _syncStatusController.add(SyncStatus.syncing);
+    final savedIds = <String>{};
+    final deferredTargets = <String>{};
 
-    final List<SyncOperation> successfullyProcessed = [];
-
-    for (final op in List<SyncOperation>.from(_queue)) {
-      try {
-        final success = await _executeOperation(op);
-        if (success) {
-          successfullyProcessed.add(op);
-        } else {
-          op.retryCount++;
-          if (op.retryCount >= 3) {
-            // Drop unrecoverable operation after 3 retries to prevent blocking the queue
-            successfullyProcessed.add(op);
-          }
+    try {
+      if (!await _persistQueue()) return;
+      for (final op in pending) {
+        if (client?.activeTenantId != tenantId ||
+            client?.authToken != token) {
+          break;
         }
-      } catch (e) {
-        if (e is ApiException) {
-          // If server responded with a client/semantic error (e.g., 400 Bad Request, 404 Not Found, 409 Conflict),
-          // retrying endlessly will never succeed and will permanently trap the user in 'Offline' status.
-          // Drop or limit retries for 4xx status codes.
-          if (e.statusCode != null && e.statusCode! >= 400 && e.statusCode! < 500) {
-            op.retryCount++;
-            if (op.retryCount >= 2) {
-              successfullyProcessed.add(op);
-              continue;
-            }
+        final retryAt = _retryAfter[op.id];
+        if (retryAt != null && retryAt.isAfter(DateTime.now())) {
+          deferredTargets.add(op.targetId);
+        }
+        if (deferredTargets.contains(op.targetId)) continue;
+
+        try {
+          if (await _executeOperation(op)) {
+            savedIds.add(op.id);
+            _retryAfter.remove(op.id);
+            continue;
           }
+          deferredTargets.add(op.targetId);
+        } on ApiException catch (error) {
+          final code = error.statusCode;
+          if (code == null || code >= 500 || code == 401 || code == 429) break;
+          deferredTargets.add(op.targetId);
+        } catch (_) {
+          break;
         }
 
-        // Network / connectivity issue, pause queue processing for this cycle
-        _syncStatusController.add(SyncStatus.offline);
-        break;
+        op.retryCount++;
+        final delay = (op.retryCount * 15).clamp(15, 180).toInt();
+        _retryAfter[op.id] = DateTime.now().add(Duration(seconds: delay));
       }
-    }
 
-    if (successfullyProcessed.isNotEmpty) {
-      _queue.removeWhere((op) => successfullyProcessed.any((s) => s.id == op.id));
-      await _persistQueue();
-      if (onBatchSynced != null) onBatchSynced();
+      if (savedIds.isNotEmpty) {
+        _queue.removeWhere((op) => savedIds.contains(op.id));
+        await _persistQueue();
+        _queueCountController.add(_queue.length);
+        onBatchSynced?.call();
+      }
+    } finally {
+      _isProcessingQueue = false;
+      _syncStatusController.add(_queue.isEmpty ? SyncStatus.idle : SyncStatus.offline);
     }
-
-    _isProcessingQueue = false;
-    _syncStatusController.add(_queue.isEmpty ? SyncStatus.idle : SyncStatus.offline);
   }
 
   Future<bool> _executeOperation(SyncOperation op) async {
@@ -288,7 +327,19 @@ class SyncManager {
           body: {
             'quantity': op.payload['quantity'],
             if (op.payload['division'] != null) 'division': op.payload['division'],
+            if (op.payload['division_id'] != null) 'division_id': op.payload['division_id'],
             if (op.payload['min_count'] != null) 'min_count': op.payload['min_count'],
+          },
+        );
+        return true;
+
+      case SyncOperationType.moveStoreRoomItem:
+        await client.put(
+          '/store-rooms/${op.targetId}/items/${op.payload['item_id']}/division',
+          body: {
+            'source_division_id': op.payload['source_division_id'],
+            'source_division': op.payload['source_division'],
+            'division_id': op.payload['division_id'],
           },
         );
         return true;

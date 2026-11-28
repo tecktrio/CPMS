@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'core/network/api_client.dart';
+import 'core/sync/sync_manager.dart';
 import 'core/theme/app_theme.dart';
 import 'providers/auth_provider.dart';
 import 'providers/department_provider.dart';
@@ -14,6 +15,7 @@ import 'screens/auth/sign_in_screen.dart';
 import 'screens/dashboard/dashboard_screen.dart';
 import 'screens/tenant/tenant_selector_screen.dart';
 import 'utils/app_update_helper.dart';
+import 'widgets/sync_status_indicator.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -30,6 +32,7 @@ void main() async {
     apiClient.setActiveTenantId(savedTenantId);
   }
 
+  await SyncManager().restoreQueue();
   runApp(CpmsMobileApp(apiClient: apiClient));
 }
 
@@ -71,6 +74,26 @@ class CpmsMobileApp extends StatelessWidget {
         title: 'Cyan CPMS Product Management',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.lightTheme,
+        builder: (context, child) => Stack(
+          fit: StackFit.expand,
+          children: [
+            if (child != null) child,
+            const Positioned(
+              top: 0,
+              left: 0,
+              child: IgnorePointer(
+                child: SafeArea(
+                  right: false,
+                  bottom: false,
+                  child: Padding(
+                    padding: EdgeInsets.all(7),
+                    child: SyncStatusIndicator(),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
         home: const AuthGate(),
         routes: {
           '/signin': (_) => const SignInScreen(),

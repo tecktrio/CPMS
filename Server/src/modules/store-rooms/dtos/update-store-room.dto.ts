@@ -56,10 +56,10 @@ export class UpdateStoreRoomDto {
   @IsOptional()
   description?: string;
 
-  @ApiPropertyOptional({ example: -22.0 })
+  @ApiPropertyOptional({ type: Number, example: -22.0, nullable: true })
   @IsNumber()
   @IsOptional()
-  temperature?: number;
+  temperature?: number | null;
 
   @ApiPropertyOptional({ example: 1200 })
   @IsNumber()
@@ -92,4 +92,18 @@ export class UpdateStoreRoomDto {
   @IsBoolean()
   @IsOptional()
   is_active?: boolean;
+}
+
+export class MoveStoreRoomItemDto {
+  @IsString()
+  @IsOptional()
+  source_division_id?: string;
+
+  @IsString()
+  @IsOptional()
+  source_division?: string;
+
+  @IsString()
+  @IsNotEmpty()
+  division_id: string;
 }

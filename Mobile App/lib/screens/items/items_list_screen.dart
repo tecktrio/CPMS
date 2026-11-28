@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../core/theme/app_theme.dart';
+import '../../widgets/cpms_page_title.dart';
 import 'package:provider/provider.dart';
 import '../../core/constants/api_constants.dart';
 import '../../core/constants/permissions.dart';
@@ -131,36 +133,29 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
       }
     }
 
+    final registerItem = FilledButton.icon(
+      style: FilledButton.styleFrom(backgroundColor: AppTheme.adminItems),
+      icon: const Icon(Icons.add_rounded),
+      label: const Text('Register item'),
+      onPressed: () => Navigator.of(context).push(
+        MaterialPageRoute<void>(builder: (_) => const CreateItemScreen()),
+      ),
+    );
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppTheme.adminCanvas,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: AppTheme.adminCanvas,
+        foregroundColor: AppTheme.adminInk,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         scrolledUnderElevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black, size: 24),
+          icon: const Icon(Icons.arrow_back, color: AppTheme.adminInk, size: 24),
           onPressed: () => Navigator.pop(context),
         ),
         titleSpacing: 0,
-        title: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 1100),
-            child: Row(
-              children: [
-                Text(
-                  pageTitle,
-                  style: const TextStyle(
-                    color: Colors.black,
-                    fontSize: 22,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -0.5,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
+        title: CpmsPageTitle(pageTitle, icon: Icons.inventory_2_outlined, accent: AppTheme.adminItems),
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 6),
@@ -191,45 +186,36 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
       ),
       body: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1100),
+          constraints: const BoxConstraints(maxWidth: 900),
           child: Column(
             children: [
-              // Search & Filter Controls (Uber Style)
               Padding(
-                padding: EdgeInsets.fromLTRB(
-                  isWide ? 24 : 16,
-                  8,
-                  isWide ? 24 : 16,
-                  10,
-                ),
-                child: isWide
-                    ? Row(
+                padding: EdgeInsets.fromLTRB(isWide ? 24 : 16, 12, isWide ? 24 : 16, 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (isWide && canCreate)
+                      Row(
                         children: [
-                          Expanded(
-                            flex: 5,
-                            child: _buildSearchBar(),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            flex: 6,
-                            child: SingleChildScrollView(
-                              scrollDirection: Axis.horizontal,
-                              child: _buildCategoryChipsRow(),
-                            ),
-                          ),
+                          Expanded(child: _buildSearchBar()),
+                          const SizedBox(width: 12),
+                          registerItem,
                         ],
                       )
-                    : Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          _buildSearchBar(),
-                          const SizedBox(height: 10),
-                          SingleChildScrollView(
-                            scrollDirection: Axis.horizontal,
-                            child: _buildCategoryChipsRow(),
-                          ),
-                        ],
-                      ),
+                    else ...[
+                      _buildSearchBar(),
+                      if (canCreate) ...[
+                        const SizedBox(height: 10),
+                        registerItem,
+                      ],
+                    ],
+                    const SizedBox(height: 10),
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: _buildCategoryChipsRow(),
+                    ),
+                  ],
+                ),
               ),
 
               // Summary Metric (Total Items Only - Uber Style)
@@ -247,8 +233,8 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
                         padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
                           color: Colors.white,
-                          borderRadius: BorderRadius.circular(4),
-                          border: Border.all(color: const Color(0xFFE5E5E5)),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: AppTheme.workspaceBorder),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -362,7 +348,7 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
                                 const Divider(
                                   height: 1,
                                   thickness: 1,
-                                  color: Color(0xFFE2E8F0),
+                                  color: AppTheme.workspaceBorder,
                                 ),
                                 Expanded(
                                   child: ListView.separated(
@@ -448,34 +434,12 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
           ),
         ),
       ),
-      floatingActionButton: canCreate
-          ? FloatingActionButton.extended(
-              backgroundColor: const Color(0xFF14532D), // Dark Green
-              foregroundColor: Colors.white,
-              elevation: 2,
-              shape: const StadiumBorder(),
-              icon: const Icon(Icons.add, color: Colors.white, size: 20),
-              label: const Text(
-                'Register Item',
-                style: TextStyle(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 14,
-                  color: Colors.white,
-                ),
-              ),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const CreateItemScreen()),
-                );
-              },
-            )
-          : null,
     );
   }
 
   Widget _buildSearchBar() {
     return CpmsSearchBar(
+      accentColor: AppTheme.adminItems,
       controller: _searchController,
       hintText: 'Search items or materials...',
       onChanged: (val) {
@@ -531,12 +495,12 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
                   _displayedCount = 30;
                 });
               },
-              borderRadius: BorderRadius.circular(2),
+              borderRadius: BorderRadius.circular(16),
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                 decoration: BoxDecoration(
-                  color: isSelected ? Colors.black : Colors.white,
-                  borderRadius: BorderRadius.circular(2),
+                  color: isSelected ? AppTheme.adminItems : Colors.white,
+                  borderRadius: BorderRadius.circular(16),
                   border: Border.all(
                     color: isSelected ? Colors.black : const Color(0xFFE5E5E5),
                   ),
@@ -558,12 +522,12 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
             padding: const EdgeInsets.only(right: 8),
             child: InkWell(
               onTap: () => ManageItemCategoriesModal.show(context),
-              borderRadius: BorderRadius.circular(2),
+              borderRadius: BorderRadius.circular(16),
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF0FDFA),
-                  borderRadius: BorderRadius.circular(2),
+                  color: AppTheme.adminItemsTint,
+                  borderRadius: BorderRadius.circular(16),
                   border: Border.all(
                     color: const Color(0xFF99F6E4),
                   ),
@@ -715,7 +679,7 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
                 child: Row(
                   children: [
                     ClipRRect(
-                      borderRadius: BorderRadius.circular(4),
+                      borderRadius: BorderRadius.circular(14),
                       child: (item.imageUrl != null && item.imageUrl!.isNotEmpty)
                           ? Image.network(
                               ApiConstants.resolveImageUrl(item.imageUrl)!,
@@ -884,7 +848,7 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
       height: 26,
       decoration: BoxDecoration(
         color: const Color(0xFFF1F5F9),
-        borderRadius: BorderRadius.circular(4),
+        borderRadius: BorderRadius.circular(14),
       ),
       alignment: Alignment.center,
       child: const Icon(

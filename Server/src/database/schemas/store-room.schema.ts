@@ -36,6 +36,7 @@ export const StoreRoomItemSchema = SchemaFactory.createForClass(StoreRoomItem);
 
 @Schema({
   collection: 'store_rooms',
+  optimisticConcurrency: true,
   timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' },
   toJSON: {
     transform: (_, ret: Record<string, any>) => {
@@ -62,7 +63,7 @@ export class StoreRoom {
   description?: string;
 
   @Prop({ type: Number, required: false, default: null })
-  temperature?: number; // in Celsius (optional, e.g. -18.0)
+  temperature?: number | null; // in Celsius (optional, e.g. -18.0)
 
   @Prop({ type: Number, required: false, default: 0, min: 0 })
   total_capacity_units?: number;

@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import '../../core/theme/app_theme.dart';
+import '../../widgets/cpms_page_title.dart';
+import '../../widgets/cpms_form_dialog.dart';
 import 'package:provider/provider.dart';
 import '../../core/constants/permissions.dart';
 import '../../providers/inventory_provider.dart';
@@ -39,8 +42,7 @@ class _ManageItemCategoriesModalState extends State<ManageItemCategoriesModal> {
 
     await showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      builder: (ctx) => CpmsFormDialog(
         title: Text(
           isEditing ? 'Edit Category' : 'Create Item Category',
           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
@@ -70,7 +72,7 @@ class _ManageItemCategoriesModalState extends State<ManageItemCategoriesModal> {
                     fillColor: const Color(0xFFF8FAFC),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(4),
-                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                      borderSide: const BorderSide(color: AppTheme.workspaceBorder),
                     ),
                   ),
                   validator: (val) {
@@ -99,7 +101,7 @@ class _ManageItemCategoriesModalState extends State<ManageItemCategoriesModal> {
                   fillColor: const Color(0xFFF8FAFC),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(4),
-                    borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                    borderSide: const BorderSide(color: AppTheme.workspaceBorder),
                   ),
                 ),
                 validator: (val) {
@@ -119,7 +121,7 @@ class _ManageItemCategoriesModalState extends State<ManageItemCategoriesModal> {
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.black,
+              backgroundColor: AppTheme.adminItems,
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
             ),
@@ -261,7 +263,7 @@ class _ManageItemCategoriesModalState extends State<ManageItemCategoriesModal> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Category "${category.label}" deleted'),
-            backgroundColor: Colors.black,
+            backgroundColor: AppTheme.adminItems,
           ),
         );
       } else if (!ok && mounted) {
@@ -308,25 +310,22 @@ class _ManageItemCategoriesModalState extends State<ManageItemCategoriesModal> {
           ];
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppTheme.adminCanvas,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: AppTheme.adminCanvas,
+        foregroundColor: AppTheme.adminInk,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         scrolledUnderElevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black, size: 22),
+          icon: const Icon(Icons.arrow_back, color: AppTheme.adminInk, size: 22),
           onPressed: () => Navigator.pop(context),
         ),
         titleSpacing: 0,
-        title: const Text(
-          'Manage Item Categories',
-          style: TextStyle(
-            fontSize: 19,
-            fontWeight: FontWeight.w800,
-            color: Colors.black,
-            letterSpacing: -0.4,
-          ),
+        title: const CpmsPageTitle(
+          'Item categories',
+          icon: Icons.category_outlined,
+          accent: AppTheme.adminItems,
         ),
         actions: [
           if (canManage)
@@ -334,7 +333,7 @@ class _ManageItemCategoriesModalState extends State<ManageItemCategoriesModal> {
               padding: const EdgeInsets.only(right: 12),
               child: ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.black,
+                  backgroundColor: AppTheme.adminItems,
                   foregroundColor: Colors.white,
                   elevation: 0,
                   padding:
@@ -354,7 +353,7 @@ class _ManageItemCategoriesModalState extends State<ManageItemCategoriesModal> {
         ],
         bottom: const PreferredSize(
           preferredSize: Size.fromHeight(1),
-          child: Divider(height: 1, color: Color(0xFFE2E8F0)),
+          child: Divider(height: 1, color: AppTheme.workspaceBorder),
         ),
       ),
       body: Center(
@@ -433,7 +432,7 @@ class _ManageItemCategoriesModalState extends State<ManageItemCategoriesModal> {
               width: double.infinity,
               child: ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.black,
+                  backgroundColor: AppTheme.adminItems,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(

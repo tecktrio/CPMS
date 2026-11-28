@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../core/theme/app_theme.dart';
+import '../../widgets/cpms_form_dialog.dart';
 import 'package:provider/provider.dart';
 import '../../providers/inventory_provider.dart';
 
@@ -11,14 +13,12 @@ class CreateStoreRoomDialog extends StatefulWidget {
 
 class _CreateStoreRoomDialogState extends State<CreateStoreRoomDialog> {
   final _formKey = GlobalKey<FormState>();
-  final _codeController = TextEditingController();
   final _nameController = TextEditingController();
   final _descController = TextEditingController();
-  final _tempController = TextEditingController(text: '-18.0');
+  final _tempController = TextEditingController();
 
   @override
   void dispose() {
-    _codeController.dispose();
     _nameController.dispose();
     _descController.dispose();
     _tempController.dispose();
@@ -29,10 +29,9 @@ class _CreateStoreRoomDialogState extends State<CreateStoreRoomDialog> {
     if (!_formKey.currentState!.validate()) return;
 
     final inventory = context.read<InventoryProvider>();
-    final temp = double.tryParse(_tempController.text) ?? -18.0;
+    final temp = double.tryParse(_tempController.text.trim());
 
     final success = await inventory.createStoreRoom(
-      roomCode: _codeController.text,
       roomName: _nameController.text,
       description: _descController.text.trim(),
       temperature: temp,
@@ -60,30 +59,15 @@ class _CreateStoreRoomDialogState extends State<CreateStoreRoomDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
+    return CpmsFormDialog(
+      icon: Icons.warehouse_outlined,
       title: const Text('Add Cold Store Room'),
-      content: SingleChildScrollView(
-        child: Form(
+      content: Form(
           key: _formKey,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              TextFormField(
-                controller: _codeController,
-                textCapitalization: TextCapitalization.characters,
-                decoration: const InputDecoration(
-                  labelText: 'Room Code',
-                  prefixIcon: Icon(Icons.qr_code, size: 20),
-                ),
-                validator: (val) {
-                  if (val == null || val.trim().isEmpty) {
-                    return 'Room code is required';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 12),
               TextFormField(
                 controller: _nameController,
                 decoration: const InputDecoration(
@@ -110,26 +94,27 @@ class _CreateStoreRoomDialogState extends State<CreateStoreRoomDialog> {
                 controller: _tempController,
                 keyboardType: const TextInputType.numberWithOptions(signed: true, decimal: true),
                 decoration: const InputDecoration(
-                  labelText: 'Target Temperature (°C)',
+                  labelText: 'Temperature (°C, optional)',
                   prefixIcon: Icon(Icons.thermostat, size: 20),
                 ),
                 validator: (val) {
-                  if (val == null || double.tryParse(val) == null) {
-                    return 'Enter valid temperature';
-                  }
-                  return null;
+                  final input = val?.trim() ?? '';
+                  if (input.isEmpty) return null;
+                  return double.tryParse(input)?.isFinite == true
+                      ? null
+                      : 'Enter a valid temperature';
                 },
               ),
             ],
           ),
         ),
-      ),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
           child: const Text('Cancel'),
         ),
         ElevatedButton(
+          style: ElevatedButton.styleFrom(backgroundColor: AppTheme.adminStorage),
           onPressed: _submit,
           child: const Text('Create Room'),
         ),

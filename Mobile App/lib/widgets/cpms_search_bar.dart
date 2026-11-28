@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// Standard rectangular search bar for CPMS platform.
-/// Features a crisp rectangle layout (subtle 8px border radius),
-/// clean 1px border, search icon, very light placeholder color (#CBD5E1),
-/// and an interactive clear button.
+/// Search input shared by CPMS workspaces.
 class CpmsSearchBar extends StatelessWidget {
   final TextEditingController controller;
   final String hintText;
@@ -14,6 +11,7 @@ class CpmsSearchBar extends StatelessWidget {
   final bool autofocus;
   final ValueChanged<String>? onSubmitted;
   final EdgeInsetsGeometry? margin;
+  final Color? accentColor;
 
   const CpmsSearchBar({
     super.key,
@@ -26,17 +24,22 @@ class CpmsSearchBar extends StatelessWidget {
     this.autofocus = false,
     this.onSubmitted,
     this.margin,
+    this.accentColor,
   });
 
   @override
   Widget build(BuildContext context) {
+    final accent = accentColor;
     return Container(
       height: height,
       margin: margin,
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
+        borderRadius: BorderRadius.circular(accent == null ? 8 : 16),
+        border: Border.all(
+          color: accent?.withValues(alpha: 0.20) ?? const Color(0xFFE2E8F0),
+          width: 1.2,
+        ),
         boxShadow: const [
           BoxShadow(
             color: Color(0x06000000),
@@ -48,11 +51,11 @@ class CpmsSearchBar extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 14),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14),
             child: Icon(
               Icons.search,
-              color: Color(0xFF94A3B8),
+              color: accent ?? const Color(0xFF94A3B8),
               size: 20,
             ),
           ),
@@ -73,8 +76,10 @@ class CpmsSearchBar extends StatelessWidget {
                   ),
                   decoration: InputDecoration(
                     hintText: hintText,
-                    hintStyle: const TextStyle(
-                      color: Color(0xFFCBD5E1), // very light placeholder color
+                    hintStyle: TextStyle(
+                      color: accent == null
+                          ? const Color(0xFFCBD5E1)
+                          : const Color(0xFF566761),
                       fontSize: 13.5,
                       fontWeight: FontWeight.w400,
                     ),
@@ -104,6 +109,7 @@ class CpmsSearchBar extends StatelessWidget {
                   color: Color(0xFF94A3B8),
                   size: 18,
                 ),
+                tooltip: 'Clear search',
                 splashRadius: 18,
                 onPressed: () {
                   controller.clear();
@@ -121,4 +127,3 @@ class CpmsSearchBar extends StatelessWidget {
     );
   }
 }
-

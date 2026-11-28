@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../core/theme/app_theme.dart';
+import '../../widgets/cpms_page_title.dart';
 import 'package:provider/provider.dart';
 import '../../core/constants/permissions.dart';
 import '../../providers/inventory_provider.dart';
@@ -36,36 +38,32 @@ class _StoreRoomsListScreenState extends State<StoreRoomsListScreen> {
     final screenWidth = MediaQuery.of(context).size.width;
     final isWide = screenWidth >= 700;
 
+    final createRoom = FilledButton.icon(
+      style: FilledButton.styleFrom(backgroundColor: AppTheme.adminStorage),
+      icon: const Icon(Icons.add_rounded),
+      label: const Text('Create store room'),
+      onPressed: () async {
+        await Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const CreateStoreRoomScreen()),
+        );
+        if (context.mounted) await inventory.loadStoreRooms();
+      },
+    );
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppTheme.adminCanvas,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: AppTheme.adminCanvas,
+        foregroundColor: AppTheme.adminInk,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         scrolledUnderElevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black, size: 24),
+          icon: const Icon(Icons.arrow_back, color: AppTheme.adminInk, size: 24),
           onPressed: () => Navigator.pop(context),
         ),
         titleSpacing: 0,
-        title: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 1100),
-            child: Row(
-              children: const [
-                Text(
-                  'Store Rooms',
-                  style: TextStyle(
-                    color: Colors.black,
-                    fontSize: 22,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -0.5,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
+        title: const CpmsPageTitle('Store Rooms', icon: Icons.warehouse_outlined, accent: AppTheme.adminStorage),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh, color: Colors.black, size: 22),
@@ -85,51 +83,19 @@ class _StoreRoomsListScreenState extends State<StoreRoomsListScreen> {
           child: Divider(height: 1, color: Color(0xFFF1F5F9)),
         ),
       ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-      floatingActionButton: canCreate
-          ? Container(
-              margin: const EdgeInsets.only(bottom: 8),
-              height: 48,
-              child: ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.black,
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  shadowColor: Colors.black.withValues(alpha: 0.3),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                ),
-                icon: const Icon(Icons.add, size: 18, color: Colors.white),
-                label: const Text(
-                  'Create Store Room',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -0.2,
-                  ),
-                ),
-                onPressed: () async {
-                  await Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const CreateStoreRoomScreen(),
-                    ),
-                  );
-                  if (context.mounted) {
-                    context.read<InventoryProvider>().loadStoreRooms();
-                  }
-                },
-              ),
-            )
-          : null,
       body: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1100),
+          constraints: const BoxConstraints(maxWidth: 900),
           child: Column(
             children: [
+              if (canCreate)
+                Padding(
+                  padding: EdgeInsets.fromLTRB(isWide ? 24 : 16, 12, isWide ? 24 : 16, 0),
+                  child: Align(
+                    alignment: Alignment.centerRight,
+                    child: createRoom,
+                  ),
+                ),
               // Summary Metrics Row (Total Store Rooms, Active Rooms, Unique Items)
               Padding(
                 padding: EdgeInsets.fromLTRB(
@@ -145,8 +111,8 @@ class _StoreRoomsListScreenState extends State<StoreRoomsListScreen> {
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
                           color: Colors.white,
-                          borderRadius: BorderRadius.circular(4),
-                          border: Border.all(color: const Color(0xFFE5E5E5)),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: AppTheme.workspaceBorder),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -181,14 +147,14 @@ class _StoreRoomsListScreenState extends State<StoreRoomsListScreen> {
                                   width: 32,
                                   height: 32,
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFFF8FAFC),
-                                    borderRadius: BorderRadius.circular(2),
+                                    color: AppTheme.adminStorageTint,
+                                    borderRadius: BorderRadius.circular(10),
                                     border: Border.all(
                                         color: const Color(0xFFF1F5F9)),
                                   ),
                                   child: const Icon(
                                     Icons.warehouse_outlined,
-                                    color: Colors.black87,
+                                    color: AppTheme.adminStorage,
                                     size: 16,
                                   ),
                                 ),
@@ -204,8 +170,8 @@ class _StoreRoomsListScreenState extends State<StoreRoomsListScreen> {
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
                           color: Colors.white,
-                          borderRadius: BorderRadius.circular(4),
-                          border: Border.all(color: const Color(0xFFE5E5E5)),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: AppTheme.workspaceBorder),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -240,14 +206,14 @@ class _StoreRoomsListScreenState extends State<StoreRoomsListScreen> {
                                   width: 32,
                                   height: 32,
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFFF8FAFC),
-                                    borderRadius: BorderRadius.circular(2),
+                                    color: AppTheme.adminStorageTint,
+                                    borderRadius: BorderRadius.circular(10),
                                     border: Border.all(
                                         color: const Color(0xFFF1F5F9)),
                                   ),
                                   child: const Icon(
                                     Icons.meeting_room_outlined,
-                                    color: Colors.black87,
+                                    color: AppTheme.adminStorage,
                                     size: 16,
                                   ),
                                 ),
@@ -263,8 +229,8 @@ class _StoreRoomsListScreenState extends State<StoreRoomsListScreen> {
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
                           color: Colors.white,
-                          borderRadius: BorderRadius.circular(4),
-                          border: Border.all(color: const Color(0xFFE5E5E5)),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: AppTheme.workspaceBorder),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -299,14 +265,14 @@ class _StoreRoomsListScreenState extends State<StoreRoomsListScreen> {
                                   width: 32,
                                   height: 32,
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFFF8FAFC),
-                                    borderRadius: BorderRadius.circular(2),
+                                    color: AppTheme.adminStorageTint,
+                                    borderRadius: BorderRadius.circular(10),
                                     border: Border.all(
                                         color: const Color(0xFFF1F5F9)),
                                   ),
                                   child: const Icon(
                                     Icons.inventory_2_outlined,
-                                    color: Colors.black87,
+                                    color: AppTheme.adminStorage,
                                     size: 16,
                                   ),
                                 ),
@@ -373,7 +339,7 @@ class _StoreRoomsListScreenState extends State<StoreRoomsListScreen> {
                           const Divider(
                             height: 1,
                             thickness: 1,
-                            color: Color(0xFFE2E8F0),
+                            color: AppTheme.workspaceBorder,
                           ),
                           Expanded(
                             child: ListView.separated(
@@ -541,7 +507,7 @@ class _StoreRoomsListScreenState extends State<StoreRoomsListScreen> {
                       height: 32,
                       decoration: BoxDecoration(
                         color: const Color(0xFFF1F5F9),
-                        borderRadius: BorderRadius.circular(4),
+                        borderRadius: BorderRadius.circular(14),
                       ),
                       alignment: Alignment.center,
                       child: const Icon(

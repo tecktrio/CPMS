@@ -1,5 +1,7 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import '../../core/theme/app_theme.dart';
+import '../../widgets/cpms_page_title.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../../core/constants/permissions.dart';
@@ -220,11 +222,11 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(4),
-        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+        borderSide: const BorderSide(color: AppTheme.workspaceBorder),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(4),
-        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+        borderSide: const BorderSide(color: AppTheme.workspaceBorder),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(4),
@@ -247,34 +249,22 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
     final isWide = screenWidth >= 700;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppTheme.adminCanvas,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: AppTheme.adminCanvas,
+        foregroundColor: AppTheme.adminInk,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         scrolledUnderElevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black, size: 24),
+          icon: const Icon(Icons.arrow_back, color: AppTheme.adminInk, size: 24),
           onPressed: () => Navigator.pop(context),
         ),
         titleSpacing: 0,
-        title: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 1100),
-            child: Row(
-              children: const [
-                Text(
-                  'Register Item',
-                  style: TextStyle(
-                    color: Colors.black,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -0.5,
-                  ),
-                ),
-              ],
-            ),
-          ),
+        title: const CpmsPageTitle(
+          'Register item',
+          icon: Icons.inventory_2_outlined,
+          accent: AppTheme.adminItems,
         ),
         actions: const [
           Padding(
@@ -467,11 +457,11 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
                   contentPadding: const EdgeInsets.all(14),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(4),
-                    borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                    borderSide: const BorderSide(color: AppTheme.workspaceBorder),
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(4),
-                    borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                    borderSide: const BorderSide(color: AppTheme.workspaceBorder),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(4),
@@ -562,11 +552,11 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
                       ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(4),
-                        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                        borderSide: const BorderSide(color: AppTheme.workspaceBorder),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(4),
-                        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                        borderSide: const BorderSide(color: AppTheme.workspaceBorder),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(4),
@@ -692,11 +682,11 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
                           ),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(4),
-                            borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                            borderSide: const BorderSide(color: AppTheme.workspaceBorder),
                           ),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(4),
-                            borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                            borderSide: const BorderSide(color: AppTheme.workspaceBorder),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(4),
@@ -836,12 +826,12 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(4),
                               borderSide:
-                                  const BorderSide(color: Color(0xFFE2E8F0)),
+                                  const BorderSide(color: AppTheme.workspaceBorder),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(4),
                               borderSide:
-                                  const BorderSide(color: Color(0xFFE2E8F0)),
+                                  const BorderSide(color: AppTheme.workspaceBorder),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(4),
@@ -875,7 +865,7 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
                 decoration: BoxDecoration(
                   color: const Color(0xFFF8FAFC),
                   borderRadius: BorderRadius.circular(4),
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                  border: Border.all(color: AppTheme.workspaceBorder),
                 ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -965,7 +955,7 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(4),
-                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                    border: Border.all(color: AppTheme.workspaceBorder),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -1004,6 +994,7 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
 
                       // Search Bar
                       CpmsSearchBar(
+                        accentColor: AppTheme.adminItems,
                         controller: _ingredientSearchController,
                         hintText: 'Search raw materials by name...',
                         onChanged: (val) {
@@ -1160,11 +1151,11 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
                                               contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                                               border: OutlineInputBorder(
                                                 borderRadius: BorderRadius.circular(4),
-                                                borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                                                borderSide: const BorderSide(color: AppTheme.workspaceBorder),
                                               ),
                                               enabledBorder: OutlineInputBorder(
                                                 borderRadius: BorderRadius.circular(4),
-                                                borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                                                borderSide: const BorderSide(color: AppTheme.workspaceBorder),
                                               ),
                                               focusedBorder: OutlineInputBorder(
                                                 borderRadius: BorderRadius.circular(4),
@@ -1212,7 +1203,7 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
           height: 52,
           child: ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.black,
+              backgroundColor: AppTheme.adminItems,
               foregroundColor: Colors.white,
               elevation: 0,
               shape: RoundedRectangleBorder(

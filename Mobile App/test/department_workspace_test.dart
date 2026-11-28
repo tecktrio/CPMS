@@ -93,12 +93,24 @@ void main() {
         ),
       );
 
-      expect(find.text(expectedWorkspace.title), findsOneWidget);
-      expect(find.widgetWithText(ListTile, action), findsOneWidget);
-      expect(
-        find.byType(ListTile),
-        findsNWidgets(name == 'Administrator' ? 3 : 1),
-      );
+      if (name == 'Administrator') {
+        expect(find.text('Administration'), findsOneWidget);
+        expect(find.byType(Card), findsNWidgets(3));
+        expect(find.text(action), findsOneWidget);
+        final tiles = find.byType(Card);
+        expect(
+          tester.getTopLeft(tiles.at(0)).dy,
+          tester.getTopLeft(tiles.at(1)).dy,
+        );
+        expect(
+          tester.getTopLeft(tiles.at(0)).dx,
+          lessThan(tester.getTopLeft(tiles.at(1)).dx),
+        );
+      } else {
+        expect(find.text(expectedWorkspace.title), findsOneWidget);
+        expect(find.widgetWithText(ListTile, action), findsOneWidget);
+        expect(find.byType(ListTile), findsOneWidget);
+      }
     });
   }
 
@@ -123,6 +135,48 @@ void main() {
     expect(find.text('40% ready · 4 of 10 cartons packed'), findsOneWidget);
     expect(find.text('Mark packed'), findsNothing);
     expect(find.text('Private line'), findsNothing);
+  });
+
+  testWidgets('packing changes only after the update dialog is confirmed', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(360, 640));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final client = _WorkClient();
+    final tenant = _WorkspaceTenant(client, 'Packer', {
+      AppPermissions.packingUpdate,
+    });
+
+    await tester.pumpWidget(
+      ChangeNotifierProvider<TenantProvider>.value(
+        value: tenant,
+        child: const MaterialApp(
+          home: OrderWorkScreen(workspace: DepartmentWorkspace.packing),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('PO-124'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Mark packed'));
+    await tester.pumpAndSettle();
+    expect(find.text('Mark item packed'), findsOneWidget);
+    expect(client.lastPatch, isNull);
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    expect(client.lastPatch, isNull);
+
+    await tester.tap(find.text('Mark packed'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, 'Mark packed').last);
+    await tester.pumpAndSettle();
+    expect(
+      client.lastPatch,
+      '/purchase-orders/order-124/items/item-123/packing',
+    );
+    expect(client.patchBody, {'packed_cartons': 10});
+    expect(tester.takeException(), isNull);
   });
 
   test(
@@ -184,6 +238,19 @@ class _WorkspaceTenant extends TenantProvider {
 
 class _WorkClient extends ApiClient {
   String? lastGet;
+  String? lastPatch;
+  Object? patchBody;
+
+  @override
+  Future<dynamic> patch(
+    String endpoint, {
+    dynamic body,
+    Map<String, String>? headers,
+  }) async {
+    lastPatch = endpoint;
+    patchBody = body;
+    return {'success': true};
+  }
 
   @override
   Future<dynamic> get(String endpoint, {Map<String, String>? headers}) async {
@@ -194,10 +261,11 @@ class _WorkClient extends ApiClient {
         'po_number': 'PO-124',
         'customer_name': 'Test Customer',
         'status': 'CONFIRMED',
+        'editable': true,
         'total_cartons': 10,
         'packed_cartons': 4,
         'items': [
-          {'item_name': 'Private line'},
+          {'item_id': 'item-123', 'item_name': 'Private line', 'cartons': 10},
         ],
       },
     ];

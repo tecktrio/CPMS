@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/cpms_form_dialog.dart';
 import 'package:provider/provider.dart';
 import '../../providers/purchase_order_provider.dart';
 
@@ -63,10 +64,7 @@ class _ManageCustomersModalState extends State<ManageCustomersModal> {
       builder: (ctx) {
         bool saving = false;
         return StatefulBuilder(
-          builder: (ctx, setDlgState) => AlertDialog(
-            backgroundColor: Colors.white,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          builder: (ctx, setDlgState) => CpmsFormDialog(
             title: Text(
               isEditing ? 'Edit Customer' : 'Add New Customer',
               style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 17),

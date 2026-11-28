@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+
+import '../../widgets/cpms_page_title.dart';
+
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
@@ -27,7 +30,12 @@ class _OrderAccountDetailScreenState extends State<OrderAccountDetailScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Purchase order details')),
+      appBar: AppBar(
+        title: const CpmsPageTitle(
+          'Purchase order details',
+          icon: Icons.receipt_long_outlined,
+        ),
+      ),
       body: FutureBuilder<WorkRecord>(
         future: _detail,
         builder: (context, snapshot) {
@@ -63,7 +71,9 @@ class _AccountOrder extends StatelessWidget {
     final assignments = workRecords(detail['assignments']);
     final reports = workRecords(detail['reports']);
     final orderItems = workRecords(rawOrder['items']);
-    final checked = orderItems.where((item) => item['qa_checked_at'] != null).length;
+    final checked = orderItems
+        .where((item) => item['qa_checked_at'] != null)
+        .length;
 
     String actor(Object? id) =>
         names[id]?.toString() ?? id?.toString() ?? 'Unknown user';
@@ -74,25 +84,39 @@ class _AccountOrder extends StatelessWidget {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            Text(
-              order.poNumber,
-              style: Theme.of(context).textTheme.headlineSmall,
-            ),
-            _line('Status', workStatus(order.status)),
-            _line('Customer', order.customerName),
-            _line('Customer address', order.customerAddress),
-            _line('Customer contact', order.customerContact),
-            _line('Order date', workDate(order.poDate)),
-            _line('Expected shipping', workDate(order.expectedShippingDate)),
-            _line('Order notes', order.notes),
-            _line(
-              'Cartons',
-              '${order.totalCartons} ordered · ${order.totalAssignedCartons} assigned · ${order.totalCompletedCartons} produced · ${order.totalPackedCartons} packed · ${order.totalShippedCartons} shipped',
-            ),
-            _line('Packets', '${order.totalPackets}'),
-            _line(
-              'QA',
-              '$checked of ${order.totalItemsCount} items marked checked',
+            Card(
+              margin: EdgeInsets.zero,
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      order.poNumber,
+                      style: Theme.of(context).textTheme.headlineSmall,
+                    ),
+                    _line('Status', workStatus(order.status)),
+                    _line('Customer', order.customerName),
+                    _line('Customer address', order.customerAddress),
+                    _line('Customer contact', order.customerContact),
+                    _line('Order date', workDate(order.poDate)),
+                    _line(
+                      'Expected shipping',
+                      workDate(order.expectedShippingDate),
+                    ),
+                    _line('Order notes', order.notes),
+                    _line(
+                      'Cartons',
+                      '${order.totalCartons} ordered · ${order.totalAssignedCartons} assigned · ${order.totalCompletedCartons} produced · ${order.totalPackedCartons} packed · ${order.totalShippedCartons} shipped',
+                    ),
+                    _line('Packets', '${order.totalPackets}'),
+                    _line(
+                      'QA',
+                      '$checked of ${order.totalItemsCount} items marked checked',
+                    ),
+                  ],
+                ),
+              ),
             ),
             _heading(context, 'Order items'),
             for (final item in order.items)

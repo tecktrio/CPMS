@@ -19,11 +19,26 @@ import {
 import { CreateStoreRoomDto } from './dtos/create-store-room.dto';
 import { UpdateStoreRoomDto } from './dtos/update-store-room.dto';
 
-export function normalizeDivisionName(name: string): string {
-  const clean = (name || '').trim();
-  if (!clean) return '';
-  if (clean.toLowerCase().startsWith('division')) return clean;
-  return `Division - ${clean}`;
+function normalizeDivisionName(name: string): string {
+  return (name || '').trim();
+}
+
+type RoomDivision = { division_id: string; name: string };
+
+function findDivisionByName(divisions: RoomDivision[], name: string | undefined) {
+  const key = normalizeDivisionName(name).toLowerCase();
+  if (!key) return undefined;
+  return divisions.find((division) => division.name.trim().toLowerCase() === key) ??
+    divisions.find((division) => {
+      const candidate = division.name.trim().toLowerCase();
+      return candidate === `division - ${key}` || key === `division - ${candidate}`;
+    });
+}
+
+function legacyDivisionId(name: string, index: number) {
+  const key = name.toLowerCase();
+  const legacyKey = !key || key.startsWith('division') ? key : `division - ${key}`;
+  return `div_${index + 1}_${legacyKey.replace(/[^a-z0-9]/g, '_')}`;
 }
 
 export function normalizeDivisions(
@@ -34,7 +49,7 @@ export function normalizeDivisions(
     if (typeof d === 'string') {
       const formatted = normalizeDivisionName(d);
       return {
-        division_id: `div_${index + 1}_${formatted.toLowerCase().replace(/[^a-z0-9]/g, '_')}`,
+        division_id: legacyDivisionId(formatted, index),
         name: formatted,
       };
     } else if (d && typeof d === 'object') {
@@ -44,13 +59,13 @@ export function normalizeDivisions(
         division_id:
           d.division_id ||
           d.divisionId ||
-          `div_${index + 1}_${formatted.toLowerCase().replace(/[^a-z0-9]/g, '_')}`,
+          legacyDivisionId(formatted, index),
         name: formatted,
       };
     }
     return {
       division_id: `div_${index + 1}`,
-      name: `Division - section ${index + 1}`,
+      name: `section ${index + 1}`,
     };
   });
 }
@@ -125,12 +140,7 @@ export class StoreRoomsService {
         const mappedItems = (room.items || []).map((it) => {
           let matched = normDivs.find((d) => d.division_id === it.division_id);
           if (!matched && it.division) {
-            matched = normDivs.find(
-              (d) =>
-                d.name.toLowerCase() === it.division.toLowerCase() ||
-                d.name.toLowerCase() ===
-                  normalizeDivisionName(it.division).toLowerCase(),
-            );
+            matched = findDivisionByName(normDivs, it.division);
           }
           return {
             item_id: it.item_id,
@@ -202,12 +212,7 @@ export class StoreRoomsService {
     const mappedItems = (room.items || []).map((it) => {
       let matched = normDivs.find((d) => d.division_id === it.division_id);
       if (!matched && it.division) {
-        matched = normDivs.find(
-          (d) =>
-            d.name.toLowerCase() === it.division.toLowerCase() ||
-            d.name.toLowerCase() ===
-              normalizeDivisionName(it.division).toLowerCase(),
-        );
+        matched = findDivisionByName(normDivs, it.division);
       }
       return {
         item_id: it.item_id,
@@ -284,34 +289,29 @@ export class StoreRoomsService {
     if (dto.is_active !== undefined) room.is_active = dto.is_active;
 
     if (dto.divisions !== undefined) {
-      const newDivs = normalizeDivisions(dto.divisions);
-      room.divisions = newDivs;
-
-      // Re-map items if division name or division_id changed
-      if (room.items && room.items.length > 0) {
-        room.items = room.items.map((it) => {
-          let matched = newDivs.find((d) => d.division_id === it.division_id);
-          if (!matched && it.division) {
-            matched = newDivs.find(
-              (d) =>
-                d.name.toLowerCase() === it.division.toLowerCase() ||
-                d.name.toLowerCase() ===
-                  normalizeDivisionName(it.division).toLowerCase(),
-            );
-          }
-          return {
-            item_id: it.item_id,
-            division_id: matched
-              ? matched.division_id
-              : it.division_id || (newDivs.length > 0 ? newDivs[0].division_id : 'div_1'),
-            division: matched
-              ? matched.name
-              : normalizeDivisionName(it.division),
-            quantity: it.quantity,
-            min_count: it.min_count,
-          };
-        });
+      const oldDivisions = normalizeDivisions(room.divisions);
+      const newDivisions = normalizeDivisions(dto.divisions).map((division, index) => {
+        if (typeof dto.divisions[index] !== 'string') return division;
+        return oldDivisions.find((old) => old.name.toLowerCase() === division.name.toLowerCase()) ?? division;
+      });
+      if (new Set(newDivisions.map((division) => division.name.toLowerCase())).size !== newDivisions.length ||
+          new Set(newDivisions.map((division) => division.division_id)).size !== newDivisions.length) {
+        throw new BadRequestException('Division names must be unique within a store room');
       }
+      for (const item of room.items) {
+        const source = oldDivisions.find((division) => division.division_id === item.division_id) ??
+          findDivisionByName(oldDivisions, item.division);
+        if (!source) continue;
+        const remaining = newDivisions.find((division) => division.division_id === source.division_id);
+        if (!remaining) {
+          throw new BadRequestException(
+            `Reassign all items in "${source.name}" before deleting the division`,
+          );
+        }
+        item.division_id = remaining.division_id;
+        item.division = remaining.name;
+      }
+      room.divisions = newDivisions;
     }
 
     if (dto.items !== undefined) {
@@ -319,12 +319,7 @@ export class StoreRoomsService {
       room.items = dto.items.map((it) => {
         let matched = normDivs.find((d) => d.division_id === it.division_id);
         if (!matched && it.division) {
-          matched = normDivs.find(
-            (d) =>
-              d.name.toLowerCase() === it.division.toLowerCase() ||
-              d.name.toLowerCase() ===
-                normalizeDivisionName(it.division).toLowerCase(),
-          );
+          matched = findDivisionByName(normDivs, it.division);
         }
         return {
           item_id: it.item_id,
@@ -365,11 +360,7 @@ export class StoreRoomsService {
     const divisions = normalizeDivisions(room.divisions);
     let matchedDiv = divisions.find((d) => d.division_id === divisionId);
     if (!matchedDiv && division) {
-      matchedDiv = divisions.find(
-        (d) =>
-          d.name.toLowerCase() === division.trim().toLowerCase() ||
-          d.name.toLowerCase() === normalizeDivisionName(division).toLowerCase(),
-      );
+      matchedDiv = findDivisionByName(divisions, division);
     }
     if (!matchedDiv && divisions.length > 0) {
       matchedDiv = divisions[0];
@@ -426,11 +417,7 @@ export class StoreRoomsService {
     const divisions = normalizeDivisions(room.divisions);
     let matchedDiv = divisions.find((d) => d.division_id === divisionId);
     if (!matchedDiv && division) {
-      matchedDiv = divisions.find(
-        (d) =>
-          d.name.toLowerCase() === division.trim().toLowerCase() ||
-          d.name.toLowerCase() === normalizeDivisionName(division).toLowerCase(),
-      );
+      matchedDiv = findDivisionByName(divisions, division);
     }
 
     const targetDivId = matchedDiv ? matchedDiv.division_id : divisionId;
@@ -478,6 +465,57 @@ export class StoreRoomsService {
     }
 
     room.item_ids = Array.from(new Set(room.items.map((it) => it.item_id)));
+    await room.save();
+    return room;
+  }
+
+  async moveItem(
+    tenantId: string,
+    storeRoomId: string,
+    itemId: string,
+    sourceDivisionId: string,
+    sourceDivisionName: string,
+    targetDivisionId: string,
+  ) {
+    const room = await this.storeRoomModel.findOne({
+      tenant_id: tenantId,
+      store_room_id: storeRoomId,
+    });
+    if (!room) throw new NotFoundException('Store room not found');
+
+    const divisions = normalizeDivisions(room.divisions);
+    const target = divisions.find((division) => division.division_id === targetDivisionId);
+    if (!target) throw new BadRequestException('Choose an existing destination division');
+    const allocationDivisionId = (item: typeof room.items[number]) =>
+      divisions.find((division) => division.division_id === item.division_id)?.division_id ??
+      findDivisionByName(divisions, item.division)?.division_id ??
+      item.division_id ?? '';
+    const sourceId = divisions.find((division) => division.division_id === sourceDivisionId)?.division_id ??
+      findDivisionByName(divisions, sourceDivisionName)?.division_id ??
+      sourceDivisionId;
+
+    const sourceIndex = room.items.findIndex((item) =>
+      item.item_id === itemId && allocationDivisionId(item) === sourceId,
+    );
+    const targetIndex = room.items.findIndex((item) =>
+      item.item_id === itemId && allocationDivisionId(item) === target.division_id,
+    );
+    if (sourceId === target.division_id || (sourceIndex === -1 && targetIndex !== -1)) return room;
+    if (sourceIndex === -1) throw new NotFoundException('Item not found in the source division');
+
+    const source = room.items[sourceIndex];
+    if (targetIndex === -1) {
+      source.division_id = target.division_id;
+      source.division = target.name;
+    } else {
+      const existing = room.items[targetIndex];
+      existing.quantity += source.quantity;
+      existing.min_count = Math.max(existing.min_count ?? 0, source.min_count ?? 0);
+      existing.division_id = target.division_id;
+      existing.division = target.name;
+      room.items.splice(sourceIndex, 1);
+    }
+
     await room.save();
     return room;
   }
