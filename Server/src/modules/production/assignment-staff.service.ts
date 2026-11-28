@@ -29,10 +29,13 @@ export class AssignmentStaffService {
     const users = await this.users.find({
       user_id: { $in: memberships.map((membership) => membership.user_id) },
       account_status: { $nin: [UserAccountStatus.INACTIVE, UserAccountStatus.SUSPENDED] },
-    }).select('user_id full_name email_address');
+    }).select('user_id full_name email_address phone_number avatar_url');
     return users.map((user) => ({
       user_id: user.user_id,
       name: user.full_name || user.email_address,
+      email_address: user.email_address ?? null,
+      phone_number: user.phone_number ?? null,
+      avatar_url: user.avatar_url ?? null,
     }));
   }
 

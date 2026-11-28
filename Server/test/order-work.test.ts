@@ -156,12 +156,18 @@ test('the QA picker and assignment validation resolve Quality Assurance members 
     find(filter: any) {
       assert.deepEqual(filter.account_status.$nin, ['INACTIVE', 'SUSPENDED']);
       return { select: async () => filter.user_id.$in.length
-        ? [{ user_id: 'qa-user', full_name: 'QA Staff' }]
+        ? [{
+          user_id: 'qa-user', full_name: 'QA Staff', email_address: 'qa@example.com',
+          phone_number: '+91 90000 00001', avatar_url: '/avatars/qa.png',
+        }]
         : [] };
     },
   } as never);
 
-  const expected = { user_id: 'qa-user', name: 'QA Staff' };
+  const expected = {
+    user_id: 'qa-user', name: 'QA Staff', email_address: 'qa@example.com',
+    phone_number: '+91 90000 00001', avatar_url: '/avatars/qa.png',
+  };
   assert.deepEqual(await staff.list('tenant', 'QC'), [expected]);
   assert.deepEqual(await staff.requireMember('tenant', 'QC', 'qa-user'), expected);
   await assert.rejects(staff.requireMember('tenant', 'QC', 'outside-user'));

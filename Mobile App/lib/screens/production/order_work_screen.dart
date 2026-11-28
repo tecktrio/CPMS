@@ -6,6 +6,7 @@ import '../../widgets/cpms_form_page.dart';
 import '../../widgets/cpms_loading_page.dart';
 import '../../widgets/cpms_page_title.dart';
 import '../../widgets/order_split_view.dart';
+import '../../widgets/success_screen.dart';
 
 import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
@@ -82,7 +83,9 @@ class _OrderWorkScreenState extends State<OrderWorkScreen> {
 
   Future<void> _refresh() async {
     final updated = _load();
-    setState(() => _orders = updated);
+    setState(() {
+      _orders = updated;
+    });
     try {
       await updated;
     } catch (_) {
@@ -96,7 +99,11 @@ class _OrderWorkScreenState extends State<OrderWorkScreen> {
         .showSnackBar(SnackBar(content: Text(message.toString())));
   }
 
-  Future<void> _save(Future<void> Function() action) async {
+  Future<void> _save(
+    Future<void> Function() action, {
+    String? successTitle,
+    String? successMessage,
+  }) async {
     if (_saving) return;
     setState(() => _saving = true);
     try {
@@ -108,6 +115,16 @@ class _OrderWorkScreenState extends State<OrderWorkScreen> {
           if (mounted) await _refresh();
         },
       );
+      if (mounted && successTitle != null && successMessage != null) {
+        await openCpmsPage<void>(
+          context: context,
+          builder: (_) => SuccessScreen(
+            title: successTitle,
+            message: successMessage,
+            returnLabel: 'Back to orders',
+          ),
+        );
+      }
     } catch (error) {
       _message(error);
     } finally {
@@ -229,38 +246,49 @@ class _OrderWorkScreenState extends State<OrderWorkScreen> {
     if (assignment == null || !mounted) return;
     final poId = workText(order, 'po_id');
     final itemId = workText(item, 'item_id');
-    await _save(() async {
-      if (quality) {
-        await _api.patch(
-          '/order-work/$poId/items/$itemId/quality-assignment',
-          body: {
-            'user_id': assignment.userId,
-            if (assignment.date != null)
-              'target_date': assignment.date!.toUtc().toIso8601String(),
-          },
-        );
-      } else {
-        final saved = existingAssignment == null
-            ? await production.createAssignment(
-                poId: poId,
-                itemId: itemId,
-                supervisorUserId: assignment.userId,
-                assignedCartons: assignment.cartons,
-                targetDate: assignment.date,
-              )
-            : await production.updateAssignment(
-                assignmentId: workText(existingAssignment, 'assignment_id'),
-                supervisorUserId: assignment.userId,
-                assignedCartons: assignment.cartons,
-                targetDate: assignment.date,
-              );
-        if (!saved) {
-          throw ApiException(
-            production.errorMessage ?? 'Assignment could not be saved.',
+    await _save(
+      () async {
+        if (quality) {
+          await _api.patch(
+            '/order-work/$poId/items/$itemId/quality-assignment',
+            body: {
+              'user_id': assignment.userId,
+              if (assignment.date != null)
+                'target_date': assignment.date!.toUtc().toIso8601String(),
+            },
           );
+        } else {
+          final saved = existingAssignment == null
+              ? await production.createAssignment(
+                  poId: poId,
+                  itemId: itemId,
+                  supervisorUserId: assignment.userId,
+                  assignedCartons: assignment.cartons,
+                  targetDate: assignment.date,
+                )
+              : await production.updateAssignment(
+                  assignmentId: workText(existingAssignment, 'assignment_id'),
+                  supervisorUserId: assignment.userId,
+                  assignedCartons: assignment.cartons,
+                  targetDate: assignment.date,
+                );
+          if (!saved) {
+            throw ApiException(
+              production.errorMessage ?? 'Assignment could not be saved.',
+            );
+          }
         }
-      }
-    });
+      },
+      successTitle: quality
+          ? (workText(item, 'qa_user_id').isEmpty
+                ? 'QA assigned'
+                : 'QA reassigned')
+          : (existingAssignment == null
+                ? 'Supervisor assigned'
+                : 'Supervisor reassigned'),
+      successMessage:
+          '${workText(order, 'po_number')} · ${workText(item, 'item_name')}',
+    );
   }
 
   Future<void> _cancelAssignment(WorkRecord assignment) async {
@@ -286,15 +314,20 @@ class _OrderWorkScreenState extends State<OrderWorkScreen> {
       ),
     );
     if (confirmed != true || !mounted) return;
-    await _save(() async {
-      if (!await production.cancelAssignment(
-        workText(assignment, 'assignment_id'),
-      )) {
-        throw ApiException(
-          production.errorMessage ?? 'Assignment could not be cancelled.',
-        );
-      }
-    });
+    await _save(
+      () async {
+        if (!await production.cancelAssignment(
+          workText(assignment, 'assignment_id'),
+        )) {
+          throw ApiException(
+            production.errorMessage ?? 'Assignment could not be cancelled.',
+          );
+        }
+      },
+      successTitle: 'Supervisor unassigned',
+      successMessage:
+          '${workText(assignment, 'assignee')} was removed from this assignment.',
+    );
   }
 
   Future<void> _progress(WorkRecord assignment) async {
@@ -1269,27 +1302,32 @@ class _AssignmentPageState extends State<_AssignmentPage> {
               ),
             ),
             const SizedBox(height: 16),
-            DropdownButtonFormField<String>(
-              isExpanded: true,
-              initialValue: _userId,
-              decoration: InputDecoration(
-                labelText: widget.quality ? 'QA assignee' : 'Supervisor',
-                prefixIcon: const Icon(Icons.person_outline),
-                border: const OutlineInputBorder(),
+            Text(
+              widget.quality ? 'Select a QA assignee' : 'Select a supervisor',
+              style: theme.textTheme.titleSmall,
+            ),
+            const SizedBox(height: 8),
+            RadioGroup<String>(
+              groupValue: _userId,
+              onChanged: (value) => setState(() => _userId = value),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  const gap = 12.0;
+                  final width = constraints.maxWidth;
+                  final cardWidth = width >= 500 ? (width - gap) / 2 : width;
+                  return Wrap(
+                    spacing: gap,
+                    runSpacing: gap,
+                    children: [
+                      for (final person in widget.people)
+                        SizedBox(
+                          width: cardWidth,
+                          child: _assigneeCard(person),
+                        ),
+                    ],
+                  );
+                },
               ),
-              items: [
-                for (final person in widget.people)
-                  DropdownMenuItem(
-                    value: workText(person, 'user_id'),
-                    child: Text(
-                      workText(person, 'name'),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-              ],
-              onChanged: (value) => _userId = value,
-              validator: (value) =>
-                  value == null ? 'Choose an assignee.' : null,
             ),
             if (!widget.quality) ...[
               const SizedBox(height: 14),
@@ -1336,21 +1374,62 @@ class _AssignmentPageState extends State<_AssignmentPage> {
           child: const Text('Cancel'),
         ),
         FilledButton(
-          onPressed: () {
-            if (_form.currentState!.validate()) {
-              Navigator.pop(
-                context,
-                _AssignmentInput(
-                  _userId!,
-                  int.tryParse(_cartons.trim()) ?? 0,
-                  _date,
-                ),
-              );
-            }
-          },
-          child: Text(widget.editing ? 'Save assignment' : 'Assign'),
+          onPressed: _userId == null
+              ? null
+              : () {
+                  if (!_form.currentState!.validate()) return;
+                  Navigator.pop(
+                    context,
+                    _AssignmentInput(
+                      _userId!,
+                      int.tryParse(_cartons.trim()) ?? 0,
+                      _date,
+                    ),
+                  );
+                },
+          child: const Text('Save assignment'),
         ),
       ],
+    );
+  }
+
+  Widget _assigneeCard(WorkRecord person) {
+    final theme = Theme.of(context);
+    final id = workText(person, 'user_id');
+    final name = workText(person, 'name');
+    final email = workText(person, 'email_address').trim();
+    final phone = workText(person, 'phone_number').trim();
+    final photoUrl = ApiConstants.resolveImageUrl(
+      workText(person, 'avatar_url'),
+    );
+    final photo = photoUrl == null ? null : NetworkImage(photoUrl);
+    final selected = _userId == id;
+
+    return Card.outlined(
+      margin: EdgeInsets.zero,
+      clipBehavior: Clip.antiAlias,
+      color: selected ? theme.colorScheme.secondaryContainer : null,
+      child: RadioListTile<String>(
+        value: id,
+        selected: selected,
+        controlAffinity: ListTileControlAffinity.trailing,
+        secondary: CircleAvatar(
+          foregroundImage: photo,
+          onForegroundImageError: photo == null ? null : (_, _) {},
+          child: const Icon(Icons.person_outline),
+        ),
+        title: Text(name),
+        subtitle: email.isEmpty && phone.isEmpty
+            ? null
+            : Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (email.isNotEmpty) Text(email, softWrap: true),
+                  if (phone.isNotEmpty) Text(phone),
+                ],
+              ),
+      ),
     );
   }
 }

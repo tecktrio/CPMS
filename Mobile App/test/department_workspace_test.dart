@@ -347,7 +347,13 @@ void main() {
         expect(client.staffRequests, 1);
         staffResponse.complete({
           'quality': [
-            {'user_id': 'qa-1', 'name': 'QA Tester'},
+            {
+              'user_id': 'qa-1',
+              'name': 'QA Tester',
+              'email_address': 'qa@example.com',
+              'phone_number': '+91 90000 00001',
+            },
+            {'user_id': 'qa-2', 'name': 'Backup QA'},
           ],
         });
         await tester.pumpAndSettle();
@@ -363,10 +369,39 @@ void main() {
           findsOneWidget,
         );
         expect(find.text('Cartons to assign'), findsNothing);
-        await tester.tap(find.byType(DropdownButtonFormField<String>));
+        final save = find.widgetWithText(FilledButton, 'Save assignment');
+        expect(tester.widget<FilledButton>(save).onPressed, isNull);
+        expect(find.text('qa@example.com'), findsOneWidget);
+        expect(find.text('+91 90000 00001'), findsOneWidget);
+        final cards = find.byType(RadioListTile<String>);
+        expect(
+          tester.getTopLeft(cards.first).dy,
+          tester.getTopLeft(cards.last).dy,
+        );
+        expect(
+          tester.getTopLeft(cards.first).dx,
+          lessThan(tester.getTopLeft(cards.last).dx),
+        );
+        await tester.tap(find.text('Backup QA'));
         await tester.pumpAndSettle();
-        await tester.tap(find.text('QA Tester').last);
+        await tester.tap(find.text('QA Tester'));
         await tester.pumpAndSettle();
+        expect(
+          tester
+              .widget<RadioListTile<String>>(
+                find.widgetWithText(RadioListTile<String>, 'QA Tester'),
+              )
+              .selected,
+          isTrue,
+        );
+        expect(
+          tester
+              .widget<RadioListTile<String>>(
+                find.widgetWithText(RadioListTile<String>, 'Backup QA'),
+              )
+              .selected,
+          isFalse,
+        );
         await tester.tap(find.text('Set due date (optional)'));
         await tester.pumpAndSettle();
         expect(find.byType(CalendarDatePicker), findsOneWidget);
@@ -376,7 +411,7 @@ void main() {
         expect(find.text('QA Tester'), findsOneWidget);
         final saveResponse = Completer<void>();
         client.saveResponse = saveResponse.future;
-        await tester.tap(find.widgetWithText(FilledButton, 'Assign'));
+        await tester.tap(save);
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 350));
         expect(find.text('Saving changes…'), findsOneWidget);
@@ -388,6 +423,15 @@ void main() {
           '/order-work/order-124/items/item-126/quality-assignment',
         );
         expect(client.patchBody, {'user_id': 'qa-1'});
+        expect(find.text('QA assigned'), findsOneWidget);
+        expect(find.byIcon(Icons.check_rounded), findsOneWidget);
+        await tester.tap(find.text('Back to orders'));
+        await tester.pumpAndSettle();
+        expect(
+          find.descendant(of: otherCard, matching: find.text('Reassign QA')),
+          findsOneWidget,
+        );
+        expect(find.byType(SnackBar), findsNothing);
       }
       await tester.tap(second);
       await tester.pumpAndSettle();
@@ -630,6 +674,11 @@ class _WorkClient extends ApiClient {
               'item_name': 'Additional line',
               'sku': 'SKU-126',
               'cartons': 5,
+              if (lastPatch ==
+                  '/order-work/order-124/items/item-126/quality-assignment') ...{
+                'qa_user_id': 'qa-1',
+                'qa_assignee': 'QA Tester',
+              },
             },
         ],
       },
