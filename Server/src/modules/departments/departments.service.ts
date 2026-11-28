@@ -24,7 +24,7 @@ import {
 import { PermissionsService } from '../permissions/permissions.service';
 import { CreateDepartmentDto } from './dtos/create-department.dto';
 import { UpdateDepartmentDto } from './dtos/update-department.dto';
-import { FIXED_DEPARTMENTS, QUALITY_DEPARTMENT_NAME } from './departments.constants';
+import { FIXED_DEPARTMENTS, PACKING_DEPARTMENT_NAME, QUALITY_DEPARTMENT_NAME } from './departments.constants';
 
 @Injectable()
 export class DepartmentsService implements OnModuleInit {
@@ -114,7 +114,10 @@ export class DepartmentsService implements OnModuleInit {
   }> {
     const fixedDepts = await this.seedFixedDepartments();
     const fixedDeptIds = fixedDepts.map((d) => d.department_id);
-    const qualityDepartment = fixedDepts.find((department) => department.department_name === 'QC');
+    const legacyNames = new Map([
+      ['QC', QUALITY_DEPARTMENT_NAME],
+      ['Packer', PACKING_DEPARTMENT_NAME],
+    ]);
     const tenants = await this.tenantModel.find({});
     const details = [];
 
@@ -124,14 +127,21 @@ export class DepartmentsService implements OnModuleInit {
       });
       const legacyIds = memberships.flatMap((membership) => membership.department_ids || [])
         .filter((id) => !fixedDeptIds.includes(id));
-      const legacyQualityDepartments = qualityDepartment && legacyIds.length > 0
-        ? await this.departmentModel.find({
+      const legacyDepartmentIds = new Map<string, string>();
+      if (legacyIds.length > 0) {
+        for (const department of fixedDepts) {
+          const legacyName = legacyNames.get(department.department_name);
+          if (!legacyName) continue;
+          const legacyDepartments = await this.departmentModel.find({
             department_id: { $in: [...new Set(legacyIds)] },
-            department_name: QUALITY_DEPARTMENT_NAME,
+            department_name: legacyName,
             $or: [{ tenant_id: tenant.tenant_id }, { tenant_id: null }],
-          }).select('department_id')
-        : [];
-      const legacyQualityIds = new Set(legacyQualityDepartments.map((department) => department.department_id));
+          }).select('department_id');
+          for (const legacy of legacyDepartments) {
+            legacyDepartmentIds.set(legacy.department_id, department.department_id);
+          }
+        }
+      }
       let membersMigrated = 0;
 
       for (const mem of memberships) {
@@ -146,7 +156,7 @@ export class DepartmentsService implements OnModuleInit {
         }
 
         const validIds = (mem.department_ids || [])
-          .map((id) => legacyQualityIds.has(id) ? qualityDepartment.department_id : id)
+          .map((id) => legacyDepartmentIds.get(id) ?? id)
           .filter((id) => fixedDeptIds.includes(id));
         if (validIds.length > 0) {
           mem.department_ids = [...new Set(validIds)];

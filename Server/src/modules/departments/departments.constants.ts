@@ -141,3 +141,5 @@ export const FIXED_DEPARTMENTS: FixedDepartmentDefinition[] = [
 // Existing installations may still have memberships tied to a QA department
 // created before the fixed department was named QC.
 export const QUALITY_DEPARTMENT_NAME = /^\s*(?:QC|QA|quality[\s_-]+(?:assurance|control)(?:[\s_-]+(?:team|department))?)\s*$/i;
+
+export const PACKING_DEPARTMENT_NAME = /^\s*(?:packer[s]?|packing(?:[\s_-]+(?:team|department))?)\s*$/i;

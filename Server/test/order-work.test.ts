@@ -296,3 +296,60 @@ test('workers can identify their own packing and export assignments', async () =
   assert.deepEqual(packing.items.map((item) => 'assigned_to_me' in item && item.assigned_to_me), [true, false]);
   assert.deepEqual(shipping.assigned_items.map((item) => item.item_id), ['first']);
 });
+
+test('the packing picker and assignment validation recognize active Packing department members', async () => {
+  const staff = new AssignmentStaffService({
+    find(filter: any) {
+      assert.equal(filter.is_active, true);
+      assert.ok(filter.department_name.test('Packing'));
+      assert.ok(filter.department_name.test('Packers'));
+      assert.ok(filter.department_name.test('Packer'));
+      assert.equal(filter.department_name.test('Export'), false);
+      return [{ department_id: 'packing-id' }];
+    },
+  } as never, {
+    find(filter: any) {
+      assert.equal(filter.tenant_id, 'tenant');
+      assert.equal(filter.is_active, true);
+      assert.deepEqual(filter.department_ids, { $in: ['packing-id'] });
+      return filter.user_id && filter.user_id !== 'packer-user' ? [] : [{ user_id: 'packer-user' }];
+    },
+  } as never, {
+    find(filter: any) {
+      return { select: async () => filter.user_id.$in.map((user_id) => ({ user_id, full_name: 'Packer' })) };
+    },
+  } as never);
+
+  assert.deepEqual((await staff.list('tenant', 'Packer')).map(({ user_id }) => user_id), ['packer-user']);
+  assert.equal((await staff.requireMember('tenant', 'Packer', 'packer-user')).user_id, 'packer-user');
+  await assert.rejects(staff.requireMember('tenant', 'Packer', 'outside-user'));
+});
+
+test('startup preserves Packing membership when switching to the fixed Packer department', async () => {
+  const membership = {
+    user_id: 'packer-user',
+    department_ids: ['legacy-packing', 'canonical-export'],
+    is_active: true,
+    async save() {},
+  };
+  const service = new DepartmentsService({
+    find(filter: any) {
+      assert.deepEqual(filter.department_id, { $in: ['legacy-packing'] });
+      assert.ok(filter.department_name.test('Packing'));
+      assert.deepEqual(filter.$or, [{ tenant_id: 'tenant' }, { tenant_id: null }]);
+      return { select: async () => [{ department_id: 'legacy-packing' }] };
+    },
+  } as never, {
+    find: async () => [{ tenant_id: 'tenant', company_name: 'Tenant' }],
+  } as never, {
+    find: async () => [membership],
+  } as never, null);
+  service.seedFixedDepartments = async () => [
+    { department_id: 'canonical-packer', department_name: 'Packer' },
+    { department_id: 'canonical-export', department_name: 'Export' },
+  ] as never;
+
+  await service.migrateAllTenantsToFixedDepartments();
+  assert.deepEqual(membership.department_ids, ['canonical-packer', 'canonical-export']);
+  assert.equal(membership.is_active, true);
+});

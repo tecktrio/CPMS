@@ -175,12 +175,17 @@ class _OrderWorkScreenState extends State<OrderWorkScreen> {
     }
     final staff = unassign
         ? null
-        : _api
-              .get('/order-work/staff')
-              .then(
-                (response) =>
-                    workRecords((response as WorkRecord)[stage.staffKey]),
+        : _api.get('/order-work/staff').then((response) {
+            final staffByDepartment = response as WorkRecord;
+            if (stage.departmentAssignment &&
+                !staffByDepartment.containsKey(stage.staffKey)) {
+              throw ApiException(
+                'The server does not provide ${stage.label} assignees. '
+                'Update the server and try again.',
               );
+            }
+            return workRecords(staffByDepartment[stage.staffKey]);
+          });
     setState(() {
       _pendingAssignment = _PendingAssignment(
         stage: stage,

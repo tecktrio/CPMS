@@ -5,7 +5,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { FIXED_DEPARTMENTS, QUALITY_DEPARTMENT_NAME } from '../../modules/departments/departments.constants';
+import { FIXED_DEPARTMENTS, PACKING_DEPARTMENT_NAME, QUALITY_DEPARTMENT_NAME } from '../../modules/departments/departments.constants';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import {
@@ -121,6 +121,7 @@ export class PermissionsGuard implements CanActivate {
             const fName = f.department_name.toLowerCase();
             return fName === oldName ||
               (fName === 'qc' && QUALITY_DEPARTMENT_NAME.test(oldName)) ||
+              (fName === 'packer' && PACKING_DEPARTMENT_NAME.test(oldName)) ||
               (fName !== 'administrator' &&
               (fName.includes(oldName) || oldName.includes(fName)));
           });
@@ -152,7 +153,8 @@ export class PermissionsGuard implements CanActivate {
       departments.some((department) =>
         department.department_id === fixed.department_id ||
         department.department_name.trim().toLowerCase() === fixed.name.toLowerCase() ||
-        (fixed.code === 'QC' && QUALITY_DEPARTMENT_NAME.test(department.department_name)),
+        (fixed.code === 'QC' && QUALITY_DEPARTMENT_NAME.test(department.department_name)) ||
+        (fixed.code === 'PACKER' && PACKING_DEPARTMENT_NAME.test(department.department_name)),
       ),
     ).map((department) => department.code);
     request.confirmed_orders_only = request.department_codes.some(
