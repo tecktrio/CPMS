@@ -48,6 +48,11 @@ export class CreateItemDto {
   @IsNotEmpty()
   measurement_unit: MeasurementUnit;
 
+  @ApiPropertyOptional({ example: 'Pouches with rider' })
+  @IsString()
+  @IsOptional()
+  packing_material?: string;
+
   @ApiPropertyOptional({
     example: 100,
     description: 'Quantity / pack specification',

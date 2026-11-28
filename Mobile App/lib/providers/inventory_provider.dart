@@ -330,6 +330,7 @@ class ItemModel {
   final String itemName;
   final String itemType;
   final String measurementUnit;
+  final String? packingMaterial;
   final double quantity;
   final double reorderThresholdQuantity;
   final double minimumStockCount;
@@ -352,6 +353,7 @@ class ItemModel {
     required this.itemName,
     required this.itemType,
     required this.measurementUnit,
+    this.packingMaterial,
     this.quantity = 1.0,
     required this.reorderThresholdQuantity,
     double? minimumStockCount,
@@ -375,6 +377,7 @@ class ItemModel {
     String? itemName,
     String? itemType,
     String? measurementUnit,
+    String? packingMaterial,
     double? quantity,
     double? reorderThresholdQuantity,
     double? minimumStockCount,
@@ -405,6 +408,7 @@ class ItemModel {
       itemName: itemName ?? this.itemName,
       itemType: itemType ?? this.itemType,
       measurementUnit: measurementUnit ?? this.measurementUnit,
+      packingMaterial: packingMaterial ?? this.packingMaterial,
       quantity: quantity ?? this.quantity,
       reorderThresholdQuantity: newThreshold,
       minimumStockCount: newMinimumStock,
@@ -422,6 +426,33 @@ class ItemModel {
     );
   }
 
+  String get resolvedPackingMaterial {
+    if (packingMaterial != null) return packingMaterial!;
+    if (itemType == 'PACKAGING') {
+      return itemName;
+    }
+    final regex = RegExp(r'Packing Material:\s*([^\r\n•,]+)', caseSensitive: false);
+    final match = regex.firstMatch(description);
+    if (match != null && match.group(1) != null) {
+      return match.group(1)!.trim();
+    }
+    // Check if itemName contains known materials in parentheses or words
+    final knownMaterials = [
+      'Pouches with rider',
+      'Pouches',
+      'Duplex',
+      'Rider',
+      'Bucket',
+      'Tub',
+    ];
+    for (final mat in knownMaterials) {
+      if (itemName.toLowerCase().contains(mat.toLowerCase())) {
+        return mat;
+      }
+    }
+    return '';
+  }
+
   String get specification {
     final qtyStr = quantity.toStringAsFixed(quantity.truncateToDouble() == quantity ? 0 : 2);
     return '$qtyStr ${measurementUnit.toUpperCase()}';
@@ -436,6 +467,7 @@ class ItemModel {
         'item_name': itemName,
         'item_type': itemType,
         'measurement_unit': measurementUnit,
+        'packing_material': packingMaterial,
         'quantity': quantity,
         'reorder_threshold_quantity': reorderThresholdQuantity,
         'minimum_stock_count': minimumStockCount,
@@ -482,6 +514,7 @@ class ItemModel {
       itemName: json['item_name'] ?? '',
       itemType: json['item_type'] ?? 'RAW_MATERIAL',
       measurementUnit: json['measurement_unit'] ?? 'KILOGRAM',
+      packingMaterial: json['packing_material'] as String?,
       quantity: (json['quantity'] as num?)?.toDouble() ?? 1.0,
       reorderThresholdQuantity:
           (json['reorder_threshold_quantity'] as num?)?.toDouble() ?? 0.0,
@@ -1040,6 +1073,7 @@ class InventoryProvider extends ChangeNotifier {
     required String itemName,
     required String itemType,
     required String measurementUnit,
+    String? packingMaterial,
     double quantity = 1.0,
     double reorderThreshold = 0.0,
     String? imageUrl,
@@ -1061,6 +1095,7 @@ class InventoryProvider extends ChangeNotifier {
       itemName: cleanName,
       itemType: itemType,
       measurementUnit: measurementUnit,
+      packingMaterial: packingMaterial,
       quantity: quantity,
       reorderThresholdQuantity: reorderThreshold,
       totalAvailableStock: 0.0,
@@ -1087,6 +1122,7 @@ class InventoryProvider extends ChangeNotifier {
       'reorder_threshold_quantity': reorderThreshold,
     };
 
+    if (packingMaterial != null) body['packing_material'] = packingMaterial;
     if (description != null) body['description'] = description;
     if (hasIngredients != null) body['has_ingredients'] = hasIngredients;
     if (ingredients != null) {
@@ -1113,6 +1149,7 @@ class InventoryProvider extends ChangeNotifier {
     String? itemName,
     String? itemType,
     String? measurementUnit,
+    String? packingMaterial,
     double? quantity,
     double? reorderThreshold,
     String? imageUrl,
@@ -1128,6 +1165,7 @@ class InventoryProvider extends ChangeNotifier {
         itemName: itemName?.trim(),
         itemType: itemType,
         measurementUnit: measurementUnit,
+        packingMaterial: packingMaterial,
         quantity: quantity,
         reorderThresholdQuantity: reorderThreshold,
         imageUrl: imageUrl,
@@ -1146,6 +1184,7 @@ class InventoryProvider extends ChangeNotifier {
     if (measurementUnit != null) body['measurement_unit'] = measurementUnit;
     if (quantity != null) body['quantity'] = quantity;
     if (reorderThreshold != null) body['reorder_threshold_quantity'] = reorderThreshold;
+    if (packingMaterial != null) body['packing_material'] = packingMaterial;
     if (description != null) body['description'] = description;
     if (hasIngredients != null) body['has_ingredients'] = hasIngredients;
     if (ingredients != null) {

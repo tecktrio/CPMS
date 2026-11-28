@@ -89,6 +89,7 @@ export class ItemsService {
       item_name: dto.item_name.trim(),
       item_type: dto.item_type,
       measurement_unit: dto.measurement_unit,
+      packing_material: dto.packing_material?.trim(),
       quantity: dto.quantity ?? 1,
       reorder_threshold_quantity: dto.reorder_threshold_quantity ?? 0,
       description: dto.description || '',
@@ -265,6 +266,8 @@ export class ItemsService {
     if (dto.item_type !== undefined) item.item_type = dto.item_type;
     if (dto.measurement_unit !== undefined)
       item.measurement_unit = dto.measurement_unit;
+    if (dto.packing_material !== undefined)
+      item.packing_material = dto.packing_material?.trim() ?? '';
     if (dto.quantity !== undefined) item.quantity = dto.quantity;
     if (dto.reorder_threshold_quantity !== undefined)
       item.reorder_threshold_quantity = dto.reorder_threshold_quantity;
@@ -592,6 +595,11 @@ export class ItemsService {
       {
         $set: { item_name: cleanName },
       },
+    );
+
+    await this.itemModel.updateMany(
+      { tenant_id: tenantId, packing_material: material.name },
+      { $set: { packing_material: cleanName } },
     );
 
     material.name = cleanName;

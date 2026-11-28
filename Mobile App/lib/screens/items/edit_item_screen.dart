@@ -113,25 +113,23 @@ class _EditItemScreenState extends State<EditItemScreen> {
       });
     }
 
-    // Normalizing package material
+    final packingMaterial = widget.item.resolvedPackingMaterial;
     final matchedPreset = _packageMaterialOptions
         .where((opt) => opt != 'Custom')
         .firstWhere(
           (opt) =>
-              opt.toLowerCase() == widget.item.itemName.trim().toLowerCase(),
+              opt.toLowerCase() == packingMaterial.toLowerCase(),
           orElse: () => '',
         );
 
-    if (matchedPreset.isNotEmpty) {
-      _selectedPackageMaterial = matchedPreset;
-      _customPackageMaterialController =
-          TextEditingController(text: widget.item.itemName);
-      _hasMatchedAsyncMaterials = true;
-    } else {
+    _selectedPackageMaterial = matchedPreset;
+    if (packingMaterial.isNotEmpty && matchedPreset.isEmpty) {
       _selectedPackageMaterial = 'Custom';
-      _customPackageMaterialController =
-          TextEditingController(text: widget.item.itemName);
     }
+    _customPackageMaterialController = TextEditingController(
+      text: packingMaterial,
+    );
+    _hasMatchedAsyncMaterials = packingMaterial.isEmpty;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final inv = context.read<InventoryProvider>();
@@ -212,13 +210,13 @@ class _EditItemScreenState extends State<EditItemScreen> {
         );
       }).toList();
 
+      final packingMaterial = _selectedPackageMaterial == 'Custom'
+          ? _customPackageMaterialController.text.trim()
+          : _selectedPackageMaterial;
       String finalItemName = _nameController.text.trim();
-      if (_selectedItemType == 'PACKAGING' || finalItemName.isEmpty) {
-        if (_selectedPackageMaterial == 'Custom') {
-          finalItemName = _customPackageMaterialController.text.trim();
-        } else {
-          finalItemName = _selectedPackageMaterial;
-        }
+      if ((_selectedItemType == 'PACKAGING' || finalItemName.isEmpty) &&
+          packingMaterial.isNotEmpty) {
+        finalItemName = packingMaterial;
       }
 
       if (finalItemName.isEmpty) {
@@ -239,6 +237,7 @@ class _EditItemScreenState extends State<EditItemScreen> {
         itemName: finalItemName,
         itemType: _selectedItemType,
         measurementUnit: _selectedUnit,
+        packingMaterial: packingMaterial,
         quantity: double.tryParse(_quantityController.text.trim()) ?? 1.0,
         reorderThreshold: widget.item.reorderThresholdQuantity,
         description: _descriptionController.text.trim(),
@@ -557,29 +556,7 @@ class _EditItemScreenState extends State<EditItemScreen> {
 
                               const SizedBox(height: 18),
 
-                              // Packing Material & Custom Packing Material Row
-                              if (isWide)
-                                Row(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Expanded(
-                                      child: _buildPackagingMaterialDropdown(),
-                                    ),
-                                    const SizedBox(width: 16),
-                                    Expanded(
-                                      child: _buildCustomPackagingMaterialField(),
-                                    ),
-                                  ],
-                                )
-                              else
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    _buildPackagingMaterialDropdown(),
-                                    const SizedBox(height: 16),
-                                    _buildCustomPackagingMaterialField(),
-                                  ],
-                                ),
+                              _buildPackagingMaterialFields(isWide),
 
                               const SizedBox(height: 18),
 
@@ -1047,7 +1024,7 @@ class _EditItemScreenState extends State<EditItemScreen> {
                           _nameController.text =
                               _customPackageMaterialController.text.trim();
                         }
-                      } else {
+                      } else if (_selectedPackageMaterial.isNotEmpty) {
                         _nameController.text = _selectedPackageMaterial;
                       }
                     }
@@ -1081,7 +1058,71 @@ class _EditItemScreenState extends State<EditItemScreen> {
     }
   }
 
-  Widget _buildPackagingMaterialDropdown() {
+  Widget _buildPackagingMaterialFields(bool isWide) {
+    return Consumer<InventoryProvider>(
+      builder: (context, inventory, _) {
+        final materialOptions = <String>[''];
+        if (inventory.packagingMaterials.isNotEmpty) {
+          for (final m in inventory.packagingMaterials) {
+            if (!materialOptions.contains(m.name)) {
+              materialOptions.add(m.name);
+            }
+          }
+        } else {
+          materialOptions.addAll(_packageMaterialOptions);
+        }
+        if (!materialOptions.contains('Custom')) {
+          materialOptions.add('Custom');
+        }
+
+        if (!_hasMatchedAsyncMaterials &&
+            inventory.packagingMaterials.isNotEmpty) {
+          final currentName = widget.item.resolvedPackingMaterial.toLowerCase();
+          final match = inventory.packagingMaterials.firstWhere(
+            (m) => m.name.toLowerCase() == currentName,
+            orElse: () => PackagingMaterialModel(
+                materialId: '', name: '', isPreset: false),
+          );
+          if (match.name.isNotEmpty) {
+            _selectedPackageMaterial = match.name;
+          }
+          _hasMatchedAsyncMaterials = true;
+        }
+
+        if (!materialOptions.contains(_selectedPackageMaterial)) {
+          _customPackageMaterialController.text = _selectedPackageMaterial;
+          _selectedPackageMaterial = 'Custom';
+        }
+
+        final dropdown = _buildPackagingMaterialDropdown(materialOptions);
+        final showCustomField = _selectedPackageMaterial == 'Custom';
+        if (isWide) {
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: dropdown),
+              if (showCustomField) ...[
+                const SizedBox(width: 16),
+                Expanded(child: _buildCustomPackagingMaterialField()),
+              ],
+            ],
+          );
+        }
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            dropdown,
+            if (showCustomField) ...[
+              const SizedBox(height: 16),
+              _buildCustomPackagingMaterialField(),
+            ],
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildPackagingMaterialDropdown(List<String> materialOptions) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1122,89 +1163,44 @@ class _EditItemScreenState extends State<EditItemScreen> {
             },
           ),
         ),
-        Consumer<InventoryProvider>(
-          builder: (context, inventory, _) {
-            final materialOptions = <String>[];
-            if (inventory.packagingMaterials.isNotEmpty) {
-              for (final m in inventory.packagingMaterials) {
-                if (!materialOptions.contains(m.name)) {
-                  materialOptions.add(m.name);
+        DropdownButtonFormField<String>(
+          key: ValueKey('edit_pkg_mat_$_selectedPackageMaterial'),
+          initialValue: _selectedPackageMaterial,
+          icon: const Icon(
+            Icons.keyboard_arrow_down,
+            color: Color(0xFF64748B),
+          ),
+          style: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF0F172A),
+          ),
+          decoration: _buildInputDecoration(),
+          items: materialOptions
+              .map((opt) => DropdownMenuItem(
+                    value: opt,
+                    child: Text(opt.isEmpty ? 'None' : opt),
+                  ))
+              .toList(),
+          onChanged: (val) {
+            if (val != null) {
+              setState(() {
+                _selectedPackageMaterial = val;
+                _hasMatchedAsyncMaterials = true;
+                if (_selectedItemType == 'PACKAGING') {
+                  if (val == 'Custom') {
+                    _nameController.text =
+                        _customPackageMaterialController.text.trim();
+                  } else if (val.isNotEmpty) {
+                    _nameController.text = val;
+                  }
+                } else if (_nameController.text.trim().isEmpty) {
+                  if (val != 'Custom') {
+                    _nameController.text = val;
+                  }
                 }
-              }
-            } else {
-              materialOptions.addAll([
-                'Duplex',
-                'Rider',
-                'Pouches with rider',
-                'Pouches',
-                'Bucket',
-                'Tub',
-              ]);
+              });
             }
-            if (!materialOptions.contains('Custom')) {
-              materialOptions.add('Custom');
-            }
-
-            if (!_hasMatchedAsyncMaterials &&
-                inventory.packagingMaterials.isNotEmpty) {
-              final currentName = widget.item.itemName.trim().toLowerCase();
-              final match = inventory.packagingMaterials.firstWhere(
-                (m) => m.name.toLowerCase() == currentName,
-                orElse: () => PackagingMaterialModel(
-                    materialId: '', name: '', isPreset: false),
-              );
-              if (match.name.isNotEmpty) {
-                _selectedPackageMaterial = match.name;
-                _customPackageMaterialController.text = '';
-              }
-              _hasMatchedAsyncMaterials = true;
-            }
-
-            if (!materialOptions.contains(_selectedPackageMaterial)) {
-              _selectedPackageMaterial = materialOptions.contains('Custom')
-                  ? 'Custom'
-                  : materialOptions.first;
-            }
-
-            return DropdownButtonFormField<String>(
-              key: ValueKey('edit_pkg_mat_$_selectedPackageMaterial'),
-              initialValue: _selectedPackageMaterial,
-              icon: const Icon(
-                Icons.keyboard_arrow_down,
-                color: Color(0xFF64748B),
-              ),
-              style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF0F172A),
-              ),
-              decoration: _buildInputDecoration(),
-              items: materialOptions
-                  .map((opt) => DropdownMenuItem(
-                        value: opt,
-                        child: Text(opt),
-                      ))
-                  .toList(),
-              onChanged: (val) {
-                if (val != null) {
-                  setState(() {
-                    _selectedPackageMaterial = val;
-                    if (_selectedItemType == 'PACKAGING') {
-                      if (val == 'Custom') {
-                        _nameController.text =
-                            _customPackageMaterialController.text.trim();
-                      } else {
-                        _nameController.text = val;
-                      }
-                    } else if (_nameController.text.trim().isEmpty) {
-                      if (val != 'Custom') {
-                        _nameController.text = val;
-                      }
-                    }
-                  });
-                }
-              },
-            );
           },
         ),
       ],

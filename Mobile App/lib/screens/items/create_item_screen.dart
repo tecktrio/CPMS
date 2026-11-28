@@ -135,13 +135,13 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
       );
     }).toList();
 
+    final packingMaterial = _selectedPackageMaterial == 'Custom'
+        ? _customPackageMaterialController.text.trim()
+        : _selectedPackageMaterial;
     String finalItemName = _nameController.text.trim();
-    if (_selectedItemType == 'PACKAGING' || finalItemName.isEmpty) {
-      if (_selectedPackageMaterial == 'Custom') {
-        finalItemName = _customPackageMaterialController.text.trim();
-      } else {
-        finalItemName = _selectedPackageMaterial;
-      }
+    if ((_selectedItemType == 'PACKAGING' || finalItemName.isEmpty) &&
+        packingMaterial.isNotEmpty) {
+      finalItemName = packingMaterial;
     }
 
     if (finalItemName.isEmpty) {
@@ -160,6 +160,7 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
       itemName: finalItemName,
       itemType: _selectedItemType,
       measurementUnit: _selectedUnit,
+      packingMaterial: packingMaterial,
       quantity: double.tryParse(_quantityController.text.trim()) ?? 1.0,
       reorderThreshold: 0.0,
       description: _descriptionController.text.trim(),

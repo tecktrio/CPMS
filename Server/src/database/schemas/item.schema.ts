@@ -59,6 +59,9 @@ export class Item {
   })
   measurement_unit: MeasurementUnit;
 
+  @Prop({ type: String, trim: true })
+  packing_material?: string;
+
   @Prop({ type: Number, default: 1, min: 0 })
   quantity: number;
 

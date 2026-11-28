@@ -75,13 +75,13 @@ class _CreateItemDialogState extends State<CreateItemDialog> {
     if (!_formKey.currentState!.validate()) return;
     final inventory = context.read<InventoryProvider>();
 
+    final packingMaterial = _selectedPackageMaterial == 'Custom'
+        ? _customPackageMaterialController.text.trim()
+        : _selectedPackageMaterial;
     String finalItemName = _nameController.text.trim();
-    if (_selectedItemType == 'PACKAGING' || finalItemName.isEmpty) {
-      if (_selectedPackageMaterial == 'Custom') {
-        finalItemName = _customPackageMaterialController.text.trim();
-      } else {
-        finalItemName = _selectedPackageMaterial;
-      }
+    if ((_selectedItemType == 'PACKAGING' || finalItemName.isEmpty) &&
+        packingMaterial.isNotEmpty) {
+      finalItemName = packingMaterial;
     }
 
     if (finalItemName.isEmpty) {
@@ -99,6 +99,7 @@ class _CreateItemDialogState extends State<CreateItemDialog> {
       itemName: finalItemName,
       itemType: _selectedItemType,
       measurementUnit: _selectedUnit,
+      packingMaterial: packingMaterial,
       quantity: double.tryParse(_quantityController.text.trim()) ?? 1.0,
       reorderThreshold: double.tryParse(_reorderThresholdController.text) ?? 0,
     );

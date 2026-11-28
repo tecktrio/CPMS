@@ -180,44 +180,12 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
   }
 
   String _resolveUnit(ItemModel item) {
-    if (item.specification.isNotEmpty) {
-      return item.specification;
-    }
-    final u = item.measurementUnit.toUpperCase();
-    if (u == 'KILOGRAM' || u == 'KG') return 'kg';
-    if (u == 'GRAM' || u == 'G') return 'g';
-    if (u == 'LITRE' || u == 'LITER' || u == 'L') return 'L';
-    if (u == 'MILLILITRE' || u == 'MILLILITER' || u == 'ML') return 'ml';
-    if (u == 'PIECE' || u == 'PC') return 'pcs';
-    return item.measurementUnit.toLowerCase();
+    return item.measurementUnit.replaceAll('_', ' ');
   }
 
   String _resolvePackingMaterial(ItemModel item) {
-    if (item.itemType == 'PACKAGING') {
-      return item.itemName;
-    }
-    // Check if description has "Packing Material: <val>"
-    final desc = item.description;
-    final regex = RegExp(r'Packing Material:\s*([^\s•,]+)', caseSensitive: false);
-    final match = regex.firstMatch(desc);
-    if (match != null && match.group(1) != null) {
-      return match.group(1)!;
-    }
-    // Check if itemName contains known materials in parentheses or words
-    final knownMaterials = [
-      'Pouches with rider',
-      'Pouches',
-      'Duplex',
-      'Rider',
-      'Bucket',
-      'Tub',
-    ];
-    for (final mat in knownMaterials) {
-      if (item.itemName.toLowerCase().contains(mat.toLowerCase())) {
-        return mat;
-      }
-    }
-    return '-';
+    final material = item.resolvedPackingMaterial;
+    return material.isEmpty ? '-' : material;
   }
 
   Widget _buildMetaStat(String label, String value) {

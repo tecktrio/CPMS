@@ -37,6 +37,11 @@ export class UpdateItemDto {
   @IsOptional()
   measurement_unit?: MeasurementUnit;
 
+  @ApiPropertyOptional({ example: 'Pouches with rider' })
+  @IsString()
+  @IsOptional()
+  packing_material?: string;
+
   @ApiPropertyOptional({ example: 100 })
   @IsNumber()
   @Min(0)
