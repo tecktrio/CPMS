@@ -284,7 +284,11 @@ void main() {
           ('View QA history', 'QA completion history', 'Inspection passed'),
         ]) {
           final history = find.byTooltip(tooltip);
-          await tester.ensureVisible(history);
+          await Scrollable.ensureVisible(
+            tester.element(history),
+            alignment: .5,
+          );
+          await tester.pumpAndSettle();
           await tester.tap(history);
           await tester.pumpAndSettle();
           final dialog = find.byType(CpmsFormPage);
@@ -323,11 +327,16 @@ void main() {
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 350));
         expect(find.text('Loading QA assignees…'), findsOneWidget);
-        await tester.binding.handlePopRoute();
-        await tester.pump();
-        expect(find.text('Loading QA assignees…'), findsOneWidget);
+        expect(first, findsOneWidget);
+        expect(second, findsOneWidget);
         expect(client.staffRequests, 1);
         staffResponse.complete({
+          'packing': [
+            {'user_id': 'packer-1', 'name': 'Packing Tester'},
+          ],
+          'export': [
+            {'user_id': 'export-1', 'name': 'Export Tester'},
+          ],
           'quality': [
             {
               'user_id': 'qa-1',
@@ -340,6 +349,9 @@ void main() {
         });
         await tester.pumpAndSettle();
         expect(find.text('Loading QA assignees…'), findsNothing);
+        expect(first, findsOneWidget);
+        expect(second, findsOneWidget);
+        expect(find.text('Back to item details'), findsOneWidget);
         expect(find.byType(AlertDialog), findsNothing);
         final dialog = find.byType(CpmsFormPage);
         expect(
@@ -388,15 +400,20 @@ void main() {
         await tester.pumpAndSettle();
         expect(find.byType(CalendarDatePicker), findsOneWidget);
         expect(find.byType(AlertDialog), findsNothing);
-        await tester.tap(find.widgetWithText(TextButton, 'Cancel'));
+        expect(second, findsOneWidget);
+        final cancelDate = find.text('Cancel date selection');
+        await tester.ensureVisible(cancelDate);
+        await tester.tap(cancelDate);
         await tester.pumpAndSettle();
         expect(find.text('QA Tester'), findsOneWidget);
         final saveResponse = Completer<void>();
         client.saveResponse = saveResponse.future;
+        await tester.ensureVisible(save);
         await tester.tap(save);
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 350));
         expect(find.text('Saving changes…'), findsOneWidget);
+        expect(second, findsOneWidget);
         saveResponse.complete();
         await tester.pumpAndSettle();
         expect(find.text('Saving changes…'), findsNothing);
@@ -406,14 +423,83 @@ void main() {
         );
         expect(client.patchBody, {'user_id': 'qa-1'});
         expect(find.text('QA assigned'), findsOneWidget);
-        expect(find.byIcon(Icons.check_rounded), findsOneWidget);
-        await tester.tap(find.text('Back to orders'));
+        final reassign = find.widgetWithText(OutlinedButton, 'Reassign QA');
+        expect(reassign, findsOneWidget);
+        expect(second, findsOneWidget);
+        await tester.tap(reassign);
         await tester.pumpAndSettle();
-        expect(
-          find.widgetWithText(OutlinedButton, 'Reassign QA'),
-          findsOneWidget,
-        );
-        expect(find.byType(SnackBar), findsNothing);
+        expect(second, findsOneWidget);
+        expect(find.text('Save assignment'), findsOneWidget);
+        await tester.tap(find.text('Back to item details'));
+        await tester.pumpAndSettle();
+        expect(reassign, findsOneWidget);
+        for (final (label, stage, person, userId, otherPerson) in [
+          ('Packing', 'packing', 'Packing Tester', 'packer-1', 'Export Tester'),
+          ('Export', 'export', 'Export Tester', 'export-1', 'Packing Tester'),
+        ]) {
+          final endpoint =
+              '/order-work/order-124/items/item-126/assignments/$stage';
+          final assign = find.widgetWithText(OutlinedButton, 'Assign $label');
+          await tester.scrollUntilVisible(
+            assign,
+            170,
+            scrollable: find
+                .byWidgetPredicate(
+                  (widget) =>
+                      widget is Scrollable &&
+                      widget.axisDirection == AxisDirection.down,
+                )
+                .last,
+          );
+          await Scrollable.ensureVisible(tester.element(assign), alignment: .5);
+          await tester.pumpAndSettle();
+          await tester.tap(assign);
+          await tester.pumpAndSettle();
+          expect(second, findsOneWidget);
+          expect(find.text(otherPerson), findsNothing);
+          await tester.tap(find.text(person));
+          await tester.pumpAndSettle();
+          await tester.tap(find.text('Save assignment'));
+          await tester.pumpAndSettle();
+          expect(client.lastPatch, endpoint);
+          expect(client.patchBody, {
+            'user_id': userId,
+            'previous_user_id': null,
+          });
+          final unassign = find.widgetWithText(
+            OutlinedButton,
+            'Unassign $label',
+          );
+          await tester.scrollUntilVisible(
+            unassign,
+            170,
+            scrollable: find
+                .byWidgetPredicate(
+                  (widget) =>
+                      widget is Scrollable &&
+                      widget.axisDirection == AxisDirection.down,
+                )
+                .last,
+          );
+          await Scrollable.ensureVisible(
+            tester.element(unassign),
+            alignment: .5,
+          );
+          await tester.pumpAndSettle();
+          expect(find.text(person), findsOneWidget);
+          await tester.tap(unassign);
+          await tester.pumpAndSettle();
+          expect(second, findsOneWidget);
+          await tester.tap(
+            find.widgetWithText(FilledButton, 'Unassign $label'),
+          );
+          await tester.pumpAndSettle();
+          expect(client.lastPatch, endpoint);
+          expect(client.patchBody, {
+            'user_id': null,
+            'previous_user_id': userId,
+          });
+        }
       }
       await tester.tap(second);
       await tester.pumpAndSettle();
@@ -570,6 +656,7 @@ class _WorkClient extends ApiClient {
   Future<Map<String, dynamic>>? staffResponse;
   Future<void>? saveResponse;
   int staffRequests = 0;
+  final itemAssignments = <String, Map<String, dynamic>>{};
 
   @override
   Future<dynamic> patch(
@@ -580,6 +667,19 @@ class _WorkClient extends ApiClient {
     lastPatch = endpoint;
     patchBody = body;
     await saveResponse;
+    if (endpoint.contains('/items/item-126/assignments/')) {
+      final stage = endpoint.split('/').last;
+      final userId = body['user_id'];
+      if (userId == null) {
+        itemAssignments.remove('${stage}_assignment');
+      } else {
+        itemAssignments['${stage}_assignment'] = {
+          'user_id': userId,
+          'name': stage == 'packing' ? 'Packing Tester' : 'Export Tester',
+          'assigned_at': '2026-11-28',
+        };
+      }
+    }
     return {'success': true};
   }
 
@@ -655,6 +755,7 @@ class _WorkClient extends ApiClient {
               'item_id': 'item-126',
               'item_name': 'Additional line',
               'sku': 'SKU-126',
+              ...itemAssignments,
               'cartons': 5,
               if (lastPatch ==
                   '/order-work/order-124/items/item-126/quality-assignment') ...{

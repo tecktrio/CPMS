@@ -1,12 +1,12 @@
-import { Body, Controller, ForbiddenException, Get, Param, Patch, Query, Req, UseGuards } from '@nestjs/common';
-import { IsDateString, IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
+import { Body, Controller, ForbiddenException, Get, Param, ParseEnumPipe, Patch, Query, Req, UseGuards } from '@nestjs/common';
+import { IsDateString, IsOptional, IsString, IsUUID, MaxLength, ValidateIf } from 'class-validator';
 import { CurrentTenant } from '../../common/decorators/current-tenant.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { RequireAnyPermissions, RequirePermissions } from '../../common/decorators/require-permissions.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import { TenantGuard } from '../../common/guards/tenant.guard';
-import { OrderWorkService, OrderWorkRole, orderWorkRoles } from './order-work.service';
+import { ItemAssignmentStage, OrderWorkService, OrderWorkRole, orderWorkRoles } from './order-work.service';
 
 class AssignQualityDto {
   @IsUUID()
@@ -15,6 +15,16 @@ class AssignQualityDto {
   @IsOptional()
   @IsDateString()
   target_date?: string;
+}
+
+class ItemAssignmentDto {
+  @ValidateIf((_, value) => value !== null)
+  @IsUUID()
+  user_id: string | null;
+
+  @ValidateIf((_, value) => value !== null)
+  @IsUUID()
+  previous_user_id: string | null;
 }
 
 class CheckQualityDto {
@@ -70,6 +80,19 @@ export class OrderWorkController {
     @Body() dto: AssignQualityDto,
   ) {
     return this.work.assignQuality(tenantId, userId, poId, itemId, dto.user_id, dto.target_date);
+  }
+
+  @Patch(':poId/items/:itemId/assignments/:stage')
+  @RequirePermissions('permission.production.assign')
+  setItemAssignment(
+    @CurrentTenant() tenantId: string,
+    @CurrentUser('user_id') userId: string,
+    @Param('poId') poId: string,
+    @Param('itemId') itemId: string,
+    @Param('stage', new ParseEnumPipe(ItemAssignmentStage)) stage: ItemAssignmentStage,
+    @Body() dto: ItemAssignmentDto,
+  ) {
+    return this.work.setItemAssignment(tenantId, userId, poId, itemId, stage, dto.user_id, dto.previous_user_id);
   }
 
   @Patch(':poId/items/:itemId/quality-check')

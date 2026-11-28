@@ -1,8 +1,8 @@
 import * as assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { ForbiddenException, NotFoundException } from '@nestjs/common';
+import { ConflictException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { OrderWorkController } from '../src/modules/purchase-orders/order-work.controller';
-import { OrderWorkService } from '../src/modules/purchase-orders/order-work.service';
+import { ItemAssignmentStage, OrderWorkService } from '../src/modules/purchase-orders/order-work.service';
 import { DepartmentsService } from '../src/modules/departments/departments.service';
 import { AssignmentStaffService } from '../src/modules/production/assignment-staff.service';
 import { ProductionService } from '../src/modules/production/production.service';
@@ -237,4 +237,62 @@ test('QA history is written in the same update as the completion timestamp', asy
     },
   });
   await service.checkQuality('tenant', 'my-user', 'po', 'first', ' Passed ');
+});
+
+test('packing and export assignments require matching department staff and current ownership', async () => {
+  const staffChecks: unknown[][] = [];
+  const writes: { filter: any; update: any }[] = [];
+  const service = new OrderWorkService({
+    async updateOne(filter, update) {
+      writes.push({ filter, update });
+      return { matchedCount: filter.items.$elemMatch['packing_assignment.user_id'] === 'stale' ? 0 : 1 };
+    },
+  } as never, null, null, null, {
+    async requireMember(...args) {
+      staffChecks.push(args);
+      if (args[2] === 'wrong-user') throw new ForbiddenException();
+      return { user_id: args[2], name: 'Assigned worker' };
+    },
+  } as never, null);
+
+  await service.setItemAssignment('tenant', 'manager', 'po', 'first', ItemAssignmentStage.Packing, 'packer', null);
+  await service.setItemAssignment('tenant', 'manager', 'po', 'first', ItemAssignmentStage.Export, 'exporter', null);
+  await service.setItemAssignment('tenant', 'manager', 'po', 'first', ItemAssignmentStage.Export, null, 'exporter');
+  await assert.rejects(
+    service.setItemAssignment('tenant', 'manager', 'po', 'first', ItemAssignmentStage.Packing, null, 'stale'),
+    ConflictException,
+  );
+  await assert.rejects(
+    service.setItemAssignment('tenant', 'manager', 'po', 'first', ItemAssignmentStage.Export, 'wrong-user', null),
+    ForbiddenException,
+  );
+  assert.deepEqual(staffChecks, [
+    ['tenant', 'Packer', 'packer'],
+    ['tenant', 'Export', 'exporter'],
+    ['tenant', 'Export', 'wrong-user'],
+  ]);
+  assert.equal(writes.length, 4);
+  assert.equal(writes[0].filter.tenant_id, 'tenant');
+  assert.deepEqual(writes[0].filter.items.$elemMatch, { item_id: 'first', 'packing_assignment.user_id': null });
+  assert.equal(writes[0].update.$set['items.$.packing_assignment'].user_id, 'packer');
+  assert.equal(writes[1].update.$set['items.$.export_assignment'].user_id, 'exporter');
+  assert.equal(writes[2].filter.items.$elemMatch['export_assignment.user_id'], 'exporter');
+  assert.equal(writes[2].update.$set['items.$.export_assignment'], null);
+});
+
+test('workers can identify their own packing and export assignments', async () => {
+  const assignedOrder = {
+    ...order,
+    items: [
+      { ...order.items[0], packing_assignment: { user_id: 'packer' }, export_assignment: { user_id: 'exporter' } },
+      { ...order.items[1], export_assignment: { user_id: 'different-exporter' } },
+    ],
+  };
+  const service = work({ find: () => query([assignedOrder]) });
+  const [packing] = await service.list('tenant', 'packer', 'PACKER');
+  const [shipping] = await service.list('tenant', 'exporter', 'EXPORT');
+  assert.ok('items' in packing);
+  assert.ok('assigned_items' in shipping);
+  assert.deepEqual(packing.items.map((item) => 'assigned_to_me' in item && item.assigned_to_me), [true, false]);
+  assert.deepEqual(shipping.assigned_items.map((item) => item.item_id), ['first']);
 });

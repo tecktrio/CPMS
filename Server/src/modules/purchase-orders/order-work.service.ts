@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import {
@@ -15,6 +15,11 @@ export const orderWorkRoles = ['PRODUCTION_MANAGER', 'SUPERVISOR', 'QC', 'PACKER
 export type OrderWorkRole = (typeof orderWorkRoles)[number];
 
 const activeStatuses = [PurchaseOrderStatus.CONFIRMED, PurchaseOrderStatus.IN_PRODUCTION];
+
+export enum ItemAssignmentStage {
+  Packing = 'packing',
+  Export = 'export',
+}
 
 @Injectable()
 export class OrderWorkService {
@@ -72,7 +77,15 @@ export class OrderWorkService {
       };
       if (role === 'EXPORT') {
         const packed = order.items.reduce((sum, item) => sum + (item.packed_cartons || 0), 0);
-        return { ...basic, total_cartons: order.total_cartons, packed_cartons: packed };
+        return {
+          ...basic, total_cartons: order.total_cartons, packed_cartons: packed,
+          assigned_items: order.items
+            .filter((item) => item.export_assignment?.user_id === userId)
+            .map((item) => ({
+              item_id: item.item_id, item_name: item.item_name, cartons: item.cartons,
+              shipped_cartons: item.shipped_cartons,
+            })),
+        };
       }
       if (role === 'ACCOUNTS') return basic;
 
@@ -86,7 +99,10 @@ export class OrderWorkService {
             ...line, cartons: item.cartons, target_date: item.qa_target_date,
             checked_at: item.qa_checked_at, note: item.qa_note,
           };
-          if (role === 'PACKER') return { ...line, cartons: item.cartons, packed_cartons: item.packed_cartons };
+          if (role === 'PACKER') return {
+            ...line, cartons: item.cartons, packed_cartons: item.packed_cartons,
+            assigned_to_me: item.packing_assignment?.user_id === userId,
+          };
           const lineAssignments = orderAssignments.filter((assignment) => assignment.item_id === item.item_id)
             .map((assignment) => ({
               assignment_id: assignment.assignment_id,
@@ -108,6 +124,8 @@ export class OrderWorkService {
             completed_cartons: item.completed_cartons,
             packed_cartons: item.packed_cartons,
             shipped_cartons: item.shipped_cartons,
+            packing_assignment: item.packing_assignment,
+            export_assignment: item.export_assignment,
             qa_assignee: qualityNames.get(item.qa_user_id || ''),
             target_date: item.qa_target_date, checked_at: item.qa_checked_at,
             qa_completion_history: item.qa_completion_history?.length
@@ -129,10 +147,43 @@ export class OrderWorkService {
   }
 
   async listStaff(tenantId: string) {
-    const [supervisors, quality] = await Promise.all([
+    const [supervisors, quality, packing, exportStaff] = await Promise.all([
       this.staff.list(tenantId, 'Supervisor'), this.staff.list(tenantId, 'QC'),
+      this.staff.list(tenantId, 'Packer'), this.staff.list(tenantId, 'Export'),
     ]);
-    return { supervisors, quality };
+    return { supervisors, quality, packing, export: exportStaff };
+  }
+
+  async setItemAssignment(
+    tenantId: string, actor: string, poId: string, itemId: string,
+    stage: ItemAssignmentStage, userId: string | null, previousUserId: string | null,
+  ) {
+    const field = stage === ItemAssignmentStage.Packing ? 'packing_assignment' : 'export_assignment';
+    const department = stage === ItemAssignmentStage.Packing ? 'Packer' : 'Export';
+    const member = userId ? await this.staff.requireMember(tenantId, department, userId) : null;
+    const now = new Date();
+    const updated = await this.orders.updateOne({
+      tenant_id: tenantId,
+      po_id: poId,
+      status: { $in: activeStatuses },
+      items: { $elemMatch: { item_id: itemId, [`${field}.user_id`]: previousUserId } },
+    }, {
+      $set: {
+        [`items.$.${field}`]: member ? { user_id: member.user_id, name: member.name, assigned_at: now } : null,
+      },
+      $inc: { __v: 1 },
+      $push: { activity: {
+        user_id: actor,
+        department: 'Production Manager',
+        action: `${member ? previousUserId ? 'Reassigned' : 'Assigned' : 'Unassigned'} ${stage}`,
+        detail: member ? `Item ${itemId} assigned to ${member.name}` : `Item ${itemId}`,
+        at: now,
+      }},
+    });
+    if (!updated.matchedCount) {
+      throw new ConflictException('The order or assignment changed. Refresh the order and try again.');
+    }
+    return { success: true };
   }
 
   async assignQuality(tenantId: string, actor: string, poId: string, itemId: string, userId: string, targetDate?: string) {

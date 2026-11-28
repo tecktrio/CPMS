@@ -51,6 +51,20 @@ export class QualityCompletionEntry {
 }
 
 @Schema({ _id: false })
+export class ItemDepartmentAssignment {
+  @Prop({ type: String, required: true })
+  user_id: string;
+
+  @Prop({ type: String, required: true })
+  name: string;
+
+  @Prop({ type: Date, required: true })
+  assigned_at: Date;
+}
+
+const ItemDepartmentAssignmentSchema = SchemaFactory.createForClass(ItemDepartmentAssignment);
+
+@Schema({ _id: false })
 export class PurchaseOrderItem {
   @Prop({ type: String, required: true })
   item_id: string;
@@ -93,6 +107,12 @@ export class PurchaseOrderItem {
 
   @Prop({ type: [SchemaFactory.createForClass(QualityCompletionEntry)], default: [] })
   qa_completion_history?: QualityCompletionEntry[];
+
+  @Prop({ type: ItemDepartmentAssignmentSchema, default: null })
+  packing_assignment?: ItemDepartmentAssignment | null;
+
+  @Prop({ type: ItemDepartmentAssignmentSchema, default: null })
+  export_assignment?: ItemDepartmentAssignment | null;
 
   // Lifecycle Stage Quantities per Line Item:
   @Prop({ type: Number, default: 0, min: 0 })

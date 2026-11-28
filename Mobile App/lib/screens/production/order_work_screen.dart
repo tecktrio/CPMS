@@ -74,7 +74,7 @@ class _OrderWorkScreenState extends State<OrderWorkScreen> {
   }
 
   bool _saving = false;
-  bool _openingAssignment = false;
+  _PendingAssignment? _pendingAssignment;
   bool _exportingHistory = false;
 
   @override
@@ -102,11 +102,15 @@ class _OrderWorkScreenState extends State<OrderWorkScreen> {
           setState(() {
             _selectedOrderId = null;
             _selectedItemId = null;
+            _pendingAssignment = null;
           });
         } else if (_selectedItemId != null &&
             !workRecords(order['items'])
                 .any((item) => workText(item, 'item_id') == _selectedItemId)) {
-          setState(() => _selectedItemId = null);
+          setState(() {
+            _selectedItemId = null;
+            _pendingAssignment = null;
+          });
         }
       }
     } catch (_) {
@@ -153,163 +157,215 @@ class _OrderWorkScreenState extends State<OrderWorkScreen> {
     }
   }
 
-  Future<void> _assign(
+  void _assign(
     WorkRecord order,
     WorkRecord item, {
-    required bool quality,
+    required _AssignmentStage stage,
     WorkRecord? existingAssignment,
-  }) async {
-    if (_openingAssignment || _saving) return;
-    _openingAssignment = true;
-    try {
-      await _openAssignment(
-        order,
-        item,
-        quality: quality,
-        existingAssignment: existingAssignment,
-      );
-    } finally {
-      _openingAssignment = false;
-    }
-  }
-
-  Future<void> _openAssignment(
-    WorkRecord order,
-    WorkRecord item, {
-    required bool quality,
-    WorkRecord? existingAssignment,
-  }) async {
-    final production = context.read<ProductionProvider>();
+    bool unassign = false,
+  }) {
+    if (_pendingAssignment != null || _saving) return;
     final remaining = _remainingCartons(
       item,
       editingAssignmentId: existingAssignment?['assignment_id'] as String?,
     );
-    if (!quality && remaining < 1) {
+    if (stage == _AssignmentStage.supervisor && remaining < 1) {
       _message('All cartons on this item are already assigned.');
       return;
     }
+    final staff = unassign
+        ? null
+        : _api
+              .get('/order-work/staff')
+              .then(
+                (response) =>
+                    workRecords((response as WorkRecord)[stage.staffKey]),
+              );
+    setState(() {
+      _pendingAssignment = _PendingAssignment(
+        stage: stage,
+        remaining: remaining,
+        staff: staff,
+        existing: existingAssignment,
+      );
+    });
+  }
 
-    final staff = _api
-        .get('/order-work/staff')
-        .then(
-          (response) => workRecords(
-            (response as WorkRecord)[quality ? 'quality' : 'supervisors'],
+  void _closeAssignment() {
+    if (!_saving) setState(() => _pendingAssignment = null);
+  }
+
+  Widget _assignmentPane(
+    WorkRecord order,
+    WorkRecord item,
+    _PendingAssignment pending,
+  ) {
+    final stage = pending.stage;
+    if (pending.staff == null) {
+      return CpmsFormPage(
+        automaticallyImplyLeading: false,
+        title: Text('Unassign ${stage.label}?'),
+        content: Text(
+          'Remove ${workText(pending.existing ?? const {}, 'name')} from ${workText(item, 'item_name')}?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: _saving ? null : _closeAssignment,
+            child: const Text('Cancel'),
           ),
-        );
-    final assignment = await openCpmsPage<_AssignmentInput>(
-      context: context,
-      builder: (_) => FutureBuilder<List<WorkRecord>>(
-        future: staff,
-        builder: (context, snapshot) {
-          final people = snapshot.data;
-          if (snapshot.connectionState != ConnectionState.done) {
-            return PopScope(
-              canPop: false,
-              child: CpmsFormPage(
-                title: Text(
-                  quality ? 'QA assignment' : 'Supervisor assignment',
-                ),
-                content: Row(
-                  children: [
-                    const SizedBox.square(
-                      dimension: 24,
-                      child: CircularProgressIndicator(strokeWidth: 3),
-                    ),
-                    const SizedBox(width: 16),
-                    Text(
-                      quality
-                          ? 'Loading QA assignees…'
-                          : 'Loading supervisors…',
-                    ),
-                  ],
-                ),
-                actions: const [],
+          FilledButton(
+            onPressed: _saving
+                ? null
+                : () => _saveAssignment(order, item, pending, null),
+            child: Text(
+              _saving ? 'Saving changes…' : 'Unassign ${stage.label}',
+            ),
+          ),
+        ],
+      );
+    }
+    return FutureBuilder<List<WorkRecord>>(
+      future: pending.staff,
+      builder: (context, snapshot) {
+        final title = '${stage.label} assignment';
+        final people = snapshot.data;
+        if (people == null || people.isEmpty) {
+          final waiting = snapshot.connectionState != ConnectionState.done;
+          final message = waiting
+              ? 'Loading ${stage.label} assignees…'
+              : snapshot.hasError
+              ? 'Could not load assignees. ${snapshot.error}'
+              : 'No eligible ${stage.label} assignees found.';
+          return CpmsFormPage(
+            automaticallyImplyLeading: false,
+            title: Text(title),
+            content: Row(
+              children: [
+                if (waiting) ...[
+                  const SizedBox.square(
+                    dimension: 24,
+                    child: CircularProgressIndicator(strokeWidth: 3),
+                  ),
+                  const SizedBox(width: 16),
+                ],
+                Expanded(child: Text(message)),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: _closeAssignment,
+                child: const Text('Cancel'),
               ),
-            );
-          }
-          if (people == null || people.isEmpty) {
-            final message = snapshot.hasError
-                ? 'Could not load assignees. ${snapshot.error}'
-                : quality
-                ? 'No eligible Quality Assurance users found.'
-                : 'No supervisors are assigned to this tenant.';
-            return CpmsFormPage(
-              title: Text(quality ? 'QA assignment' : 'Supervisor assignment'),
-              content: Text(message),
-              actions: const [],
-            );
-          }
-          return _AssignmentPage(
-            quality: quality,
-            orderNumber: workText(order, 'po_number'),
-            itemName: workText(item, 'item_name'),
-            sku: workText(item, 'sku'),
-            people: people,
-            remaining: remaining,
-            currentUserId: quality
-                ? workText(item, 'qa_user_id')
-                : workText(existingAssignment ?? const {}, 'assignee_id'),
-            initialCartons: existingAssignment == null
-                ? remaining
-                : _count(existingAssignment, 'assigned_cartons'),
-            initialDate: DateTime.tryParse(
-              (quality
-                          ? item['target_date']
-                          : existingAssignment?['target_date'])
-                      ?.toString() ??
-                  '',
-            )?.toLocal(),
-            editing: existingAssignment != null,
+            ],
           );
-        },
-      ),
+        }
+        final existing = pending.existing;
+        return _AssignmentPage(
+          stage: stage,
+          orderNumber: workText(order, 'po_number'),
+          itemName: workText(item, 'item_name'),
+          sku: workText(item, 'sku'),
+          people: people,
+          remaining: pending.remaining,
+          currentUserId: switch (stage) {
+            _AssignmentStage.quality => workText(item, 'qa_user_id'),
+            _AssignmentStage.supervisor => workText(
+              existing ?? const {},
+              'assignee_id',
+            ),
+            _ => workText(existing ?? const {}, 'user_id'),
+          },
+          initialCartons: existing == null
+              ? pending.remaining
+              : _count(existing, 'assigned_cartons'),
+          initialDate: DateTime.tryParse(
+            ((stage == _AssignmentStage.quality
+                        ? item['target_date']
+                        : existing?['target_date'])
+                    ?.toString() ??
+                ''),
+          )?.toLocal(),
+          editing: existing != null,
+          saving: _saving,
+          onCancel: _closeAssignment,
+          onSave: (assignment) =>
+              _saveAssignment(order, item, pending, assignment),
+        );
+      },
     );
-    if (assignment == null || !mounted) return;
+  }
+
+  Future<void> _saveAssignment(
+    WorkRecord order,
+    WorkRecord item,
+    _PendingAssignment pending,
+    _AssignmentInput? assignment,
+  ) async {
+    if (_saving || _pendingAssignment != pending) return;
+    final stage = pending.stage;
+    final existingAssignment = pending.existing;
     final poId = workText(order, 'po_id');
     final itemId = workText(item, 'item_id');
-    await _save(
-      () async {
-        if (quality) {
-          await _api.patch(
-            '/order-work/$poId/items/$itemId/quality-assignment',
-            body: {
-              'user_id': assignment.userId,
-              if (assignment.date != null)
-                'target_date': assignment.date!.toUtc().toIso8601String(),
-            },
+    setState(() => _saving = true);
+    try {
+      if (stage == _AssignmentStage.quality && assignment != null) {
+        await _api.patch(
+          '/order-work/$poId/items/$itemId/quality-assignment',
+          body: {
+            'user_id': assignment.userId,
+            if (assignment.date != null)
+              'target_date': assignment.date!.toUtc().toIso8601String(),
+          },
+        );
+      } else if (stage == _AssignmentStage.supervisor && assignment != null) {
+        final production = context.read<ProductionProvider>();
+        final saved = existingAssignment == null
+            ? await production.createAssignment(
+                poId: poId,
+                itemId: itemId,
+                supervisorUserId: assignment.userId,
+                assignedCartons: assignment.cartons,
+                targetDate: assignment.date,
+              )
+            : await production.updateAssignment(
+                assignmentId: workText(existingAssignment, 'assignment_id'),
+                supervisorUserId: assignment.userId,
+                assignedCartons: assignment.cartons,
+                targetDate: assignment.date,
+              );
+        if (!saved) {
+          throw ApiException(
+            production.errorMessage ?? 'Assignment could not be saved.',
           );
-        } else {
-          final saved = existingAssignment == null
-              ? await production.createAssignment(
-                  poId: poId,
-                  itemId: itemId,
-                  supervisorUserId: assignment.userId,
-                  assignedCartons: assignment.cartons,
-                  targetDate: assignment.date,
-                )
-              : await production.updateAssignment(
-                  assignmentId: workText(existingAssignment, 'assignment_id'),
-                  supervisorUserId: assignment.userId,
-                  assignedCartons: assignment.cartons,
-                  targetDate: assignment.date,
-                );
-          if (!saved) {
-            throw ApiException(
-              production.errorMessage ?? 'Assignment could not be saved.',
-            );
-          }
         }
-      },
-      successTitle: quality
-          ? (workText(item, 'qa_user_id').isEmpty
-                ? 'QA assigned'
-                : 'QA reassigned')
-          : (existingAssignment == null
-                ? 'Supervisor assigned'
-                : 'Supervisor reassigned'),
-      successMessage:
-          '${workText(order, 'po_number')} · ${workText(item, 'item_name')}',
-    );
+      } else if (stage.departmentAssignment) {
+        final previous = workText(existingAssignment ?? const {}, 'user_id');
+        await _api.patch(
+          '/order-work/$poId/items/$itemId/assignments/${stage.staffKey}',
+          body: {
+            'user_id': assignment?.userId,
+            'previous_user_id': previous.isEmpty ? null : previous,
+          },
+        );
+      }
+      if (!mounted) return;
+      await _refresh();
+      if (!mounted) return;
+      setState(() => _pendingAssignment = null);
+      final editing = stage == _AssignmentStage.quality
+          ? workText(item, 'qa_user_id').isNotEmpty
+          : existingAssignment != null;
+      final action = assignment == null
+          ? 'unassigned'
+          : editing
+          ? 'reassigned'
+          : 'assigned';
+      _message('${stage.label} $action');
+    } catch (error) {
+      _message(error);
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
   }
 
   Future<void> _cancelAssignment(WorkRecord assignment) async {
@@ -712,7 +768,9 @@ class _OrderWorkScreenState extends State<OrderWorkScreen> {
                           bottom: const BorderSide(color: Color(0xffedf1f5)),
                         )
                       : null,
-                  onTap: () => _selectOrder(order),
+                  onTap: _planning && _saving
+                      ? null
+                      : () => _selectOrder(order),
                 );
               },
             ),
@@ -749,14 +807,18 @@ class _OrderWorkScreenState extends State<OrderWorkScreen> {
     setState(() {
       _selectedOrderId = workText(order, 'po_id');
       _selectedItemId = null;
+      _pendingAssignment = null;
       _itemQuery = '';
       _itemSearchController.clear();
     });
   }
 
   void _backToPlanningOverview() {
+    if (_saving) return;
     setState(() {
-      if (_selectedItemId != null) {
+      if (_pendingAssignment != null) {
+        _pendingAssignment = null;
+      } else if (_selectedItemId != null) {
         _selectedItemId = null;
       } else {
         _selectedOrderId = null;
@@ -787,6 +849,7 @@ class _OrderWorkScreenState extends State<OrderWorkScreen> {
         .where((item) => workText(item, 'item_id') == _selectedItemId)
         .firstOrNull;
     final number = workText(order, 'po_number');
+    final pending = _pendingAssignment;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -799,10 +862,12 @@ class _OrderWorkScreenState extends State<OrderWorkScreen> {
               alignment: WrapAlignment.spaceBetween,
               children: [
                 TextButton.icon(
-                  onPressed: _backToPlanningOverview,
+                  onPressed: _saving ? null : _backToPlanningOverview,
                   icon: const Icon(Icons.chevron_left, size: 18),
                   label: Text(
-                    item != null
+                    pending != null && item != null
+                        ? 'Back to item details'
+                        : item != null
                         ? '$number Overview'
                         : 'Purchase orders / $number',
                   ),
@@ -811,7 +876,7 @@ class _OrderWorkScreenState extends State<OrderWorkScreen> {
                   Text(
                     '${workText(item, 'item_name')} (${workText(item, 'item_id')})',
                   ),
-                if (item != null)
+                if (item != null && pending == null)
                   OutlinedButton.icon(
                     onPressed: () =>
                         _showHistory(order, item, item, quality: true),
@@ -826,7 +891,9 @@ class _OrderWorkScreenState extends State<OrderWorkScreen> {
         Expanded(
           child: item == null
               ? _planningOverview(order, items)
-              : _planningItemDetail(order, item),
+              : pending == null
+              ? _planningItemDetail(order, item)
+              : _assignmentPane(order, item, pending),
         ),
       ],
     );
@@ -1223,47 +1290,79 @@ class _OrderWorkScreenState extends State<OrderWorkScreen> {
           status: '${total - remaining} of $total cartons assigned',
           action: editable && remaining > 0
               ? OutlinedButton(
-                  onPressed: () => _assign(order, item, quality: false),
+                  onPressed: () =>
+                      _assign(order, item, stage: _AssignmentStage.supervisor),
                   child: const Text('+ Split Quantity / Add Line'),
                 )
               : null,
           child: _supervisorAssignments(order, item, assignments, editable),
           footer: Text('Remaining unassigned cartons: $remaining cartons'),
         ),
-        for (final (title, label, count) in [
-          (
-            'Packing Carton Assignments',
-            'Packed',
-            _count(item, 'packed_cartons'),
-          ),
-          (
-            'Exporter Carton Assignments',
-            'Shipped',
-            _count(item, 'shipped_cartons'),
-          ),
+        for (final stage in [
+          _AssignmentStage.packing,
+          _AssignmentStage.export,
         ]) ...[
           const SizedBox(height: 24),
-          _planningSection(
-            title: title,
-            indicator: green,
-            status: '$count of $total cartons ${label.toLowerCase()}',
-            child: _assignmentTable(
-              columns: [label, 'Remaining cartons'],
-              columnWidths: const {},
-              rows: [
-                TableRow(
-                  children: [
-                    _assignmentCell(Text('$count ctns')),
-                    _assignmentCell(
-                      Text('${(total - count).clamp(0, total)} ctns'),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
+          _departmentAssignmentSection(order, item, stage, editable),
         ],
       ],
+    );
+  }
+
+  Widget _departmentAssignmentSection(
+    WorkRecord order,
+    WorkRecord item,
+    _AssignmentStage stage,
+    bool editable,
+  ) {
+    final packing = stage == _AssignmentStage.packing;
+    final assignment = item['${stage.staffKey}_assignment'] as WorkRecord?;
+    final total = _count(item, 'cartons');
+    final count = _count(item, packing ? 'packed_cartons' : 'shipped_cartons');
+    final label = packing ? 'Packed' : 'Shipped';
+    return _planningSection(
+      title: packing
+          ? 'Packing Carton Assignments'
+          : 'Exporter Carton Assignments',
+      indicator: const Color(0xff087558),
+      status: '$count of $total cartons ${label.toLowerCase()}',
+      action: editable
+          ? OutlinedButton(
+              onPressed: () => _assign(
+                order,
+                item,
+                stage: stage,
+                existingAssignment: assignment,
+              ),
+              child: Text(
+                assignment == null
+                    ? 'Assign ${stage.label}'
+                    : 'Reassign ${stage.label}',
+              ),
+            )
+          : null,
+      child: ListTile(
+        title: Text(
+          assignment == null ? 'Unassigned' : workText(assignment, 'name'),
+        ),
+        subtitle: assignment == null
+            ? null
+            : Text(
+                'Assigned ${workDate(assignment['assigned_at'])} · $total ordered cartons',
+              ),
+        trailing: editable && assignment != null
+            ? OutlinedButton(
+                onPressed: () => _assign(
+                  order,
+                  item,
+                  stage: stage,
+                  existingAssignment: assignment,
+                  unassign: true,
+                ),
+                child: Text('Unassign ${stage.label}'),
+              )
+            : null,
+      ),
     );
   }
 
@@ -1375,6 +1474,14 @@ class _OrderWorkScreenState extends State<OrderWorkScreen> {
       Text(
         '${(fraction * 100).round()}% ready · $packed of $total cartons packed',
       ),
+      for (final item in workRecords(order['assigned_items']))
+        ListTile(
+          contentPadding: EdgeInsets.zero,
+          title: Text(workText(item, 'item_name')),
+          subtitle: Text(
+            'Assigned to you · ${_count(item, 'shipped_cartons')} of ${_count(item, 'cartons')} cartons shipped',
+          ),
+        ),
     ];
   }
 
@@ -1437,8 +1544,10 @@ class _OrderWorkScreenState extends State<OrderWorkScreen> {
           if (checked && workText(item, 'note').isNotEmpty)
             Text(workText(item, 'note')),
         ],
-        if (widget.workspace == DepartmentWorkspace.packing)
+        if (widget.workspace == DepartmentWorkspace.packing) ...[
           Text('${_count(item, 'packed_cartons')} of $cartons cartons packed'),
+          if (item['assigned_to_me'] == true) const Text('Assigned to you'),
+        ],
         if (actions.isNotEmpty) ...[
           const SizedBox(height: 12),
           Wrap(spacing: 8, runSpacing: 8, children: actions),
@@ -1483,8 +1592,11 @@ class _OrderWorkScreenState extends State<OrderWorkScreen> {
                         ? Align(
                             alignment: Alignment.centerLeft,
                             child: OutlinedButton(
-                              onPressed: () =>
-                                  _assign(order, item, quality: true),
+                              onPressed: () => _assign(
+                                order,
+                                item,
+                                stage: _AssignmentStage.quality,
+                              ),
                               child: Text(
                                 assigned ? 'Reassign QA' : 'Assign QA',
                               ),
@@ -1635,7 +1747,7 @@ class _OrderWorkScreenState extends State<OrderWorkScreen> {
                   ? () => _assign(
                       order,
                       item,
-                      quality: false,
+                      stage: _AssignmentStage.supervisor,
                       existingAssignment: assignment,
                     )
                   : null,
@@ -1879,6 +1991,33 @@ class _OrderWorkScreenState extends State<OrderWorkScreen> {
   ].where((part) => part.isNotEmpty).join(' · ');
 }
 
+enum _AssignmentStage {
+  quality('QA', 'quality'),
+  supervisor('Supervisor', 'supervisors'),
+  packing('Packing', 'packing'),
+  export('Export', 'export');
+
+  const _AssignmentStage(this.label, this.staffKey);
+
+  final String label;
+  final String staffKey;
+  bool get departmentAssignment => this == packing || this == export;
+}
+
+class _PendingAssignment {
+  const _PendingAssignment({
+    required this.stage,
+    required this.remaining,
+    required this.staff,
+    required this.existing,
+  });
+
+  final _AssignmentStage stage;
+  final int remaining;
+  final Future<List<WorkRecord>>? staff;
+  final WorkRecord? existing;
+}
+
 class _AssignmentInput {
   const _AssignmentInput(this.userId, this.cartons, this.date);
   final String userId;
@@ -1888,7 +2027,7 @@ class _AssignmentInput {
 
 class _AssignmentPage extends StatefulWidget {
   const _AssignmentPage({
-    required this.quality,
+    required this.stage,
     required this.orderNumber,
     required this.itemName,
     required this.sku,
@@ -1898,9 +2037,12 @@ class _AssignmentPage extends StatefulWidget {
     required this.initialCartons,
     required this.initialDate,
     required this.editing,
+    required this.saving,
+    required this.onCancel,
+    required this.onSave,
   });
 
-  final bool quality;
+  final _AssignmentStage stage;
   final String orderNumber;
   final String itemName;
   final String sku;
@@ -1910,6 +2052,9 @@ class _AssignmentPage extends StatefulWidget {
   final int initialCartons;
   final DateTime? initialDate;
   final bool editing;
+  final bool saving;
+  final VoidCallback onCancel;
+  final ValueChanged<_AssignmentInput> onSave;
 
   @override
   State<_AssignmentPage> createState() => _AssignmentPageState();
@@ -1923,6 +2068,9 @@ class _AssignmentPageState extends State<_AssignmentPage> {
       ? widget.currentUserId
       : null;
   late DateTime? _date = widget.initialDate;
+  DateTime? _calendarDate;
+  bool _enterDate = false;
+  final _dateForm = GlobalKey<FormState>();
 
   @override
   Widget build(BuildContext context) {
@@ -1932,15 +2080,12 @@ class _AssignmentPageState extends State<_AssignmentPage> {
       widget.sku,
     ].where((value) => value.isNotEmpty).join(' · ');
     return CpmsFormPage(
-      icon: widget.quality
+      automaticallyImplyLeading: false,
+      icon: widget.stage == _AssignmentStage.quality
           ? Icons.fact_check_outlined
           : Icons.assignment_ind_outlined,
       title: Text(
-        widget.quality
-            ? (widget.currentUserId.isEmpty ? 'Assign QA' : 'Reassign QA')
-            : widget.editing
-            ? 'Edit supervisor assignment'
-            : 'Assign supervisor',
+        '${widget.editing || widget.currentUserId.isNotEmpty ? 'Reassign' : 'Assign'} ${widget.stage.label}',
       ),
       content: Form(
         key: _form,
@@ -1967,7 +2112,7 @@ class _AssignmentPageState extends State<_AssignmentPage> {
             ),
             const SizedBox(height: 16),
             Text(
-              widget.quality ? 'Select a QA assignee' : 'Select a supervisor',
+              'Select an assignee for ${widget.stage.label}',
               style: theme.textTheme.titleSmall,
             ),
             const SizedBox(height: 8),
@@ -1993,7 +2138,7 @@ class _AssignmentPageState extends State<_AssignmentPage> {
                 },
               ),
             ),
-            if (!widget.quality) ...[
+            if (widget.stage == _AssignmentStage.supervisor) ...[
               const SizedBox(height: 14),
               TextFormField(
                 initialValue: _cartons,
@@ -2014,36 +2159,93 @@ class _AssignmentPageState extends State<_AssignmentPage> {
               ),
             ],
             const SizedBox(height: 12),
-            OutlinedButton.icon(
-              icon: const Icon(Icons.calendar_today_outlined),
-              label: Text(
-                _date == null ? 'Set due date (optional)' : workDate(_date),
+            if (!widget.stage.departmentAssignment && _calendarDate == null)
+              OutlinedButton.icon(
+                icon: const Icon(Icons.calendar_today_outlined),
+                label: Text(
+                  _date == null ? 'Set due date (optional)' : workDate(_date),
+                ),
+                onPressed: widget.saving
+                    ? null
+                    : () {
+                        final first = DateTime(2020);
+                        final last = DateTime(2100);
+                        final initial = _date ?? DateTime.now();
+                        setState(
+                          () => _calendarDate = initial.isBefore(first)
+                              ? first
+                              : initial.isAfter(last)
+                              ? last
+                              : initial,
+                        );
+                      },
+              )
+            else if (_calendarDate != null) ...[
+              SizedBox(
+                width: 360,
+                child: _enterDate
+                    ? Form(
+                        key: _dateForm,
+                        child: InputDatePickerFormField(
+                          initialDate: _calendarDate,
+                          firstDate: DateTime(2020),
+                          lastDate: DateTime(2100),
+                          onDateSaved: (date) => _calendarDate = date,
+                        ),
+                      )
+                    : CalendarDatePicker(
+                        initialDate: _calendarDate,
+                        firstDate: DateTime(2020),
+                        lastDate: DateTime(2100),
+                        onDateChanged: (date) => _calendarDate = date,
+                      ),
               ),
-              onPressed: () async {
-                final picked = await openCpmsDatePage(
-                  context: context,
-                  initialDate: _date ?? DateTime.now(),
-                  firstDate: DateTime(2020),
-                  lastDate: DateTime(2100),
-                );
-                if (picked != null && mounted) setState(() => _date = picked);
-              },
-            ),
+              Wrap(
+                spacing: 8,
+                children: [
+                  TextButton(
+                    onPressed: () => setState(() {
+                      _calendarDate = null;
+                      _enterDate = false;
+                    }),
+                    child: const Text('Cancel date selection'),
+                  ),
+                  TextButton(
+                    onPressed: () => setState(() => _enterDate = !_enterDate),
+                    child: Text(_enterDate ? 'Use calendar' : 'Enter date'),
+                  ),
+                  FilledButton(
+                    onPressed: () {
+                      if (_enterDate) {
+                        final form = _dateForm.currentState!;
+                        if (!form.validate()) return;
+                        form.save();
+                      }
+                      setState(() {
+                        _date = _calendarDate;
+                        _calendarDate = null;
+                        _enterDate = false;
+                      });
+                    },
+                    child: const Text('Select date'),
+                  ),
+                ],
+              ),
+            ],
           ],
         ),
       ),
       actions: [
         TextButton(
-          onPressed: () => Navigator.pop(context),
+          onPressed: widget.saving ? null : widget.onCancel,
           child: const Text('Cancel'),
         ),
         FilledButton(
-          onPressed: _userId == null
+          onPressed: _userId == null || widget.saving || _calendarDate != null
               ? null
               : () {
                   if (!_form.currentState!.validate()) return;
-                  Navigator.pop(
-                    context,
+                  widget.onSave(
                     _AssignmentInput(
                       _userId!,
                       int.tryParse(_cartons.trim()) ?? 0,
@@ -2051,7 +2253,7 @@ class _AssignmentPageState extends State<_AssignmentPage> {
                     ),
                   );
                 },
-          child: const Text('Save assignment'),
+          child: Text(widget.saving ? 'Saving changes…' : 'Save assignment'),
         ),
       ],
     );

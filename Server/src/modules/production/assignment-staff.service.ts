@@ -14,7 +14,7 @@ export class AssignmentStaffService {
     @InjectModel(User.name) private readonly users: Model<UserDocument>,
   ) {}
 
-  async list(tenantId: string, departmentName: 'Supervisor' | 'QC', userId?: string) {
+  async list(tenantId: string, departmentName: 'Supervisor' | 'QC' | 'Packer' | 'Export', userId?: string) {
     const departments = await this.departments.find({
       department_name: departmentName === 'QC' ? QUALITY_DEPARTMENT_NAME : departmentName,
       $or: [{ tenant_id: tenantId }, { tenant_id: null }],
@@ -39,7 +39,7 @@ export class AssignmentStaffService {
     }));
   }
 
-  async requireMember(tenantId: string, departmentName: 'Supervisor' | 'QC', userId: string) {
+  async requireMember(tenantId: string, departmentName: 'Supervisor' | 'QC' | 'Packer' | 'Export', userId: string) {
     const [member] = await this.list(tenantId, departmentName, userId);
     if (!member) throw new BadRequestException('Choose a user in the requested department in this tenant.');
     return member;
