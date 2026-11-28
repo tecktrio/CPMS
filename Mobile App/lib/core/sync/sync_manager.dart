@@ -88,6 +88,17 @@ class SyncManager {
   Stream<int> get queueCountStream => _queueCountController.stream;
   int get pendingCount => _queue.length;
 
+  bool hasPendingItemChanges(String? tenantId) => _queue.any(
+    (op) =>
+        op.tenantId == tenantId &&
+        const {
+          SyncOperationType.createItem,
+          SyncOperationType.updateItem,
+          SyncOperationType.updateItemStock,
+          SyncOperationType.deleteItem,
+        }.contains(op.type),
+  );
+
   bool hasPendingStoreRoomChanges(String? tenantId) => _queue.any(
     (op) => op.tenantId == tenantId && const {
       SyncOperationType.createStoreRoom,
@@ -132,17 +143,29 @@ class SyncManager {
   // Local Persistent Caches
   // ---------------------------------------------------------------------------
 
+  String? _inventoryCacheKey(String prefix) {
+    final tenant = _apiClient?.activeTenantId;
+    final account = _apiClient?.accountCacheKey;
+    if (tenant == null || account == null) return null;
+    return '${prefix}_${account}_${Uri.encodeComponent(tenant)}';
+  }
+
   Future<void> saveCachedItems(List<Map<String, dynamic>> rawList) async {
+    final key = _inventoryCacheKey(_kItemsCacheKey);
+    if (key == null) return;
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_kItemsCacheKey, jsonEncode(rawList));
+      await prefs.setString(key, jsonEncode(rawList));
     } catch (_) {}
   }
 
   Future<List<Map<String, dynamic>>> loadCachedItems() async {
+    final key = _inventoryCacheKey(_kItemsCacheKey);
+    if (key == null) return [];
     try {
       final prefs = await SharedPreferences.getInstance();
-      final str = prefs.getString(_kItemsCacheKey);
+      if (key != _inventoryCacheKey(_kItemsCacheKey)) return [];
+      final str = prefs.getString(key);
       if (str != null && str.isNotEmpty) {
         final decoded = jsonDecode(str);
         if (decoded is List) {
@@ -154,16 +177,21 @@ class SyncManager {
   }
 
   Future<void> saveCachedStoreRooms(List<Map<String, dynamic>> rawList) async {
+    final key = _inventoryCacheKey(_kStoreRoomsCacheKey);
+    if (key == null) return;
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_kStoreRoomsCacheKey, jsonEncode(rawList));
+      await prefs.setString(key, jsonEncode(rawList));
     } catch (_) {}
   }
 
   Future<List<Map<String, dynamic>>> loadCachedStoreRooms() async {
+    final key = _inventoryCacheKey(_kStoreRoomsCacheKey);
+    if (key == null) return [];
     try {
       final prefs = await SharedPreferences.getInstance();
-      final str = prefs.getString(_kStoreRoomsCacheKey);
+      if (key != _inventoryCacheKey(_kStoreRoomsCacheKey)) return [];
+      final str = prefs.getString(key);
       if (str != null && str.isNotEmpty) {
         final decoded = jsonDecode(str);
         if (decoded is List) {

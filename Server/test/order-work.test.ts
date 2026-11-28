@@ -1,6 +1,8 @@
 import * as assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { BadRequestException, ConflictException, ForbiddenException, NotFoundException } from '@nestjs/common';
+import { PurchaseOrderStatus } from '../src/database/schemas/purchase-order.schema';
+import { CreatePurchaseOrderDto } from '../src/modules/purchase-orders/dtos/purchase-order.dto';
 import { PurchaseOrdersService } from '../src/modules/purchase-orders/purchase-orders.service';
 import { OrderWorkController } from '../src/modules/purchase-orders/order-work.controller';
 import { ItemAssignmentStage, OrderWorkService } from '../src/modules/purchase-orders/order-work.service';
@@ -256,15 +258,24 @@ test('packing and export assignments require matching department staff and curre
     },
   } as never, null);
 
-  await service.setItemAssignment('tenant', 'manager', 'po', 'first', ItemAssignmentStage.Packing, 'packer', null);
-  await service.setItemAssignment('tenant', 'manager', 'po', 'first', ItemAssignmentStage.Export, 'exporter', null);
+  const dueDate = '2026-12-10T00:00:00.000Z';
+  await assert.rejects(
+    service.setItemAssignment('tenant', 'manager', 'po', 'first', ItemAssignmentStage.Packing, 'packer', null),
+    BadRequestException,
+  );
+  await assert.rejects(
+    service.assignQuality('tenant', 'manager', 'po', 'first', 'qa', undefined),
+    BadRequestException,
+  );
+  await service.setItemAssignment('tenant', 'manager', 'po', 'first', ItemAssignmentStage.Packing, 'packer', null, dueDate);
+  await service.setItemAssignment('tenant', 'manager', 'po', 'first', ItemAssignmentStage.Export, 'exporter', null, dueDate);
   await service.setItemAssignment('tenant', 'manager', 'po', 'first', ItemAssignmentStage.Export, null, 'exporter');
   await assert.rejects(
     service.setItemAssignment('tenant', 'manager', 'po', 'first', ItemAssignmentStage.Packing, null, 'stale'),
     ConflictException,
   );
   await assert.rejects(
-    service.setItemAssignment('tenant', 'manager', 'po', 'first', ItemAssignmentStage.Export, 'wrong-user', null),
+    service.setItemAssignment('tenant', 'manager', 'po', 'first', ItemAssignmentStage.Export, 'wrong-user', null, dueDate),
     ForbiddenException,
   );
   assert.deepEqual(staffChecks, [
@@ -276,6 +287,7 @@ test('packing and export assignments require matching department staff and curre
   assert.equal(writes[0].filter.tenant_id, 'tenant');
   assert.deepEqual(writes[0].filter.items.$elemMatch, { item_id: 'first', 'packing_assignment.user_id': null });
   assert.equal(writes[0].update.$set['items.$.packing_assignment'].user_id, 'packer');
+  assert.equal(writes[0].update.$set['items.$.packing_assignment'].target_date.toISOString(), dueDate);
   assert.equal(writes[1].update.$set['items.$.export_assignment'].user_id, 'exporter');
   assert.equal(writes[2].filter.items.$elemMatch['export_assignment.user_id'], 'exporter');
   assert.equal(writes[2].update.$set['items.$.export_assignment'], null);
@@ -453,4 +465,35 @@ test('production is handed to packing only after every assigned carton is confir
   await service.updateProgress('tenant', 'second-assignment', 'my-user', { completed_cartons: 2, mark_done: true });
   assert.equal(item.production_done, true);
   assert.equal(item.item_status, 'PRODUCED');
+});
+
+test('Sales can confirm drafts but cannot change purchase orders to other statuses', async () => {
+  let saves = 0;
+  const po = {
+    ...order,
+    status: PurchaseOrderStatus.DRAFT,
+    activity: [],
+    async save() { saves++; },
+  };
+  const service = new PurchaseOrdersService(null, null, null);
+  service.findOnePurchaseOrder = async () => po as never;
+  await assert.rejects(
+    service.createPurchaseOrder('tenant', { status: PurchaseOrderStatus.CONFIRMED } as CreatePurchaseOrderDto, 'sales', true),
+    BadRequestException,
+  );
+  await assert.rejects(
+    service.updatePurchaseOrder('tenant', 'po', { status: PurchaseOrderStatus.SHIPPED }, 'sales', true),
+    BadRequestException,
+  );
+  await service.updatePurchaseOrder('tenant', 'po', { status: PurchaseOrderStatus.CONFIRMED }, 'sales', true);
+  assert.equal(po.status, PurchaseOrderStatus.CONFIRMED);
+  await assert.rejects(
+    service.updatePurchaseOrder('tenant', 'po', { status: PurchaseOrderStatus.DRAFT }, 'sales', true),
+    BadRequestException,
+  );
+  await service.updatePurchaseOrder('tenant', 'po', { notes: 'Updated Sales notes' }, 'sales', true);
+  assert.equal(po.status, PurchaseOrderStatus.CONFIRMED);
+  assert.equal(saves, 2);
+  await service.updatePurchaseOrder('tenant', 'po', { status: PurchaseOrderStatus.SHIPPED }, 'admin');
+  assert.equal(po.status, PurchaseOrderStatus.SHIPPED);
 });

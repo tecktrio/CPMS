@@ -89,18 +89,37 @@ class EmergencyContactsProvider extends ChangeNotifier {
   }
 
   Future<void> loadContacts() async {
-    _setLoading(true);
+    _setLoading(_contacts.isEmpty);
     _errorMessage = null;
     try {
-      final res = await apiClient.get(ApiConstants.emergencyContacts);
-      if (res is List) {
-        _contacts = res
-            .map((item) =>
-                EmergencyContactModel.fromJson(item as Map<String, dynamic>))
-            .toList();
-      }
+      await apiClient.loadPage(
+        ApiConstants.emergencyContacts,
+        useCache: _contacts.isEmpty,
+        refreshGroup: 'loadContacts',
+        onAccessLost: (_) {
+          _contacts = [];
+          notifyListeners();
+        },
+        onData: (res) {
+          if (res is List) {
+            _contacts = res
+                .map(
+                  (item) => EmergencyContactModel.fromJson(
+                    item as Map<String, dynamic>,
+                  ),
+                )
+                .toList();
+          }
+          _isLoading = false;
+          notifyListeners();
+        },
+      );
       _setLoading(false);
     } catch (e) {
+      if (e is ApiException && e.invalidatesPageCache) {
+        _contacts = [];
+        notifyListeners();
+      }
       _errorMessage = e.toString();
       _setLoading(false);
     }

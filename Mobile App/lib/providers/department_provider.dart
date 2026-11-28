@@ -121,25 +121,37 @@ class DepartmentProvider extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
 
   Future<void> loadSystemPermissions() async {
-    _setLoading(true);
+    _setLoading(_systemPermissions.isEmpty);
     try {
-      final res = await apiClient.get(ApiConstants.permissions);
-      if (res is List) {
-        _systemPermissions =
-            res.map((item) => SystemPermissionModel.fromJson(item)).toList();
-
-        _permissionsByModule.clear();
-        for (final p in _systemPermissions) {
-          if (!_permissionsByModule.containsKey(p.module)) {
-            _permissionsByModule[p.module] = [];
+      await apiClient.loadPage(
+        ApiConstants.permissions,
+        useCache: _systemPermissions.isEmpty,
+        refreshGroup: 'loadSystemPermissions',
+        onAccessLost: (_) {
+          _systemPermissions = [];
+          _permissionsByModule.clear();
+          notifyListeners();
+        },
+        onData: (data) {
+          if (data is! List) return;
+          _systemPermissions = data
+              .map((item) => SystemPermissionModel.fromJson(item))
+              .toList();
+          _permissionsByModule.clear();
+          for (final permission in _systemPermissions) {
+            (_permissionsByModule[permission.module] ??= []).add(permission);
           }
-          _permissionsByModule[p.module]!.add(p);
-        }
+          _setLoading(false);
+        },
+      );
+    } catch (error) {
+      if (error is ApiException && error.invalidatesPageCache) {
+        _systemPermissions = [];
+        _permissionsByModule.clear();
       }
-      _setLoading(false);
-    } catch (e) {
-      _errorMessage = e.toString();
-      _setLoading(false);
+      _errorMessage = error.toString();
+    } finally {
+      if (_isLoading) _setLoading(false);
     }
   }
 
@@ -203,18 +215,34 @@ class DepartmentProvider extends ChangeNotifier {
   }
 
   Future<void> loadTenantUsers() async {
-    _setLoading(true);
+    _setLoading(_tenantUsers.isEmpty);
     try {
-      final res = await apiClient.get(ApiConstants.usersDirectory);
-      if (res is List) {
-        _tenantUsers =
-            res.map((item) => TenantUserModel.fromJson(item)).toList();
-      } else {
-        _tenantUsers = [];
-      }
+      await apiClient.loadPage(
+        ApiConstants.usersDirectory,
+        useCache: _tenantUsers.isEmpty,
+        refreshGroup: 'loadTenantUsers',
+        onAccessLost: (_) {
+          _tenantUsers = [];
+          notifyListeners();
+        },
+        onData: (res) {
+          if (res is List) {
+            _tenantUsers = res
+                .map((item) => TenantUserModel.fromJson(item))
+                .toList();
+          } else {
+            _tenantUsers = [];
+          }
+          _isLoading = false;
+          notifyListeners();
+        },
+      );
       _setLoading(false);
     } catch (e) {
-      _tenantUsers = [];
+      if (e is ApiException && e.invalidatesPageCache) {
+        _tenantUsers = [];
+        notifyListeners();
+      }
       _errorMessage = e.toString();
       _setLoading(false);
     }

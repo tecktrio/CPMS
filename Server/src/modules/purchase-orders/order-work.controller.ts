@@ -12,9 +12,8 @@ class AssignQualityDto {
   @IsUUID()
   user_id: string;
 
-  @IsOptional()
-  @IsDateString()
-  target_date?: string;
+  @IsDateString({ strict: true })
+  target_date: string;
 }
 
 class ItemAssignmentDto {
@@ -25,6 +24,10 @@ class ItemAssignmentDto {
   @ValidateIf((_, value) => value !== null)
   @IsUUID()
   previous_user_id: string | null;
+
+  @ValidateIf((assignment: ItemAssignmentDto, date) => assignment.user_id !== null || date !== undefined)
+  @IsDateString({ strict: true })
+  target_date?: string;
 }
 
 class CheckQualityDto {
@@ -92,7 +95,7 @@ export class OrderWorkController {
     @Param('stage', new ParseEnumPipe(ItemAssignmentStage)) stage: ItemAssignmentStage,
     @Body() dto: ItemAssignmentDto,
   ) {
-    return this.work.setItemAssignment(tenantId, userId, poId, itemId, stage, dto.user_id, dto.previous_user_id);
+    return this.work.setItemAssignment(tenantId, userId, poId, itemId, stage, dto.user_id, dto.previous_user_id, dto.target_date);
   }
 
   @Patch(':poId/items/:itemId/quality-check')

@@ -1,4 +1,4 @@
-import { IsBoolean, IsDateString, IsNotEmpty, IsInt, IsOptional, IsString, Min } from 'class-validator';
+import { IsBoolean, IsDateString, IsNotEmpty, IsInt, IsOptional, IsString, Min, ValidateIf } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateProductionAssignmentDto {
@@ -27,10 +27,9 @@ export class CreateProductionAssignmentDto {
   @IsOptional()
   notes?: string;
 
-  @ApiProperty({ description: 'Target/scheduled date for this assignment (ISO string)', required: false })
-  @IsDateString()
-  @IsOptional()
-  target_date?: string;
+  @ApiProperty({ description: 'Target/scheduled date for this assignment (ISO string)' })
+  @IsDateString({ strict: true })
+  target_date: string;
 }
 
 export class UpdateProgressDto {
@@ -62,8 +61,8 @@ export class UpdateAssignmentDto {
   notes?: string;
 
   @ApiProperty({ description: 'Updated target/scheduled date (ISO string)', required: false })
-  @IsDateString()
-  @IsOptional()
+  @ValidateIf((_, value) => value !== undefined)
+  @IsDateString({ strict: true })
   target_date?: string;
 }
 

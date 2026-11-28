@@ -40,6 +40,10 @@ export class ProductionService {
     assignedByUserId: string,
     dto: CreateProductionAssignmentDto,
   ) {
+    const dueDate = new Date(dto.target_date);
+    if (!dto.target_date || Number.isNaN(dueDate.getTime())) {
+      throw new BadRequestException('A valid due date is required for an assignment');
+    }
     const po = await this.poModel.findOne({
       tenant_id: tenantId,
       po_id: dto.po_id,
@@ -92,7 +96,7 @@ export class ProductionService {
       status: 'PENDING',
       assigned_by_user_id: assignedByUserId || supervisor.user_id,
       notes: dto.notes?.trim() || '',
-      target_date: dto.target_date ? new Date(dto.target_date) : null,
+      target_date: dueDate,
     });
 
     await newAssignment.save();
@@ -238,6 +242,13 @@ export class ProductionService {
     });
     if (!activeOrder) throw new NotFoundException('Active purchase order item not found');
 
+    const dueDate = dto.target_date === undefined ? assignment.target_date : new Date(dto.target_date);
+    if ((dto.target_date !== undefined && !dto.target_date) ||
+        ((dto.target_date !== undefined || dto.supervisor_user_id !== undefined ||
+          dto.assigned_cartons !== undefined) && (!dueDate || Number.isNaN(dueDate.getTime())))) {
+      throw new BadRequestException('A valid due date is required for an assignment');
+    }
+
     if (dto.supervisor_user_id && dto.supervisor_user_id !== assignment.supervisor_user_id) {
       if (assignment.completed_cartons > 0) {
         throw new BadRequestException('An assignment with recorded production cannot be reassigned.');
@@ -303,7 +314,7 @@ export class ProductionService {
     }
 
     if (dto.target_date !== undefined) {
-      assignment.target_date = dto.target_date ? new Date(dto.target_date) : null;
+      assignment.target_date = dueDate;
     }
 
     await assignment.save();

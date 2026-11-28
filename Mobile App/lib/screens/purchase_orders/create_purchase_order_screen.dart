@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../providers/inventory_provider.dart';
 import '../../providers/purchase_order_provider.dart';
+import '../../providers/tenant_provider.dart';
 import '../../services/purchase_order_export_service.dart';
 import 'manage_customers_modal.dart';
 import '../items/create_item_screen.dart';
@@ -1735,7 +1736,8 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
       return;
     }
 
-    final targetStatus = asDraft ? 'DRAFT' : _status;
+    final isAdmin = context.read<TenantProvider>().isTenantAdmin;
+    final targetStatus = asDraft || !isAdmin ? 'DRAFT' : _status;
 
     setState(() => _isSaving = true);
     final poProv = context.read<PurchaseOrderProvider>();
@@ -1752,7 +1754,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
         customerAddress: _selectedCustomer!.address,
         customerContact: _selectedCustomer!.contactDetails,
         items: _orderItems,
-        status: targetStatus,
+        status: isAdmin ? targetStatus : null,
         notes: _notesCtrl.text.trim(),
       );
     } else {
@@ -1774,14 +1776,15 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
     setState(() => _isSaving = false);
 
     if (ok) {
-      final successMsg = asDraft
+      final savedDraft = asDraft || (!isAdmin && widget.existingPo == null);
+      final successMsg = savedDraft
           ? 'Purchase Order saved as draft!'
           : (widget.existingPo != null
               ? 'Purchase Order updated successfully!'
               : 'Purchase Order created successfully!');
       await showSuccessScreen(
         context,
-        title: asDraft
+        title: savedDraft
             ? 'Draft saved'
             : (widget.existingPo != null
                 ? 'Purchase order updated'
@@ -1804,6 +1807,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
   @override
   Widget build(BuildContext context) {
     final isEdit = widget.existingPo != null;
+    final isAdmin = context.watch<TenantProvider>().isTenantAdmin;
     final dateFormat = DateFormat('dd/MM/yyyy');
 
     final screenWidth = MediaQuery.of(context).size.width;
@@ -2372,32 +2376,34 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
 
             const SizedBox(height: 20),
 
-            // 5. Order Status Selection
-            const Text(
-              'ORDER STATUS',
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w800,
-                color: Color(0xFF64748B),
-                letterSpacing: 0.5,
+            if (isAdmin) ...[
+              // 5. Order Status Selection
+              const Text(
+                'ORDER STATUS',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF64748B),
+                  letterSpacing: 0.5,
+                ),
               ),
-            ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                _buildStatusOption('DRAFT', 'Draft'),
-                _buildStatusOption('CONFIRMED', 'Confirmed'),
-                _buildStatusOption('IN_PRODUCTION', 'In Production'),
-                _buildStatusOption('SHIPPED', 'Shipped'),
-                _buildStatusOption('DELIVERED', 'Delivered'),
-                _buildStatusOption('CANCELLED', 'Cancelled'),
-              ],
-            ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  _buildStatusOption('DRAFT', 'Draft'),
+                  _buildStatusOption('CONFIRMED', 'Confirmed'),
+                  _buildStatusOption('IN_PRODUCTION', 'In Production'),
+                  _buildStatusOption('SHIPPED', 'Shipped'),
+                  _buildStatusOption('DELIVERED', 'Delivered'),
+                  _buildStatusOption('CANCELLED', 'Cancelled'),
+                ],
+              ),
 
-            const SizedBox(height: 20),
+              const SizedBox(height: 20),
 
+            ],
             // 6. Notes / Remarks
             const Text(
               'NOTES & PACKAGING INSTRUCTIONS (OPTIONAL)',
@@ -2454,32 +2460,34 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
             children: [
               Row(
                 children: [
-                  // Secondary Outline: Save as Draft
-                  Expanded(
-                    flex: 4,
-                    child: SizedBox(
-                      height: 48,
-                      child: OutlinedButton.icon(
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.black,
-                          side: const BorderSide(color: Color(0xFFE2E8F0)),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(6),
+                  if (isAdmin) ...[
+                    // Secondary Outline: Save as Draft
+                    Expanded(
+                      flex: 4,
+                      child: SizedBox(
+                        height: 48,
+                        child: OutlinedButton.icon(
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.black,
+                            side: const BorderSide(color: Color(0xFFE2E8F0)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(6),
+                            ),
                           ),
-                        ),
-                        onPressed: _isSaving ? null : () => _submit(asDraft: true),
-                        icon: const Icon(Icons.edit_note_outlined, size: 18),
-                        label: const Text(
-                          'Save Draft',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
+                          onPressed: _isSaving ? null : () => _submit(asDraft: true),
+                          icon: const Icon(Icons.edit_note_outlined, size: 18),
+                          label: const Text(
+                            'Save Draft',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
                         ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
+                    const SizedBox(width: 12),
+                  ],
                   // Primary Dark Green: Create or Save Changes
                   Expanded(
                     flex: 6,
@@ -2505,7 +2513,11 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                                 ),
                               )
                             : Text(
-                                isEdit ? 'Save Changes' : 'Create Purchase Order',
+                                isEdit
+                                    ? 'Save Changes'
+                                    : isAdmin
+                                    ? 'Create Purchase Order'
+                                    : 'Save Draft',
                                 style: const TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w800,

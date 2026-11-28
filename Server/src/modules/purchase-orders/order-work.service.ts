@@ -1,4 +1,4 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import {
@@ -100,6 +100,7 @@ export class OrderWorkService {
             .map((item) => ({
               item_id: item.item_id, item_name: item.item_name, cartons: item.cartons,
               packed_cartons: item.packed_cartons, shipped_cartons: item.shipped_cartons,
+              target_date: item.export_assignment?.target_date,
             })),
         };
       }
@@ -118,7 +119,7 @@ export class OrderWorkService {
           };
           if (role === 'PACKER') return {
             ...line, cartons: item.cartons, packed_cartons: item.packed_cartons,
-            assigned_to_me: true,
+            assigned_to_me: true, target_date: item.packing_assignment?.target_date,
             production_done: isItemProductionDone(
               orderAssignments.filter((assignment) => assignment.item_id === item.item_id),
             ),
@@ -177,8 +178,12 @@ export class OrderWorkService {
 
   async setItemAssignment(
     tenantId: string, actor: string, poId: string, itemId: string,
-    stage: ItemAssignmentStage, userId: string | null, previousUserId: string | null,
+    stage: ItemAssignmentStage, userId: string | null, previousUserId: string | null, targetDate?: string,
   ) {
+    const dueDate = targetDate ? new Date(targetDate) : null;
+    if (userId && (!dueDate || Number.isNaN(dueDate.getTime()))) {
+      throw new BadRequestException('A valid due date is required for an assignment');
+    }
     const field = stage === ItemAssignmentStage.Packing ? 'packing_assignment' : 'export_assignment';
     const department = stage === ItemAssignmentStage.Packing ? 'Packer' : 'Export';
     const member = userId ? await this.staff.requireMember(tenantId, department, userId) : null;
@@ -190,7 +195,7 @@ export class OrderWorkService {
       items: { $elemMatch: { item_id: itemId, [`${field}.user_id`]: previousUserId } },
     }, {
       $set: {
-        [`items.$.${field}`]: member ? { user_id: member.user_id, name: member.name, assigned_at: now } : null,
+        [`items.$.${field}`]: member ? { user_id: member.user_id, name: member.name, assigned_at: now, target_date: dueDate } : null,
       },
       $inc: { __v: 1 },
       $push: { activity: {
@@ -207,7 +212,11 @@ export class OrderWorkService {
     return { success: true };
   }
 
-  async assignQuality(tenantId: string, actor: string, poId: string, itemId: string, userId: string, targetDate?: string) {
+  async assignQuality(tenantId: string, actor: string, poId: string, itemId: string, userId: string, targetDate: string) {
+    const dueDate = new Date(targetDate);
+    if (!targetDate || Number.isNaN(dueDate.getTime())) {
+      throw new BadRequestException('A valid due date is required for an assignment');
+    }
     const member = await this.staff.requireMember(tenantId, 'QC', userId);
     const updated = await this.orders.updateOne({
       tenant_id: tenantId, po_id: poId, status: { $in: activeStatuses },
@@ -215,7 +224,7 @@ export class OrderWorkService {
     }, {
       $set: {
         'items.$.qa_user_id': userId,
-        'items.$.qa_target_date': targetDate ? new Date(targetDate) : null,
+        'items.$.qa_target_date': dueDate,
       },
       $inc: { __v: 1 },
       $push: { activity: {

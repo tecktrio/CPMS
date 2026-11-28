@@ -102,27 +102,53 @@ class AuthProvider extends ChangeNotifier {
   Future<void> initSession() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final savedToken = prefs.getString('cpms_auth_token') ?? prefs.getString('cims_auth_token');
-      if (savedToken != null && savedToken.isNotEmpty) {
-        _token = savedToken;
-        apiClient.setAuthToken(savedToken);
-        try {
-          final profileRes = await apiClient.get(ApiConstants.userProfile);
-          if (profileRes is Map<String, dynamic>) {
-            _user = AuthUser.fromJson(profileRes);
-          }
-          final tenantsRes = await apiClient.get(ApiConstants.tenants);
-          if (tenantsRes is List) {
-            _availableTenants = tenantsRes
-                .map((item) => TenantOption.fromJson(item))
-                .toList();
-          }
-        } catch (_) {
-          _token = null;
-          apiClient.setAuthToken(null);
-          await prefs.remove('cpms_auth_token');
-          await prefs.remove('cims_auth_token');
+      final savedToken =
+          prefs.getString('cpms_auth_token') ??
+          prefs.getString('cims_auth_token');
+      if (savedToken == null || savedToken.isEmpty) return;
+      _token = savedToken;
+      apiClient.setAuthToken(savedToken);
+      var hasTenants = false;
+      void publish() {
+        if (_token == savedToken && _user != null && hasTenants) {
+          _isInitializing = false;
+          notifyListeners();
         }
+      }
+
+      try {
+        await Future.wait([
+          apiClient.loadPage(
+            ApiConstants.userProfile,
+            accountWide: true,
+            onData: (data) {
+              if (_token == savedToken && data is Map<String, dynamic>) {
+                _user = AuthUser.fromJson(data);
+                publish();
+              }
+            },
+          ),
+          apiClient.loadPage(
+            ApiConstants.tenants,
+            accountWide: true,
+            onData: (data) {
+              if (_token == savedToken && data is List) {
+                _availableTenants = data
+                    .map((item) => TenantOption.fromJson(item))
+                    .toList();
+                hasTenants = true;
+                publish();
+              }
+            },
+          ),
+        ]);
+      } on ApiException catch (error) {
+        if (_token == savedToken &&
+            (error.statusCode == 401 || error.statusCode == 403)) {
+          await signOut();
+        }
+      } catch (_) {
+        // Keep the saved session during a temporary network failure.
       }
     } finally {
       _isInitializing = false;
@@ -195,6 +221,20 @@ class AuthProvider extends ChangeNotifier {
         final prefs = await SharedPreferences.getInstance();
         if (_token != null) {
           await prefs.setString('cpms_auth_token', _token!);
+          if (res['user'] is Map) {
+            await apiClient.storePage(
+              ApiConstants.userProfile,
+              res['user'],
+              accountWide: true,
+            );
+          }
+          if (res['available_tenants'] is List) {
+            await apiClient.storePage(
+              ApiConstants.tenants,
+              res['available_tenants'],
+              accountWide: true,
+            );
+          }
         }
       }
 
@@ -249,6 +289,20 @@ class AuthProvider extends ChangeNotifier {
         final prefs = await SharedPreferences.getInstance();
         if (_token != null) {
           await prefs.setString('cpms_auth_token', _token!);
+          if (res['user'] is Map) {
+            await apiClient.storePage(
+              ApiConstants.userProfile,
+              res['user'],
+              accountWide: true,
+            );
+          }
+          if (res['available_tenants'] is List) {
+            await apiClient.storePage(
+              ApiConstants.tenants,
+              res['available_tenants'],
+              accountWide: true,
+            );
+          }
         }
       }
 

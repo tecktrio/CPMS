@@ -778,15 +778,20 @@ class InventoryProvider extends ChangeNotifier {
   // ---------------------------------------------------------------------------
 
   Future<void> _restoreLocalCache() async {
+    final tenantId = apiClient.activeTenantId;
+    final token = apiClient.authToken;
+    bool isCurrent() =>
+        tenantId == apiClient.activeTenantId && token == apiClient.authToken;
     final cachedRooms = await syncManager.loadCachedStoreRooms();
-    if (cachedRooms.isNotEmpty && _storeRooms.isEmpty) {
-      _storeRooms =
-          cachedRooms.map((json) => StoreRoomModel.fromJson(json)).toList();
+    if (isCurrent() && cachedRooms.isNotEmpty && _storeRooms.isEmpty) {
+      _storeRooms = cachedRooms
+          .map((json) => StoreRoomModel.fromJson(json))
+          .toList();
       notifyListeners();
     }
 
     final cachedItems = await syncManager.loadCachedItems();
-    if (cachedItems.isNotEmpty && _items.isEmpty) {
+    if (isCurrent() && cachedItems.isNotEmpty && _items.isEmpty) {
       _items = cachedItems.map((json) => ItemModel.fromJson(json)).toList();
       notifyListeners();
     }
@@ -805,15 +810,22 @@ class InventoryProvider extends ChangeNotifier {
   // ---------------------------------------------------------------------------
 
   Future<void> loadStoreRooms({bool silent = false}) async {
+    if (_storeRooms.isEmpty) await _restoreLocalCache();
     if (!silent && _storeRooms.isEmpty) {
       _setLoading(true);
     }
     final tenantId = apiClient.activeTenantId;
+    final token = apiClient.authToken;
     final hadPendingChanges = syncManager.hasPendingStoreRoomChanges(tenantId);
     try {
-      final res = await apiClient.get(ApiConstants.storeRooms);
-      if (res is List && tenantId == apiClient.activeTenantId &&
-          !hadPendingChanges && !syncManager.hasPendingStoreRoomChanges(tenantId)) {
+      final res = await apiClient
+          .get(ApiConstants.storeRooms)
+          .timeout(const Duration(seconds: 12));
+      if (res is List &&
+          tenantId == apiClient.activeTenantId &&
+          token == apiClient.authToken &&
+          !hadPendingChanges &&
+          !syncManager.hasPendingStoreRoomChanges(tenantId)) {
         _storeRooms = res.map((item) => StoreRoomModel.fromJson(item)).toList();
         _persistStoreRoomsLocally();
       }
@@ -995,12 +1007,22 @@ class InventoryProvider extends ChangeNotifier {
   // ---------------------------------------------------------------------------
 
   Future<void> loadItems({bool silent = false}) async {
+    if (_items.isEmpty) await _restoreLocalCache();
     if (!silent && _items.isEmpty) {
       _setLoading(true);
     }
+    final tenantId = apiClient.activeTenantId;
+    final token = apiClient.authToken;
+    final hadPendingChanges = syncManager.hasPendingItemChanges(tenantId);
     try {
-      final res = await apiClient.get(ApiConstants.items);
-      if (res is List) {
+      final res = await apiClient
+          .get(ApiConstants.items)
+          .timeout(const Duration(seconds: 12));
+      if (res is List &&
+          tenantId == apiClient.activeTenantId &&
+          token == apiClient.authToken &&
+          !hadPendingChanges &&
+          !syncManager.hasPendingItemChanges(tenantId)) {
         _items = res.map((item) => ItemModel.fromJson(item)).toList();
         _persistItemsLocally();
       }
@@ -1248,13 +1270,28 @@ class InventoryProvider extends ChangeNotifier {
 
   Future<void> loadItemCategories({bool silent = false}) async {
     try {
-      final res = await apiClient.get(ApiConstants.itemCategories);
-      if (res is List) {
-        _itemCategories =
-            res.map((item) => ItemCategoryModel.fromJson(item)).toList();
+      await apiClient.loadPage(
+        ApiConstants.itemCategories,
+        useCache: _itemCategories.isEmpty,
+        refreshGroup: 'loadItemCategories',
+        onAccessLost: (_) {
+          _itemCategories = [];
+          notifyListeners();
+        },
+        onData: (res) {
+          if (res is List) {
+            _itemCategories = res
+                .map((item) => ItemCategoryModel.fromJson(item))
+                .toList();
+            notifyListeners();
+          }
+        },
+      );
+    } catch (e) {
+      if (e is ApiException && e.invalidatesPageCache) {
+        _itemCategories = [];
         notifyListeners();
       }
-    } catch (e) {
       _errorMessage = e.toString();
     }
   }
@@ -1346,13 +1383,28 @@ class InventoryProvider extends ChangeNotifier {
 
   Future<void> loadPackagingMaterials({bool silent = false}) async {
     try {
-      final res = await apiClient.get(ApiConstants.packagingMaterials);
-      if (res is List) {
-        _packagingMaterials =
-            res.map((item) => PackagingMaterialModel.fromJson(item)).toList();
+      await apiClient.loadPage(
+        ApiConstants.packagingMaterials,
+        useCache: _packagingMaterials.isEmpty,
+        refreshGroup: 'loadPackagingMaterials',
+        onAccessLost: (_) {
+          _packagingMaterials = [];
+          notifyListeners();
+        },
+        onData: (res) {
+          if (res is List) {
+            _packagingMaterials = res
+                .map((item) => PackagingMaterialModel.fromJson(item))
+                .toList();
+            notifyListeners();
+          }
+        },
+      );
+    } catch (e) {
+      if (e is ApiException && e.invalidatesPageCache) {
+        _packagingMaterials = [];
         notifyListeners();
       }
-    } catch (e) {
       _errorMessage = e.toString();
     }
   }
@@ -1714,26 +1766,51 @@ class InventoryProvider extends ChangeNotifier {
 
   Future<void> loadStockBatches() async {
     try {
-      final res = await apiClient.get(ApiConstants.stockBatches);
-      if (res is List) {
-        _stockBatches =
-            res.map((item) => StockBatchModel.fromJson(item)).toList();
+      await apiClient.loadPage(
+        ApiConstants.stockBatches,
+        useCache: _stockBatches.isEmpty,
+        refreshGroup: 'loadStockBatches',
+        onAccessLost: (_) {
+          _stockBatches = [];
+          notifyListeners();
+        },
+        onData: (res) {
+          if (res is List) {
+            _stockBatches = res
+                .map((item) => StockBatchModel.fromJson(item))
+                .toList();
+            notifyListeners();
+          }
+        },
+      );
+    } catch (e) {
+      if (e is ApiException && e.invalidatesPageCache) {
+        _stockBatches = [];
         notifyListeners();
       }
-    } catch (e) {
       _errorMessage = e.toString();
     }
   }
 
   Future<void> loadExpiringSoon([int days = 7]) async {
     try {
-      final res =
-          await apiClient.get('${ApiConstants.expiringSoonBatches}?days=$days');
-      if (res is List) {
-        _expiringSoonBatches =
-            res.map((item) => StockBatchModel.fromJson(item)).toList();
-        notifyListeners();
-      }
+      await apiClient.loadPage(
+        '${ApiConstants.expiringSoonBatches}?days=$days',
+        useCache: _expiringSoonBatches.isEmpty,
+        refreshGroup: 'loadExpiringSoon',
+        onAccessLost: (_) {
+          _expiringSoonBatches = [];
+          notifyListeners();
+        },
+        onData: (res) {
+          if (res is List) {
+            _expiringSoonBatches = res
+                .map((item) => StockBatchModel.fromJson(item))
+                .toList();
+            notifyListeners();
+          }
+        },
+      );
     } catch (_) {}
   }
 

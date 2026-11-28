@@ -125,7 +125,11 @@ export class PurchaseOrdersService {
 
   // ===================== PURCHASE ORDERS =====================
 
-  async createPurchaseOrder(tenantId: string, dto: CreatePurchaseOrderDto, userId: string) {
+  async createPurchaseOrder(tenantId: string, dto: CreatePurchaseOrderDto, userId: string, salesOnly = false) {
+    if (salesOnly && dto.status !== undefined && dto.status !== PurchaseOrderStatus.DRAFT) {
+      throw new BadRequestException('Sales must create purchase orders as drafts');
+    }
+
     const poNum = dto.po_number.trim().toUpperCase();
 
     const existing = await this.poModel.findOne({
@@ -242,8 +246,14 @@ export class PurchaseOrdersService {
     poId: string,
     dto: UpdatePurchaseOrderDto,
     userId: string,
+    salesOnly = false,
   ) {
     const po = await this.findOnePurchaseOrder(tenantId, poId);
+
+    if (salesOnly && dto.status !== undefined && dto.status !== po.status &&
+        (po.status !== PurchaseOrderStatus.DRAFT || dto.status !== PurchaseOrderStatus.CONFIRMED)) {
+      throw new BadRequestException('Sales can only confirm a draft purchase order');
+    }
 
     if (dto.po_number && dto.po_number.trim().toUpperCase() !== po.po_number) {
       const normalized = dto.po_number.trim().toUpperCase();

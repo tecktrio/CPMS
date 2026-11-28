@@ -60,6 +60,9 @@ export class ItemDepartmentAssignment {
 
   @Prop({ type: Date, required: true })
   assigned_at: Date;
+
+  @Prop({ type: Date })
+  target_date?: Date;
 }
 
 const ItemDepartmentAssignmentSchema = SchemaFactory.createForClass(ItemDepartmentAssignment);

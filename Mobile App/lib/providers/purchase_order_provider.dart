@@ -276,14 +276,30 @@ class PurchaseOrderProvider with ChangeNotifier {
 
   Future<void> loadCustomers() async {
     try {
-      final res = await apiClient.get(ApiConstants.customers);
-      if (res is List) {
-        _customers = res
-            .map((c) => CustomerModel.fromJson(Map<String, dynamic>.from(c)))
-            .toList();
+      await apiClient.loadPage(
+        ApiConstants.customers,
+        useCache: _customers.isEmpty,
+        refreshGroup: 'loadCustomers',
+        onAccessLost: (_) {
+          _customers = [];
+          notifyListeners();
+        },
+        onData: (res) {
+          if (res is List) {
+            _customers = res
+                .map(
+                  (c) => CustomerModel.fromJson(Map<String, dynamic>.from(c)),
+                )
+                .toList();
+            notifyListeners();
+          }
+        },
+      );
+    } catch (e) {
+      if (e is ApiException && e.invalidatesPageCache) {
+        _customers = [];
         notifyListeners();
       }
-    } catch (e) {
       debugPrint('Failed to load customers: $e');
     }
   }
@@ -366,18 +382,38 @@ class PurchaseOrderProvider with ChangeNotifier {
   // ===================== PURCHASE ORDERS =====================
 
   Future<void> loadPurchaseOrders() async {
-    _isLoading = true;
+    _isLoading = _purchaseOrders.isEmpty;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      final res = await apiClient.get(ApiConstants.purchaseOrders);
-      if (res is List) {
-        _purchaseOrders = res
-            .map((po) => PurchaseOrderModel.fromJson(Map<String, dynamic>.from(po)))
-            .toList();
-      }
+      await apiClient.loadPage(
+        ApiConstants.purchaseOrders,
+        useCache: _purchaseOrders.isEmpty,
+        refreshGroup: 'loadPurchaseOrders',
+        onAccessLost: (_) {
+          _purchaseOrders = [];
+          notifyListeners();
+        },
+        onData: (res) {
+          if (res is List) {
+            _purchaseOrders = res
+                .map(
+                  (po) => PurchaseOrderModel.fromJson(
+                    Map<String, dynamic>.from(po),
+                  ),
+                )
+                .toList();
+          }
+          _isLoading = false;
+          notifyListeners();
+        },
+      );
     } catch (e) {
+      if (e is ApiException && e.invalidatesPageCache) {
+        _purchaseOrders = [];
+        notifyListeners();
+      }
       _errorMessage = e.toString();
       debugPrint('Error loading purchase orders: $e');
     } finally {

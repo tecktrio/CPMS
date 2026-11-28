@@ -1,8 +1,11 @@
 import 'package:cpms_mobile/widgets/cpms_form_page.dart';
+import 'package:cpms_mobile/widgets/cpms_bottom_nav_bar.dart';
 
 import 'dart:async';
 
 import 'package:cpms_mobile/providers/department_provider.dart';
+import 'package:cpms_mobile/providers/emergency_contacts_provider.dart';
+import 'package:cpms_mobile/screens/dashboard/dashboard_screen.dart';
 import 'package:cpms_mobile/providers/production_provider.dart';
 import 'package:cpms_mobile/screens/purchase_orders/purchase_order_detail_screen.dart';
 import 'package:cpms_mobile/providers/auth_provider.dart';
@@ -22,6 +25,98 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  testWidgets('Settings uses two columns on tablets and desktop', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+    tester.view.physicalSize = const Size(1240, 1000);
+    final client = _WorkClient();
+    final tenant = _SettingsTenant(client);
+    await tester.pumpWidget(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider<TenantProvider>.value(value: tenant),
+          ChangeNotifierProvider<AuthProvider>(
+            create: (_) => _SettingsAuth(apiClient: client),
+          ),
+          ChangeNotifierProvider<InventoryProvider>(
+            create: (_) => _WorkspaceInventory(apiClient: client),
+          ),
+          ChangeNotifierProvider(
+            create: (_) => DepartmentProvider(apiClient: client),
+          ),
+          ChangeNotifierProvider(
+            create: (_) => PurchaseOrderProvider(apiClient: client),
+          ),
+          ChangeNotifierProvider(
+            create: (_) => EmergencyContactsProvider(apiClient: client),
+          ),
+        ],
+        child: const MaterialApp(home: DashboardScreen(initialNavIndex: 3)),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final nav = find.byType(CpmsBottomNavBar);
+    final settingsTab = find.descendant(
+      of: nav,
+      matching: find.text('Settings'),
+    );
+    final productionTab = find.descendant(
+      of: nav,
+      matching: find.text('Production'),
+    );
+    expect(settingsTab, findsOneWidget);
+    final settingsNavSize = tester.getSize(nav);
+    await tester.tap(productionTab);
+    await tester.pumpAndSettle();
+    expect(tester.widget<CpmsBottomNavBar>(nav).currentIndex, 2);
+    expect(tester.getSize(nav), settingsNavSize);
+    expect(settingsTab, findsOneWidget);
+    await tester.tap(settingsTab);
+    await tester.pumpAndSettle();
+    expect(tester.widget<CpmsBottomNavBar>(nav).currentIndex, 3);
+
+    final personal = find.text('PERSONAL DETAILS');
+    final corporate = find.text('CORPORATE CREDENTIALS');
+    final upload = find.text('Upload photo');
+    final name = find.text('Production User');
+
+    for (final width in [1240.0, 768.0]) {
+      tester.view.physicalSize = Size(width, 1000);
+      await tester.pumpAndSettle();
+      expect(
+        tester.getTopLeft(corporate).dx,
+        greaterThan(tester.getTopLeft(personal).dx),
+      );
+      expect(
+        tester.getTopLeft(corporate).dy,
+        lessThan(tester.getTopLeft(personal).dy),
+      );
+      expect(settingsTab, findsOneWidget);
+      expect(tester.takeException(), isNull);
+      if (width == 1240) {
+        expect(
+          tester.getTopLeft(upload).dx,
+          greaterThan(tester.getTopRight(name).dx),
+        );
+      }
+    }
+
+    tester.view.physicalSize = const Size(390, 1500);
+    await tester.pumpAndSettle();
+    expect(
+      tester.getTopLeft(corporate).dx,
+      closeTo(tester.getTopLeft(personal).dx + 20, 2),
+    );
+    expect(
+      tester.getTopLeft(corporate).dy,
+      greaterThan(tester.getTopLeft(personal).dy),
+    );
+    expect(tester.takeException(), isNull);
+  });
+
   final cases = [
     (
       'Administrator',
@@ -211,6 +306,11 @@ void main() {
       expect(second, findsOneWidget);
       final planning = workspace == DepartmentWorkspace.productionManager;
       if (planning) {
+        expect(find.text('QA INSPECTION'), findsOneWidget);
+        expect(find.text('50%'), findsOneWidget);
+        expect(find.text('1 of 2 checked'), findsOneWidget);
+        expect(find.byTooltip('Additional line waiting'), findsOneWidget);
+        expect(find.text('20%'), findsOneWidget);
         expect(find.text('QA Inspection Assignment'), findsNothing);
         expect(find.text('Additional line'), findsOneWidget);
         final search = find.byType(TextField).last;
@@ -250,6 +350,14 @@ void main() {
           find.ancestor(of: action, matching: find.byType(AppBar)),
           findsOneWidget,
         );
+        expect(find.byType(DropdownButtonFormField<String>), findsNothing);
+        final confirmPo = find.widgetWithText(FilledButton, 'Confirm PO');
+        expect(confirmPo, findsOneWidget);
+        await tester.tap(confirmPo);
+        await tester.pumpAndSettle();
+        expect(client.lastPut, '/purchase-orders/order-124');
+        expect(client.putBody, {'status': 'CONFIRMED'});
+        expect(confirmPo, findsNothing);
       } else if (!planning) {
         final item = find.text('Private line');
 
@@ -396,7 +504,7 @@ void main() {
               .selected,
           isFalse,
         );
-        await tester.tap(find.text('Set due date (optional)'));
+        await tester.tap(find.text('Set due date (required)'));
         await tester.pumpAndSettle();
         expect(find.byType(CalendarDatePicker), findsOneWidget);
         expect(find.byType(AlertDialog), findsNothing);
@@ -406,6 +514,14 @@ void main() {
         await tester.tap(cancelDate);
         await tester.pumpAndSettle();
         expect(find.text('QA Tester'), findsOneWidget);
+        expect(tester.widget<FilledButton>(save).onPressed, isNull);
+        await tester.tap(find.text('Set due date (required)'));
+        await tester.pumpAndSettle();
+        final selectDate = find.text('Select date');
+        await tester.ensureVisible(selectDate);
+        await tester.tap(selectDate);
+        await tester.pumpAndSettle();
+
         final saveResponse = Completer<void>();
         client.saveResponse = saveResponse.future;
         await tester.ensureVisible(save);
@@ -421,7 +537,8 @@ void main() {
           client.lastPatch,
           '/order-work/order-124/items/item-126/quality-assignment',
         );
-        expect(client.patchBody, {'user_id': 'qa-1'});
+        expect((client.patchBody as Map)['user_id'], 'qa-1');
+        expect((client.patchBody as Map)['target_date'], isA<String>());
         expect(find.text('QA assigned'), findsOneWidget);
         final reassign = find.widgetWithText(OutlinedButton, 'Reassign QA');
         expect(reassign, findsOneWidget);
@@ -459,13 +576,23 @@ void main() {
           expect(find.text(otherPerson), findsNothing);
           await tester.tap(find.text(person));
           await tester.pumpAndSettle();
+          final saveDepartment = find.widgetWithText(
+            FilledButton,
+            'Save assignment',
+          );
+          expect(tester.widget<FilledButton>(saveDepartment).onPressed, isNull);
+          await tester.tap(find.text('Set due date (required)'));
+          await tester.pumpAndSettle();
+          await tester.ensureVisible(selectDate);
+          await tester.tap(selectDate);
+          await tester.pumpAndSettle();
+          await tester.ensureVisible(saveDepartment);
           await tester.tap(find.text('Save assignment'));
           await tester.pumpAndSettle();
           expect(client.lastPatch, endpoint);
-          expect(client.patchBody, {
-            'user_id': userId,
-            'previous_user_id': null,
-          });
+          expect(client.patchBody, containsPair('user_id', userId));
+          expect(client.patchBody, containsPair('previous_user_id', null));
+          expect((client.patchBody as Map)['target_date'], isA<String>());
           final unassign = find.widgetWithText(
             OutlinedButton,
             'Unassign $label',
@@ -805,6 +932,28 @@ class _WorkspaceTenant extends TenantProvider {
   bool hasPermission(String permissionId) => permissions.contains(permissionId);
 }
 
+class _SettingsTenant extends _WorkspaceTenant {
+  _SettingsTenant(ApiClient client) : super(client, 'Production Manager', {});
+
+  @override
+  bool get hasLoadedPermissions => true;
+
+  @override
+  Future<void> loadTenantPermissions() async {}
+}
+
+class _SettingsAuth extends AuthProvider {
+  _SettingsAuth({required super.apiClient});
+
+  @override
+  final user = AuthUser(
+    userId: 'settings-user',
+    userName: 'production',
+    fullName: 'Production User',
+    emailAddress: 'production@example.com',
+  );
+}
+
 class _WorkClient extends ApiClient {
   _WorkClient({
     this.includeSecondOrder = false,
@@ -814,6 +963,8 @@ class _WorkClient extends ApiClient {
   final bool includeSecondOrder;
   final bool includeExportAssignments;
   String? lastGet;
+  String? lastPut;
+  Object? putBody;
   String? lastPatch;
   Object? patchBody;
   Future<Map<String, dynamic>>? staffResponse;
@@ -821,6 +972,18 @@ class _WorkClient extends ApiClient {
   bool productionDone = true;
   int staffRequests = 0;
   final itemAssignments = <String, Map<String, dynamic>>{};
+
+  @override
+  Future<dynamic> put(
+    String endpoint, {
+    dynamic body,
+    Map<String, String>? headers,
+  }) async {
+    lastPut = endpoint;
+    putBody = body;
+    final orders = await get('/purchase-orders') as List;
+    return {...orders.first as Map<String, dynamic>, 'status': body['status']};
+  }
 
   @override
   Future<dynamic> patch(
@@ -841,6 +1004,7 @@ class _WorkClient extends ApiClient {
           'user_id': userId,
           'name': stage == 'packing' ? 'Packing Tester' : 'Export Tester',
           'assigned_at': '2026-11-28',
+          'target_date': body['target_date'],
         };
       }
     }
@@ -959,6 +1123,7 @@ class _WorkClient extends ApiClient {
                   '/order-work/order-124/items/item-126/quality-assignment') ...{
                 'qa_user_id': 'qa-1',
                 'qa_assignee': 'QA Tester',
+                'target_date': (patchBody as Map)['target_date'],
               },
             },
         ],

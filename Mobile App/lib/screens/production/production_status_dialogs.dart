@@ -70,7 +70,7 @@ class ProductionStatusDialogs {
     final initialRemaining = item.cartons - initialAssigned;
     int assignedQty = initialRemaining > 0 ? initialRemaining : 0;
     final notesController = TextEditingController();
-    DateTime selectedTargetDate = po.expectedShippingDate ?? DateTime.now();
+    DateTime? selectedTargetDate = po.expectedShippingDate;
     final dateFmt = DateFormat('dd/MM/yyyy');
 
     openCpmsPage(
@@ -333,7 +333,7 @@ class ProductionStatusDialogs {
                   onChanged: (val) => setDialogState(() => assignedQty = val),
                 ),
                 const SizedBox(height: 14),
-                const Text('Target / Assigned Date',
+                const Text('Due date (required)',
                     style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
@@ -371,7 +371,7 @@ class ProductionStatusDialogs {
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            dateFmt.format(selectedTargetDate),
+                            selectedTargetDate == null ? 'Select due date' : dateFmt.format(selectedTargetDate!),
                             style: const TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w700,
@@ -450,7 +450,7 @@ class ProductionStatusDialogs {
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(6)),
               ),
-              onPressed: !canAssignMore
+              onPressed: !canAssignMore || selectedTargetDate == null
                   ? null
                   : () async {
                       final qty = assignedQty;
@@ -622,7 +622,7 @@ class ProductionStatusDialogs {
         assignment.completedCartons > 0 ? assignment.completedCartons : 1;
     int editedQty = assignment.assignedCartons.clamp(minAllowed, maxAllowedCartons);
     final notesCtrl = TextEditingController(text: assignment.notes);
-    DateTime editedDate = assignment.targetDate ?? DateTime.now();
+    DateTime? editedDate = assignment.targetDate;
     final dateFmt = DateFormat('dd/MM/yyyy');
 
     await openCpmsPage(
@@ -695,7 +695,7 @@ class ProductionStatusDialogs {
                   onChanged: (val) => setDlgState(() => editedQty = val),
                 ),
                 const SizedBox(height: 12),
-                const Text('Target / Assigned Date',
+                const Text('Due date (required)',
                     style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
                 const SizedBox(height: 6),
                 InkWell(
@@ -725,7 +725,7 @@ class ProductionStatusDialogs {
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            dateFmt.format(editedDate),
+                            editedDate == null ? 'Select due date' : dateFmt.format(editedDate!),
                             style: const TextStyle(
                                 fontSize: 13, fontWeight: FontWeight.w700),
                           ),
@@ -762,7 +762,7 @@ class ProductionStatusDialogs {
                 backgroundColor: Colors.black,
                 foregroundColor: Colors.white,
               ),
-              onPressed: () async {
+              onPressed: editedDate == null ? null : () async {
                 final newQty = editedQty;
                 if (newQty < minAllowed || newQty > maxAllowedCartons) {
                   ScaffoldMessenger.of(context).showSnackBar(

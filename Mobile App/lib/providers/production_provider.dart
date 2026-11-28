@@ -36,33 +36,69 @@ class ProductionProvider extends ChangeNotifier {
 
   Future<void> loadAllAssignments() async {
     try {
-      final res = await apiClient.get(ApiConstants.productionAssignments);
-      if (res is List) {
-        _allAssignments = res
-            .map((e) =>
-                ProductionAssignmentModel.fromJson(Map<String, dynamic>.from(e)))
-            .toList();
+      await apiClient.loadPage(
+        ApiConstants.productionAssignments,
+        useCache: _allAssignments.isEmpty,
+        refreshGroup: 'loadAllAssignments',
+        onAccessLost: (_) {
+          _allAssignments = [];
+          notifyListeners();
+        },
+        onData: (res) {
+          if (res is List) {
+            _allAssignments = res
+                .map(
+                  (e) => ProductionAssignmentModel.fromJson(
+                    Map<String, dynamic>.from(e),
+                  ),
+                )
+                .toList();
+            notifyListeners();
+          }
+        },
+      );
+    } catch (e) {
+      if (e is ApiException && e.invalidatesPageCache) {
+        _allAssignments = [];
         notifyListeners();
       }
-    } catch (e) {
       debugPrint('Error loading all assignments: $e');
     }
   }
 
   Future<void> loadMyAssignments() async {
-    _isLoading = true;
+    _isLoading = _myAssignments.isEmpty;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      final res = await apiClient.get(ApiConstants.productionAssignmentsMy);
-      if (res is List) {
-        _myAssignments = res
-            .map((e) =>
-                ProductionAssignmentModel.fromJson(Map<String, dynamic>.from(e)))
-            .toList();
-      }
+      await apiClient.loadPage(
+        ApiConstants.productionAssignmentsMy,
+        useCache: _myAssignments.isEmpty,
+        refreshGroup: 'loadMyAssignments',
+        onAccessLost: (_) {
+          _myAssignments = [];
+          notifyListeners();
+        },
+        onData: (res) {
+          if (res is List) {
+            _myAssignments = res
+                .map(
+                  (e) => ProductionAssignmentModel.fromJson(
+                    Map<String, dynamic>.from(e),
+                  ),
+                )
+                .toList();
+          }
+          _isLoading = false;
+          notifyListeners();
+        },
+      );
     } catch (e) {
+      if (e is ApiException && e.invalidatesPageCache) {
+        _myAssignments = [];
+        notifyListeners();
+      }
       _errorMessage = e.toString();
       debugPrint('Error loading my assignments: $e');
     } finally {
@@ -77,13 +113,27 @@ class ProductionProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final res = await apiClient.get(ApiConstants.productionAssignmentsByPo(poId));
-      if (res is List) {
-        _poAssignments = res
-            .map((e) =>
-                ProductionAssignmentModel.fromJson(Map<String, dynamic>.from(e)))
-            .toList();
-      }
+      await apiClient.loadPage(
+        ApiConstants.productionAssignmentsByPo(poId),
+        refreshGroup: 'loadAssignmentsByPo',
+        onAccessLost: (_) {
+          _poAssignments = [];
+          notifyListeners();
+        },
+        onData: (res) {
+          if (res is List) {
+            _poAssignments = res
+                .map(
+                  (e) => ProductionAssignmentModel.fromJson(
+                    Map<String, dynamic>.from(e),
+                  ),
+                )
+                .toList();
+          }
+          _isLoading = false;
+          notifyListeners();
+        },
+      );
     } catch (e) {
       _errorMessage = e.toString();
       debugPrint('Error loading PO assignments: $e');
@@ -242,13 +292,24 @@ class ProductionProvider extends ChangeNotifier {
   // QC Reports Operations
   Future<void> loadQcReportsByPo(String poId) async {
     try {
-      final res = await apiClient.get(ApiConstants.qcReportsByPo(poId));
-      if (res is List) {
-        _poQcReports = res
-            .map((e) => QcReportModel.fromJson(Map<String, dynamic>.from(e)))
-            .toList();
-        notifyListeners();
-      }
+      await apiClient.loadPage(
+        ApiConstants.qcReportsByPo(poId),
+        refreshGroup: 'loadQcReportsByPo',
+        onAccessLost: (_) {
+          _poQcReports = [];
+          notifyListeners();
+        },
+        onData: (res) {
+          if (res is List) {
+            _poQcReports = res
+                .map(
+                  (e) => QcReportModel.fromJson(Map<String, dynamic>.from(e)),
+                )
+                .toList();
+            notifyListeners();
+          }
+        },
+      );
     } catch (e) {
       debugPrint('Error loading QC reports: $e');
     }

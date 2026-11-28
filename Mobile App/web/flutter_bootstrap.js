@@ -1,5 +1,5 @@
-{{flutter_js}}
-{{flutter_build_config}}
+{ { flutter_js } }
+{ { flutter_build_config } }
 
 // Use CanvasKit CPU rendering by default to avoid Chrome WebGL2 / ANGLE
 // shader compilation failures (e.g. BoxShadow blur shaders on macOS Chrome).

@@ -271,15 +271,25 @@ class TenantProvider extends ChangeNotifier {
 
   /// Instantly restores locally cached permissions and departments for zero-latency dashboard rendering
   Future<void> _loadCachedPermissions(String tenantId) async {
+    final account = apiClient.accountCacheKey;
+    if (account == null) return;
     try {
       final prefs = await SharedPreferences.getInstance();
-      final cachedPerms = prefs.getStringList('cpms_tenant_permissions_$tenantId');
+      if (apiClient.accountCacheKey != account ||
+          _activeTenant?.tenantId != tenantId) {
+        return;
+      }
+      final cachedPerms = prefs.getStringList(
+        'cpms_tenant_permissions_${account}_$tenantId',
+      );
       if (cachedPerms != null && cachedPerms.isNotEmpty) {
         _userPermissions.clear();
         _userPermissions.addAll(cachedPerms);
         _hasLoadedPermissions = true;
       }
-      final cachedDepts = prefs.getString('cpms_tenant_departments_$tenantId');
+      final cachedDepts = prefs.getString(
+        'cpms_tenant_departments_${account}_$tenantId',
+      );
       if (cachedDepts != null && cachedDepts.isNotEmpty) {
         final List decoded = jsonDecode(cachedDepts);
         _tenantDepartments = decoded.map((item) => DepartmentModel.fromJson(item)).toList();
@@ -361,6 +371,10 @@ class TenantProvider extends ChangeNotifier {
   Future<void> _performLoadTenantPermissions() async {
     if (_activeTenant == null) return;
     final tenantId = _activeTenant!.tenantId;
+    final account = apiClient.accountCacheKey;
+    final token = apiClient.authToken;
+    bool isCurrent() =>
+        _activeTenant?.tenantId == tenantId && apiClient.authToken == token;
     apiClient.setActiveTenantId(tenantId);
 
     // Only set loading if no permissions are currently available
@@ -373,27 +387,30 @@ class TenantProvider extends ChangeNotifier {
       dynamic res;
       // 1. Try /tenants/:id/permissions
       try {
-        res = await apiClient.get(
-          ApiConstants.tenantPermissions(tenantId),
-        );
-      } catch (_) {
+        res = await apiClient
+            .get(ApiConstants.tenantPermissions(tenantId))
+            .timeout(const Duration(seconds: 12));
+      } on ApiException catch (error) {
+        if (error.statusCode != 404) rethrow;
         // Fallback 1: try /tenants/:id/my-permissions
         try {
-          res = await apiClient.get(
-            ApiConstants.tenantMyPermissions(tenantId),
-          );
-        } catch (_) {
+          res = await apiClient
+              .get(ApiConstants.tenantMyPermissions(tenantId))
+              .timeout(const Duration(seconds: 12));
+        } on ApiException catch (error) {
+          if (error.statusCode != 404) rethrow;
           // Fallback 2: try /tenants/:id
           try {
-            res = await apiClient.get(
-              ApiConstants.tenantById(tenantId),
-            );
+            res = await apiClient
+                .get(ApiConstants.tenantById(tenantId))
+                .timeout(const Duration(seconds: 12));
           } catch (e) {
-            _errorMessage = e.toString();
+            if (isCurrent()) _errorMessage = e.toString();
           }
         }
       }
 
+      if (!isCurrent()) return;
       if (res is Map<String, dynamic>) {
         final Set<String> freshPermissions = {};
         if (res['permissions'] is List) {
@@ -443,19 +460,24 @@ class TenantProvider extends ChangeNotifier {
         // Persist to local cache for instant cold starts
         try {
           final prefs = await SharedPreferences.getInstance();
-          await prefs.setStringList('cpms_tenant_permissions_$tenantId', _userPermissions.toList());
+          if (account == null || !isCurrent()) return;
+          await prefs.setStringList(
+            'cpms_tenant_permissions_${account}_$tenantId',
+            _userPermissions.toList(),
+          );
           await prefs.setString(
-            'cpms_tenant_departments_$tenantId',
+            'cpms_tenant_departments_${account}_$tenantId',
             jsonEncode(_tenantDepartments.map((d) => d.toJson()).toList()),
           );
         } catch (_) {}
       }
     } catch (e) {
-      _errorMessage = e.toString();
+      if (isCurrent()) _errorMessage = e.toString();
     } finally {
-      _hasLoadedPermissions = true;
-      _setLoading(false);
-      notifyListeners();
+      if (isCurrent()) {
+        _hasLoadedPermissions = true;
+        _setLoading(false);
+      }
     }
   }
 

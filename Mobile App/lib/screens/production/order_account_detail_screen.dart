@@ -1,4 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+
+import '../../core/network/api_client.dart';
 
 import '../../widgets/cpms_page_title.dart';
 
@@ -26,12 +30,67 @@ class OrderAccountDetailScreen extends StatefulWidget {
 }
 
 class _OrderAccountDetailScreenState extends State<OrderAccountDetailScreen> {
-  late Future<WorkRecord> _detail = _load();
+  WorkRecord? _detail;
+  Object? _error;
+  int _request = 0;
+  Timer? _refreshTimer;
+  bool _refreshing = false;
 
-  Future<WorkRecord> _load() async =>
-      await context.read<TenantProvider>().apiClient.get(
+  @override
+  void initState() {
+    super.initState();
+    unawaited(_load());
+    _refreshTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (!_refreshing && ModalRoute.of(context)?.isCurrent != false) {
+        unawaited(_load());
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  void didUpdateWidget(covariant OrderAccountDetailScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.poId != oldWidget.poId) {
+      _detail = null;
+      _error = null;
+      unawaited(_load());
+    }
+  }
+
+  Future<void> _load() async {
+    final request = ++_request;
+    _refreshing = true;
+    try {
+      await context.read<TenantProvider>().apiClient.loadPage(
         '/order-work/accounts/${widget.poId}',
-      ) as WorkRecord;
+        useCache: _detail == null,
+        onData: (data) {
+          if (!mounted || request != _request) return;
+          setState(() {
+            _detail = data as WorkRecord;
+            _error = null;
+          });
+        },
+      );
+    } catch (error) {
+      if (!mounted || request != _request) return;
+      if (_detail == null ||
+          (error is ApiException && error.invalidatesPageCache)) {
+        setState(() {
+          _detail = null;
+          _error = error;
+        });
+      }
+    } finally {
+      if (request == _request) _refreshing = false;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -44,23 +103,16 @@ class _OrderAccountDetailScreenState extends State<OrderAccountDetailScreen> {
           icon: Icons.receipt_long_outlined,
         ),
       ),
-      body: FutureBuilder<WorkRecord>(
-        future: _detail,
-        builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            return Center(
+      body: _error != null
+          ? Center(
               child: TextButton(
-                onPressed: () => setState(() => _detail = _load()),
-                child: Text('Retry loading purchase order · ${snapshot.error}'),
+                onPressed: _load,
+                child: Text('Retry loading purchase order · $_error'),
               ),
-            );
-          }
-          final detail = snapshot.data;
-          if (detail == null)
-            return const Center(child: CircularProgressIndicator());
-          return _AccountOrder(detail: detail);
-        },
-      ),
+            )
+          : _detail == null
+          ? const Center(child: CircularProgressIndicator())
+          : _AccountOrder(detail: _detail!),
     );
   }
 }

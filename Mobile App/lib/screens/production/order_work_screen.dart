@@ -57,7 +57,9 @@ class OrderWorkScreen extends StatefulWidget {
 }
 
 class _OrderWorkScreenState extends State<OrderWorkScreen> {
-  late Future<List<WorkRecord>> _orders;
+  List<WorkRecord>? _orders;
+  Object? _ordersError;
+  int _ordersRequest = 0;
   Timer? _assignedWorkRefreshTimer;
   bool _pollingAssignedWork = false;
   late final ApiClient _api = context.read<TenantProvider>().apiClient;
@@ -85,66 +87,70 @@ class _OrderWorkScreenState extends State<OrderWorkScreen> {
   @override
   void initState() {
     super.initState();
-    _orders = _load();
-    if (widget.workspace == DepartmentWorkspace.packing ||
-        widget.workspace == DepartmentWorkspace.quality) {
-      _assignedWorkRefreshTimer = Timer.periodic(
-        const Duration(seconds: 10),
-        (_) => _pollAssignedWork(),
-      );
-    }
+    unawaited(_refresh());
+    final fastRefresh =
+        widget.workspace == DepartmentWorkspace.packing ||
+        widget.workspace == DepartmentWorkspace.quality;
+    _assignedWorkRefreshTimer = Timer.periodic(
+      Duration(seconds: fastRefresh ? 10 : 30),
+      (_) => _pollAssignedWork(),
+    );
   }
 
   Future<void> _pollAssignedWork() async {
-    if (_saving || _pollingAssignedWork) return;
+    if (!mounted ||
+        _saving ||
+        _pollingAssignedWork ||
+        ModalRoute.of(context)?.isCurrent == false) {
+      return;
+    }
     _pollingAssignedWork = true;
-    final currentOrders = _orders;
     try {
-      final orders = await _load();
-      if (mounted && !_saving && identical(_orders, currentOrders)) {
-        setState(() {
-          _orders = Future.value(orders);
-        });
-      }
-    } catch (_) {
-      // Keep the last visible orders when a background refresh fails.
+      await _refresh();
     } finally {
       _pollingAssignedWork = false;
     }
   }
 
-  Future<List<WorkRecord>> _load() async => workRecords(
-    await _api.get('/order-work?department=${widget.workspace.orderWorkRole}'),
-  );
-
   Future<void> _refresh() async {
-    final updated = _load();
-    setState(() {
-      _orders = updated;
-    });
+    final request = ++_ordersRequest;
     try {
-      final orders = await updated;
-      if (mounted && _planning && _selectedOrderId != null) {
-        final order = orders
-            .where((order) => workText(order, 'po_id') == _selectedOrderId)
-            .firstOrNull;
-        if (order == null) {
+      await _api.loadPage(
+        '/order-work?department=${widget.workspace.orderWorkRole}',
+        useCache: _orders == null,
+        onData: (data) {
+          if (!mounted || request != _ordersRequest) return;
+          final orders = workRecords(data);
           setState(() {
-            _selectedOrderId = null;
-            _selectedItemId = null;
-            _pendingAssignment = null;
+            _orders = orders;
+            _ordersError = null;
+            if (!_planning || _selectedOrderId == null) return;
+            final order = orders
+                .where((order) => workText(order, 'po_id') == _selectedOrderId)
+                .firstOrNull;
+            if (order == null) {
+              _selectedOrderId = null;
+              _selectedItemId = null;
+              _pendingAssignment = null;
+            } else if (_selectedItemId != null &&
+                !workRecords(
+                  order['items'],
+                ).any((item) => workText(item, 'item_id') == _selectedItemId)) {
+              _selectedItemId = null;
+              _pendingAssignment = null;
+            }
           });
-        } else if (_selectedItemId != null &&
-            !workRecords(order['items'])
-                .any((item) => workText(item, 'item_id') == _selectedItemId)) {
-          setState(() {
-            _selectedItemId = null;
-            _pendingAssignment = null;
-          });
-        }
+        },
+      );
+    } catch (error) {
+      if (!mounted || request != _ordersRequest) return;
+      if (_orders == null ||
+          (error is ApiException && error.invalidatesPageCache)) {
+        setState(() {
+          _orders = null;
+          _ordersError = error;
+        });
       }
-    } catch (_) {
-      // FutureBuilder displays the load error.
     }
   }
 
@@ -203,19 +209,7 @@ class _OrderWorkScreenState extends State<OrderWorkScreen> {
       _message('All cartons on this item are already assigned.');
       return;
     }
-    final staff = unassign
-        ? null
-        : _api.get('/order-work/staff').then((response) {
-            final staffByDepartment = response as WorkRecord;
-            if (stage.departmentAssignment &&
-                !staffByDepartment.containsKey(stage.staffKey)) {
-              throw ApiException(
-                'The server does not provide ${stage.label} assignees. '
-                'Update the server and try again.',
-              );
-            }
-            return workRecords(staffByDepartment[stage.staffKey]);
-          });
+    final staff = unassign ? null : _loadStaff(stage);
     setState(() {
       _pendingAssignment = _PendingAssignment(
         stage: stage,
@@ -225,6 +219,30 @@ class _OrderWorkScreenState extends State<OrderWorkScreen> {
       );
     });
   }
+
+  Stream<List<WorkRecord>> _loadStaff(_AssignmentStage stage) =>
+      Stream.multi((controller) async {
+        try {
+          await _api.loadPage(
+            '/order-work/staff',
+            onData: (response) {
+              final staff = response as WorkRecord;
+              if (stage.departmentAssignment &&
+                  !staff.containsKey(stage.staffKey)) {
+                throw ApiException(
+                  'The server does not provide ${stage.label} assignees. '
+                  'Update the server and try again.',
+                );
+              }
+              controller.add(workRecords(staff[stage.staffKey]));
+            },
+          );
+        } catch (error, stack) {
+          controller.addError(error, stack);
+        } finally {
+          await controller.close();
+        }
+      });
 
   void _closeAssignment() {
     if (!_saving) setState(() => _pendingAssignment = null);
@@ -259,13 +277,15 @@ class _OrderWorkScreenState extends State<OrderWorkScreen> {
         ],
       );
     }
-    return FutureBuilder<List<WorkRecord>>(
-      future: pending.staff,
+    return StreamBuilder<List<WorkRecord>>(
+      stream: pending.staff,
       builder: (context, snapshot) {
         final title = '${stage.label} assignment';
         final people = snapshot.data;
         if (people == null || people.isEmpty) {
-          final waiting = snapshot.connectionState != ConnectionState.done;
+          final waiting =
+              !snapshot.hasError &&
+              snapshot.connectionState != ConnectionState.done;
           final message = waiting
               ? 'Loading ${stage.label} assignees…'
               : snapshot.hasError
@@ -348,8 +368,7 @@ class _OrderWorkScreenState extends State<OrderWorkScreen> {
           '/order-work/$poId/items/$itemId/quality-assignment',
           body: {
             'user_id': assignment.userId,
-            if (assignment.date != null)
-              'target_date': assignment.date!.toUtc().toIso8601String(),
+            'target_date': assignment.date.toUtc().toIso8601String(),
           },
         );
       } else if (stage == _AssignmentStage.supervisor && assignment != null) {
@@ -380,6 +399,8 @@ class _OrderWorkScreenState extends State<OrderWorkScreen> {
           body: {
             'user_id': assignment?.userId,
             'previous_user_id': previous.isEmpty ? null : previous,
+            if (assignment != null)
+              'target_date': assignment.date.toUtc().toIso8601String(),
           },
         );
       }
@@ -728,28 +749,26 @@ class _OrderWorkScreenState extends State<OrderWorkScreen> {
                     if (!split && (!_planning || _selectedOrderId == null))
                       searchField,
                     Expanded(
-                      child: FutureBuilder<List<WorkRecord>>(
-                        future: _orders,
-                        builder: (context, snapshot) {
-                          if (snapshot.connectionState ==
-                                  ConnectionState.waiting &&
-                              !snapshot.hasData) {
-                            return const Center(
-                              child: CircularProgressIndicator(),
-                            );
-                          }
-                          if (snapshot.hasError) {
+                      child: Builder(
+                        builder: (context) {
+                          if (_ordersError != null) {
                             return Center(
                               child: TextButton.icon(
                                 onPressed: _refresh,
                                 icon: const Icon(Icons.refresh),
                                 label: Text(
-                                  'Retry loading orders · ${snapshot.error}',
+                                  'Retry loading orders · $_ordersError',
                                 ),
                               ),
                             );
                           }
-                          final matching = (snapshot.data ?? const [])
+                          final orders = _orders;
+                          if (orders == null) {
+                            return const Center(
+                              child: CircularProgressIndicator(),
+                            );
+                          }
+                          final matching = orders
                               .where(
                                 (order) =>
                                     '${order['po_number']} ${order['customer_name']}'
@@ -759,14 +778,13 @@ class _OrderWorkScreenState extends State<OrderWorkScreen> {
                               .toList();
                           if (split) return _splitOrders(matching, searchField);
                           if (_planning && _selectedOrderId != null) {
-                            final order =
-                                (snapshot.data ?? const <WorkRecord>[])
-                                    .where(
-                                      (order) =>
-                                          workText(order, 'po_id') ==
-                                          _selectedOrderId,
-                                    )
-                                    .firstOrNull;
+                            final order = orders
+                                .where(
+                                  (order) =>
+                                      workText(order, 'po_id') ==
+                                      _selectedOrderId,
+                                )
+                                .firstOrNull;
                             if (order != null) {
                               return _planningPane(order, compact: true);
                             }
@@ -860,10 +878,12 @@ class _OrderWorkScreenState extends State<OrderWorkScreen> {
                 final order = orders[index];
                 return ListTile(
                   selected: order == selected,
-                  selectedTileColor: widget.workspace.color.withValues(
-                    alpha: 0.10,
-                  ),
-                  selectedColor: widget.workspace.color,
+                  selectedTileColor: _planning
+                      ? const Color(0xfff5f0e8)
+                      : widget.workspace.color.withValues(alpha: 0.10),
+                  selectedColor: _planning
+                      ? const Color(0xff75401f)
+                      : widget.workspace.color,
                   title: Text(workText(order, 'po_number')),
                   subtitle: Text(
                     _planning
@@ -1026,26 +1046,29 @@ class _OrderWorkScreenState extends State<OrderWorkScreen> {
 
   Widget _planningOverview(WorkRecord order, List<WorkRecord> items) {
     final cartons = items.fold(0, (sum, item) => sum + _count(item, 'cartons'));
-    final checked = items.where((item) => item['checked_at'] != null).length;
+    final awaitingQa = items
+        .where((item) => item['checked_at'] == null)
+        .toList();
+    final checked = items.length - awaitingQa.length;
+    final waitingLabel = awaitingQa.length == 1
+        ? '${workText(awaitingQa.single, 'item_name')} waiting'
+        : '${awaitingQa.length} waiting';
     final metrics = [
-      (
+      _PlanningProgress(
         'PRODUCTION',
         items.fold(0, (sum, item) => sum + _productionCartons(item)),
         cartons,
-        'ctns',
       ),
-      ('QA INSPECTION', checked, items.length, 'checked'),
-      (
+      _PlanningProgress('QA INSPECTION', checked, items.length),
+      _PlanningProgress(
         'PACKING',
         items.fold(0, (sum, item) => sum + _count(item, 'packed_cartons')),
         cartons,
-        'ctns',
       ),
-      (
+      _PlanningProgress(
         'EXPORT',
         items.fold(0, (sum, item) => sum + _count(item, 'shipped_cartons')),
         cartons,
-        'ctns',
       ),
     ];
     final matching = items
@@ -1071,55 +1094,12 @@ class _OrderWorkScreenState extends State<OrderWorkScreen> {
               spacing: 12,
               runSpacing: 12,
               children: [
-                for (final (label, value, total, unit) in metrics)
+                for (final metric in metrics)
                   SizedBox(
                     width: width,
-                    child: _planningPanel(
-                      Padding(
-                        padding: const EdgeInsets.all(14),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              label,
-                              style: const TextStyle(
-                                color: Color(0xff566a85),
-                                letterSpacing: .5,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text.rich(
-                              TextSpan(
-                                children: [
-                                  TextSpan(
-                                    text: '$value',
-                                    style: const TextStyle(
-                                      fontSize: 26,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                  TextSpan(
-                                    text: '  / $total $unit',
-                                    style: const TextStyle(
-                                      color: Color(0xff566a85),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(height: 7),
-                            LinearProgressIndicator(
-                              minHeight: 6,
-                              borderRadius: BorderRadius.circular(4),
-                              backgroundColor: const Color(0xffedf2f7),
-                              color: const Color(0xffad580e),
-                              value: total == 0
-                                  ? 0
-                                  : (value / total).clamp(0, 1).toDouble(),
-                            ),
-                          ],
-                        ),
-                      ),
+                    child: _planningProgressCard(
+                      metric,
+                      qaWaiting: metric == metrics[1] ? waitingLabel : null,
                     ),
                   ),
               ],
@@ -1144,48 +1124,53 @@ class _OrderWorkScreenState extends State<OrderWorkScreen> {
               setState(() => _itemQuery = value.trim().toLowerCase()),
         ),
         const SizedBox(height: 14),
-        for (final item in matching) ...[
-          InkWell(
-            onTap: () =>
-                setState(() => _selectedItemId = workText(item, 'item_id')),
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Flexible(
-                        child: Text(
-                          workText(item, 'item_name'),
-                          style: const TextStyle(
-                            fontSize: 17,
-                            fontWeight: FontWeight.w700,
+        for (final (index, item) in matching.indexed) ...[
+          Material(
+            color: index.isOdd ? const Color(0xfff7f9fb) : Colors.transparent,
+            child: InkWell(
+              onTap: () =>
+                  setState(() => _selectedItemId = workText(item, 'item_id')),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(18, 20, 18, 18),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            workText(item, 'item_name'),
+                            style: const TextStyle(
+                              fontSize: 17,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 6),
-                      const Icon(
-                        Icons.chevron_right,
-                        size: 19,
-                        color: Color(0xff8a9bb1),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 5),
-                  Text(
-                    '${_count(item, 'cartons')} ordered cartons',
-                    style: const TextStyle(color: Color(0xff566a85)),
-                  ),
-                  const SizedBox(height: 10),
-                  const Divider(color: Color(0xffedf1f5)),
-                  _planningStages(item, summary: true),
-                ],
+                        const SizedBox(width: 6),
+                        const Icon(
+                          Icons.chevron_right,
+                          size: 19,
+                          color: Color(0xff8a9bb1),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      '${_count(item, 'cartons')} ordered cartons',
+                      style: const TextStyle(color: Color(0xff566a85)),
+                    ),
+                    const SizedBox(height: 10),
+                    const Divider(color: Color(0xffedf1f5)),
+                    _planningPipeline(item),
+                  ],
+                ),
               ),
             ),
           ),
-          if (item != matching.last)
+          if (index < matching.length - 1) ...[
             const Divider(height: 1, color: Color(0xffdbe4ef)),
+            const SizedBox(height: 16),
+          ],
         ],
         if (matching.isEmpty)
           Padding(
@@ -1200,17 +1185,176 @@ class _OrderWorkScreenState extends State<OrderWorkScreen> {
     );
   }
 
-  Widget _planningStages(WorkRecord item, {bool summary = false}) {
+  Widget _planningProgressCard(_PlanningProgress metric, {String? qaWaiting}) {
+    final status = metric.complete
+        ? 'Completed'
+        : metric.value <= 0
+        ? 'Pending'
+        : qaWaiting ?? 'In progress';
+    return _planningPanel(
+      Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _planningProgressMark(metric, large: true),
+            const SizedBox(height: 6),
+            Text(
+              metric.label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                letterSpacing: .55,
+                color: Color(0xff34445a),
+              ),
+            ),
+            const SizedBox(height: 14),
+            LinearProgressIndicator(
+              minHeight: 6,
+              borderRadius: BorderRadius.circular(4),
+              backgroundColor: const Color(0xffedf2f7),
+              color: metric.complete
+                  ? const Color(0xff099368)
+                  : const Color(0xffad580e),
+              value: metric.fraction,
+            ),
+            const SizedBox(height: 9),
+            Row(
+              children: [
+                Flexible(
+                  child: Text(
+                    qaWaiting != null
+                        ? '${metric.value} of ${metric.total} checked'
+                        : '${metric.value} / ${metric.total} ctns',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: Color(0xff657790),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Tooltip(
+                    message: status,
+                    child: Text(
+                      status,
+                      textAlign: TextAlign.end,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: metric.complete
+                            ? metric.color
+                            : const Color(0xff7c8fa9),
+                        fontWeight: metric.complete ? FontWeight.w600 : null,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _planningPipeline(WorkRecord item) {
+    final total = _count(item, 'cartons');
+    final stages = [
+      _PlanningProgress('PRODUCTION', _productionCartons(item), total),
+      _PlanningProgress('QA', item['checked_at'] != null ? 1 : 0, 1),
+      _PlanningProgress('PACKING', _count(item, 'packed_cartons'), total),
+      _PlanningProgress('EXPORT', _count(item, 'shipped_cartons'), total),
+    ];
+    return Wrap(
+      spacing: 14,
+      runSpacing: 10,
+      children: [
+        for (final (index, stage) in stages.indexed)
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Semantics(
+                label:
+                    '${stage.label}: ${stage.complete
+                        ? 'completed'
+                        : stage.value > 0
+                        ? '${stage.percent} percent'
+                        : 'pending'}',
+                excludeSemantics: true,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _planningProgressMark(stage),
+                    const SizedBox(height: 3),
+                    Text(
+                      stage.label,
+                      style: TextStyle(
+                        color: stage.color,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: .7,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (index < stages.length - 1) ...[
+                const SizedBox(width: 14),
+                const Icon(
+                  Icons.chevron_right,
+                  size: 15,
+                  color: Color(0xffcbd7e5),
+                ),
+              ],
+            ],
+          ),
+      ],
+    );
+  }
+
+  Widget _planningProgressMark(
+    _PlanningProgress progress, {
+    bool large = false,
+  }) {
+    final height = large ? 38.0 : 22.0;
+    return SizedBox(
+      height: height,
+      child: Align(
+        alignment: Alignment.centerLeft,
+        widthFactor: 1,
+        child: progress.complete || progress.value <= 0
+            ? Icon(
+                progress.complete ? Icons.check_rounded : Icons.close_rounded,
+                size: large ? 32 : 18,
+                color: progress.color,
+              )
+            : Text(
+                '${progress.percent}%',
+                style: TextStyle(
+                  color: large ? const Color(0xff111b2d) : progress.color,
+                  fontSize: large ? 30 : 19,
+                  fontWeight: FontWeight.w800,
+                  height: 1,
+                ),
+              ),
+      ),
+    );
+  }
+
+  Widget _planningStages(WorkRecord item) {
     final total = _count(item, 'cartons');
     final produced = _productionCartons(item);
     final packed = _count(item, 'packed_cartons');
     final shipped = _count(item, 'shipped_cartons');
     final checked = item['checked_at'] != null;
     final stages = [
-      (
-        'Production: $produced/$total${summary && produced < total ? ' ctns' : ''}',
-        total > 0 && produced >= total,
-      ),
+      ('Production: $produced/$total', total > 0 && produced >= total),
       ('QA: ${checked ? 'Checked' : 'Unchecked'}', checked),
       ('Packing: $packed/$total', total > 0 && packed >= total),
       ('Export: $shipped/$total ctns', total > 0 && shipped >= total),
@@ -1220,13 +1364,11 @@ class _OrderWorkScreenState extends State<OrderWorkScreen> {
       runSpacing: 8,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
-        if (summary)
-          const Text('Stages:', style: TextStyle(color: Color(0xff657990))),
         for (final (label, complete) in stages)
           _planningBadge(
             label,
             complete ? const Color(0xff087558) : const Color(0xffc12424),
-            dot: !summary,
+            dot: true,
           ),
       ],
     );
@@ -1462,7 +1604,8 @@ class _OrderWorkScreenState extends State<OrderWorkScreen> {
         subtitle: assignment == null
             ? null
             : Text(
-                'Assigned ${workDate(assignment['assigned_at'])} · $total ordered cartons',
+                'Assigned ${workDate(assignment['assigned_at'])} · $total ordered cartons'
+                '${assignment['target_date'] == null ? '' : ' · Due ${workDate(assignment['target_date'])}'}',
               ),
         trailing: editable && assignment != null
             ? OutlinedButton(
@@ -1641,6 +1784,7 @@ class _OrderWorkScreenState extends State<OrderWorkScreen> {
       title: Text(workText(item, 'item_name')),
       subtitle: Text(
         'Assigned to you · $shipped of $cartons cartons shipped'
+        '${item['target_date'] == null ? '' : '\nDue ${workDate(item['target_date'])}'}'
         '${shipped < cartons && !ready ? '\nWaiting for packing' : ''}',
       ),
       trailing: shipped < cartons && ready && order['editable'] == true
@@ -1714,6 +1858,7 @@ class _OrderWorkScreenState extends State<OrderWorkScreen> {
         if (widget.workspace == DepartmentWorkspace.packing) ...[
           Text('${_count(item, 'packed_cartons')} of $cartons cartons packed'),
           if (item['assigned_to_me'] == true) const Text('Assigned to you'),
+          if (qaDate.isNotEmpty) Text('Due $qaDate'),
           if (_count(item, 'packed_cartons') < cartons)
             Text(
               item['production_done'] == true
@@ -2167,6 +2312,25 @@ class _OrderWorkScreenState extends State<OrderWorkScreen> {
   ].where((part) => part.isNotEmpty).join(' · ');
 }
 
+class _PlanningProgress {
+  const _PlanningProgress(this.label, this.value, this.total);
+
+  final String label;
+  final int value;
+  final int total;
+
+  bool get complete => total > 0 && value >= total;
+  double get fraction =>
+      total <= 0 ? 0 : (value / total).clamp(0, 1).toDouble();
+  int get percent => complete ? 100 : (fraction * 100).floor().clamp(0, 99);
+
+  Color get color => complete
+      ? const Color(0xff098462)
+      : value > 0
+      ? const Color(0xff89401c)
+      : const Color(0xff8295af);
+}
+
 enum _AssignmentStage {
   quality('QA', 'quality'),
   supervisor('Supervisor', 'supervisors'),
@@ -2190,7 +2354,7 @@ class _PendingAssignment {
 
   final _AssignmentStage stage;
   final int remaining;
-  final Future<List<WorkRecord>>? staff;
+  final Stream<List<WorkRecord>>? staff;
   final WorkRecord? existing;
 }
 
@@ -2198,7 +2362,7 @@ class _AssignmentInput {
   const _AssignmentInput(this.userId, this.cartons, this.date);
   final String userId;
   final int cartons;
-  final DateTime? date;
+  final DateTime date;
 }
 
 class _AssignmentPage extends StatefulWidget {
@@ -2247,6 +2411,15 @@ class _AssignmentPageState extends State<_AssignmentPage> {
   DateTime? _calendarDate;
   bool _enterDate = false;
   final _dateForm = GlobalKey<FormState>();
+
+  @override
+  void didUpdateWidget(covariant _AssignmentPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (_userId != null &&
+        !widget.people.any((person) => person['user_id'] == _userId)) {
+      _userId = null;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -2335,11 +2508,13 @@ class _AssignmentPageState extends State<_AssignmentPage> {
               ),
             ],
             const SizedBox(height: 12),
-            if (!widget.stage.departmentAssignment && _calendarDate == null)
+            if (_calendarDate == null)
               OutlinedButton.icon(
                 icon: const Icon(Icons.calendar_today_outlined),
                 label: Text(
-                  _date == null ? 'Set due date (optional)' : workDate(_date),
+                  _date == null
+                      ? 'Set due date (required)'
+                      : 'Due ${workDate(_date)}',
                 ),
                 onPressed: widget.saving
                     ? null
@@ -2417,7 +2592,11 @@ class _AssignmentPageState extends State<_AssignmentPage> {
           child: const Text('Cancel'),
         ),
         FilledButton(
-          onPressed: _userId == null || widget.saving || _calendarDate != null
+          onPressed:
+              _userId == null ||
+                  _date == null ||
+                  widget.saving ||
+                  _calendarDate != null
               ? null
               : () {
                   if (!_form.currentState!.validate()) return;
@@ -2425,7 +2604,7 @@ class _AssignmentPageState extends State<_AssignmentPage> {
                     _AssignmentInput(
                       _userId!,
                       int.tryParse(_cartons.trim()) ?? 0,
-                      _date,
+                      _date!,
                     ),
                   );
                 },

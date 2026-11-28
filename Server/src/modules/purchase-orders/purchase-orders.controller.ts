@@ -125,8 +125,11 @@ export class PurchaseOrdersController {
     @CurrentTenant() tenantId: string,
     @Body() dto: CreatePurchaseOrderDto,
     @CurrentUser('user_id') userId: string,
+    @Req() request: { department_codes: string[] },
   ) {
-    return this.poService.createPurchaseOrder(tenantId, dto, userId);
+    return this.poService.createPurchaseOrder(tenantId, dto, userId,
+      request.department_codes.includes('SALES') && !request.department_codes.includes('ADMINISTRATOR'),
+    );
   }
 
   @Get('purchase-orders')
@@ -171,8 +174,11 @@ export class PurchaseOrdersController {
     @Param('id') poId: string,
     @Body() dto: UpdatePurchaseOrderDto,
     @CurrentUser('user_id') userId: string,
+    @Req() request: { department_codes: string[] },
   ) {
-    return this.poService.updatePurchaseOrder(tenantId, poId, dto, userId);
+    return this.poService.updatePurchaseOrder(tenantId, poId, dto, userId,
+      request.department_codes.includes('SALES') && !request.department_codes.includes('ADMINISTRATOR'),
+    );
   }
 
   @Patch('purchase-orders/:poId/items/:itemId/production')

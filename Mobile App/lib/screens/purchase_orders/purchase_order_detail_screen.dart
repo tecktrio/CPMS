@@ -100,6 +100,30 @@ class _PurchaseOrderDetailScreenState extends State<PurchaseOrderDetailScreen> {
     }
   }
 
+  bool _confirming = false;
+
+  Future<void> _confirmOrder(PurchaseOrderModel order) async {
+    if (_confirming) return;
+    setState(() => _confirming = true);
+    final provider = context.read<PurchaseOrderProvider>();
+    final saved = await provider.updatePurchaseOrder(
+      poId: order.poId,
+      status: 'CONFIRMED',
+    );
+    if (!mounted) return;
+    setState(() => _confirming = false);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          saved
+              ? 'Purchase order confirmed'
+              : provider.errorMessage ??
+                    'The purchase order could not be confirmed.',
+        ),
+      ),
+    );
+  }
+
   Future<void> _showStatusUpdate(
     PurchaseOrderModel order,
     PurchaseOrderProvider provider,
@@ -424,8 +448,20 @@ class _PurchaseOrderDetailScreenState extends State<PurchaseOrderDetailScreen> {
                           crossAxisAlignment: WrapCrossAlignment.center,
                           children: [
                             if (!widget.embedded) exportAction,
+                            if (!isAdmin &&
+                                canUpdatePo &&
+                                po.status.toUpperCase() == 'DRAFT')
+                              FilledButton.icon(
+                                onPressed: _confirming
+                                    ? null
+                                    : () => _confirmOrder(po),
+                                icon: const Icon(Icons.check, size: 18),
+                                label: Text(
+                                  _confirming ? 'Confirming…' : 'Confirm PO',
+                                ),
+                              ),
                             InkWell(
-                              onTap: canUpdatePo
+                              onTap: isAdmin
                                   ? () => _showStatusUpdate(po, poProvider)
                                   : null,
                               borderRadius: BorderRadius.circular(8),
@@ -457,7 +493,7 @@ class _PurchaseOrderDetailScreenState extends State<PurchaseOrderDetailScreen> {
                                         letterSpacing: 0.4,
                                       ),
                                     ),
-                                    if (canUpdatePo) ...[
+                                    if (isAdmin) ...[
                                       const SizedBox(width: 4),
                                       Icon(
                                         Icons.edit_outlined,

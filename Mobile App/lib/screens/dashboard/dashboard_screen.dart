@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import '../../widgets/cpms_page_route.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -35,7 +37,10 @@ class DashboardScreen extends StatefulWidget {
   State<DashboardScreen> createState() => _DashboardScreenState();
 }
 
-class _DashboardScreenState extends State<DashboardScreen> {
+class _DashboardScreenState extends State<DashboardScreen>
+    with WidgetsBindingObserver {
+  Timer? _dataRefreshTimer;
+  bool _refreshingData = false;
   late int _currentNavIndex;
   late final ValueNotifier<int> _currentNavIndexNotifier;
   final GlobalKey<NavigatorState> _shellNavigatorKey = GlobalKey<NavigatorState>();
@@ -49,6 +54,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   String _selectedAlertFilter = 'ALL'; // 'ALL', 'CRITICAL', 'RESOLVED'
 
   // Settings View State
+  final _firstNameFocus = FocusNode();
   final TextEditingController _firstNameController = TextEditingController();
   final TextEditingController _lastNameController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
@@ -62,6 +68,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _dataRefreshTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (mounted) unawaited(_loadInitialData(background: true));
+    });
     _currentNavIndex = widget.initialNavIndex;
     _currentNavIndexNotifier = ValueNotifier<int>(widget.initialNavIndex);
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -70,8 +80,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      unawaited(_loadInitialData(background: true));
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _dataRefreshTimer?.cancel();
     _searchController.dispose();
+    _firstNameFocus.dispose();
     _firstNameController.dispose();
     _lastNameController.dispose();
     _phoneController.dispose();
@@ -79,23 +99,35 @@ class _DashboardScreenState extends State<DashboardScreen> {
     super.dispose();
   }
 
-  Future<void> _loadInitialData() async {
-    final tenant = context.read<TenantProvider>();
-    final inventory = context.read<InventoryProvider>();
-    final dept = context.read<DepartmentProvider>();
-    final orders = context.read<PurchaseOrderProvider>();
-    final contacts = context.read<EmergencyContactsProvider>();
-    await tenant.loadTenantPermissions();
-    if (!mounted) return;
-    await Future.wait([
-      if (tenant.hasPermission(AppPermissions.userRead)) dept.loadTenantUsers(),
-      if (tenant.hasPermission(AppPermissions.itemRead)) inventory.loadItems(),
-      if (tenant.hasPermission(AppPermissions.storeroomRead)) inventory.loadStoreRooms(),
-      if (DepartmentWorkspace.resolve(tenant) == DepartmentWorkspace.sales) orders.loadPurchaseOrders(),
-      if (_showEmergencyContacts) contacts.loadContacts(),
-    ]);
-    if (mounted) {
-      setState(() {});
+  Future<void> _loadInitialData({bool background = false}) async {
+    if (!mounted || _refreshingData) return;
+    _refreshingData = true;
+    try {
+      final tenant = context.read<TenantProvider>();
+      final inventory = context.read<InventoryProvider>();
+      final dept = context.read<DepartmentProvider>();
+      final orders = context.read<PurchaseOrderProvider>();
+      final contacts = context.read<EmergencyContactsProvider>();
+      if (!background) await tenant.loadTenantPermissions();
+      if (!mounted) return;
+      await Future.wait([
+        if (background) ...[
+          tenant.loadTenantPermissions(),
+          tenant.apiClient.refreshLoadedPages(),
+        ],
+        if (!background && tenant.hasPermission(AppPermissions.userRead))
+          dept.loadTenantUsers(),
+        if (tenant.hasPermission(AppPermissions.itemRead))
+          inventory.loadItems(),
+        if (tenant.hasPermission(AppPermissions.storeroomRead))
+          inventory.loadStoreRooms(),
+        if (!background &&
+            DepartmentWorkspace.resolve(tenant) == DepartmentWorkspace.sales)
+          orders.loadPurchaseOrders(),
+        if (!background && _showEmergencyContacts) contacts.loadContacts(),
+      ]);
+    } finally {
+      _refreshingData = false;
     }
   }
 
@@ -642,7 +674,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
       );
     } else if (effectiveNavIndex == 3) {
       return _buildSettingsView(
-        isWide: isWide,
         horizontalPadding: horizontalPadding,
         tenant: tenant,
       );
@@ -1619,8 +1650,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
     TextEditingController controller,
     String hint, {
     TextInputType? keyboardType,
+    bool wide = false,
+    FocusNode? focusNode,
   }) {
     return TextFormField(
+      focusNode: focusNode,
       controller: controller,
       keyboardType: keyboardType,
       style: const TextStyle(
@@ -1631,26 +1665,44 @@ class _DashboardScreenState extends State<DashboardScreen> {
       decoration: InputDecoration(
         hintText: hint,
         hintStyle: const TextStyle(color: Color(0xFF94A3B8), fontSize: 14),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 14,
+          vertical: 12,
+        ),
         fillColor: Colors.white,
         filled: true,
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(4),
-          borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
+          borderRadius: BorderRadius.circular(wide ? 8 : 4),
+          borderSide: BorderSide(color: Color(wide ? 0xFFDAE3EF : 0xFFCBD5E1)),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(4),
+          borderRadius: BorderRadius.circular(wide ? 8 : 4),
           borderSide: const BorderSide(color: Colors.black, width: 1.5),
         ),
       ),
     );
   }
 
+  Widget _settingsProfileTag(IconData icon, String label, Color color) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 16, color: color),
+        const SizedBox(width: 6),
+        Flexible(
+          child: Text(label, style: TextStyle(fontSize: 12, color: color)),
+        ),
+      ],
+    );
+  }
+
   Widget _buildSettingsView({
-    required bool isWide,
     required double horizontalPadding,
     required TenantProvider tenant,
   }) {
+    final wide = MediaQuery.sizeOf(context).width >= 760;
+    final corner = wide ? 12.0 : 4.0;
+    final panelBorder = Color(wide ? 0xFFDAE3EF : 0xFFE5E7EB);
     final auth = context.watch<AuthProvider>();
     final inventory = context.watch<InventoryProvider>();
     final user = auth.user;
@@ -1660,7 +1712,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final orgName = activeTenant != null && activeTenant.companyName.isNotEmpty
         ? activeTenant.companyName
         : 'Organization';
-    final deptName = tenant.selectedDepartmentName ??
+    final deptName =
+        tenant.selectedDepartmentName ??
         (isAdmin ? 'Administrator' : 'Assigned Department');
 
     _initSettingsFields(user);
@@ -1670,827 +1723,914 @@ class _DashboardScreenState extends State<DashboardScreen> {
         : 'Authenticated User';
     final userInitial = userName.isNotEmpty ? userName[0].toUpperCase() : 'U';
     final userAvatarUrl = ApiConstants.resolveImageUrl(user?.avatarUrl);
-    final tenantDisplayName = activeTenant != null && activeTenant.companyName.isNotEmpty
+    final tenantDisplayName =
+        activeTenant != null && activeTenant.companyName.isNotEmpty
         ? activeTenant.companyName.toLowerCase()
         : 'organization';
 
-    return RefreshIndicator(
-      color: Colors.black,
-      onRefresh: _loadInitialData,
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1100),
-          child: ListView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: EdgeInsets.symmetric(
-              horizontal: horizontalPadding,
-              vertical: isWide ? 28 : 24,
-            ),
+    final profileIdentity = Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        // Avatar with camera badge
+        InkWell(
+          onTap: () => _pickAndUploadAvatar(context),
+          borderRadius: BorderRadius.circular(38),
+          child: Stack(
+            clipBehavior: Clip.none,
             children: [
-            // Page Header
-            const Text(
-              'Settings',
+              CircleAvatar(
+                radius: wide ? 39 : 36,
+                backgroundColor: const Color(0xFF1E293B),
+                backgroundImage: userAvatarUrl != null
+                    ? NetworkImage(userAvatarUrl)
+                    : null,
+                child: userAvatarUrl == null
+                    ? Text(
+                        userInitial,
+                        style: const TextStyle(
+                          fontSize: 26,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                        ),
+                      )
+                    : null,
+              ),
+              Positioned(
+                bottom: 0,
+                right: 0,
+                child: Container(
+                  padding: const EdgeInsets.all(5),
+                  decoration: BoxDecoration(
+                    color: Colors.black,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 2),
+                  ),
+                  child: const Icon(
+                    Icons.camera_alt,
+                    size: 11,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        SizedBox(width: wide ? 20 : 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                userName,
+                style: TextStyle(
+                  fontSize: wide ? 21 : 18,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.black,
+                ),
+              ),
+              if (user?.userName != null && user!.userName.isNotEmpty) ...[
+                const SizedBox(height: 1),
+                Text(
+                  '@${user.userName}',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF64748B),
+                  ),
+                ),
+              ],
+              const SizedBox(height: 6),
+              if (wide)
+                Wrap(
+                  spacing: 14,
+                  runSpacing: 5,
+                  children: [
+                    _settingsProfileTag(
+                      Icons.business_center_outlined,
+                      orgName,
+                      const Color(0xFF334155),
+                    ),
+                    _settingsProfileTag(
+                      Icons.people_outline,
+                      deptName,
+                      const Color(0xFF00885C),
+                    ),
+                  ],
+                )
+              else ...[
+                // Current Organization
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.business_rounded,
+                      size: 14,
+                      color: Color(0xFF475569),
+                    ),
+                    const SizedBox(width: 5),
+                    Expanded(
+                      child: Text(
+                        orgName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF1E293B),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 3),
+                // Current Department
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.badge_outlined,
+                      size: 14,
+                      color: Color(0xFF16A34A),
+                    ),
+                    const SizedBox(width: 5),
+                    Expanded(
+                      child: Text(
+                        deptName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF16A34A),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+              const SizedBox(height: 6),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 8,
+                  vertical: 2.5,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF1F5F9),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  isAdmin ? 'ORGANIZATION ADMIN' : 'OPERATIONS SPECIALIST',
+                  style: const TextStyle(
+                    fontSize: 9.5,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.5,
+                    color: Color(0xFF475569),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+    final profileActions = Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        ElevatedButton.icon(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFFF1F5F9),
+            foregroundColor: Colors.black,
+            elevation: 0,
+            side: wide ? BorderSide(color: panelBorder) : null,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(wide ? 8 : 4),
+            ),
+          ),
+          onPressed: () => _pickAndUploadAvatar(context),
+          icon: const Icon(Icons.file_upload_outlined, size: 16),
+          label: const Text(
+            'Upload photo',
+            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+          ),
+        ),
+        ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFFF1F5F9),
+            foregroundColor: const Color(0xFF475569),
+            elevation: 0,
+            side: wide ? BorderSide(color: panelBorder) : null,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(wide ? 8 : 4),
+            ),
+          ),
+          onPressed: () async {
+            final ok = await auth.removeProfilePicture();
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    ok
+                        ? 'Profile picture removed and deleted from S3.'
+                        : 'Failed to remove profile picture.',
+                  ),
+                  backgroundColor: ok ? const Color(0xFF0F766E) : Colors.red,
+                ),
+              );
+            }
+          },
+          child: const Text(
+            'Remove',
+            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+          ),
+        ),
+      ],
+    );
+    final header = <Widget>[
+      // Page Header
+      Text(
+        'Settings',
+        style: TextStyle(
+          fontSize: wide ? 30 : 26,
+          fontWeight: FontWeight.w900,
+          color: const Color(0xFF0F172A),
+          letterSpacing: -0.6,
+        ),
+      ),
+      const SizedBox(height: 4),
+      Text(
+        'Manage profile, credentials, and app preferences',
+        style: TextStyle(
+          fontSize: wide ? 14 : 13,
+          color: const Color(0xFF637694),
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+      SizedBox(height: wide ? 32 : 20),
+    ];
+    final personal = <Widget>[
+      Container(
+        padding: EdgeInsets.all(wide ? 24 : 18),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(corner),
+          border: Border.all(color: panelBorder),
+        ),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            if (wide && constraints.maxWidth >= 540) {
+              return Row(
+                children: [
+                  Expanded(child: profileIdentity),
+                  const SizedBox(width: 16),
+                  profileActions,
+                ],
+              );
+            }
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                profileIdentity,
+                const SizedBox(height: 16),
+                profileActions,
+              ],
+            );
+          },
+        ),
+      ),
+      SizedBox(height: wide ? 32 : 24),
+      // PERSONAL DETAILS Section
+      Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          const Text(
+            'PERSONAL DETAILS',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.8,
+              color: Color(0xFF64748B),
+            ),
+          ),
+          TextButton(
+            style: TextButton.styleFrom(
+              padding: EdgeInsets.zero,
+              minimumSize: const Size(50, 24),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            onPressed: () => _firstNameFocus.requestFocus(),
+            child: const Text(
+              'Editable',
               style: TextStyle(
-                fontSize: 26,
-                fontWeight: FontWeight.w900,
-                color: Colors.black,
-                letterSpacing: -0.6,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF2563EB),
+              ),
+            ),
+          ),
+        ],
+      ),
+      const SizedBox(height: 10),
+
+      // Personal Details Card
+      Container(
+        padding: EdgeInsets.all(wide ? 24 : 18),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(corner),
+          border: Border.all(color: panelBorder),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildSettingsFieldLabel('First Name'),
+            _buildSettingsTextField(
+              _firstNameController,
+              'First Name',
+              wide: wide,
+              focusNode: _firstNameFocus,
+            ),
+            SizedBox(height: wide ? 18 : 14),
+
+            _buildSettingsFieldLabel('Last Name'),
+            _buildSettingsTextField(
+              _lastNameController,
+              'Last Name',
+              wide: wide,
+            ),
+            SizedBox(height: wide ? 18 : 14),
+
+            _buildSettingsFieldLabel('Mobile Number'),
+            _buildSettingsTextField(
+              _phoneController,
+              '+1 000 000 0000',
+              keyboardType: TextInputType.phone,
+              wide: wide,
+            ),
+            SizedBox(height: wide ? 18 : 14),
+
+            _buildSettingsFieldLabel('Regional Format & Timezone'),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(wide ? 8 : 4),
+                border: Border.all(
+                  color: wide ? panelBorder : const Color(0xFFCBD5E1),
+                ),
+              ),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<String>(
+                  value: _selectedTimezone,
+                  isExpanded: true,
+                  icon: const Icon(
+                    Icons.keyboard_arrow_down,
+                    color: Color(0xFF475569),
+                  ),
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF0F172A),
+                  ),
+                  items: const [
+                    DropdownMenuItem(
+                      value: 'English (US) — UTC-5 EST',
+                      child: Text(
+                        'English (US) — UTC-5 EST',
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    DropdownMenuItem(
+                      value: 'English (UK) — UTC+0 GMT',
+                      child: Text(
+                        'English (UK) — UTC+0 GMT',
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    DropdownMenuItem(
+                      value: 'English (IN) — UTC+5:30 IST',
+                      child: Text(
+                        'English (IN) — UTC+5:30 IST',
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    DropdownMenuItem(
+                      value: 'English (AU) — UTC+10 AEST',
+                      child: Text(
+                        'English (AU) — UTC+10 AEST',
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                  onChanged: (val) {
+                    if (val != null) {
+                      setState(() {
+                        _selectedTimezone = val;
+                      });
+                    }
+                  },
+                ),
+              ),
+            ),
+            SizedBox(height: wide ? 26 : 20),
+
+            // Save Changes Button
+            SizedBox(
+              width: double.infinity,
+              height: wide ? 44 : 48,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.black,
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(wide ? 8 : 4),
+                  ),
+                ),
+                onPressed: _isSavingSettings
+                    ? null
+                    : () async {
+                        final firstName = _firstNameController.text.trim();
+                        final lastName = _lastNameController.text.trim();
+                        final fullName = [
+                          firstName,
+                          lastName,
+                        ].where((p) => p.isNotEmpty).join(' ');
+                        final phone = _phoneController.text.trim();
+
+                        if (fullName.isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Please enter your name'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                          return;
+                        }
+
+                        setState(() => _isSavingSettings = true);
+                        final authProvider = context.read<AuthProvider>();
+                        final ok = await authProvider.updateProfile(
+                          fullName: fullName,
+                          phoneNumber: phone,
+                        );
+                        if (mounted) {
+                          setState(() => _isSavingSettings = false);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                ok
+                                    ? 'Personal details saved successfully!'
+                                    : (authProvider.errorMessage ??
+                                          'Update failed'),
+                              ),
+                              backgroundColor: ok
+                                  ? const Color(0xFF0F766E)
+                                  : Colors.red.shade700,
+                            ),
+                          );
+                        }
+                      },
+                child: _isSavingSettings
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Text(
+                        'Save Changes',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ];
+    final corporate = <Widget>[
+      // CORPORATE CREDENTIALS Section
+      Row(
+        children: const [
+          Icon(Icons.lock_outline, size: 14, color: Color(0xFF64748B)),
+          SizedBox(width: 6),
+          Text(
+            'CORPORATE CREDENTIALS',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.8,
+              color: Color(0xFF64748B),
+            ),
+          ),
+        ],
+      ),
+      const SizedBox(height: 10),
+
+      // Corporate Credentials Card
+      Container(
+        padding: EdgeInsets.all(wide ? 20 : 18),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(corner),
+          border: Border.all(color: panelBorder),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Shield Info Box
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(wide ? 8 : 4),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+              ),
+              child: const Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(
+                    Icons.verified_user_outlined,
+                    size: 18,
+                    color: Color(0xFF64748B),
+                  ),
+                  SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Managed by your organization administrator. These security values cannot be modified directly.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF64748B),
+                        fontWeight: FontWeight.w500,
+                        height: 1.4,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Work Email
+            Wrap(
+              alignment: WrapAlignment.spaceBetween,
+              spacing: 8,
+              runSpacing: 4,
+              children: const [
+                Text(
+                  'Work Email',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF475569),
+                  ),
+                ),
+                Text(
+                  'Enterprise SSO',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF64748B),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(wide ? 8 : 4),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      user?.emailAddress ?? '',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF334155),
+                      ),
+                    ),
+                  ),
+                  const Icon(
+                    Icons.lock_outline,
+                    size: 18,
+                    color: Color(0xFF94A3B8),
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 4),
             const Text(
-              'Manage profile, credentials, and app preferences',
+              'Contact IT administrator to update corporate address',
               style: TextStyle(
-                fontSize: 13,
-                color: Color(0xFF6B7280),
+                fontSize: 11,
+                color: Color(0xFF94A3B8),
                 fontWeight: FontWeight.w500,
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
 
-            // Profile Card
+            // Designation & Role
+            const Text(
+              'Designation & Role',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF475569),
+              ),
+            ),
+            const SizedBox(height: 6),
             Container(
-              padding: const EdgeInsets.all(18),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(4),
-                border: Border.all(color: const Color(0xFFE5E7EB)),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.02),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      // Avatar with camera badge
-                      InkWell(
-                        onTap: () => _pickAndUploadAvatar(context),
-                        borderRadius: BorderRadius.circular(38),
-                        child: Stack(
-                          clipBehavior: Clip.none,
-                          children: [
-                            CircleAvatar(
-                              radius: 36,
-                              backgroundColor: const Color(0xFF1E293B),
-                              backgroundImage: userAvatarUrl != null
-                                  ? NetworkImage(userAvatarUrl)
-                                  : null,
-                              child: userAvatarUrl == null
-                                  ? Text(
-                                      userInitial,
-                                      style: const TextStyle(
-                                        fontSize: 26,
-                                        fontWeight: FontWeight.w800,
-                                        color: Colors.white,
-                                      ),
-                                    )
-                                  : null,
-                            ),
-                            Positioned(
-                              bottom: 0,
-                              right: 0,
-                              child: Container(
-                                padding: const EdgeInsets.all(5),
-                                decoration: BoxDecoration(
-                                  color: Colors.black,
-                                  shape: BoxShape.circle,
-                                  border: Border.all(color: Colors.white, width: 2),
-                                ),
-                                child: const Icon(
-                                  Icons.camera_alt,
-                                  size: 11,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              userName,
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w800,
-                                color: Colors.black,
-                              ),
-                            ),
-                            if (user?.userName != null && user!.userName.isNotEmpty) ...[
-                              const SizedBox(height: 1),
-                              Text(
-                                '@${user.userName}',
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: Color(0xFF64748B),
-                                ),
-                              ),
-                            ],
-                            const SizedBox(height: 6),
-                            // Current Organization
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              children: [
-                                const Icon(
-                                  Icons.business_rounded,
-                                  size: 14,
-                                  color: Color(0xFF475569),
-                                ),
-                                const SizedBox(width: 5),
-                                Expanded(
-                                  child: Text(
-                                    orgName,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w700,
-                                      color: Color(0xFF1E293B),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 3),
-                            // Current Department
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              children: [
-                                const Icon(
-                                  Icons.badge_outlined,
-                                  size: 14,
-                                  color: Color(0xFF16A34A),
-                                ),
-                                const SizedBox(width: 5),
-                                Expanded(
-                                  child: Text(
-                                    deptName,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                      fontSize: 12.5,
-                                      fontWeight: FontWeight.w600,
-                                      color: Color(0xFF16A34A),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 6),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 2.5,
-                              ),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFF1F5F9),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Text(
-                                isAdmin
-                                    ? 'ORGANIZATION ADMIN'
-                                    : 'OPERATIONS SPECIALIST',
-                                style: const TextStyle(
-                                  fontSize: 9.5,
-                                  fontWeight: FontWeight.w800,
-                                  letterSpacing: 0.5,
-                                  color: Color(0xFF475569),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  // Action buttons
-                  Row(
-                    children: [
-                      ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFF1F5F9),
-                          foregroundColor: Colors.black,
-                          elevation: 0,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 10,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                        ),
-                        onPressed: () => _pickAndUploadAvatar(context),
-                        icon: const Icon(Icons.file_upload_outlined, size: 16),
-                        label: const Text(
-                          'Upload photo',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 13,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFF1F5F9),
-                          foregroundColor: const Color(0xFF475569),
-                          elevation: 0,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 10,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                        ),
-                        onPressed: () async {
-                          final ok = await auth.removeProfilePicture();
-                          if (mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  ok
-                                      ? 'Profile picture removed and deleted from S3.'
-                                      : 'Failed to remove profile picture.',
-                                ),
-                                backgroundColor:
-                                    ok ? const Color(0xFF0F766E) : Colors.red,
-                              ),
-                            );
-                          }
-                        },
-                        child: const Text(
-                          'Remove',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 13,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            // PERSONAL DETAILS Section
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'PERSONAL DETAILS',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 0.8,
-                    color: Color(0xFF64748B),
-                  ),
-                ),
-                TextButton(
-                  style: TextButton.styleFrom(
-                    padding: EdgeInsets.zero,
-                    minimumSize: const Size(50, 24),
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  ),
-                  onPressed: () {},
-                  child: const Text(
-                    'Editable',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF2563EB),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-
-            // Personal Details Card
-            Container(
-              padding: const EdgeInsets.all(18),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(4),
-                border: Border.all(color: const Color(0xFFE5E7EB)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildSettingsFieldLabel('First Name'),
-                  _buildSettingsTextField(_firstNameController, 'First Name'),
-                  const SizedBox(height: 14),
-
-                  _buildSettingsFieldLabel('Last Name'),
-                  _buildSettingsTextField(_lastNameController, 'Last Name'),
-                  const SizedBox(height: 14),
-
-                  _buildSettingsFieldLabel('Mobile Number'),
-                  _buildSettingsTextField(
-                    _phoneController,
-                    '+1 000 000 0000',
-                    keyboardType: TextInputType.phone,
-                  ),
-                  const SizedBox(height: 14),
-
-                  _buildSettingsFieldLabel('Regional Format & Timezone'),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(4),
-                      border: Border.all(color: const Color(0xFFCBD5E1)),
-                    ),
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<String>(
-                        value: _selectedTimezone,
-                        isExpanded: true,
-                        icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF475569)),
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF0F172A),
-                        ),
-                        items: const [
-                          DropdownMenuItem(
-                            value: 'English (US) — UTC-5 EST',
-                            child: Text('English (US) — UTC-5 EST'),
-                          ),
-                          DropdownMenuItem(
-                            value: 'English (UK) — UTC+0 GMT',
-                            child: Text('English (UK) — UTC+0 GMT'),
-                          ),
-                          DropdownMenuItem(
-                            value: 'English (IN) — UTC+5:30 IST',
-                            child: Text('English (IN) — UTC+5:30 IST'),
-                          ),
-                          DropdownMenuItem(
-                            value: 'English (AU) — UTC+10 AEST',
-                            child: Text('English (AU) — UTC+10 AEST'),
-                          ),
-                        ],
-                        onChanged: (val) {
-                          if (val != null) {
-                            setState(() {
-                              _selectedTimezone = val;
-                            });
-                          }
-                        },
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-
-                  // Save Changes Button
-                  SizedBox(
-                    width: double.infinity,
-                    height: 48,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.black,
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                      ),
-                      onPressed: _isSavingSettings
-                          ? null
-                          : () async {
-                              final firstName = _firstNameController.text.trim();
-                              final lastName = _lastNameController.text.trim();
-                              final fullName = [firstName, lastName]
-                                  .where((p) => p.isNotEmpty)
-                                  .join(' ');
-                              final phone = _phoneController.text.trim();
-
-                              if (fullName.isEmpty) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Please enter your name'),
-                                    backgroundColor: Colors.red,
-                                  ),
-                                );
-                                return;
-                              }
-
-                              setState(() => _isSavingSettings = true);
-                              final authProvider = context.read<AuthProvider>();
-                              final ok = await authProvider.updateProfile(
-                                fullName: fullName,
-                                phoneNumber: phone,
-                              );
-                              if (mounted) {
-                                setState(() => _isSavingSettings = false);
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(ok
-                                        ? 'Personal details saved successfully!'
-                                        : (authProvider.errorMessage ?? 'Update failed')),
-                                    backgroundColor:
-                                        ok ? const Color(0xFF0F766E) : Colors.red.shade700,
-                                  ),
-                                );
-                              }
-                            },
-                      child: _isSavingSettings
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            )
-                          : const Text(
-                              'Save Changes',
-                              style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            // CORPORATE CREDENTIALS Section
-            Row(
-              children: const [
-                Icon(Icons.lock_outline, size: 14, color: Color(0xFF64748B)),
-                SizedBox(width: 6),
-                Text(
-                  'CORPORATE CREDENTIALS',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 0.8,
-                    color: Color(0xFF64748B),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-
-            // Corporate Credentials Card
-            Container(
-              padding: const EdgeInsets.all(18),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(4),
-                border: Border.all(color: const Color(0xFFE5E7EB)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Shield Info Box
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF8FAFC),
-                      borderRadius: BorderRadius.circular(4),
-                      border: Border.all(color: const Color(0xFFE2E8F0)),
-                    ),
-                    child: const Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Icon(
-                          Icons.verified_user_outlined,
-                          size: 18,
-                          color: Color(0xFF64748B),
-                        ),
-                        SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            'Managed by your organization administrator. These security values cannot be modified directly.',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Color(0xFF64748B),
-                              fontWeight: FontWeight.w500,
-                              height: 1.4,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Work Email
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: const [
-                      Text(
-                        'Work Email',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF475569),
-                        ),
-                      ),
-                      Text(
-                        'Enterprise SSO',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF64748B),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 12,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF8FAFC),
-                      borderRadius: BorderRadius.circular(4),
-                      border: Border.all(color: const Color(0xFFE2E8F0)),
-                    ),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            user?.emailAddress ?? '',
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFF334155),
-                            ),
-                          ),
-                        ),
-                        const Icon(
-                          Icons.lock_outline,
-                          size: 18,
-                          color: Color(0xFF94A3B8),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  const Text(
-                    'Contact IT administrator to update corporate address',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: Color(0xFF94A3B8),
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Designation & Role
-                  const Text(
-                    'Designation & Role',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF475569),
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 12,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF8FAFC),
-                      borderRadius: BorderRadius.circular(4),
-                      border: Border.all(color: const Color(0xFFE2E8F0)),
-                    ),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            isAdmin
-                                ? 'Senior Operations Director / Org Admin'
-                                : 'Operations Specialist / Staff',
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFF334155),
-                            ),
-                          ),
-                        ),
-                        const Icon(
-                          Icons.badge_outlined,
-                          size: 18,
-                          color: Color(0xFF94A3B8),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  const Text(
-                    'Designations are strictly tied to enterprise access control (RBAC)',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: Color(0xFF94A3B8),
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            // APP & UPDATES Section
-            Row(
-              children: const [
-                Icon(Icons.system_update_alt_outlined, size: 14, color: Color(0xFF64748B)),
-                SizedBox(width: 6),
-                Text(
-                  'APP & UPDATES',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 0.8,
-                    color: Color(0xFF64748B),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-
-            // App Updates Card
-            Container(
-              padding: const EdgeInsets.all(18),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(4),
-                border: Border.all(color: const Color(0xFFE5E7EB)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        width: 36,
-                        height: 36,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF1F5F9),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: const Icon(
-                          Icons.smartphone_outlined,
-                          size: 20,
-                          color: Colors.black,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'CPMS Mobile',
-                              style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w800,
-                                color: Color(0xFF0F172A),
-                              ),
-                            ),
-                            Text(
-                              'Installed Version: v${AppUpdateHelper.appVersion} (Build ${AppUpdateHelper.buildNumber})',
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: Color(0xFF64748B),
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 14),
-                  const Text(
-                    'Stay up to date with the latest features, security patches, and performance improvements.',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Color(0xFF64748B),
-                      height: 1.4,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 44,
-                    child: ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.black,
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                      ),
-                      onPressed: () => AppUpdateHelper.openStore(context: context),
-                      icon: const Icon(Icons.open_in_new, size: 16),
-                      label: const Text(
-                        'Check for Updates in Store',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            // Log Out All Sessions Button
-            SizedBox(
               width: double.infinity,
-              height: 48,
-              child: ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFFFE4E6),
-                  foregroundColor: const Color(0xFFBE123C),
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                ),
-                onPressed: () async {
-                  tenant.clear();
-                  inventory.clear();
-                  context.read<DepartmentProvider>().clear();
-                  await auth.signOut();
-                  if (mounted) {
-                    Navigator.pushNamedAndRemoveUntil(
-                      context,
-                      '/signin',
-                      (route) => false,
-                    );
-                  }
-                },
-                icon: const Icon(Icons.logout_rounded, size: 18),
-                label: const Text(
-                  'Log Out All Sessions',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(wide ? 8 : 4),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
               ),
-            ),
-            const SizedBox(height: 24),
-
-            // Footer info
-            Center(
-              child: Column(
+              child: Row(
                 children: [
-                  Text(
-                    '${tenantDisplayName.toUpperCase()} MOBILE V${AppUpdateHelper.appVersion} (BUILD ${AppUpdateHelper.buildNumber})',
-                    style: const TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w800,
-                      color: Color(0xFF94A3B8),
-                      letterSpacing: 0.5,
+                  Expanded(
+                    child: Text(
+                      isAdmin
+                          ? 'Senior Operations Director / Org Admin'
+                          : 'Operations Specialist / Staff',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF334155),
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 2),
-                  const Text(
-                    'End-to-End Encrypted Transit Terminal',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w500,
-                      color: Color(0xFF94A3B8),
-                    ),
+                  const Icon(
+                    Icons.badge_outlined,
+                    size: 18,
+                    color: Color(0xFF94A3B8),
                   ),
                 ],
               ),
             ),
-            const AppFooter(topPadding: 16, bottomPadding: 24),
+            const SizedBox(height: 4),
+            const Text(
+              'Designations are strictly tied to enterprise access control (RBAC)',
+              style: TextStyle(
+                fontSize: 11,
+                color: Color(0xFF94A3B8),
+                fontWeight: FontWeight.w500,
+              ),
+            ),
           ],
         ),
       ),
-    ),
+      SizedBox(height: wide ? 32 : 24),
+
+      // APP & UPDATES Section
+      Row(
+        children: const [
+          Icon(
+            Icons.system_update_alt_outlined,
+            size: 14,
+            color: Color(0xFF64748B),
+          ),
+          SizedBox(width: 6),
+          Text(
+            'APP & UPDATES',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.8,
+              color: Color(0xFF64748B),
+            ),
+          ),
+        ],
+      ),
+      const SizedBox(height: 10),
+
+      // App Updates Card
+      Container(
+        padding: EdgeInsets.all(wide ? 20 : 18),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(corner),
+          border: Border.all(color: panelBorder),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF1F5F9),
+                    borderRadius: BorderRadius.circular(wide ? 8 : 4),
+                  ),
+                  child: const Icon(
+                    Icons.smartphone_outlined,
+                    size: 20,
+                    color: Colors.black,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'CPMS Mobile',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF0F172A),
+                        ),
+                      ),
+                      Text(
+                        'Installed Version: v${AppUpdateHelper.appVersion} (Build ${AppUpdateHelper.buildNumber})',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF64748B),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            const Text(
+              'Stay up to date with the latest features, security patches, and performance improvements.',
+              style: TextStyle(
+                fontSize: 12,
+                color: Color(0xFF64748B),
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              height: 44,
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.black,
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(wide ? 8 : 4),
+                  ),
+                ),
+                onPressed: () => AppUpdateHelper.openStore(context: context),
+                icon: const Icon(Icons.open_in_new, size: 16),
+                label: const Text(
+                  'Check for Updates in Store',
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+      SizedBox(height: wide ? 32 : 24),
+
+      // Log Out All Sessions Button
+      SizedBox(
+        width: double.infinity,
+        height: 48,
+        child: ElevatedButton.icon(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Color(wide ? 0xFFFFEBEB : 0xFFFFE4E6),
+            side: wide ? const BorderSide(color: Color(0xFFFFD2D2)) : null,
+            foregroundColor: Color(wide ? 0xFFFF3C3C : 0xFFBE123C),
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(wide ? 8 : 4),
+            ),
+          ),
+          onPressed: () async {
+            tenant.clear();
+            inventory.clear();
+            context.read<DepartmentProvider>().clear();
+            await auth.signOut();
+            if (mounted) {
+              Navigator.pushNamedAndRemoveUntil(
+                context,
+                '/signin',
+                (route) => false,
+              );
+            }
+          },
+          icon: const Icon(Icons.logout_rounded, size: 18),
+          label: const Text(
+            'Log Out All Sessions',
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800),
+          ),
+        ),
+      ),
+      SizedBox(height: wide ? 32 : 24),
+
+      // Footer info
+      Center(
+        child: Column(
+          children: [
+            Text(
+              '${tenantDisplayName.toUpperCase()} MOBILE V${AppUpdateHelper.appVersion} (BUILD ${AppUpdateHelper.buildNumber})',
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+                color: Color(0xFF94A3B8),
+                letterSpacing: 0.5,
+              ),
+            ),
+            const SizedBox(height: 2),
+            const Text(
+              'End-to-End Encrypted Transit Terminal',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
+                color: Color(0xFF94A3B8),
+              ),
+            ),
+          ],
+        ),
+      ),
+      if (wide)
+        const Padding(
+          padding: EdgeInsets.only(top: 6),
+          child: Center(
+            child: Text(
+              'Developed by Bigburry Hypersystems',
+              style: TextStyle(fontSize: 10, color: Color(0xFF8598B5)),
+            ),
+          ),
+        )
+      else
+        const AppFooter(topPadding: 16, bottomPadding: 24),
+    ];
+
+    final page = RefreshIndicator(
+      color: Colors.black,
+      onRefresh: _loadInitialData,
+      child: Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: wide ? 1600 : 1100),
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: EdgeInsets.symmetric(
+              horizontal: wide
+                  ? (MediaQuery.sizeOf(context).width >= 1024 ? 40 : 26)
+                  : horizontalPadding,
+              vertical: wide ? 32 : 24,
+            ),
+            children: [
+              ...header,
+              if (wide)
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      flex: 59,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: personal,
+                      ),
+                    ),
+                    SizedBox(
+                      width: MediaQuery.sizeOf(context).width >= 1024 ? 32 : 22,
+                    ),
+                    Expanded(
+                      flex: 41,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: corporate,
+                      ),
+                    ),
+                  ],
+                )
+              else ...[
+                ...personal,
+                const SizedBox(height: 24),
+                ...corporate,
+              ],
+            ],
+          ),
+        ),
+      ),
     );
+    return wide ? ColoredBox(color: Colors.white, child: page) : page;
   }
 
   // ==========================================
