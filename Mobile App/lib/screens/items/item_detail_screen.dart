@@ -1,3 +1,5 @@
+import '../../widgets/cpms_form_page.dart';
+import '../../widgets/cpms_page_route.dart';
 import 'package:flutter/material.dart';
 import '../../core/theme/app_theme.dart';
 import '../../widgets/cpms_page_title.dart';
@@ -95,11 +97,9 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
   }
 
   void _confirmDelete(ItemModel item) {
-    showDialog(
+    openCpmsPage(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      builder: (ctx) => CpmsFormPage(
         title: Text(
           'Delete Item: ${item.itemName}?',
           style: const TextStyle(
@@ -116,7 +116,6 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
             height: 1.4,
           ),
         ),
-        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),

@@ -1,7 +1,8 @@
+import '../../widgets/cpms_page_route.dart';
 import 'package:flutter/material.dart';
 import '../../core/theme/app_theme.dart';
 import '../../widgets/cpms_page_title.dart';
-import '../../widgets/cpms_form_dialog.dart';
+import '../../widgets/cpms_form_page.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/constants/api_constants.dart';
@@ -44,10 +45,10 @@ class _StoreRoomItemDetailScreenState extends State<StoreRoomItemDetailScreen> {
     );
     final formKey = GlobalKey<FormState>();
 
-    showDialog(
+    openCpmsPage(
       context: context,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDlgState) => CpmsFormDialog(
+        builder: (ctx, setDlgState) => CpmsFormPage(
           title: Text(
             'Update Quantity: ${item.itemName}',
             style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 17),
@@ -154,9 +155,9 @@ class _StoreRoomItemDetailScreenState extends State<StoreRoomItemDetailScreen> {
     );
     final formKey = GlobalKey<FormState>();
 
-    showDialog(
+    openCpmsPage(
       context: context,
-      builder: (ctx) => CpmsFormDialog(
+      builder: (ctx) => CpmsFormPage(
         title: Text(
           'Minimum Quantity Alert: ${item.itemName}',
           style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 17),
@@ -256,10 +257,10 @@ class _StoreRoomItemDetailScreenState extends State<StoreRoomItemDetailScreen> {
     final current = room.divisionForItem(source)?.divisionId ?? source.divisionId;
     final targets = room.configuredDivisions.where((division) => division.divisionId != current).toList();
     String? selected;
-    final targetId = await showDialog<String>(
+    final targetId = await openCpmsPage<String>(
       context: context,
       builder: (context) => StatefulBuilder(
-        builder: (context, updateDialog) => CpmsFormDialog(
+        builder: (context, updateDialog) => CpmsFormPage(
           icon: Icons.drive_file_move_outlined,
           title: Text('Move ${item.itemName}'),
           content: targets.isEmpty
@@ -304,11 +305,9 @@ class _StoreRoomItemDetailScreenState extends State<StoreRoomItemDetailScreen> {
   ) {
     final inventory = context.read<InventoryProvider>();
 
-    showDialog(
+    openCpmsPage(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      builder: (ctx) => CpmsFormPage(
         title: const Text(
           'Remove from Store Room?',
           style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
@@ -318,7 +317,6 @@ class _StoreRoomItemDetailScreenState extends State<StoreRoomItemDetailScreen> {
           style: const TextStyle(
               fontSize: 14, color: Color(0xFF64748B), height: 1.4),
         ),
-        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),

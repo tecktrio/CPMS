@@ -1,3 +1,5 @@
+import '../../widgets/cpms_form_page.dart';
+import '../../widgets/cpms_page_route.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -110,7 +112,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
       _orderItems.fold(0, (sum, it) => sum + it.totalPackets);
 
   Future<void> _selectPoDate() async {
-    final picked = await showDatePicker(
+    final picked = await openCpmsDatePage(
       context: context,
       initialDate: _poDate,
       firstDate: DateTime(2020),
@@ -133,7 +135,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
 
   Future<void> _selectShippingDate() async {
     final initial = _expectedShippingDate ?? _poDate.add(const Duration(days: 14));
-    final picked = await showDatePicker(
+    final picked = await openCpmsDatePage(
       context: context,
       initialDate: initial,
       firstDate: DateTime(2020),
@@ -161,12 +163,10 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
     final dialogFormKey = GlobalKey<FormState>();
     bool isCreating = false;
 
-    showDialog(
+    openCpmsPage(
       context: context,
       builder: (ctx) => StatefulBuilder(
-        builder: (context, setDlgState) => AlertDialog(
-          backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+        builder: (context, setDlgState) => CpmsFormPage(
           title: const Row(
             children: [
               Icon(Icons.business_outlined, size: 22, color: Colors.black),
@@ -316,13 +316,9 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
     final searchCtrl = TextEditingController();
     String query = '';
 
-    showModalBottomSheet(
+    openCpmsSelectionPage(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
+      title: 'Select customer',
       builder: (ctx) => StatefulBuilder(
         builder: (context, setModalState) {
           final customers = context.watch<PurchaseOrderProvider>().customers;
@@ -333,24 +329,13 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
 
           return SafeArea(
             child: Container(
-              padding: EdgeInsets.only(
-                bottom: MediaQuery.of(ctx).viewInsets.bottom,
-              ),
+
               constraints: BoxConstraints(
-                maxHeight: MediaQuery.of(context).size.height * 0.75,
+                maxHeight: MediaQuery.sizeOf(context).height,
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Container(
-                    margin: const EdgeInsets.only(top: 12, bottom: 8),
-                    width: 36,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFCBD5E1),
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     child: Row(
@@ -529,11 +514,9 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
         ? shortfall.toInt().toString()
         : shortfall.toStringAsFixed(1);
 
-    final proceed = await showDialog<bool>(
+    final proceed = await openCpmsPage<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      builder: (ctx) => CpmsFormPage(
         title: const Row(
           children: [
             Icon(Icons.warning_amber_rounded,
@@ -769,13 +752,9 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
     String itemSearchQuery = '';
     final searchCtrl = TextEditingController();
 
-    showModalBottomSheet(
+    openCpmsSelectionPage(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
+      title: editItem != null ? 'Edit order item' : 'Add order item',
       builder: (ctx) => StatefulBuilder(
         builder: (context, setModalState) {
           final items = invProv.items;
@@ -798,8 +777,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
               selectedCatalogItem?.measurementUnit.toUpperCase() ?? '';
 
           return Padding(
-            padding: EdgeInsets.only(
-              bottom: MediaQuery.of(context).viewInsets.bottom,
+            padding: const EdgeInsets.only(
               top: 16,
               left: 20,
               right: 20,

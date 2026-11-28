@@ -116,9 +116,11 @@ class _CreateDepartmentDialogState extends State<CreateDepartmentDialog> {
     final deptProvider = context.watch<DepartmentProvider>();
     final modules = deptProvider.permissionsByModule;
 
-    return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: ConstrainedBox(
+    return Scaffold(
+      appBar: AppBar(title: Text(isEditing ? 'Edit department' : 'Create department')),
+      body: Align(
+        alignment: Alignment.topCenter,
+        child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 620, maxHeight: 700),
         child: Padding(
           padding: const EdgeInsets.all(24),
@@ -317,6 +319,7 @@ class _CreateDepartmentDialogState extends State<CreateDepartmentDialog> {
             ),
           ),
         ),
+      ),
       ),
     );
   }

@@ -1,3 +1,4 @@
+import '../../widgets/cpms_page_route.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -7,7 +8,7 @@ import '../../providers/production_provider.dart';
 import '../../providers/purchase_order_provider.dart';
 import '../../providers/tenant_provider.dart';
 import '../../services/purchase_order_export_service.dart';
-import '../../widgets/cpms_form_dialog.dart';
+import '../../widgets/cpms_form_page.dart';
 import '../../widgets/cpms_page_title.dart';
 import 'create_purchase_order_screen.dart';
 import 'purchase_order_export_screen.dart';
@@ -15,7 +16,13 @@ import 'purchase_order_export_screen.dart';
 class PurchaseOrderDetailScreen extends StatefulWidget {
   final String poId;
 
-  const PurchaseOrderDetailScreen({super.key, required this.poId});
+  const PurchaseOrderDetailScreen({
+    super.key,
+    required this.poId,
+    this.embedded = false,
+  });
+
+  final bool embedded;
 
   @override
   State<PurchaseOrderDetailScreen> createState() =>
@@ -29,17 +36,16 @@ class _PurchaseOrderDetailScreenState extends State<PurchaseOrderDetailScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
       context.read<DepartmentProvider>().loadTenantUsers();
       context.read<ProductionProvider>().loadAssignmentsByPo(widget.poId);
     });
   }
 
   Future<void> _handleDelete(PurchaseOrderModel po) async {
-    final confirm = await showDialog<bool>(
+    final confirm = await openCpmsPage<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      builder: (ctx) => CpmsFormPage(
         title: const Text(
           'Delete Purchase Order',
           style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18, color: Color(0xFF0F172A)),
@@ -82,7 +88,7 @@ class _PurchaseOrderDetailScreenState extends State<PurchaseOrderDetailScreen> {
           backgroundColor: Color(0xFF0F172A),
         ),
       );
-      Navigator.pop(context);
+      if (!widget.embedded) Navigator.pop(context);
     } else {
       final err = context.read<PurchaseOrderProvider>().errorMessage;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -112,13 +118,12 @@ class _PurchaseOrderDetailScreenState extends State<PurchaseOrderDetailScreen> {
     var saving = false;
     String? error;
 
-    await showDialog<void>(
+    await openCpmsPage<void>(
       context: context,
-      barrierDismissible: false,
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) => PopScope(
           canPop: !saving,
-          child: CpmsFormDialog(
+          child: CpmsFormPage(
             icon: Icons.swap_horiz_rounded,
             title: const Text('Update order status'),
             content: Column(
@@ -248,12 +253,16 @@ class _PurchaseOrderDetailScreenState extends State<PurchaseOrderDetailScreen> {
       return Scaffold(
         backgroundColor: const Color(0xFFF8FAFC),
         appBar: AppBar(
+          primary: !widget.embedded,
+          automaticallyImplyLeading: !widget.embedded,
           backgroundColor: Colors.white,
           elevation: 0,
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Color(0xFF0F172A)),
-            onPressed: () => Navigator.pop(context),
-          ),
+          leading: widget.embedded
+              ? null
+              : IconButton(
+                  icon: const Icon(Icons.arrow_back, color: Color(0xFF0F172A)),
+                  onPressed: () => Navigator.pop(context),
+                ),
           title: const Text('Purchase Order', style: TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.w800)),
         ),
         body: RefreshIndicator(
@@ -279,22 +288,80 @@ class _PurchaseOrderDetailScreenState extends State<PurchaseOrderDetailScreen> {
     final canUpdatePo = isAdmin || tenant.hasPermission(AppPermissions.poUpdate);
     final canDeletePo = isAdmin || tenant.hasPermission(AppPermissions.poDelete);
 
+    final exportAction = FilledButton.icon(
+      onPressed: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => PurchaseOrderExportScreen(po: po),
+          ),
+        );
+      },
+      icon: const Icon(Icons.file_upload_outlined, size: 16),
+      label: const Text('Export', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+      style: FilledButton.styleFrom(
+        backgroundColor: const Color(0xFF0F172A),
+        foregroundColor: Colors.white,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        elevation: 0,
+      ),
+    );
+    final deleteAction = OutlinedButton.icon(
+      onPressed: () => _handleDelete(po),
+      icon: const Icon(Icons.delete_outline, size: 16, color: Color(0xFFDC2626)),
+      label: const Text('Delete Order', style: TextStyle(color: Color(0xFFDC2626), fontWeight: FontWeight.w700, fontSize: 13)),
+      style: OutlinedButton.styleFrom(
+        side: const BorderSide(color: Color(0xFFFECACA)),
+        backgroundColor: Colors.white,
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ),
+    );
+    final editAction = OutlinedButton.icon(
+      onPressed: () async {
+        await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => CreatePurchaseOrderScreen(existingPo: po),
+          ),
+        );
+      },
+      icon: const Icon(Icons.edit_outlined, size: 16, color: Color(0xFF0F172A)),
+      label: const Text('Edit Purchase Order', style: TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.w700, fontSize: 13)),
+      style: OutlinedButton.styleFrom(
+        side: const BorderSide(color: Color(0xFFE2E8F0)),
+        backgroundColor: Colors.white,
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ),
+    );
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
+        primary: !widget.embedded,
+        automaticallyImplyLeading: !widget.embedded,
         backgroundColor: Colors.white,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         scrolledUnderElevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Color(0xFF0F172A), size: 22),
-          onPressed: () => Navigator.pop(context),
-        ),
+        leading: widget.embedded
+            ? null
+            : IconButton(
+                icon: const Icon(Icons.arrow_back, color: Color(0xFF0F172A), size: 22),
+                onPressed: () => Navigator.pop(context),
+              ),
         title: const CpmsPageTitle(
           'Purchase order',
           icon: Icons.receipt_long_outlined,
         ),
         actions: [
+          if (widget.embedded) ...[
+            exportAction,
+            if (canUpdatePo) editAction,
+            if (canDeletePo) deleteAction,
+          ],
           IconButton(
             icon: const Icon(Icons.refresh, color: Color(0xFF0F172A), size: 20),
             tooltip: 'Refresh',
@@ -356,26 +423,7 @@ class _PurchaseOrderDetailScreenState extends State<PurchaseOrderDetailScreen> {
                           runSpacing: 8,
                           crossAxisAlignment: WrapCrossAlignment.center,
                           children: [
-                            // Export Button
-                            FilledButton.icon(
-                              onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => PurchaseOrderExportScreen(po: po),
-                                  ),
-                                );
-                              },
-                              icon: const Icon(Icons.file_upload_outlined, size: 16),
-                              label: const Text('Export', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
-                              style: FilledButton.styleFrom(
-                                backgroundColor: const Color(0xFF0F172A),
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                elevation: 0,
-                              ),
-                            ),
+                            if (!widget.embedded) exportAction,
                             InkWell(
                               onTap: canUpdatePo
                                   ? () => _showStatusUpdate(po, poProvider)
@@ -751,41 +799,12 @@ class _PurchaseOrderDetailScreenState extends State<PurchaseOrderDetailScreen> {
                   const SizedBox(height: 24),
 
                   // 4. BOTTOM ACTION BUTTONS
-                  Row(
+                  if (!widget.embedded) Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
-                      if (canDeletePo)
-                        OutlinedButton.icon(
-                          onPressed: () => _handleDelete(po),
-                          icon: const Icon(Icons.delete_outline, size: 16, color: Color(0xFFDC2626)),
-                          label: const Text('Delete Order', style: TextStyle(color: Color(0xFFDC2626), fontWeight: FontWeight.w700, fontSize: 13)),
-                          style: OutlinedButton.styleFrom(
-                            side: const BorderSide(color: Color(0xFFFECACA)),
-                            backgroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                          ),
-                        ),
-                      const SizedBox(width: 12),
-                      if (canUpdatePo)
-                        OutlinedButton.icon(
-                          onPressed: () async {
-                            await Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => CreatePurchaseOrderScreen(existingPo: po),
-                              ),
-                            );
-                          },
-                          icon: const Icon(Icons.edit_outlined, size: 16, color: Color(0xFF0F172A)),
-                          label: const Text('Edit Purchase Order', style: TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.w700, fontSize: 13)),
-                          style: OutlinedButton.styleFrom(
-                            side: const BorderSide(color: Color(0xFFE2E8F0)),
-                            backgroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                          ),
-                        ),
+                      if (canDeletePo) deleteAction,
+                      if (canDeletePo && canUpdatePo) const SizedBox(width: 12),
+                      if (canUpdatePo) editAction,
                     ],
                   ),
 
@@ -984,8 +1003,11 @@ class _PurchaseOrderDetailScreenState extends State<PurchaseOrderDetailScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Wrap(
+            spacing: 8,
+            runSpacing: 4,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            alignment: WrapAlignment.spaceBetween,
             children: [
               Text(
                 title,

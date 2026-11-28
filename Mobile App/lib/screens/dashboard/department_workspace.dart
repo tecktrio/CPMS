@@ -109,139 +109,58 @@ class DepartmentWorkspaceView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tenant = context.watch<TenantProvider>();
-    final (label, icon, permission) = switch (workspace) {
-      DepartmentWorkspace.sales => (
-        'Manage purchase orders',
-        Icons.receipt_long_outlined,
-        AppPermissions.poRead,
-      ),
-      DepartmentWorkspace.storeRoom => (
-        'Manage room inventory',
-        Icons.warehouse_outlined,
-        AppPermissions.storeroomRead,
-      ),
-      DepartmentWorkspace.productionManager => (
-        'Manage confirmed orders',
-        Icons.account_tree_outlined,
-        AppPermissions.productionRead,
-      ),
-      DepartmentWorkspace.supervisor => (
-        'My assigned items',
-        Icons.assignment_outlined,
-        AppPermissions.productionRead,
-      ),
-      DepartmentWorkspace.quality => (
-        'My assigned inspections',
-        Icons.fact_check_outlined,
-        AppPermissions.qcCheck,
-      ),
-      DepartmentWorkspace.packing => (
-        'Mark items packed',
-        Icons.inventory_2_outlined,
-        AppPermissions.packingUpdate,
-      ),
-      DepartmentWorkspace.export => (
-        'View order readiness',
-        Icons.local_shipping_outlined,
-        AppPermissions.exportRead,
-      ),
-      DepartmentWorkspace.accounts => (
-        'Review confirmed orders',
-        Icons.receipt_long_outlined,
-        AppPermissions.poRead,
-      ),
-      DepartmentWorkspace.administrator => (
-        'Manage users and departments',
-        Icons.groups_outlined,
-        AppPermissions.userRead,
-      ),
-    };
-
-    final actions = <(String, IconData, Widget)>[
-      if (tenant.hasPermission(permission))
-        (
-          label,
-          icon,
-          switch (workspace) {
-            DepartmentWorkspace.sales => const PurchaseOrdersListScreen(),
-            DepartmentWorkspace.storeRoom => const StoreRoomsListScreen(),
-            DepartmentWorkspace.administrator => const DepartmentsListScreen(),
-            _ => OrderWorkScreen(workspace: workspace),
-          },
-        ),
-      if (workspace == DepartmentWorkspace.administrator) ...[
+    if (workspace == DepartmentWorkspace.administrator) {
+      return _buildAdministration(context, tenant, [
+        if (tenant.hasPermission(AppPermissions.userRead))
+          (
+            'Manage users and departments',
+            Icons.groups_outlined,
+            const DepartmentsListScreen(),
+          ),
         (
           'Manage store rooms',
           Icons.warehouse_outlined,
           const StoreRoomsListScreen(),
         ),
         ('Manage items', Icons.view_in_ar_outlined, const ItemsListScreen()),
-      ],
-    ];
-
-    if (workspace == DepartmentWorkspace.administrator) {
-      return _buildAdministration(context, tenant, actions);
+      ]);
     }
 
-    return RefreshIndicator(
-      color: workspace.color,
-      onRefresh: onRefresh,
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 860),
-          child: ListView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-            children: [
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: workspace.color,
-                  borderRadius: BorderRadius.circular(18),
-                ),
-                child: Row(
-                  children: [
-                    Icon(workspace.icon, color: Colors.white, size: 30),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Text(
-                        workspace.title,
-                        style: Theme.of(context).textTheme.headlineSmall
-                            ?.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                            ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-              for (final (title, icon, screen) in actions)
-                Card(
-                  elevation: 0,
-                  margin: const EdgeInsets.only(bottom: 10),
-                  child: ListTile(
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
-                    leading: Icon(icon, color: workspace.color),
-                    title: Text(title),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () => Navigator.of(context)
-                        .push(MaterialPageRoute<void>(builder: (_) => screen)),
-                  ),
-                ),
-              if (actions.isEmpty)
-                const Text(
-                  'No workflow access is available for this department.',
-                ),
-            ],
-          ),
+    final permission = switch (workspace) {
+      DepartmentWorkspace.sales ||
+      DepartmentWorkspace.accounts => AppPermissions.poRead,
+      DepartmentWorkspace.storeRoom => AppPermissions.storeroomRead,
+      DepartmentWorkspace.productionManager ||
+      DepartmentWorkspace.supervisor => AppPermissions.productionRead,
+      DepartmentWorkspace.quality => AppPermissions.qcCheck,
+      DepartmentWorkspace.packing => AppPermissions.packingUpdate,
+      DepartmentWorkspace.export => AppPermissions.exportRead,
+      DepartmentWorkspace.administrator => AppPermissions.userRead,
+    };
+
+    if (!tenant.hasPermission(permission)) {
+      return RefreshIndicator(
+        color: workspace.color,
+        onRefresh: onRefresh,
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(16),
+          children: const [
+            Text('No workflow access is available for this department.'),
+          ],
         ),
+      );
+    }
+
+    return switch (workspace) {
+      DepartmentWorkspace.sales => const PurchaseOrdersListScreen(
+        embedded: true,
       ),
-    );
+      DepartmentWorkspace.storeRoom => const StoreRoomsListScreen(
+        embedded: true,
+      ),
+      _ => OrderWorkScreen(workspace: workspace, embedded: true),
+    };
   }
 
   Widget _buildAdministration(

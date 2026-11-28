@@ -1,3 +1,5 @@
+import '../../widgets/cpms_form_page.dart';
+import '../../widgets/cpms_page_route.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -1821,11 +1823,9 @@ class _ProductionHubScreenState extends State<ProductionHubScreen> {
     PurchaseOrderItemModel item,
   ) {
     final controller = TextEditingController(text: '${item.completedCartons}');
-    showDialog(
+    openCpmsPage(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      builder: (ctx) => CpmsFormPage(
         title: Text(
           'Update Produced: ${item.itemName}',
           style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
@@ -1904,11 +1904,9 @@ class _ProductionHubScreenState extends State<ProductionHubScreen> {
     PurchaseOrderItemModel item,
   ) {
     final controller = TextEditingController(text: '${item.packedCartons}');
-    showDialog(
+    openCpmsPage(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      builder: (ctx) => CpmsFormPage(
         title: Text(
           'Update Packed: ${item.itemName}',
           style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
@@ -1988,11 +1986,9 @@ class _ProductionHubScreenState extends State<ProductionHubScreen> {
     PurchaseOrderItemModel item,
   ) {
     final controller = TextEditingController(text: '${item.shippedCartons}');
-    showDialog(
+    openCpmsPage(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      builder: (ctx) => CpmsFormPage(
         title: Text(
           'Update Shipped: ${item.itemName}',
           style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16),

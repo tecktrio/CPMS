@@ -194,3 +194,41 @@ test('startup remaps legacy QA memberships without reactivating disabled members
   assert.deepEqual(membership.department_ids, ['canonical-qa']);
   assert.equal(membership.is_active, false);
 });
+
+test('progress history records each quantity change once on the assignment', async () => {
+  let saves = 0;
+  const history: { at: Date; user_id: string; previous_cartons: number; completed_cartons: number }[] = [];
+  const record = {
+    ...assignment, completed_cartons: 0, supervisor_name: 'Supervisor', progress_history: history,
+    async save() { saves++; },
+  };
+  const service = new ProductionService(
+    { findOne: async () => record } as never,
+    { exists: async () => true, findOne: async () => null } as never,
+    null,
+  );
+  await service.updateProgress('tenant', 'assignment', 'my-user', { completed_cartons: 2 });
+  await service.updateProgress('tenant', 'assignment', 'my-user', { completed_cartons: 2 });
+  await service.updateProgress('tenant', 'assignment', 'my-user', { completed_cartons: 5 });
+  assert.equal(saves, 2);
+  assert.deepEqual(
+    record.progress_history.map(({ previous_cartons, completed_cartons }) => [previous_cartons, completed_cartons]),
+    [[0, 2], [2, 5]],
+  );
+  assert.ok(record.progress_history.every(({ at, user_id }) => at instanceof Date && user_id === 'my-user'));
+});
+
+test('QA history is written in the same update as the completion timestamp', async () => {
+  const service = work({
+    findOne: () => query(order),
+    async updateOne(_filter: unknown, pipeline: any[]) {
+      const update = pipeline[0].$set.items.$map.in.$cond[1].$mergeObjects[1];
+      const [entry] = update.qa_completion_history.$concatArrays[1].$literal;
+      assert.equal(entry.at, update.qa_checked_at);
+      assert.equal(entry.user_id, 'my-user');
+      assert.equal(entry.note, 'Passed');
+      return { matchedCount: 1 };
+    },
+  });
+  await service.checkQuality('tenant', 'my-user', 'po', 'first', ' Passed ');
+});

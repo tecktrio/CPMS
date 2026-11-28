@@ -1,3 +1,5 @@
+import '../../widgets/cpms_form_page.dart';
+import '../../widgets/cpms_page_route.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -71,7 +73,7 @@ class ProductionStatusDialogs {
     DateTime selectedTargetDate = po.expectedShippingDate ?? DateTime.now();
     final dateFmt = DateFormat('dd/MM/yyyy');
 
-    showDialog(
+    openCpmsPage(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) {
@@ -86,9 +88,7 @@ class ProductionStatusDialogs {
             assignedQty = remainingToAssign;
           }
 
-          return AlertDialog(
-            backgroundColor: Colors.white,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          return CpmsFormPage(
             title: Row(
               children: [
                 const Icon(Icons.assignment_ind_outlined,
@@ -342,7 +342,7 @@ class ProductionStatusDialogs {
                 InkWell(
                   onTap: canAssignMore
                       ? () async {
-                          final picked = await showDatePicker(
+                          final picked = await openCpmsDatePage(
                             context: ctx,
                             initialDate: selectedTargetDate,
                             firstDate: DateTime(2024),
@@ -625,12 +625,10 @@ class ProductionStatusDialogs {
     DateTime editedDate = assignment.targetDate ?? DateTime.now();
     final dateFmt = DateFormat('dd/MM/yyyy');
 
-    await showDialog(
+    await openCpmsPage(
       context: context,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDlgState) => AlertDialog(
-          backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        builder: (ctx, setDlgState) => CpmsFormPage(
           title: const Text(
             'Reassign / Edit Assignment',
             style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
@@ -702,7 +700,7 @@ class ProductionStatusDialogs {
                 const SizedBox(height: 6),
                 InkWell(
                   onTap: () async {
-                    final picked = await showDatePicker(
+                    final picked = await openCpmsDatePage(
                       context: ctx,
                       initialDate: editedDate,
                       firstDate: DateTime(2024),
@@ -817,12 +815,10 @@ class ProductionStatusDialogs {
     final rejectedController = TextEditingController(text: '0');
     final remarksController = TextEditingController();
 
-    showDialog(
+    openCpmsPage(
       context: context,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) => AlertDialog(
-          backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        builder: (ctx, setDialogState) => CpmsFormPage(
           title: Row(
             children: [
               const Icon(Icons.verified_outlined,
@@ -1035,11 +1031,9 @@ class ProductionStatusDialogs {
         text:
             '${item.packedCartons > 0 ? item.packedCartons : item.cartons}');
 
-    showDialog(
+    openCpmsPage(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      builder: (ctx) => CpmsFormPage(
         title: Row(
           children: [
             const Icon(Icons.inventory_2_outlined,
@@ -1148,12 +1142,10 @@ class ProductionStatusDialogs {
     String itemStatus =
         item.itemStatus.isNotEmpty ? item.itemStatus : 'SHIPPED';
 
-    showDialog(
+    openCpmsPage(
       context: context,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) => AlertDialog(
-          backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        builder: (ctx, setDialogState) => CpmsFormPage(
           title: Row(
             children: [
               const Icon(Icons.local_shipping_outlined,
@@ -1327,12 +1319,10 @@ class ProductionStatusDialogs {
       },
     ];
 
-    showModalBottomSheet(
+    openCpmsSelectionPage(
       context: context,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
+      title: 'Update order status',
+      scroll: true,
       builder: (ctx) {
         return SafeArea(
           child: Center(
@@ -1344,16 +1334,6 @@ class ProductionStatusDialogs {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Center(
-                  child: Container(
-                    width: 36,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFCBD5E1),
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                ),
                 const SizedBox(height: 14),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,

@@ -1,8 +1,9 @@
+import '../../widgets/cpms_page_route.dart';
 import 'package:flutter/material.dart';
 import '../../core/theme/app_theme.dart';
 import '../../widgets/cpms_search_bar.dart';
 import '../../widgets/cpms_page_title.dart';
-import '../../widgets/cpms_form_dialog.dart';
+import '../../widgets/cpms_form_page.dart';
 import '../../widgets/cpms_stock_quantity_input.dart';
 import 'package:provider/provider.dart';
 import '../../core/constants/api_constants.dart';
@@ -35,11 +36,9 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
   void _showAddDivisionDialog(StoreRoomModel room) {
     final divController = TextEditingController();
 
-    showDialog(
+    openCpmsPage(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+      builder: (ctx) => CpmsFormPage(
         title: const Text(
           'Add New Division',
           style: TextStyle(
@@ -81,7 +80,6 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
             ),
           ],
         ),
-        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
@@ -133,11 +131,9 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
     final roomItems = room.items;
     final itemsInDiv = roomItems.where((i) => i.division == currentDivName).length;
 
-    showDialog(
+    openCpmsPage(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+      builder: (ctx) => CpmsFormPage(
         title: const Row(
           children: [
             Icon(Icons.edit_outlined, size: 20, color: Colors.black),
@@ -208,7 +204,6 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
             ],
           ],
         ),
-        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         actions: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -279,9 +274,9 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
   }
 
   void _warnDivisionOccupied(String divisionName) {
-    showDialog<void>(
+    openCpmsPage<void>(
       context: context,
-      builder: (context) => CpmsFormDialog(
+      builder: (context) => CpmsFormPage(
         icon: Icons.warning_amber_rounded,
         title: const Text('Reassign items first'),
         content: Text(
@@ -302,9 +297,9 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
       _warnDivisionOccupied(division.name);
       return;
     }
-    final confirmed = await showDialog<bool>(
+    final confirmed = await openCpmsPage<bool>(
       context: context,
-      builder: (context) => CpmsFormDialog(
+      builder: (context) => CpmsFormPage(
         icon: Icons.delete_outline,
         title: const Text('Delete division?'),
         content: Text('Remove "${division.name}" from this store room?'),
@@ -349,316 +344,297 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
 
     final formKey = GlobalKey<FormState>();
 
-    showModalBottomSheet(
+    openCpmsSelectionPage(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
+      title: 'Edit store room',
       builder: (ctx) => StatefulBuilder(
         builder: (context, setSheetState) {
-          return Padding(
-            padding: EdgeInsets.only(
-              bottom: MediaQuery.of(context).viewInsets.bottom,
+          return Container(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.sizeOf(context).height,
             ),
-            child: Container(
-              constraints: BoxConstraints(
-                maxHeight: MediaQuery.of(context).size.height * 0.85,
-              ),
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-              child: Form(
-                key: formKey,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Center(
-                      child: Container(
-                        width: 40,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: AppTheme.workspaceBorder,
-                          borderRadius: BorderRadius.circular(2),
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+            child: Form(
+              key: formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Edit Store Room Details',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.black,
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'Edit Store Room Details',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w800,
-                            color: Colors.black,
+                      IconButton(
+                        icon: const Icon(Icons.close, color: Colors.black54),
+                        onPressed: () => Navigator.pop(ctx),
+                      ),
+                    ],
+                  ),
+                  const Divider(color: Color(0xFFF1F5F9)),
+                  const SizedBox(height: 10),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'STORE ROOM NAME *',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFF64748B),
+                              letterSpacing: 0.5,
+                            ),
                           ),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.close, color: Colors.black54),
-                          onPressed: () => Navigator.pop(ctx),
-                        ),
-                      ],
-                    ),
-                    const Divider(color: Color(0xFFF1F5F9)),
-                    const SizedBox(height: 10),
-                    Expanded(
-                      child: SingleChildScrollView(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'STORE ROOM NAME *',
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w800,
-                                color: Color(0xFF64748B),
-                                letterSpacing: 0.5,
+                          const SizedBox(height: 6),
+                          TextFormField(
+                            controller: nameCtrl,
+                            style: const TextStyle(fontWeight: FontWeight.w700),
+                            decoration: InputDecoration(
+                              filled: true,
+                              fillColor: const Color(0xFFF8FAFC),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(4),
+                                borderSide: const BorderSide(color: AppTheme.workspaceBorder),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(4),
+                                borderSide: const BorderSide(color: AppTheme.workspaceBorder),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(4),
+                                borderSide: const BorderSide(color: Colors.black, width: 1.5),
                               ),
                             ),
-                            const SizedBox(height: 6),
-                            TextFormField(
-                              controller: nameCtrl,
-                              style: const TextStyle(fontWeight: FontWeight.w700),
-                              decoration: InputDecoration(
-                                filled: true,
-                                fillColor: const Color(0xFFF8FAFC),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(4),
-                                  borderSide: const BorderSide(color: AppTheme.workspaceBorder),
-                                ),
-                                enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(4),
-                                  borderSide: const BorderSide(color: AppTheme.workspaceBorder),
-                                ),
-                                focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(4),
-                                  borderSide: const BorderSide(color: Colors.black, width: 1.5),
-                                ),
-                              ),
-                              validator: (v) =>
-                                  v == null || v.trim().isEmpty ? 'Room name is required' : null,
+                            validator: (v) =>
+                                v == null || v.trim().isEmpty ? 'Room name is required' : null,
+                          ),
+                          const SizedBox(height: 14),
+                          const Text(
+                            'DESCRIPTION (OPTIONAL)',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFF64748B),
+                              letterSpacing: 0.5,
                             ),
-                            const SizedBox(height: 14),
-                            const Text(
-                              'DESCRIPTION (OPTIONAL)',
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w800,
-                                color: Color(0xFF64748B),
-                                letterSpacing: 0.5,
+                          ),
+                          const SizedBox(height: 6),
+                          TextFormField(
+                            controller: descCtrl,
+                            maxLines: 2,
+                            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                            decoration: InputDecoration(
+                              filled: true,
+                              fillColor: const Color(0xFFF8FAFC),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(4),
+                                borderSide: const BorderSide(color: AppTheme.workspaceBorder),
                               ),
-                            ),
-                            const SizedBox(height: 6),
-                            TextFormField(
-                              controller: descCtrl,
-                              maxLines: 2,
-                              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
-                              decoration: InputDecoration(
-                                filled: true,
-                                fillColor: const Color(0xFFF8FAFC),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(4),
-                                  borderSide: const BorderSide(color: AppTheme.workspaceBorder),
-                                ),
-                                enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(4),
-                                  borderSide: const BorderSide(color: AppTheme.workspaceBorder),
-                                ),
-                                focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(4),
-                                  borderSide: const BorderSide(color: Colors.black, width: 1.5),
-                                ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(4),
+                                borderSide: const BorderSide(color: AppTheme.workspaceBorder),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(4),
+                                borderSide: const BorderSide(color: Colors.black, width: 1.5),
                               ),
                             ),
-                            const SizedBox(height: 14),
-                            const Text(
-                              'TEMPERATURE (°C) (OPTIONAL)',
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w800,
-                                color: Color(0xFF64748B),
-                                letterSpacing: 0.5,
+                          ),
+                          const SizedBox(height: 14),
+                          const Text(
+                            'TEMPERATURE (°C) (OPTIONAL)',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFF64748B),
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          TextFormField(
+                            controller: tempCtrl,
+                            validator: (value) {
+                              final input = value?.trim() ?? '';
+                              if (input.isEmpty) return null;
+                              return double.tryParse(input)?.isFinite == true
+                                  ? null
+                                  : 'Enter a valid temperature';
+                            },
+                            keyboardType: const TextInputType.numberWithOptions(
+                              signed: true,
+                              decimal: true,
+                            ),
+                            style: const TextStyle(fontWeight: FontWeight.w700),
+                            decoration: InputDecoration(
+                              filled: true,
+                              fillColor: const Color(0xFFF8FAFC),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(4),
+                                borderSide: const BorderSide(color: AppTheme.workspaceBorder),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(4),
+                                borderSide: const BorderSide(color: AppTheme.workspaceBorder),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(4),
+                                borderSide: const BorderSide(
+                                    color: Colors.black, width: 1.5),
                               ),
                             ),
-                            const SizedBox(height: 6),
-                            TextFormField(
-                              controller: tempCtrl,
-                              validator: (value) {
-                                final input = value?.trim() ?? '';
-                                if (input.isEmpty) return null;
-                                return double.tryParse(input)?.isFinite == true
-                                    ? null
-                                    : 'Enter a valid temperature';
-                              },
-                              keyboardType: const TextInputType.numberWithOptions(
-                                signed: true,
-                                decimal: true,
-                              ),
-                              style: const TextStyle(fontWeight: FontWeight.w700),
-                              decoration: InputDecoration(
-                                filled: true,
-                                fillColor: const Color(0xFFF8FAFC),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(4),
-                                  borderSide: const BorderSide(color: AppTheme.workspaceBorder),
-                                ),
-                                enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(4),
-                                  borderSide: const BorderSide(color: AppTheme.workspaceBorder),
-                                ),
-                                focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(4),
-                                  borderSide: const BorderSide(
-                                      color: Colors.black, width: 1.5),
+                          ),
+                          const SizedBox(height: 18),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text(
+                                'CONFIGURED DIVISIONS',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w800,
+                                  color: Color(0xFF64748B),
+                                  letterSpacing: 0.5,
                                 ),
                               ),
-                            ),
-                            const SizedBox(height: 18),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                const Text(
-                                  'CONFIGURED DIVISIONS',
+                              TextButton.icon(
+                                onPressed: () {
+                                  setSheetState(() {
+                                    divisionCtrls[TextEditingController()] = null;
+                                  });
+                                },
+                                icon: const Icon(Icons.add, size: 16, color: Colors.black),
+                                label: const Text(
+                                  'Add Section',
                                   style: TextStyle(
-                                    fontSize: 11,
+                                    color: Colors.black,
                                     fontWeight: FontWeight.w800,
-                                    color: Color(0xFF64748B),
-                                    letterSpacing: 0.5,
+                                    fontSize: 12,
                                   ),
                                 ),
-                                TextButton.icon(
-                                  onPressed: () {
-                                    setSheetState(() {
-                                      divisionCtrls[TextEditingController()] = null;
-                                    });
-                                  },
-                                  icon: const Icon(Icons.add, size: 16, color: Colors.black),
-                                  label: const Text(
-                                    'Add Section',
-                                    style: TextStyle(
-                                      color: Colors.black,
-                                      fontWeight: FontWeight.w800,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 6),
-                            ...divisionCtrls.keys.map((controller) {
-                              return Padding(
-                                padding: const EdgeInsets.only(bottom: 8),
-                                child: Row(
-                                  children: [
-                                    Expanded(
-                                      child: TextFormField(
-                                        controller: controller,
-                                        style: const TextStyle(
-                                            fontWeight: FontWeight.w600, fontSize: 13),
-                                        decoration: InputDecoration(
-                                          hintText: 'Section name',
-                                          isDense: true,
-                                          filled: true,
-                                          fillColor: const Color(0xFFF8FAFC),
-                                          border: OutlineInputBorder(
-                                            borderRadius: BorderRadius.circular(4),
-                                            borderSide:
-                                                const BorderSide(color: AppTheme.workspaceBorder),
-                                          ),
-                                          enabledBorder: OutlineInputBorder(
-                                            borderRadius: BorderRadius.circular(4),
-                                            borderSide:
-                                                const BorderSide(color: AppTheme.workspaceBorder),
-                                          ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          ...divisionCtrls.keys.map((controller) {
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 8),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: TextFormField(
+                                      controller: controller,
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.w600, fontSize: 13),
+                                      decoration: InputDecoration(
+                                        hintText: 'Section name',
+                                        isDense: true,
+                                        filled: true,
+                                        fillColor: const Color(0xFFF8FAFC),
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(4),
+                                          borderSide:
+                                              const BorderSide(color: AppTheme.workspaceBorder),
+                                        ),
+                                        enabledBorder: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(4),
+                                          borderSide:
+                                              const BorderSide(color: AppTheme.workspaceBorder),
                                         ),
                                       ),
                                     ),
-                                    const SizedBox(width: 6),
-                                    IconButton(
-                                      icon: const Icon(Icons.delete_outline,
-                                          color: Color(0xFFDC2626), size: 20),
-                                      onPressed: () {
-                                        final divisionId = divisionCtrls[controller];
-                                        final current = context.read<InventoryProvider>().storeRooms
-                                            .where((entry) => entry.storeRoomId == room.storeRoomId).firstOrNull;
-                                        if (divisionId != null && (current?.itemsInDivision(divisionId) ?? 0) > 0) {
-                                          _warnDivisionOccupied(controller.text.trim());
-                                          return;
-                                        }
-                                        setSheetState(() => divisionCtrls.remove(controller));
-                                        WidgetsBinding.instance.addPostFrameCallback((_) => controller.dispose());
-                                      },
-                                    ),
-                                  ],
-                                ),
-                              );
-                            }),
-                            const SizedBox(height: 16),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 50,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppTheme.adminStorage,
-                          foregroundColor: Colors.white,
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                        ),
-                        onPressed: () async {
-                          if (!formKey.currentState!.validate()) return;
-                          final messenger = ScaffoldMessenger.of(context);
-                          final inventory = context.read<InventoryProvider>();
-                          final divisions = [
-                            for (final entry in divisionCtrls.entries)
-                              if (entry.key.text.trim().isNotEmpty)
-                                StoreRoomDivisionModel.fromJson({
-                                  'division_id': entry.value,
-                                  'name': entry.key.text.trim(),
-                                }),
-                          ];
-                          final temp = tempCtrl.text.trim().isNotEmpty
-                              ? double.tryParse(tempCtrl.text.trim())
-                              : null;
-
-                          final ok = await inventory.updateStoreRoom(
-                            storeRoomId: room.storeRoomId,
-                            roomName: nameCtrl.text.trim(),
-                            description: descCtrl.text.trim(),
-                            temperature: temp,
-                            clearTemperature: temp == null,
-                            divisionObjects: divisions,
-                          );
-
-                          if (ok && ctx.mounted) Navigator.pop(ctx);
-                          if (mounted) {
-                            messenger.showSnackBar(
-                              SnackBar(
-                                content: Text(ok
-                                    ? 'Store room updated successfully'
-                                    : (inventory.errorMessage ?? 'Update failed')),
-                                backgroundColor:
-                                    ok ? const Color(0xFF0F766E) : Colors.red.shade700,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  IconButton(
+                                    icon: const Icon(Icons.delete_outline,
+                                        color: Color(0xFFDC2626), size: 20),
+                                    onPressed: () {
+                                      final divisionId = divisionCtrls[controller];
+                                      final current = context.read<InventoryProvider>().storeRooms
+                                          .where((entry) => entry.storeRoomId == room.storeRoomId).firstOrNull;
+                                      if (divisionId != null && (current?.itemsInDivision(divisionId) ?? 0) > 0) {
+                                        _warnDivisionOccupied(controller.text.trim());
+                                        return;
+                                      }
+                                      setSheetState(() => divisionCtrls.remove(controller));
+                                      WidgetsBinding.instance.addPostFrameCallback((_) => controller.dispose());
+                                    },
+                                  ),
+                                ],
                               ),
                             );
-                          }
-                        },
-                        child: const Text(
-                          'Save Changes',
-                          style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
-                        ),
+                          }),
+                          const SizedBox(height: 16),
+                        ],
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 14),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.adminStorage,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                      onPressed: () async {
+                        if (!formKey.currentState!.validate()) return;
+                        final messenger = ScaffoldMessenger.of(context);
+                        final inventory = context.read<InventoryProvider>();
+                        final divisions = [
+                          for (final entry in divisionCtrls.entries)
+                            if (entry.key.text.trim().isNotEmpty)
+                              StoreRoomDivisionModel.fromJson({
+                                'division_id': entry.value,
+                                'name': entry.key.text.trim(),
+                              }),
+                        ];
+                        final temp = tempCtrl.text.trim().isNotEmpty
+                            ? double.tryParse(tempCtrl.text.trim())
+                            : null;
+
+                        final ok = await inventory.updateStoreRoom(
+                          storeRoomId: room.storeRoomId,
+                          roomName: nameCtrl.text.trim(),
+                          description: descCtrl.text.trim(),
+                          temperature: temp,
+                          clearTemperature: temp == null,
+                          divisionObjects: divisions,
+                        );
+
+                        if (ok && ctx.mounted) Navigator.pop(ctx);
+                        if (mounted) {
+                          messenger.showSnackBar(
+                            SnackBar(
+                              content: Text(ok
+                                  ? 'Store room updated successfully'
+                                  : (inventory.errorMessage ?? 'Update failed')),
+                              backgroundColor:
+                                  ok ? const Color(0xFF0F766E) : Colors.red.shade700,
+                            ),
+                          );
+                        }
+                      },
+                      child: const Text(
+                        'Save Changes',
+                        style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           );
@@ -668,11 +644,9 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
   }
 
   void _confirmDeleteRoom(StoreRoomModel room) {
-    showDialog(
+    openCpmsPage(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+      builder: (ctx) => CpmsFormPage(
         title: Text(
           'Delete ${room.roomName}?',
           style: const TextStyle(
@@ -685,7 +659,6 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
           'Are you sure you want to permanently delete "${room.roomName}"? Note: A store room cannot be deleted if active stock or batches are present.',
           style: const TextStyle(fontSize: 14, color: Color(0xFF64748B), height: 1.4),
         ),
-        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
@@ -730,13 +703,9 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
   bool _sortAscending = true;
 
   void _showAddItemToRoomSheet(StoreRoomModel room) {
-    showModalBottomSheet(
+    openCpmsSelectionPage(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
+      title: 'Add item to store room',
       builder: (ctx) => _AddItemToRoomModal(
         room: room,
         onItemAssigned: () {
@@ -758,9 +727,9 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
       ),
     );
     final formKey = GlobalKey<FormState>();
-    showDialog(
+    openCpmsPage(
       context: context,
-      builder: (ctx) => CpmsFormDialog(
+      builder: (ctx) => CpmsFormPage(
         icon: Icons.notifications_outlined,
         title: Text('Minimum Count: ${item.itemName}',
             style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 17)),
@@ -809,11 +778,9 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
   void _confirmRemoveItemFromRoom(ItemModel item, StoreRoomModel room) {
     final messenger = ScaffoldMessenger.of(context);
     final inventory = context.read<InventoryProvider>();
-    showDialog(
+    openCpmsPage(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+      builder: (ctx) => CpmsFormPage(
         title: const Text(
           'Remove from Store Room?',
           style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
@@ -822,7 +789,6 @@ class _StoreRoomDetailScreenState extends State<StoreRoomDetailScreen> {
           'Are you sure you want to remove "${item.itemName}" from "${room.roomName}"? The item will remain in your tenant catalog.',
           style: const TextStyle(fontSize: 14, color: Color(0xFF64748B), height: 1.4),
         ),
-        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
@@ -1699,11 +1665,9 @@ class _AddItemToRoomModalState extends State<_AddItemToRoomModal> {
 
     return Container(
       constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height * 0.88,
+        maxHeight: MediaQuery.sizeOf(context).height,
       ),
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom,
-      ),
+
       child: SafeArea(
         child: _selectedItem == null
             ? _buildCatalogSearchView(context, inventory, filtered, allItems)
@@ -1726,16 +1690,6 @@ class _AddItemToRoomModalState extends State<_AddItemToRoomModal> {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Handle bar
-        Container(
-          margin: const EdgeInsets.only(top: 12, bottom: 8),
-          width: 36,
-          height: 4,
-          decoration: BoxDecoration(
-            color: const Color(0xFFCBD5E1),
-            borderRadius: BorderRadius.circular(2),
-          ),
-        ),
 
         // Header
         Padding(

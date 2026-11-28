@@ -1,3 +1,5 @@
+import '../../widgets/cpms_form_page.dart';
+import '../../widgets/cpms_page_route.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/emergency_contacts_provider.dart';
@@ -287,7 +289,7 @@ class ManageEmergencyContactsModal extends StatelessWidget {
     BuildContext context, {
     EmergencyContactModel? existing,
   }) {
-    showDialog(
+    openCpmsPage(
       context: context,
       builder: (_) => _EmergencyContactFormDialog(existing: existing),
     );
@@ -297,9 +299,9 @@ class ManageEmergencyContactsModal extends StatelessWidget {
     BuildContext context,
     EmergencyContactModel item,
   ) {
-    showDialog(
+    openCpmsPage(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => CpmsFormPage(
         title: const Text('Delete Emergency Contact'),
         content: Text(
           'Are you sure you want to remove "${item.title}" (${item.phoneNumber}) from organization emergency contacts?',
@@ -435,7 +437,7 @@ class _EmergencyContactFormDialogState
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
+    return CpmsFormPage(
       title: Text(
         isEditing ? 'Edit Emergency Contact' : 'Add Emergency Contact',
         style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 17),

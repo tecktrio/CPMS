@@ -4,6 +4,24 @@ import { v4 as uuidv4 } from 'uuid';
 
 export type ProductionAssignmentDocument = ProductionAssignment & Document;
 
+@Schema({ _id: false })
+export class ProductionProgressEntry {
+  @Prop({ type: Date, required: true })
+  at: Date;
+
+  @Prop({ type: String, required: true })
+  user_id: string;
+
+  @Prop({ type: String, required: true })
+  supervisor_name: string;
+
+  @Prop({ type: Number, required: true })
+  previous_cartons: number;
+
+  @Prop({ type: Number, required: true })
+  completed_cartons: number;
+}
+
 @Schema({
   collection: 'production_assignments',
   optimisticConcurrency: true,
@@ -17,6 +35,11 @@ export type ProductionAssignmentDocument = ProductionAssignment & Document;
   },
 })
 export class ProductionAssignment {
+  declare created_at?: Date;
+
+  @Prop({ type: [SchemaFactory.createForClass(ProductionProgressEntry)], default: [] })
+  progress_history: ProductionProgressEntry[];
+
   @Prop({ type: String, default: uuidv4, unique: true })
   assignment_id: string;
 

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/app_theme.dart';
-import '../../widgets/cpms_form_dialog.dart';
+import '../../widgets/cpms_form_page.dart';
 import 'package:provider/provider.dart';
 import '../../providers/inventory_provider.dart';
 
@@ -59,7 +59,7 @@ class _CreateStoreRoomDialogState extends State<CreateStoreRoomDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return CpmsFormDialog(
+    return CpmsFormPage(
       icon: Icons.warehouse_outlined,
       title: const Text('Add Cold Store Room'),
       content: Form(

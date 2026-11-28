@@ -7,13 +7,19 @@ import '../../providers/purchase_order_provider.dart';
 import '../../providers/tenant_provider.dart';
 import '../../widgets/user_profile_avatar.dart';
 import '../../widgets/cpms_search_bar.dart';
+import '../../widgets/order_split_view.dart';
 import '../../widgets/app_footer.dart';
 import 'create_purchase_order_screen.dart';
 import 'purchase_order_detail_screen.dart';
 
 class PurchaseOrdersListScreen extends StatefulWidget {
-  const PurchaseOrdersListScreen({super.key, this.initialStatus = 'ALL'});
+  const PurchaseOrdersListScreen({
+    super.key,
+    this.initialStatus = 'ALL',
+    this.embedded = false,
+  });
 
+  final bool embedded;
   final String initialStatus;
 
   @override
@@ -25,13 +31,14 @@ class _PurchaseOrdersListScreenState extends State<PurchaseOrdersListScreen> {
   final TextEditingController _searchController = TextEditingController();
   final DateFormat _dateFormat = DateFormat('dd/MM/yyyy');
   String _searchQuery = '';
+  String? _selectedOrderId;
   late String _selectedStatus = widget.initialStatus;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _refreshData();
+      if (mounted) _refreshData();
     });
   }
 
@@ -87,6 +94,16 @@ class _PurchaseOrdersListScreenState extends State<PurchaseOrdersListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) => _buildScreen(
+        context,
+        split: widget.embedded &&
+            constraints.maxWidth >= OrderSplitView.minimumWidth,
+      ),
+    );
+  }
+
+  Widget _buildScreen(BuildContext context, {required bool split}) {
     final poProvider = context.watch<PurchaseOrderProvider>();
     final tenant = context.watch<TenantProvider>();
     final isAdmin = tenant.isTenantAdmin;
@@ -113,26 +130,39 @@ class _PurchaseOrdersListScreenState extends State<PurchaseOrdersListScreen> {
         .where((po) => po.status.toUpperCase() == 'IN_PRODUCTION')
         .length;
 
+    final splitOrders = split
+        ? _splitOrders(
+            filteredOrders,
+            poProvider.isLoading && allOrders.isEmpty,
+            isSupervisor,
+          )
+        : null;
+
     return Scaffold(
       appBar: AppBar(
+        primary: !widget.embedded,
+        automaticallyImplyLeading: !widget.embedded,
         backgroundColor: Colors.white,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         scrolledUnderElevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black, size: 24),
-          onPressed: () => Navigator.pop(context),
-        ),
-        titleSpacing: 0,
+        leading: widget.embedded
+            ? null
+            : IconButton(
+                icon: const Icon(Icons.arrow_back, color: Colors.black, size: 24),
+                onPressed: () => Navigator.pop(context),
+              ),
+        titleSpacing: widget.embedded ? null : 0,
         title: const CpmsPageTitle('Purchase Orders', icon: Icons.receipt_long_outlined),
-        actions: const [
-          Padding(
-            padding: EdgeInsets.only(right: 12),
-            child: UserProfileAvatar(),
-          ),
+        actions: [
+          if (!widget.embedded)
+            const Padding(
+              padding: EdgeInsets.only(right: 12),
+              child: UserProfileAvatar(),
+            ),
         ],
       ),
-      body: Center(
+      body: splitOrders ?? Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 1100),
           child: Column(
@@ -451,6 +481,8 @@ class _PurchaseOrdersListScreenState extends State<PurchaseOrdersListScreen> {
           ),
         ),
       ),
+      floatingActionButtonLocation:
+          split ? FloatingActionButtonLocation.startFloat : null,
       floatingActionButton: canCreatePo
           ? FloatingActionButton.extended(
               backgroundColor: const Color(0xFF14532D), // Dark Green
@@ -474,6 +506,76 @@ class _PurchaseOrdersListScreenState extends State<PurchaseOrdersListScreen> {
               },
             )
           : null,
+    );
+  }
+
+  Widget _splitOrders(
+    List<PurchaseOrderModel> orders,
+    bool loading,
+    bool isSupervisor,
+  ) {
+    final selected = orders.where((po) => po.poId == _selectedOrderId).firstOrNull;
+    return OrderSplitView(
+      orders: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _buildSearchBar(),
+                const SizedBox(height: 10),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: _buildStatusChipsRow(isSupervisor: isSupervisor),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: loading
+                ? const Center(child: CircularProgressIndicator())
+                : RefreshIndicator(
+                    onRefresh: _refreshData,
+                    child: ListView.builder(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: const EdgeInsets.only(bottom: 78),
+                      itemCount: orders.isEmpty ? 1 : orders.length,
+                      itemBuilder: (context, index) {
+                        if (orders.isEmpty) {
+                          return const Padding(
+                            padding: EdgeInsets.all(16),
+                            child: Text('No purchase orders match your filters.'),
+                          );
+                        }
+                        final order = orders[index];
+                        final accent = Theme.of(context).colorScheme.primary;
+                        return ListTile(
+                          selected: order == selected,
+                          selectedColor: accent,
+                          selectedTileColor: accent.withValues(alpha: 0.10),
+                          title: Text(order.poNumber),
+                          subtitle: Text(
+                            '${order.customerName} · ${order.status.replaceAll('_', ' ').toLowerCase()}',
+                          ),
+                          onTap: () => setState(() {
+                            _selectedOrderId = order.poId;
+                          }),
+                        );
+                      },
+                    ),
+                  ),
+          ),
+        ],
+      ),
+      detail: selected == null
+          ? null
+          : PurchaseOrderDetailScreen(
+              key: ValueKey(selected.poId),
+              poId: selected.poId,
+              embedded: true,
+            ),
     );
   }
 

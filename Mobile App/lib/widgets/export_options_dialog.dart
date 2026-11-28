@@ -1,3 +1,5 @@
+import 'cpms_form_page.dart';
+import 'cpms_page_route.dart';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:printing/printing.dart';
@@ -14,7 +16,7 @@ class ExportOptionsDialog {
   }) {
     bool isBusy = false;
 
-    return showDialog(
+    return openCpmsPage(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDlgState) {
@@ -37,9 +39,7 @@ class ExportOptionsDialog {
             }
           }
 
-          return AlertDialog(
-            backgroundColor: Colors.white,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          return CpmsFormPage(
             title: Row(
               children: [
                 const Icon(Icons.file_download_outlined, color: Colors.black, size: 22),

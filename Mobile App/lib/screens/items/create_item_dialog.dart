@@ -130,9 +130,11 @@ class _CreateItemDialogState extends State<CreateItemDialog> {
   Widget build(BuildContext context) {
     final inventory = context.watch<InventoryProvider>();
 
-    return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: ConstrainedBox(
+    return Scaffold(
+      appBar: AppBar(title: Text('Create item')),
+      body: Align(
+        alignment: Alignment.topCenter,
+        child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 520),
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
@@ -530,6 +532,7 @@ class _CreateItemDialogState extends State<CreateItemDialog> {
             ),
           ),
         ),
+      ),
       ),
     );
   }

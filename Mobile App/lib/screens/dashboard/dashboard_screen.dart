@@ -1,3 +1,4 @@
+import '../../widgets/cpms_page_route.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
@@ -167,12 +168,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final tenant = context.read<TenantProvider>();
     final user = auth.user;
 
-    showModalBottomSheet(
+    openCpmsSelectionPage(
       context: context,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
+      title: 'Account profile',
+      scroll: true,
       builder: (ctx) {
         return SafeArea(
           child: Padding(
@@ -180,17 +179,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    margin: const EdgeInsets.only(bottom: 20),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFCBD5E1),
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                ),
                 Consumer<AuthProvider>(
                   builder: (context, currentAuth, _) {
                     final currentUser = currentAuth.user ?? user;
@@ -499,8 +487,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   return SafeArea(
                     child: Column(
                       children: [
-                        if (activeNavIndex != 2 ||
-                            (workspace != null && workspace != DepartmentWorkspace.administrator))
+                        if (activeNavIndex == 0 || activeNavIndex == 1)
                           Center(
                             child: ConstrainedBox(
                               constraints: const BoxConstraints(maxWidth: 1100),
@@ -585,7 +572,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         Expanded(
                           child: activeNavIndex == 2 && workspace != null
                               ? DepartmentWorkspaceView(
-                                  key: ValueKey(workspace),
+                                  key: ValueKey((currentTenant.activeTenant?.tenantId, workspace)),
                                   workspace: workspace,
                                   onRefresh: _loadInitialData,
                                   userName: profileName,

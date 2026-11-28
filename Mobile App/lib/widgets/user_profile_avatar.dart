@@ -1,3 +1,4 @@
+import 'cpms_page_route.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
@@ -133,12 +134,10 @@ class UserProfileAvatar extends StatelessWidget {
     final deptCount = tenant.userDepartmentCount;
     final singleDeptName = tenant.selectedDepartmentName ?? 'Assigned Department';
 
-    showModalBottomSheet(
+    openCpmsSelectionPage(
       context: context,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
+      title: 'Account profile',
+      scroll: true,
       builder: (ctx) {
         return SafeArea(
           child: Padding(
@@ -146,18 +145,6 @@ class UserProfileAvatar extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Drag handle
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    margin: const EdgeInsets.only(bottom: 20),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFCBD5E1),
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                ),
 
                 // User details
                 Consumer<AuthProvider>(

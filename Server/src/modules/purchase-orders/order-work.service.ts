@@ -31,8 +31,12 @@ export class OrderWorkService {
     const needsAssignments = role === 'SUPERVISOR' || role === 'PRODUCTION_MANAGER';
     const assignments = needsAssignments ? await this.assignments.find({
       tenant_id: tenantId,
-      status: { $ne: 'CANCELLED' },
-      ...(role === 'SUPERVISOR' && { supervisor_user_id: userId }),
+      ...(role === 'SUPERVISOR'
+        ? { status: { $ne: 'CANCELLED' }, supervisor_user_id: userId }
+        : { $or: [
+          { status: { $ne: 'CANCELLED' } },
+          { 'progress_history.0': { $exists: true } },
+        ] }),
     }).sort({ target_date: 1, created_at: 1 }).lean() : [];
     const byOrder = new Map<string, typeof assignments>();
     for (const assignment of assignments) {
@@ -87,9 +91,13 @@ export class OrderWorkService {
             .map((assignment) => ({
               assignment_id: assignment.assignment_id,
               assignee: assignment.supervisor_name,
-              ...(role === 'PRODUCTION_MANAGER' && { assignee_id: assignment.supervisor_user_id }),
+              ...(role === 'PRODUCTION_MANAGER' && {
+                assignee_id: assignment.supervisor_user_id,
+                progress_history: assignment.progress_history ?? [],
+              }),
               assigned_cartons: assignment.assigned_cartons,
               completed_cartons: assignment.completed_cartons,
+              assigned_at: assignment.created_at,
               target_date: assignment.target_date,
               status: assignment.status,
               notes: assignment.notes,
@@ -99,6 +107,11 @@ export class OrderWorkService {
             ...line, cartons: item.cartons, qa_user_id: item.qa_user_id,
             qa_assignee: qualityNames.get(item.qa_user_id || ''),
             target_date: item.qa_target_date, checked_at: item.qa_checked_at,
+            qa_completion_history: item.qa_completion_history?.length
+              ? item.qa_completion_history
+              : item.qa_checked_at ? [{
+                at: item.qa_checked_at, user_id: item.qa_user_id, note: item.qa_note ?? '',
+              }] : [],
             assignments: lineAssignments,
           };
         });
@@ -147,6 +160,7 @@ export class OrderWorkService {
       user_id: actor, department: 'Quality Assurance', action: 'Marked item checked',
       detail: [item.item_name, note.trim()].filter(Boolean).join(' · '), at: now,
     };
+    const completion = { at: now, user_id: actor, note: note.trim() };
     const updated = await this.orders.updateOne(orderFilter, [
       { $set: {
         items: { $map: { input: '$items', as: 'item', in: { $cond: [
@@ -154,7 +168,16 @@ export class OrderWorkService {
             { $eq: ['$$item.item_id', { $literal: itemId }] },
             { $eq: ['$$item.qa_user_id', { $literal: actor }] },
           ] },
-          { $mergeObjects: ['$$item', { qa_checked_at: now, qa_note: { $literal: note.trim() } }] },
+          { $mergeObjects: ['$$item', {
+            qa_checked_at: now,
+            qa_note: { $literal: completion.note },
+            qa_completion_history: {
+              $concatArrays: [
+                { $ifNull: ['$$item.qa_completion_history', []] },
+                { $literal: [completion] },
+              ],
+            },
+          }] },
           '$$item',
         ] } } },
         __v: { $add: [{ $ifNull: ['$__v', 0] }, 1] },

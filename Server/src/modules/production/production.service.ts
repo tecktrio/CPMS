@@ -164,28 +164,39 @@ export class ProductionService {
       );
     }
 
-    assignment.completed_cartons = dto.completed_cartons;
-    if (dto.completed_cartons === 0) {
-      assignment.status = 'PENDING';
-      assignment.completed_at = null;
-    } else if (dto.completed_cartons >= assignment.assigned_cartons) {
-      assignment.status = 'COMPLETED';
-      assignment.completed_at = new Date();
-    } else {
-      assignment.status = 'IN_PROGRESS';
-      assignment.completed_at = null;
+    const previousCartons = assignment.completed_cartons;
+    const changed = previousCartons !== dto.completed_cartons;
+    const now = new Date();
+    if (changed) {
+      assignment.completed_cartons = dto.completed_cartons;
+      if (dto.completed_cartons === 0) {
+        assignment.status = 'PENDING';
+        assignment.completed_at = null;
+      } else if (dto.completed_cartons >= assignment.assigned_cartons) {
+        assignment.status = 'COMPLETED';
+        assignment.completed_at = now;
+      } else {
+        assignment.status = 'IN_PROGRESS';
+        assignment.completed_at = null;
+      }
+      assignment.progress_history.push({
+        at: now,
+        user_id: requestingUserId,
+        supervisor_name: assignment.supervisor_name,
+        previous_cartons: previousCartons,
+        completed_cartons: dto.completed_cartons,
+      });
+      await assignment.save();
     }
 
-    await assignment.save();
-
     // Roll up to PO line item and PO totals
-    await this.recalculatePoTotals(tenantId, assignment.po_id, {
+    await this.recalculatePoTotals(tenantId, assignment.po_id, changed ? {
       user_id: requestingUserId,
       department: 'Supervisor',
       action: 'Updated production progress',
       detail: `${assignment.item_name}: ${dto.completed_cartons} / ${assignment.assigned_cartons} cartons`,
-      at: new Date(),
-    });
+      at: now,
+    } : undefined);
 
     return assignment;
   }

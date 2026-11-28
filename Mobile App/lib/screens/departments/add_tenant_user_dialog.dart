@@ -151,9 +151,11 @@ class _AddTenantUserDialogState extends State<AddTenantUserDialog> {
     final tenant = context.watch<TenantProvider>();
     final departments = tenant.tenantDepartments;
 
-    return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: ConstrainedBox(
+    return Scaffold(
+      appBar: AppBar(title: Text(isEditing ? 'Edit user' : 'Add user')),
+      body: Align(
+        alignment: Alignment.topCenter,
+        child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 520, maxHeight: 650),
         child: Padding(
           padding: const EdgeInsets.all(24),
@@ -588,6 +590,7 @@ class _AddTenantUserDialogState extends State<AddTenantUserDialog> {
             ),
           ),
         ),
+      ),
       ),
     );
   }

@@ -1,3 +1,4 @@
+import '../../widgets/cpms_page_route.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -5,7 +6,7 @@ import '../../core/constants/api_constants.dart';
 import '../../core/theme/app_theme.dart';
 import '../../providers/department_provider.dart';
 import '../../providers/tenant_provider.dart';
-import '../../widgets/cpms_form_dialog.dart';
+import '../../widgets/cpms_form_page.dart';
 import '../../widgets/cpms_page_title.dart';
 
 String tenantUserDisplayName(TenantUserModel user) {
@@ -96,9 +97,9 @@ class _TenantUserDetailScreenState extends State<TenantUserDetailScreen> {
 
   Future<void> _removeUser(TenantUserModel user) async {
     if (!widget.canDelete || _removing || _savingDepartment) return;
-    final confirmed = await showDialog<bool>(
+    final confirmed = await openCpmsPage<bool>(
       context: context,
-      builder: (dialogContext) => CpmsFormDialog(
+      builder: (dialogContext) => CpmsFormPage(
         icon: Icons.person_remove_outlined,
         title: const Text('Remove user?'),
         content: Text(

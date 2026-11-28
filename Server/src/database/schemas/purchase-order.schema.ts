@@ -39,6 +39,18 @@ export class PurchaseOrderActivity {
 }
 
 @Schema({ _id: false })
+export class QualityCompletionEntry {
+  @Prop({ type: Date, required: true })
+  at: Date;
+
+  @Prop({ type: String, required: true })
+  user_id: string;
+
+  @Prop({ type: String, default: '' })
+  note: string;
+}
+
+@Schema({ _id: false })
 export class PurchaseOrderItem {
   @Prop({ type: String, required: true })
   item_id: string;
@@ -78,6 +90,9 @@ export class PurchaseOrderItem {
 
   @Prop({ type: String, default: '' })
   qa_note?: string;
+
+  @Prop({ type: [SchemaFactory.createForClass(QualityCompletionEntry)], default: [] })
+  qa_completion_history?: QualityCompletionEntry[];
 
   // Lifecycle Stage Quantities per Line Item:
   @Prop({ type: Number, default: 0, min: 0 })

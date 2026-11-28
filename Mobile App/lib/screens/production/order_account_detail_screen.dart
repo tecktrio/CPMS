@@ -10,7 +10,13 @@ import '../../providers/tenant_provider.dart';
 import 'order_work_screen.dart';
 
 class OrderAccountDetailScreen extends StatefulWidget {
-  const OrderAccountDetailScreen({super.key, required this.poId});
+  const OrderAccountDetailScreen({
+    super.key,
+    required this.poId,
+    this.embedded = false,
+  });
+
+  final bool embedded;
 
   final String poId;
 
@@ -31,6 +37,8 @@ class _OrderAccountDetailScreenState extends State<OrderAccountDetailScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        primary: !widget.embedded,
+        automaticallyImplyLeading: !widget.embedded,
         title: const CpmsPageTitle(
           'Purchase order details',
           icon: Icons.receipt_long_outlined,

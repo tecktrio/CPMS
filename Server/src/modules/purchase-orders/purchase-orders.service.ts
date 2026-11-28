@@ -306,6 +306,7 @@ export class PurchaseOrdersService {
           qa_target_date: existingItem?.qa_target_date,
           qa_checked_at: existingItem?.qa_checked_at,
           qa_note: existingItem?.qa_note,
+          qa_completion_history: existingItem?.qa_completion_history,
           qc_passed: existingItem?.qc_passed || false,
           packed_cartons: existingItem?.packed_cartons || 0,
           shipped_cartons: existingItem?.shipped_cartons || 0,

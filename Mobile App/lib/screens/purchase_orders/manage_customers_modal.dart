@@ -1,5 +1,6 @@
+import '../../widgets/cpms_page_route.dart';
 import 'package:flutter/material.dart';
-import '../../widgets/cpms_form_dialog.dart';
+import '../../widgets/cpms_form_page.dart';
 import 'package:provider/provider.dart';
 import '../../providers/purchase_order_provider.dart';
 
@@ -59,12 +60,12 @@ class _ManageCustomersModalState extends State<ManageCustomersModal> {
         TextEditingController(text: customer?.contactDetails ?? '');
     final formKey = GlobalKey<FormState>();
 
-    await showDialog(
+    await openCpmsPage(
       context: context,
       builder: (ctx) {
         bool saving = false;
         return StatefulBuilder(
-          builder: (ctx, setDlgState) => CpmsFormDialog(
+          builder: (ctx, setDlgState) => CpmsFormPage(
             title: Text(
               isEditing ? 'Edit Customer' : 'Add New Customer',
               style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 17),
@@ -232,11 +233,9 @@ class _ManageCustomersModalState extends State<ManageCustomersModal> {
   }
 
   Future<void> _confirmDelete(CustomerModel customer) async {
-    final confirm = await showDialog<bool>(
+    final confirm = await openCpmsPage<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      builder: (ctx) => CpmsFormPage(
         title: const Text(
           'Delete Customer?',
           style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16),

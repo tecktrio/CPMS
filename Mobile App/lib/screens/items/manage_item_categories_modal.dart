@@ -1,7 +1,8 @@
+import '../../widgets/cpms_page_route.dart';
 import 'package:flutter/material.dart';
 import '../../core/theme/app_theme.dart';
 import '../../widgets/cpms_page_title.dart';
-import '../../widgets/cpms_form_dialog.dart';
+import '../../widgets/cpms_form_page.dart';
 import 'package:provider/provider.dart';
 import '../../core/constants/permissions.dart';
 import '../../providers/inventory_provider.dart';
@@ -40,9 +41,9 @@ class _ManageItemCategoriesModalState extends State<ManageItemCategoriesModal> {
     final labelController = TextEditingController(text: category?.label ?? '');
     final formKey = GlobalKey<FormState>();
 
-    await showDialog(
+    await openCpmsPage(
       context: context,
-      builder: (ctx) => CpmsFormDialog(
+      builder: (ctx) => CpmsFormPage(
         title: Text(
           isEditing ? 'Edit Category' : 'Create Item Category',
           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
@@ -166,10 +167,9 @@ class _ManageItemCategoriesModalState extends State<ManageItemCategoriesModal> {
     if (!mounted) return;
     setState(() => _isLoading = false);
 
-    final proceed = await showDialog<bool>(
+    final proceed = await openCpmsPage<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      builder: (ctx) => CpmsFormPage(
         title: Row(
           children: [
             Icon(

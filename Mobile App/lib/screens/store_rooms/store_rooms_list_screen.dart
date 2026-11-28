@@ -11,8 +11,12 @@ import 'create_store_room_screen.dart';
 import 'store_room_detail_screen.dart';
 
 class StoreRoomsListScreen extends StatefulWidget {
-  const StoreRoomsListScreen({super.key});
+  const StoreRoomsListScreen({
+    super.key,
+    this.embedded = false,
+  });
 
+  final bool embedded;
   @override
   State<StoreRoomsListScreen> createState() => _StoreRoomsListScreenState();
 }
@@ -53,16 +57,20 @@ class _StoreRoomsListScreenState extends State<StoreRoomsListScreen> {
     return Scaffold(
       backgroundColor: AppTheme.adminCanvas,
       appBar: AppBar(
+        primary: !widget.embedded,
+        automaticallyImplyLeading: !widget.embedded,
         backgroundColor: AppTheme.adminCanvas,
         foregroundColor: AppTheme.adminInk,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         scrolledUnderElevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppTheme.adminInk, size: 24),
-          onPressed: () => Navigator.pop(context),
-        ),
-        titleSpacing: 0,
+        leading: widget.embedded
+            ? null
+            : IconButton(
+                icon: const Icon(Icons.arrow_back, color: AppTheme.adminInk, size: 24),
+                onPressed: () => Navigator.pop(context),
+              ),
+        titleSpacing: widget.embedded ? null : 0,
         title: const CpmsPageTitle('Store Rooms', icon: Icons.warehouse_outlined, accent: AppTheme.adminStorage),
         actions: [
           IconButton(
@@ -73,10 +81,11 @@ class _StoreRoomsListScreenState extends State<StoreRoomsListScreen> {
               inventory.loadItems();
             },
           ),
-          const Padding(
-            padding: EdgeInsets.only(right: 12),
-            child: UserProfileAvatar(),
-          ),
+          if (!widget.embedded)
+            const Padding(
+              padding: EdgeInsets.only(right: 12),
+              child: UserProfileAvatar(),
+            ),
         ],
         bottom: const PreferredSize(
           preferredSize: Size.fromHeight(1),
